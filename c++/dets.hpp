@@ -10,7 +10,7 @@ namespace triqs_ctint {
    * Type of row and column argument of the Green function matrix inside the determinant.
    * G(x,y) is evaluated at the time-difference x.tau - y.tau. 
    */
-  struct arg_t {
+  template <bool dagger> struct arg_t {
     /// The imaginary time
     tau_t tau;
 
@@ -27,6 +27,9 @@ namespace triqs_ctint {
     bool operator<(arg_t const &x) const { return std::tie(tau, a, s) < std::tie(x.tau, x.a, x.s); }
   };
 
+  using c_t    = arg_t<false>;
+  using cdag_t = arg_t<true>;
+
   /**
    * Functor that evaluates the matrix elements, used by the det_manip. 
    * Cares for the possible alpha-shift along the diagonal of the matrix.
@@ -38,11 +41,11 @@ namespace triqs_ctint {
     /// The alpha function
     array<double, 2> alpha;
 
-    double operator()(arg_t const &x, arg_t const &y) const { // TODO Real/Imag
-      if ((x.tau == y.tau) && (x.a == y.a)) { return real(G0_shift_tau[0](x.a, y.a)) + (x.with_alpha_shift ? 1.0 - alpha(x.a, x.s) : 1.0); }
-      double d_tau = cyclic_difference(x.tau, y.tau);
-      double res   = real(G0_shift_tau[closest_mesh_pt(d_tau)](x.a, y.a));
-      return (x.tau >= y.tau ? res : -res);
+    double operator()(c_t const &c, cdag_t const &cdag) const { // TODO Real/Imag
+      if ((c.tau == cdag.tau) && (c.a == cdag.a)) { return real(G0_shift_tau[0](c.a, cdag.a)) + (c.with_alpha_shift ? 1.0 - alpha(c.a, c.s) : 1.0); }
+      double d_tau = cyclic_difference(c.tau, cdag.tau);
+      double res   = real(G0_shift_tau[closest_mesh_pt(d_tau)](c.a, cdag.a));
+      return (c.tau >= cdag.tau ? res : -res);
     }
   };
 

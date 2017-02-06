@@ -20,10 +20,10 @@ namespace triqs_ctint::measures {
     for (int b = 0; b < F_tau_.size(); b++) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
-      foreach (qmc_config.dets[b], [&](arg_t const &x, arg_t const &y, auto const &Ginv) {
+      foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
 
-        for (int c = 0; c < F_tau_[b].target_shape()[0]; c++)
-          F_tau_[b][closest_mesh_pt(y.tau)](y.a, c) += Ginv * sign * G0_tau[b][closest_mesh_pt(x.tau)](x.a, c);
+        for (int i = 0; i < F_tau_[b].target_shape()[0]; i++)
+          F_tau_[b][closest_mesh_pt(cdag.tau)](cdag.a, i) += Ginv * sign * G0_tau[b][closest_mesh_pt(c.tau)](c.a, i);
       })
         ;
     }

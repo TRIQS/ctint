@@ -21,38 +21,40 @@ namespace triqs_ctint {
     return first;
   };
 
-  // Find index of first row in determinant matrix that has an arg_t not less than x.
-  int get_x_lower_bound(det_t const *d, arg_t const &x) {
-    return lower_bound(d->size(), [d](int n) { return d->get_x(n); }, x);
+  // Find index of first row in determinant matrix that has an element not less than c.
+  int get_c_lower_bound(det_t const *d, c_t const &c) {
+    return lower_bound(d->size(), [d](int n) { return d->get_x(n); }, c);
   }
 
-  // Find index of first column in determinant matrix that has an arg_t not less than y.
-  int get_y_lower_bound(det_t const *d, arg_t const &y) {
-    return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, y);
+  // Find index of first column in determinant matrix that has an element not less than cdag.
+  int get_cdag_lower_bound(det_t const *d, cdag_t const &cdag) {
+    return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, cdag);
   }
 
   double lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
 
     // Equal number of creation and annihilation operators required
-    if (x_count != y_count) TRIQS_RUNTIME_ERROR << "Internal Error";
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Internal Error";
 
     // Trivial insert
-    if (x_count == 0) return 1.0;
+    if (c_count == 0) return 1.0;
 
     // Sort, since operators have to be inserted in order
-    std::sort(x.begin(), x.begin() + x_count);
-    std::sort(y.begin(), y.begin() + x_count);
+    std::sort(c_lst.begin(), c_lst.begin() + c_count);
+    std::sort(cdag_lst.begin(), cdag_lst.begin() + c_count);
 
     // Calculate the insertion positions
-    for (int i = 0; i < x_count; ++i) {
-      px[i] = i + get_x_lower_bound(d, x[i]); // Shift by i to take into account of the insertion of previous ones.
-      py[i] = i + get_y_lower_bound(d, y[i]);
+    for (int i = 0; i < c_count; ++i) {
+      pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
+      pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
     }
 
     // Perform single or double insertion
-    switch (x_count) {
-      case (1): return d->try_insert(px[0], py[0], x[0], y[0]) * (((px[0] + py[0]) % 2) == 0 ? 1 : -1);
-      case (2): return d->try_insert2(px[0], px[1], py[0], py[1], x[0], x[1], y[0], y[1]) * (((px[0] + px[1] + py[0] + py[1]) % 2) == 0 ? 1 : -1);
+    switch (c_count) {
+      case (1): return d->try_insert(pos_c[0], pos_cdag[0], c_lst[0], cdag_lst[0]) * (((pos_c[0] + pos_cdag[0]) % 2) == 0 ? 1 : -1);
+      case (2):
+        return d->try_insert2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1], c_lst[0], c_lst[1], cdag_lst[0], cdag_lst[1])
+           * (((pos_c[0] + pos_c[1] + pos_cdag[0] + pos_cdag[1]) % 2) == 0 ? 1 : -1);
       default:
         TRIQS_RUNTIME_ERROR << "Not implemented";
         return 0; // avoid compiler warning
@@ -62,21 +64,22 @@ namespace triqs_ctint {
   double lazy_det_operation_t::one_block::execute_try_remove(det_t *d) {
 
     // Equal number of creation and annihilation operators required
-    if (x_count != y_count) TRIQS_RUNTIME_ERROR << "Internal Error";
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Internal Error";
 
     // Trivial removal
-    if (x_count == 0) return 1.0;
+    if (c_count == 0) return 1.0;
 
     // Calculate the removal positions
-    for (int i = 0; i < x_count; ++i) {
-      px[i] = get_x_lower_bound(d, x[i]);
-      py[i] = get_y_lower_bound(d, y[i]);
+    for (int i = 0; i < c_count; ++i) {
+      pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
+      pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
     }
 
     // Perform single or double removal
-    switch (x_count) {
-      case (1): return d->try_remove(px[0], py[0]) * (((px[0] + py[0]) % 2) == 0 ? 1 : -1);
-      case (2): return d->try_remove2(px[0], px[1], py[0], py[1]) * (((px[0] + px[1] + py[0] + py[1]) % 2) == 0 ? 1 : -1);
+    switch (c_count) {
+      case (1): return d->try_remove(pos_c[0], pos_cdag[0]) * (((pos_c[0] + pos_cdag[0]) % 2) == 0 ? 1 : -1);
+      case (2):
+        return d->try_remove2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1]) * (((pos_c[0] + pos_c[1] + pos_cdag[0] + pos_cdag[1]) % 2) == 0 ? 1 : -1);
       default:
         TRIQS_RUNTIME_ERROR << "Not implemented";
         return 0; // avoid compiler warning

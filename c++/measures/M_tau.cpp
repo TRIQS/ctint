@@ -19,16 +19,16 @@ namespace triqs_ctint::measures {
     for (int b = 0; b < M_tau_.size(); b++) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
-      foreach (qmc_config.dets[b], [&](arg_t const &x, arg_t const &y, auto const &Ginv) {
+      foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
 
         // Absolut time-difference tau of the index pair
-        double tau = cyclic_difference(y.tau, x.tau);
+        double tau = cyclic_difference(cdag.tau, c.tau);
 
         // Care for sign-change in case of tau-shift
-        int factor = (x.tau > y.tau) ? -sign : sign;
+        int factor = (c.tau > cdag.tau) ? -sign : sign;
 
         // Project tau to closest point on the binning grid
-        M_tau_[b][closest_mesh_pt(tau)](y.a, x.a) += Ginv * factor;
+        M_tau_[b][closest_mesh_pt(tau)](cdag.a, c.a) += Ginv * factor;
       })
         ;
     }

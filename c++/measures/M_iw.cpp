@@ -27,16 +27,16 @@ namespace triqs_ctint::measures {
     for (int b = 0; b < M_iw_.size(); b++) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
-      foreach (qmc_config.dets[b], [&](arg_t const &x, arg_t const &y, auto const &Ginv) {
+      foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
 
         // Absolut time-difference tau of the index pair
-        double tau = cyclic_difference(y.tau, x.tau);
+        double tau = cyclic_difference(cdag.tau, c.tau);
 
         // Care for sign-change in case of tau-shift
-        int factor = (x.tau > y.tau) ? -sign : sign;
+        int factor = (c.tau > cdag.tau) ? -sign : sign;
 
         // Push {tau, f(tau)} pair into nfft buffer
-        auto &buf = buf_vec[b](y.a, x.a);
+        auto &buf = buf_vec[b](cdag.a, c.a);
         buf.push_back({tau}, Ginv * factor);
       })
         ;
