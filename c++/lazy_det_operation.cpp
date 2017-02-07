@@ -44,9 +44,11 @@ namespace triqs_ctint {
     std::sort(cdag_lst.begin(), cdag_lst.begin() + c_count);
 
     // Calculate the insertion positions
+    double prefactor = 1.0; // account for resorting of operators
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
       pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
+      if ((pos_c[i] + pos_cdag[i]) % 2 != 0) prefactor *= -1.0;
     }
 
     // Perform single or double insertion
@@ -70,16 +72,18 @@ namespace triqs_ctint {
     if (c_count == 0) return 1.0;
 
     // Calculate the removal positions
+    double prefactor = 1.0; // account for resorting of operators
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
       pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
+      if ((pos_c[i] + pos_cdag[i]) % 2 != 0) prefactor *= -1.0;
     }
 
     // Perform single or double removal
     switch (c_count) {
-      case (1): return d->try_remove(pos_c[0], pos_cdag[0]) * (((pos_c[0] + pos_cdag[0]) % 2) == 0 ? 1 : -1);
+      case (1): return d->try_remove(pos_c[0], pos_cdag[0]) * prefactor; 
       case (2):
-        return d->try_remove2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1]) * (((pos_c[0] + pos_c[1] + pos_cdag[0] + pos_cdag[1]) % 2) == 0 ? 1 : -1);
+        return d->try_remove2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1]) * prefactor; 
       default:
         TRIQS_RUNTIME_ERROR << "Not implemented";
         return 0; // avoid compiler warning

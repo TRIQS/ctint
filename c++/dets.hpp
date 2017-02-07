@@ -36,7 +36,7 @@ namespace triqs_ctint {
    */
   struct G0hat_t {
     /// The (shifted) non-interacting Green function
-    gf<imtime, matrix_valued> const &G0_shift_tau;
+    gf<imtime, matrix_valued> const &G0_shift_tau; 
 
     /// The alpha function
     array<double, 2> alpha;

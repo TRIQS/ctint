@@ -51,16 +51,16 @@ namespace triqs_ctint {
   struct vertex_idx_t {
 
     /// First operator of the vertex (outgoing, c^\dagger): block index, non-block
-    int b1, i1;
+    int b1, a1;
 
     /// Second operator of the vertex (ingoing, c): block index, non-block
-    int b2, i2;
+    int b2, a2;
 
     /// Third operator of the vertex (outgoing, c^\dagger): block index, non-block
-    int b3, i3;
+    int b3, a3;
 
     /// Fourth operator of the vertex (ingoing, c): block index, non-block
-    int b4, i4;
+    int b4, a4;
   };
 
   /**

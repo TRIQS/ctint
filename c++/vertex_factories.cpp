@@ -43,16 +43,15 @@ namespace triqs_ctint {
       std::vector<gf_const_view<imtime, scalar_valued>> ktau_s;
 
       //--density-density
-      for (int sig = 0; sig < (*D0_iw).size(); sig++) {                                            // TODO rename, not sig!!!
-        auto D = make_gf_from_inverse_fourier((*D0_iw)[sig], params.n_tau_dynamical_interactions); // Use block_gf fourier
+      for (int n = 0; n < (*D0_iw).size(); n++) {
+        auto D = make_gf_from_inverse_fourier((*D0_iw)[n], params.n_tau_dynamical_interactions); // Use block_gf fourier
         for (int a = 0; a < D.target_shape()[0]; a++)
           for (int b = 0; b < D.target_shape()[1]; b++) {
 
-            int bl1 = sig / params.n_blocks();
-            int bl2 = sig % params.n_blocks();
+            int bl1 = n / params.n_blocks();
+            int bl2 = n % params.n_blocks();
 
             indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
-
             auto d = slice_target_to_scalar(D, a, b);
             ktau_s.push_back(d);
           }
@@ -95,7 +94,7 @@ namespace triqs_ctint {
         tau_t tp          = tau_t::get_random(rng);
         double d_tau      = cyclic_difference(t, tp);
         double prop_proba = 1.0 / (beta * beta * indices.size());
-        return vertex_t{indices[n], t, t, tp, tp, real(ktau_s[n](d_tau)) / 4.0, prop_proba}; // CHECK why 1/4 ?? Check sign
+        return vertex_t{indices[n], t, t, tp, tp, real(ktau_s[n](d_tau)) / 4.0, prop_proba};
       };
 
       vertex_factories.push_back(l);
