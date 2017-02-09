@@ -65,6 +65,7 @@ S.solve(h_int=h_int,
         n_warmup_cycles = 0,
         random_seed = 34788,
         measure_M_tau = True,
+        measure_M_iw = True,
         measure_F_tau = True,
         post_process = False )
 
@@ -72,6 +73,7 @@ S.solve(h_int=h_int,
 A = HDFArchive("%s.out.h5"%test_name,'w')
 A["G0_iw"] = S.G0_iw
 A["M_tau"] = S.M_tau
+A["M_iw_nfft"] = S.M_iw_nfft
 A["F_tau"] = S.F_tau
 
 # -------- Compare ---------
