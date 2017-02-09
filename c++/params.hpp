@@ -86,6 +86,8 @@ namespace triqs_ctint {
     /// Verbosity
     int verbosity = triqs::mpi::communicator().rank() == 0 ? 3 : 0;
 
+    // ----------- Measurements -----------
+
     /// Measure the MC sign
     bool measure_average_sign = true;
 
@@ -97,6 +99,14 @@ namespace triqs_ctint {
 
     /// Measure F(tau)
     bool measure_F_tau = false;
+
+    /// Measure M4(tau)
+    bool measure_M4_tau = false;
+    int n_tau_M4        = 100;
+
+    /// Measure M4(iw) NFFT
+    bool measure_M4_iw = false;
+    int n_iw_M4        = 100;
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 10000;

@@ -15,7 +15,7 @@ namespace triqs_ctint {
     tau_t tau;
 
     /// The orbital (or non-block) index
-    int a;
+    int u;
 
     /// Switch for alpha shift along the diagonal of the matrix. Relevant for density-type interactions
     bool with_alpha_shift;
@@ -24,7 +24,7 @@ namespace triqs_ctint {
     int s;
 
     /// Lexicographical sorting of arg_t. This determines the order of row and columns inside the dets.
-    bool operator<(arg_t const &x) const { return std::tie(tau, a, s) < std::tie(x.tau, x.a, x.s); }
+    bool operator<(arg_t const &x) const { return std::tie(tau, u, s) < std::tie(x.tau, x.u, x.s); }
   };
 
   using c_t    = arg_t<false>;
@@ -42,9 +42,9 @@ namespace triqs_ctint {
     array<double, 2> alpha;
 
     double operator()(c_t const &c, cdag_t const &cdag) const { // TODO Real/Imag
-      if ((c.tau == cdag.tau) && (c.a == cdag.a)) { return real(G0_shift_tau[0](c.a, cdag.a)) + (c.with_alpha_shift ? 1.0 - alpha(c.a, c.s) : 1.0); }
+      if ((c.tau == cdag.tau) && (c.u == cdag.u)) { return real(G0_shift_tau[0](c.u, cdag.u)) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
       double d_tau = cyclic_difference(c.tau, cdag.tau);
-      double res   = real(G0_shift_tau[closest_mesh_pt(d_tau)](c.a, cdag.a));
+      double res   = real(G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u));
       return (c.tau >= cdag.tau ? res : -res);
     }
   };

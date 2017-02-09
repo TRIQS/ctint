@@ -4,7 +4,7 @@ namespace triqs_ctint::measures {
 
   M_iw::M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
-    // Init Measurement Container and Capture View
+    // Init measurement container and capture view
     results->M_iw_nfft = make_block_gf(gf_mesh<imfreq>{params.beta, Fermion, params.n_iw}, params.gf_struct);
     M_iw_.rebind(*results->M_iw_nfft);
     M_iw_() = 0;
@@ -24,7 +24,7 @@ namespace triqs_ctint::measures {
 
     // Loop over blocks
     // for (auto const & [D,M] : triqs::std::zip(qmc_config.dets, results->M_tau)) 	// C++17
-    for (int b = 0; b < M_iw_.size(); b++) {
+    for (int b = 0; b < M_iw_.size(); ++b) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
@@ -36,7 +36,7 @@ namespace triqs_ctint::measures {
         int factor = (c.tau > cdag.tau) ? -sign : sign;
 
         // Push {tau, f(tau)} pair into nfft buffer
-        auto &buf = buf_vec[b](cdag.a, c.a);
+        auto &buf = buf_vec[b](cdag.u, c.u);
         buf.push_back({tau}, Ginv * factor);
       })
         ;

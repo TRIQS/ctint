@@ -4,7 +4,7 @@ namespace triqs_ctint::measures {
 
   M_tau::M_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
-    // Init Measurement Container and Capture View
+    // Init measurement container and capture view
     results->M_tau = make_block_gf(gf_mesh<imtime>{params.beta, Fermion, params.n_tau}, params.gf_struct);
     M_tau_.rebind(*results->M_tau);
     M_tau_() = 0;
@@ -16,7 +16,7 @@ namespace triqs_ctint::measures {
 
     // Loop over blocks
     // for (auto const & [D,M] : triqs::std::zip(config.dets, results->M_tau)) 	// C++17
-    for (int b = 0; b < M_tau_.size(); b++) {
+    for (int b = 0; b < M_tau_.size(); ++b) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
@@ -28,7 +28,7 @@ namespace triqs_ctint::measures {
         int factor = (c.tau > cdag.tau) ? -sign : sign;
 
         // Project tau to closest point on the binning grid
-        M_tau_[b][closest_mesh_pt(tau)](cdag.a, c.a) += Ginv * factor;
+        M_tau_[b][closest_mesh_pt(tau)](cdag.u, c.u) += Ginv * factor;
       })
         ;
     }
@@ -38,13 +38,13 @@ namespace triqs_ctint::measures {
     // Collect results and normalize
     Z           = mpi_all_reduce(Z, comm);
     M_tau_      = mpi_all_reduce(M_tau_, comm);
-    double dtau = params.beta / (M_tau_[0].mesh().size() - 1);
+    double dtau = M_tau_[0].mesh().delta();
     M_tau_      = M_tau_ / (-Z * dtau * params.beta);
 
     // Multiply first and last bin by two
     for (auto &M : M_tau_) {
-      M.data()(M.mesh().size() - 1, range(), range()) *= 2.0;
-      M.data()(0, range(), range()) *= 2.0;
+      M[0] *= 2.0;
+      M[params.n_tau - 1] *= 2.0;
     }
   }
 

@@ -1,12 +1,9 @@
 #include "./solver_core.hpp"
 #include "./vertex_factories.hpp"
+#include "./qmc_config.hpp"
 #include "./moves/insert.hpp"
 #include "./moves/remove.hpp"
-#include "./qmc_config.hpp"
-#include "./measures/average_sign.hpp"
-#include "./measures/M_tau.hpp"
-#include "./measures/M_iw.hpp"
-#include "./measures/F_tau.hpp"
+#include "./measures.hpp"
 
 namespace triqs_ctint {
 
@@ -19,7 +16,7 @@ namespace triqs_ctint {
     G0_iw        = make_block_gf(gf_mesh<imfreq>{p.beta, Fermion, p.n_iw}, p.gf_struct);
     G0_shift_tau = make_block_gf(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
 
-    // Allocate containers for dynamical density-density interaction
+    // Allocate containers for dynamical density-density interaction // FIXME Block2_gf ?
     if (p.use_D) {
       auto D_block_names = std::vector<std::string>{};
       for (auto const &str1 : p.block_names())
@@ -80,6 +77,8 @@ namespace triqs_ctint {
     if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
     if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
     if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
+    if (params.measure_M4_tau) mc.add_measure(measures::M4_tau{params, qmc_config, &result_set()}, "M4_tau measure");
+    if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));

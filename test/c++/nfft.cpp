@@ -68,7 +68,7 @@ TEST_F(Nfft, Equid) {
 
   // Compare to exact and fftw
   EXPECT_GF_NEAR(giw_nfft_equid, giw_exact, 1e-4); // Same order of fftw discretization error
-  EXPECT_GF_NEAR(giw_nfft_equid, giw_fftw, 1e-12); // Should show only small deviation due to truncation in nfft
+  EXPECT_GF_NEAR(giw_nfft_equid, giw_fftw, 1e-8);  // Only small deviation due to truncation/oversampling factor (see Fig.3 Notes Josef)
 
   // -- Now check multiple transforms
 
@@ -200,7 +200,7 @@ TEST_F(Nfft, 2D) {
 
   // Compare
   EXPECT_GF_NEAR(giw_nfft_2d, giw_exact_2d, 1e-2); // Same order of fftw discretization error
-  EXPECT_GF_NEAR(giw_nfft_2d, giw_fftw_2d, 1e-12); // Should show only small deviation due to truncation in nfft
+  EXPECT_GF_NEAR(giw_nfft_2d, giw_fftw_2d, 1e-8);  // Only small deviation due to truncation/oversampling factor (see Fig.3 Notes Josef)
 
   // Write to file
   // triqs::h5::file h5file("nfft.2d.h5", 'w');

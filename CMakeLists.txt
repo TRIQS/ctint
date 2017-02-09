@@ -8,8 +8,12 @@ list(APPEND CMAKE_MODULE_PATH ${TRIQS_PATH}/share/triqs/cmake)
 # start configuration 
 cmake_minimum_required(VERSION 2.8)
 project(ctint CXX)
-set(CMAKE_BUILD_TYPE Release)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING " Defaults to type Release " FORCE)
+endif()
 enable_testing()
+
+message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
 
 # We use shared libraries
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
@@ -30,11 +34,8 @@ add_definitions(${TRIQS_CXX_DEFINITIONS})
 
 # Check that versions are compatible
 if(NOT CTINT_VERSION EQUAL TRIQS_VERSION)
-  message(FATAL_ERROR "The application version is not compatible with the TRIQS library (TRIQS library version: ${TRIQS_VERSION} while this application version: ${CTHYB_SEGMENT_VERSION})")
+  message(FATAL_ERROR "The application version is not compatible with the TRIQS library (TRIQS library version: ${TRIQS_VERSION} while this application version: ${CTINT_VERSION})")
 endif()
-
-option(DEBUG_CTINT "Debug mode" OFF)
-option(VERBOSE_CTINT "Verbose mode" OFF)
 
 # We want to be installed in the TRIQS tree
 set(CMAKE_INSTALL_PREFIX ${TRIQS_PATH})

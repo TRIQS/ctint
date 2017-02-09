@@ -1,15 +1,18 @@
 #pragma once
 
-#ifdef CTINT_DEBUG
+#ifdef DEBUG_CTINT
 #define TRIQS_ARRAYS_ENFORCE_BOUNDCHECK
 #define TRIQS_EXCEPTION_SHOW_CPP_TRACE
 #include <iostream>
 #include <string.h>
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ":" << __LINE__ << '\n'
+#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << '\n'
+#define BREAK(X) std::cerr << X << " ... \n"; getchar() 
 #define PRINT(X) std::cerr << "\n ========= " << X << " ========= \n"
 #else
 #define DEBUG(X)
+#define BREAK(X)
+#define PRINT(X)
 #endif
 
 #include <triqs/gfs.hpp>

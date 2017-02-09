@@ -17,13 +17,13 @@ namespace triqs_ctint::measures {
 
     // Loop over blocks
     // for (auto const & [D,M] : triqs::std::zip(config.dets, results->M_tau)) 	// C++17
-    for (int b = 0; b < F_tau_.size(); b++) {
+    for (int b = 0; b < F_tau_.size(); ++b) {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c, cdag_t const &cdag, auto const &Ginv) {
 
         for (int i = 0; i < F_tau_[b].target_shape()[0]; i++)
-          F_tau_[b][closest_mesh_pt(cdag.tau)](cdag.a, i) += Ginv * sign * G0_tau[b][closest_mesh_pt(c.tau)](c.a, i);
+          F_tau_[b][closest_mesh_pt(cdag.tau)](cdag.u, i) += Ginv * sign * G0_tau[b][closest_mesh_pt(c.tau)](c.u, i);
       })
         ;
     }
@@ -34,7 +34,7 @@ namespace triqs_ctint::measures {
 
     Z           = mpi_all_reduce(Z, comm);
     F_tau_      = mpi_all_reduce(F_tau_, comm);
-    double dtau = params.beta / (F_tau_[0].mesh().size() - 1);
+    double dtau = F_tau_[0].mesh().delta();
     F_tau_      = F_tau_ / (-Z * dtau);
 
     // Multiply first and last bin by two

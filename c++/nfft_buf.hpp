@@ -2,6 +2,7 @@
 #include <numeric>
 #include <triqs/arrays.hpp>
 #include <array>
+#include <cmath>
 
 //#define NFFT_PRECISION_DOUBLE
 //#include "nfft3mp.h" // Multi Precision: Only available with nfft3.3.0+
@@ -34,7 +35,15 @@ namespace triqs::utility {
 
       // Init nfft_plan
       plan_ptr = std::make_unique<nfft_plan>();
-      nfft_init(plan_ptr.get(), Rank, extents_int.data(), buf_size); // extents must be int here!
+      int m    = 6; // Truncation order for the window functions
+      int n[Rank];  // Size of fftw array. Each dimension should be 2-4 times larger than nfft freq extents (oversampling factor)
+      for (int i = 0; i < Rank; i++) {
+        int power = log2(extents_int.data()[i]);
+        n[i]      = pow(2.0, 1.0 + ceil(power));
+      }
+      unsigned nfft_flags = PRE_PHI_HUT | PRE_PSI | MALLOC_X | MALLOC_F_HAT | MALLOC_F | FFTW_INIT /*|FFT_OUT_OF_PLACE*/ | NFFT_SORT_NODES;
+      unsigned fftw_flags = FFTW_ESTIMATE | FFTW_DESTROY_INPUT;
+      nfft_init_guru(plan_ptr.get(), Rank, extents_int.data(), buf_size, n, m, nfft_flags, fftw_flags);
     }
 
     ~nfft_buf_t() {
