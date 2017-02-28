@@ -9,22 +9,9 @@ namespace triqs_ctint::measures {
     gf_mesh<cartesian_product<imfreq, imfreq, imfreq>> M4_iw_mesh{iw_mesh, iw_mesh, iw_mesh};
 
     // Init measurement container and capture view
-    std::vector<std::vector<block_type>> v_iw;
-    for (auto const &bl1 : params.gf_struct) {
-      std::vector<block_type> temp_vec;
-      for (auto const &bl2 : params.gf_struct)
-        temp_vec.emplace_back(M4_iw_mesh, make_shape(bl1.second.size(), bl1.second.size(), bl2.second.size(), bl2.second.size()));
-      v_iw.emplace_back(std::move(temp_vec));
-    }
-    results->M4_iw_nfft = make_block2_gf(params.block_names(), params.block_names(), v_iw);
+    results->M4_iw_nfft = make_block2_gf(M4_iw_mesh, params.gf_struct);
     M4_iw_.rebind(*results->M4_iw_nfft);
     M4_iw_() = 0;
-
-    // Possible implementation using new block container ( array + vec<vec<string>> )
-    //auto init_func = [&p, &M4_iw_mesh](int bl1, int bl2) {
-    //return block_type{ M4_iw_mesh, make_shape(gf_struct[bl1], gf_struct[bl1], gf_struct[bl2], gf_struct[bl2]) };
-    //};
-    //block2_gf_t M4_new{ make_shape(p.n_blocks, p.n_blocks), init_func };
 
     // Create nfft buffers
     for (int b1 = 0; b1 < params.n_blocks(); ++b1) {
@@ -43,31 +30,21 @@ namespace triqs_ctint::measures {
     // Accumulate sign
     Z += sign;
 
-    for (int b1 = 0; b1 < params.n_blocks(); ++b1)
+    for (int b1 : range(params.n_blocks()))
       foreach (qmc_config.dets[b1], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv1) {
-        for (int b2 = 0; b2 < params.n_blocks(); ++b2)
+        for (int b2 : range(params.n_blocks()))
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
-	    auto Ginv1_x_Ginv2_x_sign = Ginv1 * Ginv2 * sign; 
 
-            int factor  = 1;
-            double tau1 = cyclic_difference(c_i.tau, cdag_l.tau);
-            if (c_i.tau < cdag_l.tau) factor *= -1;
-            double tau2 = cyclic_difference(cdag_l.tau, cdag_j.tau); // Account for opposite sign in frequency by swapping l and j
-            if (cdag_l.tau < cdag_j.tau) factor *= -1;
-            double tau3 = cyclic_difference(c_k.tau, cdag_l.tau);
-            if (c_k.tau < cdag_l.tau) factor *= -1;
-            buf_vecvec[b1][b2](c_i.u, cdag_j.u, c_k.u, cdag_l.u).push_back({tau1, tau2, tau3}, Ginv1_x_Ginv2_x_sign * factor);
+            auto add_to_buf = [&](auto &c_1, auto &cdag_2, auto &c_3, auto &cdag_4, double factor) {
+              double tau1    = cyclic_difference(c_1.tau, cdag_4.tau);
+              double tau2    = cyclic_difference(cdag_4.tau, cdag_2.tau); // Account for opposite sign in frequency of c^\dagger by swap
+              double tau3    = cyclic_difference(c_3.tau, cdag_4.tau);
+              int sign_flips = int(c_1.tau < cdag_4.tau) + int(cdag_4.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
+              buf_vecvec[b1][b2](c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? factor : -factor));
+            };
 
-            if (b1 == b2) {
-              factor = 1;
-              tau1   = cyclic_difference(c_i.tau, cdag_j.tau);
-              if (c_i.tau < cdag_l.tau) factor *= -1;
-              tau2 = cyclic_difference(cdag_j.tau, cdag_l.tau); // Account for opposite sign in frequency by swapping l and j
-              if (cdag_j.tau < cdag_l.tau) factor *= -1;
-              tau3 = cyclic_difference(c_k.tau, cdag_j.tau);
-              if (c_k.tau < cdag_j.tau) factor *= -1;
-              buf_vecvec[b1][b2](c_i.u, cdag_l.u, c_k.u, cdag_j.u).push_back({tau1, tau2, tau3}, -Ginv1_x_Ginv2_x_sign * factor);
-            }
+            add_to_buf(c_i, cdag_j, c_k, cdag_l, sign);
+            if (b1 == b2) add_to_buf(c_i, cdag_l, c_k, cdag_j, -sign);
           })
             ;
       })
