@@ -4,6 +4,8 @@
 #include "./moves/insert.hpp"
 #include "./moves/remove.hpp"
 #include "./measures.hpp"
+#include "./post_process.hpp"
+#include "./fourier.hpp"
 
 namespace triqs_ctint {
 
@@ -85,7 +87,7 @@ namespace triqs_ctint {
     mc.collect_results(world);
 
     // Post Processing
-    if (params.post_process) post_process(qmc_config, &result_set());
+    if (params.post_process) post_process(params, qmc_config, &result_set());
 
     // Write results to file
     triqs::h5::file h5file("ctqmc_out.h5", 'w');
@@ -126,19 +128,20 @@ namespace triqs_ctint {
         double h_shift = (p.hartree_shift.size() > 0) ? p.hartree_shift[sig] : 0.0;
         g(iw_) << g(iw_) + h_shift - term / p.n_s;
       }
-
-      // Invert and Fourier transform to imaginary times
-      G0_shift_tau()[sig] = triqs::gfs::inverse_fourier(inverse(G0_inv[sig]));
     }
-    //// Invert and Fourier transform to imaginary times FIXME CHECK
-    //G0_shift_tau = make_gf_from_inverse_fourier(inverse(G0_inv));
+    // Invert and Fourier transform to imaginary times
+    G0_shift_tau = make_gf_from_inverse_fourier_new(inverse(G0_inv), p.n_tau);
   }
 
   // -------------------------------------------------------------------------------
 
-  void solver_core::post_process(qmc_config_t const &qmc_config, container_set *results) {
-    // TODO Init dependent containers
-    // TODO Do already after measure ?
+  void solver_core::post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results) {
+
+    // Calculate M_iw from M_tau
+    if (M_tau) M_iw = make_gf_from_fourier_new(*M_tau, p.n_iw_M4);
+
+    // Calculate M4_iw from M4_tau
+    if (M4_tau) M4_iw = make_gf_from_fourier_new(*M4_tau, p.n_iw_M4, p.n_iw_M4, p.n_iw_M4);
   }
 
 } // namespace triqs_ctint

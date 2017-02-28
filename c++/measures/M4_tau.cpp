@@ -4,7 +4,7 @@ namespace triqs_ctint::measures {
 
   M4_tau::M4_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
-     // Construct imaginary time mesh
+    // Construct imaginary time mesh
     gf_mesh<imtime> time_mesh{params.beta, Fermion, params.n_tau_M4};
     gf_mesh<cartesian_product<imtime, imtime, imtime>> M4_tau_mesh{time_mesh, time_mesh, time_mesh};
 
@@ -32,11 +32,19 @@ namespace triqs_ctint::measures {
         for (int b2 = 0; b2 < params.n_blocks(); ++b2)
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
             int factor  = 1;
-            double tau1 = cyclic_difference(cdag_j.tau, c_i.tau);
-            if (cdag_j.tau < c_i.tau) factor *= -1;
-            double tau2 = cyclic_difference(c_k.tau, cdag_j.tau); //bosonic time, no sign
-            double tau3 = cyclic_difference(cdag_l.tau, c_k.tau);
-            if (cdag_l.tau < c_k.tau) factor *= -1;
+            double tau1 = cyclic_difference(c_i.tau, cdag_l.tau);
+            if (c_i.tau < cdag_l.tau) factor *= -1;
+            double tau2 = cyclic_difference(cdag_j.tau, cdag_l.tau);
+            if (cdag_j.tau < cdag_l.tau) factor *= -1;
+            double tau3 = cyclic_difference(c_k.tau, cdag_l.tau);
+            if (c_k.tau < cdag_l.tau) factor *= -1;
+
+            //// Old Code
+            //double tau1 = cyclic_difference(c_i.tau, cdag_j.tau);
+            //if (c_i.tau < cdag_j.tau) factor *= -1;
+            //double tau2 = cyclic_difference(cdag_j.tau, c_k.tau); // bosonic time
+            //double tau3 = cyclic_difference(c_k.tau, cdag_l.tau);
+            //if (c_k.tau < cdag_l.tau) factor *= -1;
 
             auto M = M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)]; // deduces to array_proxy<...>
 
@@ -53,19 +61,18 @@ namespace triqs_ctint::measures {
     Z           = mpi_all_reduce(Z, comm);
     M4_tau_     = mpi_all_reduce(M4_tau_, comm);
     double dtau = params.beta / (params.n_tau_M4 - 1);
-    //M4_tau_     = M4_tau_ / (Z * dtau * dtau * dtau * params.beta); FIXME
-    for (auto &M : M4_tau_) M = M / (Z * dtau * dtau * dtau * params.beta);
+    M4_tau_     = M4_tau_ / (Z * dtau * dtau * dtau * params.beta);
 
     // Account for edge bins beeing smaller
-    auto _ = var_t{}; 
-    int n = params.n_tau_M4 - 1;
+    auto _ = var_t{};
+    int n  = params.n_tau_M4 - 1;
     for (auto &M : M4_tau_) {
-       M[0][_][_] *= 2.0; 
-       M[_][0][_] *= 2.0; 
-       M[_][_][0] *= 2.0; 
-       M[n][_][_] *= 2.0; 
-       M[_][n][_] *= 2.0; 
-       M[_][_][n] *= 2.0; 
+      M[0][_][_] *= 2.0;
+      M[_][0][_] *= 2.0;
+      M[_][_][0] *= 2.0;
+      M[n][_][_] *= 2.0;
+      M[_][n][_] *= 2.0;
+      M[_][_][n] *= 2.0;
     }
   }
 

@@ -20,6 +20,12 @@ namespace triqs_ctint::measures {
     M4_iw_.rebind(*results->M4_iw_nfft);
     M4_iw_() = 0;
 
+    // // New implementation ? 
+    //auto init_func = [&p, &M4_iw_mesh](int bl1, int bl2) {
+      //return block_type{ M4_iw_mesh, make_shape(gf_struct[bl1], gf_struct[bl1], gf_struct[bl2], gf_struct[bl2]) };
+    //};
+    //block2_gf_t M4_new{ make_shape(p.n_blocks, p.n_blocks), init_func }; 
+
     // Create nfft buffers
     for (int b1 = 0; b1 < params.n_blocks(); ++b1) {
       std::vector<array<triqs::utility::nfft_buf_t<3>, 4>> temp_vec;
@@ -42,17 +48,15 @@ namespace triqs_ctint::measures {
         for (int b2 = 0; b2 < params.n_blocks(); ++b2)
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
             int factor  = 1;
-            double tau1 = cyclic_difference(cdag_j.tau, c_i.tau);
-            if (cdag_j.tau < c_i.tau) factor *= -1;
-            double tau2 = cyclic_difference(c_k.tau, cdag_j.tau); //bosonic time, no sign
-            double tau3 = cyclic_difference(cdag_l.tau, c_k.tau);
-            if (cdag_l.tau < c_k.tau) factor *= -1;
-            
-	    buf_vecvec[b1][b2](c_i.u, cdag_j.u, c_k.u, cdag_l.u)
-	       .push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * factor * sign);
-	    if (b1 == b2)
-	      buf_vecvec[b1][b2](c_i.u, cdag_l.u, c_k.u, cdag_j.u)
-		 .push_back({tau1, tau2, tau3}, -Ginv1 * Ginv2 * factor * sign); 
+            double tau1 = cyclic_difference(c_i.tau, cdag_l.tau);
+            if (c_i.tau < cdag_l.tau) factor *= -1;
+            double tau2 = cyclic_difference(cdag_l.tau, cdag_j.tau); // Account for opposite sign in frequency by swapping l and j
+            if (cdag_l.tau < cdag_j.tau) factor *= -1;
+            double tau3 = cyclic_difference(c_k.tau, cdag_l.tau);
+            if (c_k.tau < cdag_l.tau) factor *= -1;
+
+            buf_vecvec[b1][b2](c_i.u, cdag_j.u, c_k.u, cdag_l.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * factor * sign);
+            if (b1 == b2) buf_vecvec[b1][b2](c_i.u, cdag_l.u, c_k.u, cdag_j.u).push_back({tau1, tau2, tau3}, -Ginv1 * Ginv2 * factor * sign);
           })
             ;
       })
@@ -68,9 +72,7 @@ namespace triqs_ctint::measures {
     // Collect results and normalize
     Z           = mpi_all_reduce(Z, comm);
     M4_iw_      = mpi_all_reduce(M4_iw_, comm);
-    double dtau = params.beta / (params.n_tau_M4 - 1);
-    //M4_iw_     = M4_iw_ / (Z * params.beta); FIXME in Block2_gf
-    for (auto &M : M4_iw_) M = M / (Z * params.beta);
+    M4_iw_      = M4_iw_ / (Z * params.beta);
   }
 
 } // namespace triqs_ctint::measures

@@ -54,6 +54,9 @@ namespace triqs_ctint {
   using namespace triqs::utility;
   using namespace triqs::h5;
 
+  /// The channel type
+  enum class Chan_t { PP, PH, XPH };
+
   /// Type of the Monte-Carlo weight. Either double or dcomplex
   using mc_weight_t = double;
 

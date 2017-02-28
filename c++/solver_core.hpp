@@ -54,7 +54,7 @@ namespace triqs_ctint {
     void prepare_G0_shift_tau(params_t const &params);
 
     // Perform post-processing
-    void post_process(qmc_config_t const &qmc_config, container_set *results);
+    void post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results);
 
     // Return reference to container_set
     container_set &result_set() { return static_cast<container_set &>(*this); }
