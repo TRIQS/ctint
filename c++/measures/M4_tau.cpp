@@ -31,6 +31,8 @@ namespace triqs_ctint::measures {
       foreach (qmc_config.dets[b1], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv1) {
         for (int b2 = 0; b2 < params.n_blocks(); ++b2)
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
+            auto Ginv1_x_Ginv2_x_sign = Ginv1 * Ginv2 * sign;
+
             int factor  = 1;
             double tau1 = cyclic_difference(c_i.tau, cdag_l.tau);
             if (c_i.tau < cdag_l.tau) factor *= -1;
@@ -47,9 +49,27 @@ namespace triqs_ctint::measures {
             //if (c_k.tau < cdag_l.tau) factor *= -1;
 
             auto M = M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)]; // deduces to array_proxy<...>
+            M(c_i.u, cdag_j.u, c_k.u, cdag_l.u) += Ginv1_x_Ginv2_x_sign * factor;
 
-            M(c_i.u, cdag_j.u, c_k.u, cdag_l.u) += Ginv1 * Ginv2 * factor * sign;
-            if (b1 == b2) M(c_i.u, cdag_l.u, c_k.u, cdag_j.u) -= Ginv1 * Ginv2 * factor * sign;
+            if (b1 == b2) {
+              factor = 1;
+              tau1  = cyclic_difference(c_i.tau, cdag_j.tau);
+              if (c_i.tau < cdag_j.tau) factor *= -1;
+              tau2 = cyclic_difference(cdag_l.tau, cdag_j.tau);
+              if (cdag_l.tau < cdag_j.tau) factor *= -1;
+              tau3 = cyclic_difference(c_k.tau, cdag_j.tau);
+              if (c_k.tau < cdag_j.tau) factor *= -1;
+
+              //// Old Code
+              //double tau1 = cyclic_difference(c_i.tau, cdag_l.tau);
+              //if (c_i.tau < cdag_l.tau) factor *= -1;
+              //double tau2 = cyclic_difference(cdag_l.tau, c_k.tau); // bosonic time
+              //double tau3 = cyclic_difference(c_k.tau, cdag_j.tau);
+              //if (c_k.tau < cdag_j.tau) factor *= -1;
+
+              M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)];
+              M(c_i.u, cdag_l.u, c_k.u, cdag_j.u) -= Ginv1_x_Ginv2_x_sign * factor;
+            }
           })
             ;
       })
