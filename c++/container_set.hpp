@@ -25,6 +25,15 @@ namespace triqs_ctint {
     /// Same as M4_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>> M4_iw_nfft;
 
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
+    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3pp_iw;
+
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
+    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3ph_iw;
+
+    /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
+    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3xph_iw;
+
     //============ Containers dependent on measured quantities
 
     /// The Fourier-transform of M_tau. Dependent on M_tau
@@ -52,6 +61,9 @@ namespace triqs_ctint {
       h5_write(grp, "Giw", c.Giw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
       h5_write(grp, "M4_iw", c.M4_iw);
+      h5_write(grp, "M3pp_iw", c.M3pp_iw);
+      h5_write(grp, "M3ph_iw", c.M3ph_iw);
+      h5_write(grp, "M3xph_iw", c.M3xph_iw);
     }
 
     /// Function that read all containers to hdf5 file
@@ -67,6 +79,9 @@ namespace triqs_ctint {
       h5_read(grp, "Giw", c.Giw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M4_iw", c.M4_iw);
+      h5_read(grp, "M3pp_iw", c.M3pp_iw);
+      h5_read(grp, "M3ph_iw", c.M3ph_iw);
+      h5_read(grp, "M3xph_iw", c.M3xph_iw);
     }
   };
 

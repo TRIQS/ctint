@@ -106,7 +106,13 @@ namespace triqs_ctint {
 
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
-    int n_iw_M4        = 100;
+    int n_iw_M4        = 50;
+
+    /// Measure M3(iw)
+    bool measure_M3pp_iw  = false;
+    bool measure_M3ph_iw  = false;
+    bool measure_M3xph_iw = false;
+    int n_iw_M3           = 50;
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 10000;

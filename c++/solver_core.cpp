@@ -81,6 +81,9 @@ namespace triqs_ctint {
     if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
     if (params.measure_M4_tau) mc.add_measure(measures::M4_tau{params, qmc_config, &result_set()}, "M4_tau measure");
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
+    if (params.measure_M3pp_iw) mc.add_measure(measures::M3_iw<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
+    if (params.measure_M3ph_iw) mc.add_measure(measures::M3_iw<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
+    if (params.measure_M3xph_iw) mc.add_measure(measures::M3_iw<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_iw measure");
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
