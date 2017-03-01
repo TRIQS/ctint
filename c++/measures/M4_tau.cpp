@@ -30,12 +30,13 @@ namespace triqs_ctint::measures {
               int sign_flips = int(c_1.tau < cdag_4.tau) + int(cdag_2.tau < cdag_4.tau) + int(c_3.tau < cdag_4.tau);
 
               //// Old Code
-              //double tau1 = cyclic_difference(c_1.tau, cdag_2.tau);
-              //double tau2 = cyclic_difference(cdag_2.tau, c_3.tau); // bosonic time
-              //double tau3 = cyclic_difference(c_3.tau, cdag_4.tau);
-              //int factor  = int(c_1.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
+              //double tau1    = cyclic_difference(c_1.tau, cdag_2.tau);
+              //double tau2    = cyclic_difference(c_3.tau, cdag_4.tau);
+              //double tau3    = cyclic_difference(cdag_2.tau, c_3.tau); // bosonic time
+              //int sign_flips = int(c_1.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
 
-              M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)] += Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor);
+              M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)](c_1.u, cdag_2.u, c_3.u, cdag_4.u) +=
+                 Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor);
             };
 
             add(c_i, cdag_j, c_k, cdag_l, sign);
