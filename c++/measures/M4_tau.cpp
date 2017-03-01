@@ -23,7 +23,7 @@ namespace triqs_ctint::measures {
         for (int b2 : range(params.n_blocks()))
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
 
-            auto add_to_buf = [&](auto &c_1, auto &cdag_2, auto &c_3, auto &cdag_4, double factor) {
+            auto add = [&](auto &c_1, auto &cdag_2, auto &c_3, auto &cdag_4, double factor) {
               double tau1    = cyclic_difference(c_1.tau, cdag_4.tau);
               double tau2    = cyclic_difference(cdag_2.tau, cdag_4.tau);
               double tau3    = cyclic_difference(c_3.tau, cdag_4.tau);
@@ -35,11 +35,11 @@ namespace triqs_ctint::measures {
               //double tau3 = cyclic_difference(c_3.tau, cdag_4.tau);
               //int factor  = int(c_1.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
 
-              M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)] += Ginv1 * Ginv2 * (sign_flips % 2 ? factor : -factor);
+              M4_tau_(b1, b2)[closest_mesh_pt(tau1, tau2, tau3)] += Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor);
             };
 
-            add_to_buf(c_i, cdag_j, c_k, cdag_l, sign);
-            if (b1 == b2) add_to_buf(c_i, cdag_l, c_k, cdag_j, -sign);
+            add(c_i, cdag_j, c_k, cdag_l, sign);
+            if (b1 == b2) add(c_i, cdag_l, c_k, cdag_j, -sign);
           })
             ;
       })

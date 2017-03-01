@@ -40,7 +40,7 @@ namespace triqs_ctint::measures {
               double tau2    = cyclic_difference(cdag_4.tau, cdag_2.tau); // Account for opposite sign in frequency of c^\dagger by swap
               double tau3    = cyclic_difference(c_3.tau, cdag_4.tau);
               int sign_flips = int(c_1.tau < cdag_4.tau) + int(cdag_4.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
-              buf_vecvec[b1][b2](c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? factor : -factor));
+              buf_vecvec[b1][b2](c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor));
             };
 
             add_to_buf(c_i, cdag_j, c_k, cdag_l, sign);
