@@ -5,7 +5,7 @@
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of $M^\4_{abcd}(\tau_a, \tau_b, \tau_c)$
+  * Measure of $M^4_{abcd}(\tau_a, \tau_b, \tau_c)$
   *
   * $M^4$ is the essential building block for the two-particle Green function
   */

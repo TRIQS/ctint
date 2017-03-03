@@ -21,6 +21,9 @@ namespace triqs::utility {
     //  -Bosonic Matsubaras
     //  -Possibly remove tau shift and exponential in push_back
 
+    /// Default constructor, creates unusable buffer!
+    nfft_buf_t() = default; 
+
     /// Constructor
     nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, bool do_checks_ = false)
        : fiw_arr(fiw_arr_), buf_size(buf_size_), beta(beta_), do_checks(do_checks_) {
@@ -29,24 +32,25 @@ namespace triqs::utility {
       auto freq_extents = triqs::arrays::get_shape(fiw_arr).to_vector();
       std::vector<int> extents_int;
       for (int n : freq_extents) {
-        if (n % 2 != 0) TRIQS_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in nfft_buf_t \n";
+        if (n % 2 != 0) TRIQS_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";
         extents_int.push_back(n);
       }
 
       // Init nfft_plan
       plan_ptr = std::make_unique<nfft_plan>();
       int m    = 6; // Truncation order for the window functions
-      int n[Rank];  // Size of fftw array. Each dimension should be 2-4 times larger than nfft freq extents (oversampling factor)
       for (int i = 0; i < Rank; i++) {
         int power = log2(extents_int.data()[i]);
-        n[i]      = pow(2.0, 1.0 + ceil(power));
+        extents_fftw[i]      = pow(2.0, 1.0 + ceil(power));
+        n_dcomplex_fftw *= extents_fftw[i];
       }
-      unsigned nfft_flags = PRE_PHI_HUT | PRE_PSI | MALLOC_X | MALLOC_F_HAT | MALLOC_F | FFTW_INIT /*|FFT_OUT_OF_PLACE*/ | NFFT_SORT_NODES;
+      unsigned nfft_flags = PRE_PHI_HUT | PRE_PSI | MALLOC_X | MALLOC_F_HAT | MALLOC_F /*| FFTW_INIT |FFT_OUT_OF_PLACE*/ | NFFT_SORT_NODES;
       unsigned fftw_flags = FFTW_ESTIMATE | FFTW_DESTROY_INPUT;
-      nfft_init_guru(plan_ptr.get(), Rank, extents_int.data(), buf_size, n, m, nfft_flags, fftw_flags);
+      nfft_init_guru(plan_ptr.get(), Rank, extents_int.data(), buf_size, extents_fftw, m, nfft_flags, fftw_flags);
     }
 
     ~nfft_buf_t() {
+      if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n"; 
       if (plan_ptr) nfft_finalize(plan_ptr.get());
     }
 
@@ -59,13 +63,15 @@ namespace triqs::utility {
     /// Rebind nfft buffer to new accumulation container of same shape
     void rebind(array_view<dcomplex, Rank> new_fiw_arr) {
       flush();
-      using triqs::arrays::get_shape;
       TRIQS_ASSERT(get_shape(new_fiw_arr) == get_shape(fiw_arr) && " Nfft Buffer: Rebind to array of different shape not allowed ");
       fiw_arr.rebind(new_fiw_arr);
     }
 
     /// Insert tau-vector {tau_1, tau_2, ... } \in [0,\beta)^Rank and corresponding f(tau) into the NFFT buffer
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
+
+      // Check if buffer has been properly initialized
+      if(!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n"; 
 
       // Write the set of shifted and normalized tau values (i. e. x values) to the NFFT buffer and sum taus
       double tau_sum = 0.0;
@@ -89,6 +95,10 @@ namespace triqs::utility {
 
     /// Flush contents of the nfft buffer
     void flush() {
+
+      // Check if buffer has been properly initialized
+      if(!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n"; 
+
       // Trivial initialization of the remaining points
       for (int i = buf_counter; i < buf_size; ++i) {
         fx_arr()[i] = 0.0;
@@ -117,6 +127,12 @@ namespace triqs::utility {
     // Counter for elements currently in buffer
     int buf_counter = 0;
 
+    // Size of underlying fftw array. Each dimension should be 2-4 times larger than nfft freq extents (oversampling factor)
+    int extents_fftw[Rank];  
+
+    // Number of dcomplex in the fftw array of NFFT
+    int n_dcomplex_fftw = 1;
+
     // Get pointer to array containing x values for the NFFT transform
     double *x_arr() { return plan_ptr->x; }
 
@@ -143,8 +159,18 @@ namespace triqs::utility {
         if (error_str != 0) TRIQS_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
       }
 
+      // Initialize fftw_plan for Backward transform inside nfft_plan (compare X(init_help) in nfft.c)
+      auto fftw_ptr = fftw_alloc_complex(n_dcomplex_fftw);
+      plan_ptr->g1  = fftw_ptr;
+      plan_ptr->g2  = fftw_ptr;
+      plan_ptr->my_fftw_plan2 = fftw_plan_dft(Rank, extents_fftw, fftw_ptr, fftw_ptr, FFTW_BACKWARD, plan_ptr->fftw_flags);
+
       // Execute transform
       nfft_adjoint(plan_ptr.get());
+
+      // Free fftw memory and destroy plan
+      fftw_free(fftw_ptr);
+      fftw_destroy_plan(plan_ptr->my_fftw_plan2);
 
       // Accumulate results in fiw_arr. Care to normalize results afterwards
       int count = 0;

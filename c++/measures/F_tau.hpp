@@ -4,7 +4,7 @@
 
 namespace triqs_ctint::measures {
 
-  // Measure for the F = \Sigma G
+  // Measure for the improved estimator $F = \sigma G$
   struct F_tau {
 
     F_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);

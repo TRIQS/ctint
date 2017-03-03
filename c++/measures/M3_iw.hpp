@@ -6,14 +6,11 @@
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of $M^\4_{abcd}(\tau_a, \tau_b, \tau_c)$
+  * Measure of $M^3_{abcd}(\tau_1, \tau_2)$
   *
-  * $M^4$ is the essential building block for the two-particle Green function
+  * $M^3$ is the essential building block for the fermion-boson verticies
   */
   template <Chan_t Chan> struct M3_iw {
-
-    using block_type = gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>;
-    using view_type  = block2_gf_view<cartesian_product<imfreq, imfreq>, tensor_valued<4>>;
 
     M3_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);
 
@@ -37,13 +34,13 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    view_type M3_iw_;
+    block2_gf_view<cartesian_product<imfreq, imfreq>, tensor_valued<4>> M3_iw_;
 
     // The average sign
     double Z = 0.0;
 
-    // Container of nfft_buffers. buf_arr(block_1,block_2)(a,b)
-    std::vector<std::vector<array<triqs::utility::nfft_buf_t<2>, 4>>> buf_vecvec;
+    // Container of nfft_buffers. buf_arrarr(block_1,block_2)(u_i,u_j,u_k,u_l)
+    array<array<nfft_buf_t<2>, 4>, 2> buf_arrarr;
 
     // The non-interacting Green function
     block_gf<imtime, matrix_valued> const &G0_tau;

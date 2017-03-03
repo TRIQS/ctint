@@ -40,7 +40,7 @@ namespace triqs_ctint::measures {
     double Z = 0.0;
 
     // Container of nfft_buffers. buf_vec[block_idx](a,b)
-    std::vector<array<triqs::utility::nfft_buf_t<1>, 2>> buf_vec;
+    std::vector<array<nfft_buf_t<1>, 2>> buf_vec;
   };
 
 } // namespace triqs_ctint::measures

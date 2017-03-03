@@ -12,6 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING " Defaults to type Release " FORCE)
 endif()
 enable_testing()
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O1" CACHE STRING " Defaults to type Release " FORCE)
 
 message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
 

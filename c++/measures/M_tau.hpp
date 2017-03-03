@@ -5,9 +5,9 @@
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of $M^\sigma_{ab}(\tau)$
+  * Measure of $M_{ab}(\tau)$
   *
-  * $M$ is the "reducible self-energy", see Eq. (31) in the Implementation Notes
+  * $M$ is the "reducible self-energy", see Eq. (41) in the Implementation Notes
   */
   struct M_tau {
 

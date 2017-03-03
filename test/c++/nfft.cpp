@@ -19,7 +19,7 @@ class Nfft : public ::testing::Test {
   int n_iw    = 100;
 
   // gf containers common to multiple tests
-  triqs::utility::mini_vector<size_t, 2> shape;
+  mini_vector<size_t, 2> shape;
   gf<imfreq, matrix_valued> giw_exact;
 
   virtual void SetUp() {

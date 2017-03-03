@@ -2,7 +2,8 @@
 
 namespace triqs_ctint::measures {
 
-  M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
+  M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
+     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks(), params_.n_blocks()) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M4};
@@ -14,16 +15,19 @@ namespace triqs_ctint::measures {
     M4_iw_() = 0;
 
     // Create nfft buffers
-    for (int b1 = 0; b1 < params.n_blocks(); ++b1) {
-      std::vector<array<triqs::utility::nfft_buf_t<3>, 4>> temp_vec;
-      for (int b2 = 0; b2 < params.n_blocks(); ++b2) {
+    for (int b1 : range(params.n_blocks()))
+      for (int b2 : range(params.n_blocks())) {
         auto init_target_func = [&](int i, int j, int k, int l) {
-          return triqs::utility::nfft_buf_t<3>{slice_target_to_scalar(M4_iw_(b1, b2), i, j, k, l).data(), params.nfft_buf_size, params.beta};
+          return nfft_buf_t<3>{slice_target_to_scalar(M4_iw_(b1, b2), i, j, k, l).data(), params.nfft_buf_size, params.beta};
         };
-        temp_vec.emplace_back(M4_iw_(b1, b2).target_shape(), init_target_func);
+        buf_arrarr(b1, b2) = array<nfft_buf_t<3>, 4>{M4_iw_(b1, b2).target_shape(), init_target_func};
       }
-      buf_vecvec.emplace_back(std::move(temp_vec));
-    }
+
+    //for (auto & [ b1, b2, B ] : enumerate(buf_arrarr)) { // FIXME c++17
+      //B = array<nfft_buf_t, 4>{M4_iw_(b1, b2).target_shape()};
+      //for (auto & [ i, j, k, l, x ] : enumerate(B))
+        //x = nfft_buf_t<3>{slice_target_to_scalar(M4_iw_(b1, b2), i, j, k, l).data(), params.nfft_buf_size, params.beta};
+    //}
   }
 
   void M4_iw::accumulate(double sign) {
@@ -31,6 +35,7 @@ namespace triqs_ctint::measures {
     Z += sign;
 
     for (int b1 : range(params.n_blocks()))
+      //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
       foreach (qmc_config.dets[b1], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv1) {
         for (int b2 : range(params.n_blocks()))
           foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
@@ -40,7 +45,7 @@ namespace triqs_ctint::measures {
               double tau2    = cyclic_difference(cdag_4.tau, cdag_2.tau); // Account for opposite sign in frequency of c^\dagger by swap
               double tau3    = cyclic_difference(c_3.tau, cdag_4.tau);
               int sign_flips = int(c_1.tau < cdag_4.tau) + int(cdag_4.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
-              buf_vecvec[b1][b2](c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor));
+              buf_arrarr(b1, b2)(c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor));
             };
 
             add_to_buf(c_i, cdag_j, c_k, cdag_l, sign);
@@ -53,9 +58,8 @@ namespace triqs_ctint::measures {
 
   void M4_iw::collect_results(triqs::mpi::communicator const &comm) {
     // Flush remaining points in nfft buffers
-    for (auto &buf_vec : buf_vecvec)
-      for (auto &buf_arr : buf_vec)
-        for (auto &buf : buf_arr) buf.flush();
+    for (auto &buf_arr : buf_arrarr)
+      for (auto &buf : buf_arr) buf.flush();
 
     // Collect results and normalize
     Z      = mpi_all_reduce(Z, comm);
