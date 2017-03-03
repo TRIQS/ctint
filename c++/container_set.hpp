@@ -19,11 +19,8 @@ namespace triqs_ctint {
     /// The improved estimator F_tau
     std::optional<block_gf<imtime, matrix_valued>> F_tau;
 
-    /// Building block for the two-particle Green function in imaginary time
-    std::optional<block2_gf<cartesian_product<imtime, imtime, imtime>, tensor_valued<4>>> M4_tau;
-
     /// Same as M4_tau, but measured directly in Matsubara frequencies using NFFT
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>> M4_iw_nfft;
+    std::optional<block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>> M4_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3pp_iw;
@@ -45,9 +42,6 @@ namespace triqs_ctint {
     /// Self-energy in Matsubara frequencies. Dependent on M_tau
     std::optional<block_gf<imfreq, matrix_valued>> Sigma_iw;
 
-    /// Building block for the two-particle Green function in Matsubara frequencies
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>> M4_iw;
-
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
@@ -55,12 +49,10 @@ namespace triqs_ctint {
       h5_write(grp, "M_tau", c.M_tau);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "F_tau", c.F_tau);
-      h5_write(grp, "M4_tau", c.M4_tau);
-      h5_write(grp, "M4_iw_nfft", c.M4_iw_nfft);
+      h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "Giw", c.Giw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
-      h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
       h5_write(grp, "M3xph_iw", c.M3xph_iw);
@@ -73,12 +65,10 @@ namespace triqs_ctint {
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "F_tau", c.F_tau);
-      h5_read(grp, "M4_tau", c.M4_tau);
-      h5_read(grp, "M4_iw_nfft", c.M4_iw_nfft);
+      h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "Giw", c.Giw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
-      h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
       h5_read(grp, "M3xph_iw", c.M3xph_iw);

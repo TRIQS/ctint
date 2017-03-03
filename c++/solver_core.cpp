@@ -5,7 +5,7 @@
 #include "./moves/remove.hpp"
 #include "./measures.hpp"
 #include "./post_process.hpp"
-#include "./fourier.hpp"
+#include "./fourier_factories.hpp"
 
 namespace triqs_ctint {
 
@@ -79,7 +79,6 @@ namespace triqs_ctint {
     if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
     if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
     if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
-    if (params.measure_M4_tau) mc.add_measure(measures::M4_tau{params, qmc_config, &result_set()}, "M4_tau measure");
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
     if (params.measure_M3pp_iw) mc.add_measure(measures::M3_iw<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3_iw<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
@@ -113,17 +112,17 @@ namespace triqs_ctint {
     decltype(G0_iw) G0_inv = inverse(G0_iw);
 
     // External loop over blocks
-    for (int sig = 0; sig < p.n_blocks(); sig++) {
+    for (int sig : range(p.n_blocks())) {
 
       // Get Matrix Rank for block
       int Rank = G0_iw[sig].target_shape()[0];
-      for (int i = 0; i < Rank; i++) {
+      for (int i : range(Rank)) {
 
         // Calculate and subtract term according to equation above
         dcomplex term = 0.0;
-        for (int sigp = 0; sigp < p.n_blocks(); sigp++)
-          for (int j = 0; j < Rank; j++)
-            for (int s = 0; s < p.n_s; s++) {
+        for (int sigp : range(p.n_blocks()))
+          for (int j : range(Rank))
+            for (int s : range(p.n_s)) {
               term += U(sig, sigp)(i, j) * p.alpha[sigp](j, s);
               if (D0_iw) term += (*D0_iw)[sig * p.n_blocks() + sigp][0](i, j) * p.alpha[sigp](j, s);
             }
@@ -133,7 +132,7 @@ namespace triqs_ctint {
       }
     }
     // Invert and Fourier transform to imaginary times
-    G0_shift_tau = make_gf_from_inverse_fourier_new(inverse(G0_inv), p.n_tau);
+    G0_shift_tau = make_gf_from_inverse_fourier(inverse(G0_inv), p.n_tau);
   }
 
   // -------------------------------------------------------------------------------
@@ -141,10 +140,7 @@ namespace triqs_ctint {
   void solver_core::post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results) {
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier_new(*M_tau, p.n_iw_M4);
-
-    // Calculate M4_iw from M4_tau
-    if (M4_tau) M4_iw = make_gf_from_fourier_new(*M4_tau, p.n_iw_M4, p.n_iw_M4, p.n_iw_M4);
+    if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw_M4);
   }
 
 } // namespace triqs_ctint
