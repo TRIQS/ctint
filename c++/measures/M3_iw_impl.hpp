@@ -4,7 +4,7 @@ namespace triqs_ctint::measures {
 
   template <Chan_t Chan>
   M3_iw<Chan>::M3_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_)
-     : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_) {
+     : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_), buf_arrarr(params_.n_blocks(), params_.n_blocks()) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};

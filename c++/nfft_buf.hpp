@@ -19,7 +19,7 @@ namespace triqs::utility {
 
     // Possible future extensions:
     //  -Bosonic Matsubaras
-    //  -Possibly remove tau shift and exponential in push_back
+    //  -Move plan initialization to do_nfft for memory gain in case of large buf_size (performance penalty?)
 
     /// Default constructor, creates unusable buffer!
     nfft_buf_t() = default; 
@@ -40,8 +40,8 @@ namespace triqs::utility {
       plan_ptr = std::make_unique<nfft_plan>();
       int m    = 6; // Truncation order for the window functions
       for (int i = 0; i < Rank; i++) {
-        int power = log2(extents_int.data()[i]);
-        extents_fftw[i]      = pow(2.0, 1.0 + ceil(power));
+        int power       = log2(extents_int.data()[i]);
+        extents_fftw[i] = pow(2.0, 1.0 + ceil(power));
         n_dcomplex_fftw *= extents_fftw[i];
       }
       unsigned nfft_flags = PRE_PHI_HUT | PRE_PSI | MALLOC_X | MALLOC_F_HAT | MALLOC_F /*| FFTW_INIT |FFT_OUT_OF_PLACE*/ | NFFT_SORT_NODES;
@@ -71,7 +71,7 @@ namespace triqs::utility {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
 
       // Check if buffer has been properly initialized
-      if(!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n"; 
+      if (!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Write the set of shifted and normalized tau values (i. e. x values) to the NFFT buffer and sum taus
       double tau_sum = 0.0;
@@ -97,7 +97,7 @@ namespace triqs::utility {
     void flush() {
 
       // Check if buffer has been properly initialized
-      if(!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n"; 
+      if (!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Trivial initialization of the remaining points
       for (int i = buf_counter; i < buf_size; ++i) {
@@ -160,9 +160,9 @@ namespace triqs::utility {
       }
 
       // Initialize fftw_plan for Backward transform inside nfft_plan (compare X(init_help) in nfft.c)
-      auto fftw_ptr = fftw_alloc_complex(n_dcomplex_fftw);
-      plan_ptr->g1  = fftw_ptr;
-      plan_ptr->g2  = fftw_ptr;
+      auto fftw_ptr           = fftw_alloc_complex(n_dcomplex_fftw);
+      plan_ptr->g1            = fftw_ptr;
+      plan_ptr->g2            = fftw_ptr;
       plan_ptr->my_fftw_plan2 = fftw_plan_dft(Rank, extents_fftw, fftw_ptr, fftw_ptr, FFTW_BACKWARD, plan_ptr->fftw_flags);
 
       // Execute transform

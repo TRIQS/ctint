@@ -100,22 +100,18 @@ namespace triqs_ctint {
     /// Measure F(tau)
     bool measure_F_tau = false;
 
-    /// Measure M4(tau)
-    bool measure_M4_tau = false;
-    int n_tau_M4        = 100;
-
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
-    int n_iw_M4        = 50;
+    int n_iw_M4        = 32;
 
     /// Measure M3(iw)
     bool measure_M3pp_iw  = false;
     bool measure_M3ph_iw  = false;
     bool measure_M3xph_iw = false;
-    int n_iw_M3           = 50;
+    int n_iw_M3           = 64;
 
     /// Size of the Nfft buffer
-    int nfft_buf_size = 10000;
+    int nfft_buf_size = 100000;
 
     /// Perform post processing
     bool post_process = true;
