@@ -83,6 +83,9 @@ namespace triqs_ctint {
     if (params.measure_M3pp_iw) mc.add_measure(measures::M3_iw<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3_iw<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
     if (params.measure_M3xph_iw) mc.add_measure(measures::M3_iw<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_iw measure");
+    if (params.measure_M2pp_tau) mc.add_measure(measures::M2_tau<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M2pp_tau measure");
+    if (params.measure_M2ph_tau) mc.add_measure(measures::M2_tau<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2ph_tau measure");
+    if (params.measure_M2xph_tau) mc.add_measure(measures::M2_tau<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2xph_tau measure");
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
@@ -141,6 +144,11 @@ namespace triqs_ctint {
 
     // Calculate M_iw from M_tau
     if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw_M4);
+
+    // Calculate M2_iw from M2_tau
+    if (M2pp_tau) M2pp_iw   = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
+    if (M2ph_tau) M2ph_iw   = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
+    if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
   }
 
 } // namespace triqs_ctint

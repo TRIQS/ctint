@@ -31,6 +31,15 @@ namespace triqs_ctint {
     /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
     std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3xph_iw;
 
+    /// Building block for the susceptibility (pp channel) in imaginary time
+    std::optional<block2_gf<imtime, tensor_valued<4>>> M2pp_tau;
+
+    /// Building block for the susceptibility (ph channel) in imaginary time
+    std::optional<block2_gf<imtime, tensor_valued<4>>> M2ph_tau;
+
+    /// Building block for the susceptibility (xph channel) in imaginary time
+    std::optional<block2_gf<imtime, tensor_valued<4>>> M2xph_tau;
+
     //============ Containers dependent on measured quantities
 
     /// The Fourier-transform of M_tau. Dependent on M_tau
@@ -42,6 +51,15 @@ namespace triqs_ctint {
     /// Self-energy in Matsubara frequencies. Dependent on M_tau
     std::optional<block_gf<imfreq, matrix_valued>> Sigma_iw;
 
+    /// Building block for the susceptibility (pp channel) in Matsubara frequencies
+    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2pp_iw;
+
+    /// Building block for the susceptibility (ph channel) in Matsubara frequencies
+    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2ph_iw;
+
+    /// Building block for the susceptibility (xph channel) in Matsubara frequencies
+    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2xph_iw;
+
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
@@ -50,12 +68,21 @@ namespace triqs_ctint {
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "F_tau", c.F_tau);
       h5_write(grp, "M4_iw", c.M4_iw);
-      h5_write(grp, "M_iw", c.M_iw);
-      h5_write(grp, "Giw", c.Giw);
-      h5_write(grp, "Sigma_iw", c.Sigma_iw);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
       h5_write(grp, "M3xph_iw", c.M3xph_iw);
+      h5_write(grp, "M2pp_tau", c.M2pp_tau);
+      h5_write(grp, "M2ph_tau", c.M2ph_tau);
+      h5_write(grp, "M2xph_tau", c.M2xph_tau);
+      h5_write(grp, "M_iw", c.M_iw);
+      h5_write(grp, "Giw", c.Giw);
+      h5_write(grp, "Sigma_iw", c.Sigma_iw);
+      h5_write(grp, "M_iw", c.M_iw);
+      h5_write(grp, "Giw", c.Giw);
+      h5_write(grp, "Sigma_iw", c.Sigma_iw);
+      h5_write(grp, "M2pp_iw", c.M2pp_iw);
+      h5_write(grp, "M2ph_iw", c.M2ph_iw);
+      h5_write(grp, "M2xph_iw", c.M2xph_iw);
     }
 
     /// Function that read all containers to hdf5 file
@@ -66,12 +93,21 @@ namespace triqs_ctint {
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "F_tau", c.F_tau);
       h5_read(grp, "M4_iw", c.M4_iw);
-      h5_read(grp, "M_iw", c.M_iw);
-      h5_read(grp, "Giw", c.Giw);
-      h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
       h5_read(grp, "M3xph_iw", c.M3xph_iw);
+      h5_read(grp, "M2pp_tau", c.M2pp_tau);
+      h5_read(grp, "M2ph_tau", c.M2ph_tau);
+      h5_read(grp, "M2xph_tau", c.M2xph_tau);
+      h5_read(grp, "M_iw", c.M_iw);
+      h5_read(grp, "Giw", c.Giw);
+      h5_read(grp, "Sigma_iw", c.Sigma_iw);
+      h5_read(grp, "M_iw", c.M_iw);
+      h5_read(grp, "Giw", c.Giw);
+      h5_read(grp, "Sigma_iw", c.Sigma_iw);
+      h5_read(grp, "M2pp_iw", c.M2pp_iw);
+      h5_read(grp, "M2ph_iw", c.M2ph_iw);
+      h5_read(grp, "M2xph_iw", c.M2xph_iw);
     }
   };
 

@@ -110,6 +110,13 @@ namespace triqs_ctint {
     bool measure_M3xph_iw = false;
     int n_iw_M3           = 64;
 
+    /// Measure M2(tau)
+    bool measure_M2pp_tau  = false;
+    bool measure_M2ph_tau  = false;
+    bool measure_M2xph_tau = false;
+    int n_tau_M2           = 10000;
+    int n_iw_M2            = 1000;
+
     /// Size of the Nfft buffer
     int nfft_buf_size = 100000;
 
