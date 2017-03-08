@@ -16,8 +16,8 @@ module.add_preamble("""
 #include <triqs/python_tools/converters/vector.hpp>
 using namespace triqs::gfs;
 """)
-module.add_function ("void Giw_from_M_iw (block_gf<imfreq> M_iw, block_gf<imfreq> G0_shift_iw, block_gf<imfreq> Giw)", doc = """""")
+module.add_function ("void G_iw_from_M_iw (block_gf<imfreq> M_iw, block_gf<imfreq> G0_shift_iw, block_gf<imfreq> G_iw)", doc = """""")
 
-module.add_function ("void Sigma_iw_from_M_iw (block_gf<imfreq> M_iw, block_gf<imfreq> G0_shift_iw, block_gf<imfreq> Giw, block_gf<imfreq> Sigmaw, std::vector<std::vector<double>> fact)", doc = """""")
+module.add_function ("void Sigma_iw_from_M_iw (block_gf<imfreq> M_iw, block_gf<imfreq> G0_shift_iw, block_gf<imfreq> G_iw, block_gf<imfreq> Sigmaw, std::vector<std::vector<double>> fact)", doc = """""")
 
 module.generate_code()

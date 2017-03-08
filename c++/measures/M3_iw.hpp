@@ -6,7 +6,7 @@
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of $M^3_{abcd}(\tau_1, \tau_2)$
+  * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$
   *
   * $M^3$ is the essential building block for the fermion-boson verticies
   */

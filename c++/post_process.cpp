@@ -6,21 +6,36 @@
 
 namespace triqs_ctint {
 
-  void Giw_from_M_iw(block_gf<imfreq, matrix_valued> &M_iw, block_gf<imfreq, matrix_valued> &G0_shift_iw, block_gf<imfreq, matrix_valued> &Giw) {
-    //make Giw from g0 and M_iw
-    triqs::clef::placeholder<0> w_;
-    for (int b = 0; b < M_iw.size(); b++) { Giw[b](w_) << G0_shift_iw[b](w_) + G0_shift_iw[b](w_) * M_iw[b](w_) * G0_shift_iw[b](w_); }
+  chi4_iw_t F_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+
+    g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
+    double beta = M_iw[0].domain().beta;
+
+    // The connected part of M4
+    chi4_iw_t M4_iw_conn = M4_iw;
+    M4_iw_conn(bl1_, bl2_)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw(bl1_, bl2_)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+          + beta * kronecker(iw1_, iw2_) * M_iw[bl1_](iw1_)(j_, i_) * M_iw[bl2_](iw3_)(l_, k_)
+          - beta * kronecker(bl1_, bl2_) * kronecker(iw2_, iw3_) * M_iw[bl1_](iw1_)(l_, i_) * M_iw[bl2_](iw3_)(j_, k_);
+
+    // Temporary quantities
+    auto Ginv_x_G0 = inverse(G_iw) * G0_iw;
+    auto G0_x_Ginv = G0_iw * inverse(G_iw);
+
+    // The vertex function F
+    chi4_iw_t F_iw = M4_iw_conn; // FIXME Product Ranges with += Lazy Expressions and or Einstein Summation
+    //F_iw(bl1_, bl2_)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << Ginv_x_G0[bl1_](iw1_)(j_, n_) * Ginv_x_G0[bl2_](iw1_ + iw2_ - iw3_)(l_, p_)
+    //* M4_iw_conn(bl1_, bl2_)(iw1_, iw2_, iw3_)(m_, n_, o_, p_) * G0_x_Ginv[bl1_](iw1_)(m_, i_) * G0_x_Ginv[bl2_](iw3_)(o_, k_);
+
+    return F_iw;
   }
 
-  void Sigma_iw_from_M_iw(block_gf<imfreq, matrix_valued> &M_iw, block_gf<imfreq, matrix_valued> &G0_shift_iw, block_gf<imfreq, matrix_valued> &Giw,
-                          block_gf<imfreq, matrix_valued> &Sigma_iw, std::vector<std::vector<double>> const &fact) {
-    for (int b = 0; b < M_iw.size(); b++) {
-      triqs::clef::placeholder<0> w_;
-      matrix<dcomplex> m_shift(M_iw[b].target_shape());
-      m_shift() = 0;
-      for (int i = 0; i < fact[b].size(); i++) m_shift(i, i) = fact[b][i];
-      Sigma_iw[b](w_) << (1 / Giw[b](w_)) * M_iw[b](w_) * G0_shift_iw[b](w_) - m_shift;
-    }
+  chi3_iw_t K2_from_M3(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+
+    chi3_iw_t K2_iw = M3_iw;
+    //K2_iw(bl1_, bl2_)(iw1_, iw3_)(i_, j_, k_, l_) << Ginv_x_G0[bl1_](iw1_)(j_, n_) * Ginv_x_G0[bl2_](iw1_ + iw2_ - iw3_)(l_, p_)
+    //* M4_iw_conn(bl1_, bl2_)(iw1_, iw2_, iw3_)(m_, n_, o_, p_) * G0_x_Ginv[bl1_](iw1_)(m_, i_) * G0_x_Ginv[bl2_](iw3_)(o_, k_);
+
+    return K2_iw;
   }
 
 } // namespace triqs_ctint

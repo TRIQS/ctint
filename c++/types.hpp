@@ -86,6 +86,30 @@ namespace triqs_ctint {
   /// Container type of the alpha function. alpha[block](orbital,aux_spin)
   using alpha_t = std::vector<array<double, 2>>;
 
+  /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
+  using g_iw_t = block_gf<imfreq, matrix_valued>;
+
+  /// Container type of two-particle Green and Vertex functions in imaginary time
+  using g_tau_t = block_gf<imtime, matrix_valued>;
+
+  /// Container type of $\chi_3$ in Matsubara frequencies
+  using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;
+
+  /// Container type of $\chi_3$ in imaginary time
+  using chi2_tau_t = block2_gf<imtime, tensor_valued<4>>;
+
+  /// Container type of $\chi_3$ in Matsubara frequencies
+  using chi3_iw_t = block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>;
+
+  /// Container type of $\chi_3$ in imaginary time
+  using chi3_tau_t = block2_gf<cartesian_product<imtime, imtime>, tensor_valued<4>>;
+
+  /// Container type of two-particle Green and Vertex functions in Matsubara frequencies
+  using chi4_iw_t = block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>;
+
+  /// Container type of two-particle Green and Vertex functions in imaginary time
+  using chi4_tau_t = block2_gf<cartesian_product<imtime, imtime, imtime>, tensor_valued<4>>;
+
   // Declare some placeholders for the rest of the code. Use anonymous namespace for proper linkage
   // in this code, all variables with trailing _ are placeholders by convention.
   namespace {
@@ -97,11 +121,13 @@ namespace triqs_ctint {
     triqs::clef::placeholder<5> iw1_;
     triqs::clef::placeholder<6> iw2_;
     triqs::clef::placeholder<7> iw3_;
-    triqs::clef::placeholder<8> iW_;
-    triqs::clef::placeholder<9> t_;
-    triqs::clef::placeholder<10> t1_;
-    triqs::clef::placeholder<11> t2_;
-    triqs::clef::placeholder<12> t3_;
+    triqs::clef::placeholder<8> t_;
+    triqs::clef::placeholder<9> t1_;
+    triqs::clef::placeholder<10> t2_;
+    triqs::clef::placeholder<11> t3_;
+    triqs::clef::placeholder<12> bl_;
+    triqs::clef::placeholder<13> bl1_;
+    triqs::clef::placeholder<14> bl2_;
   } // anonymous namespace
 
 } // namespace triqs_ctint

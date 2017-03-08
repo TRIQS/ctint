@@ -10,10 +10,10 @@ namespace triqs_ctint {
 
     public:
     /// Noninteracting Green Function in Matsubara frequencies
-    block_gf<imfreq, matrix_valued> G0_iw;
+    g_iw_t G0_iw;
 
     /// Dynamic density-density interaction in Matsubara frequencies
-    std::optional<block_gf<imfreq, matrix_valued>> D0_iw;
+    std::optional<g_iw_t> D0_iw;
 
     /// Dynamic spin-spin interaction in Matsubara frequencies
     std::optional<gf<imfreq, matrix_valued>> Jperp_iw;
@@ -41,8 +41,11 @@ namespace triqs_ctint {
     void solve(solve_params_t const &solve_params);
 
     private:
+    // The shifted noninteracting Green Function in Matsubara frequencies
+    g_iw_t G0_shift_iw;
+
     // The shifted noninteracting Green Function in imaginary time
-    block_gf<imtime, matrix_valued> G0_shift_tau;
+    g_tau_t G0_shift_tau;
 
     // Struct containing the parameters relevant for construction
     const constr_params_t constr_params;

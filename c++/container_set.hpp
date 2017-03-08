@@ -11,54 +11,57 @@ namespace triqs_ctint {
     double average_sign = 0.0;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
-    std::optional<block_gf<imtime, matrix_valued>> M_tau;
+    std::optional<g_tau_t> M_tau;
 
     /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
-    std::optional<block_gf<imfreq, matrix_valued>> M_iw_nfft;
+    std::optional<g_iw_t> M_iw_nfft;
 
     /// The improved estimator F_tau
-    std::optional<block_gf<imtime, matrix_valued>> F_tau;
+    std::optional<g_tau_t> F_tau;
 
     /// Same as M4_tau, but measured directly in Matsubara frequencies using NFFT
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>> M4_iw;
+    std::optional<chi4_iw_t> M4_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3pp_iw;
+    std::optional<chi3_iw_t> M3pp_iw;
 
     /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3ph_iw;
+    std::optional<chi3_iw_t> M3ph_iw;
 
     /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
-    std::optional<block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>> M3xph_iw;
+    std::optional<chi3_iw_t> M3xph_iw;
 
     /// Building block for the susceptibility (pp channel) in imaginary time
-    std::optional<block2_gf<imtime, tensor_valued<4>>> M2pp_tau;
+    std::optional<chi2_tau_t> M2pp_tau;
 
     /// Building block for the susceptibility (ph channel) in imaginary time
-    std::optional<block2_gf<imtime, tensor_valued<4>>> M2ph_tau;
+    std::optional<chi2_tau_t> M2ph_tau;
 
     /// Building block for the susceptibility (xph channel) in imaginary time
-    std::optional<block2_gf<imtime, tensor_valued<4>>> M2xph_tau;
+    std::optional<chi2_tau_t> M2xph_tau;
 
     //============ Containers dependent on measured quantities
 
     /// The Fourier-transform of M_tau. Dependent on M_tau
-    std::optional<block_gf<imfreq, matrix_valued>> M_iw;
+    std::optional<g_iw_t> M_iw;
 
-    /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_tau
-    std::optional<block_gf<imfreq, matrix_valued>> Giw;
+    /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
+    std::optional<g_iw_t> G_iw;
 
-    /// Self-energy in Matsubara frequencies. Dependent on M_tau
-    std::optional<block_gf<imfreq, matrix_valued>> Sigma_iw;
+    /// Self-energy in Matsubara frequencies. Dependent on M_iw
+    std::optional<g_iw_t> Sigma_iw;
 
     /// Building block for the susceptibility (pp channel) in Matsubara frequencies
-    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2pp_iw;
+    std::optional<chi2_iw_t> M2pp_iw;
 
     /// Building block for the susceptibility (ph channel) in Matsubara frequencies
-    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2ph_iw;
+    std::optional<chi2_iw_t> M2ph_iw;
 
     /// Building block for the susceptibility (xph channel) in Matsubara frequencies
-    std::optional<block2_gf<imfreq, tensor_valued<4>>> M2xph_iw;
+    std::optional<chi2_iw_t> M2xph_iw;
+
+    /// Building block for the susceptibility (xph channel) in Matsubara frequencies
+    std::optional<chi4_iw_t> F_iw;
 
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
@@ -75,14 +78,12 @@ namespace triqs_ctint {
       h5_write(grp, "M2ph_tau", c.M2ph_tau);
       h5_write(grp, "M2xph_tau", c.M2xph_tau);
       h5_write(grp, "M_iw", c.M_iw);
-      h5_write(grp, "Giw", c.Giw);
-      h5_write(grp, "Sigma_iw", c.Sigma_iw);
-      h5_write(grp, "M_iw", c.M_iw);
-      h5_write(grp, "Giw", c.Giw);
+      h5_write(grp, "G_iw", c.G_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
       h5_write(grp, "M2pp_iw", c.M2pp_iw);
       h5_write(grp, "M2ph_iw", c.M2ph_iw);
       h5_write(grp, "M2xph_iw", c.M2xph_iw);
+      h5_write(grp, "F_iw", c.F_iw);
     }
 
     /// Function that read all containers to hdf5 file
@@ -100,14 +101,12 @@ namespace triqs_ctint {
       h5_read(grp, "M2ph_tau", c.M2ph_tau);
       h5_read(grp, "M2xph_tau", c.M2xph_tau);
       h5_read(grp, "M_iw", c.M_iw);
-      h5_read(grp, "Giw", c.Giw);
-      h5_read(grp, "Sigma_iw", c.Sigma_iw);
-      h5_read(grp, "M_iw", c.M_iw);
-      h5_read(grp, "Giw", c.Giw);
+      h5_read(grp, "G_iw", c.G_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M2pp_iw", c.M2pp_iw);
       h5_read(grp, "M2ph_iw", c.M2ph_iw);
       h5_read(grp, "M2xph_iw", c.M2xph_iw);
+      h5_read(grp, "F_iw", c.F_iw);
     }
   };
 

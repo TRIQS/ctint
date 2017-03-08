@@ -58,7 +58,7 @@ c.add_member(c_name = "M_iw",
              read_only= True,
              doc = """The Fourier-transform of M_tau. Dependent on M_tau """)
 
-c.add_member(c_name = "Giw",
+c.add_member(c_name = "G_iw",
              c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
              read_only= True,
              doc = """Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_tau """)

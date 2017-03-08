@@ -8,9 +8,9 @@ TEST(CtInt, Anderson) {
   triqs::mpi::communicator world;
 
   // System Parameters
-  double mu    = 0.0;
   double delta = 0.35;
   double U     = 1.0;
+  double mu    = U/2;
 
   // Discrete bath energies and hoppings
   std::vector<double> energ = {-0.7, -0.15, 0.15, 0.7}; // Vertex Paper ( optimized for Beta=20 ) to fit box DOS
@@ -26,7 +26,7 @@ TEST(CtInt, Anderson) {
 
   // Construct Parameters
   constr_params_t pc;
-  pc.beta      = 10.0;
+  pc.beta      = 20.0;
   pc.gf_struct = {{"up", {0}}, {"down", {0}}};
   pc.n_tau     = 10000;
   pc.n_iw      = 500;

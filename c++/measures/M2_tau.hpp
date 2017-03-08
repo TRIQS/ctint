@@ -14,12 +14,6 @@ namespace triqs_ctint::measures {
 
     M2_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);
 
-    // M2_tau needs to be uncopyable due to nfft_buf_t
-    M2_tau(M2_tau const &) = delete;
-    M2_tau(M2_tau &&)      = default;
-    M2_tau &operator=(M2_tau const &) = delete;
-    M2_tau &operator=(M2_tau &&) = default;
-
     /// Accumulate M_tau using binning
     void accumulate(double sign);
 

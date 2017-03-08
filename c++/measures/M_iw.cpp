@@ -12,7 +12,7 @@ namespace triqs_ctint::measures {
     // Create nfft buffers
     for (auto &b : M_iw_) {
       // Helper function to initialize array<nfft_buf_t<1>, 2>
-      auto init_func = [&](int i, int j) { return nfft_buf_t<1>{b.data()(range(), i, j), params.nfft_buf_size, params.beta, true}; };
+      auto init_func = [&](int i, int j) { return nfft_buf_t<1>{b.data()(range(), i, j), params.nfft_buf_size, params.beta}; };
       // Initialize vector of array<nfft_buf_t<1>, 2>
       buf_vec.emplace_back(b.target_shape(), init_func);
     }

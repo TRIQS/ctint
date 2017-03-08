@@ -112,7 +112,7 @@ namespace triqs_ctint {
     // mu_{sigma i} ---> mu_{sigma i} - (1/n_s) sum_{j sigma' s} ( U_{ij sigma sigma'} - 2.0 int dtau D_{ij sigma sigma'}(tau-0) ) alpha_{s j sigma'}
     // 1/n_s comes immediately from adding an additional sum over s
 
-    decltype(G0_iw) G0_inv = inverse(G0_iw);
+    g_iw_t G0_inv = inverse(G0_iw);
 
     // External loop over blocks
     for (int sig : range(p.n_blocks())) {
@@ -135,7 +135,8 @@ namespace triqs_ctint {
       }
     }
     // Invert and Fourier transform to imaginary times
-    G0_shift_tau = make_gf_from_inverse_fourier(inverse(G0_inv), p.n_tau);
+    G0_shift_iw  = inverse(G0_inv);
+    G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
   }
 
   // -------------------------------------------------------------------------------
@@ -143,12 +144,19 @@ namespace triqs_ctint {
   void solver_core::post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results) {
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw_M4);
+    if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw);
+    if (M_iw) {
+      G_iw     = G0_shift_iw + G0_shift_iw * (*M_iw) * G0_shift_iw;
+      Sigma_iw = inverse(G0_iw) - inverse(*G_iw); // Careful, dont use shifted Gf here
+    }
 
     // Calculate M2_iw from M2_tau
     if (M2pp_tau) M2pp_iw   = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
     if (M2ph_tau) M2ph_iw   = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
     if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
+
+    // Calculate F_iw from M4_iw and M_iw
+    if (M4_iw && M_iw) F_iw = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
   }
 
 } // namespace triqs_ctint
