@@ -40,6 +40,8 @@ namespace triqs_ctint {
     CPP2PY_ARG_AS_DICT
     void solve(solve_params_t const &solve_params);
 
+    void solve();
+
     private:
     // The shifted noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_shift_iw;
@@ -47,8 +49,11 @@ namespace triqs_ctint {
     // The shifted noninteracting Green Function in imaginary time
     g_tau_t G0_shift_tau;
 
-    // Struct containing the parameters relevant for construction
-    const constr_params_t constr_params;
+    // Struct containing the parameters relevant for the solver construction
+    constr_params_t constr_params;
+
+    // Struct containing the parameters relevant for the solve process
+    solve_params_t solve_params;
 
     // Mpi Communicator
     triqs::mpi::communicator world;
@@ -67,6 +72,8 @@ namespace triqs_ctint {
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
       h5_write(grp, "", s.result_set());
+      h5_write(grp, "constr_params", s.constr_params);
+      h5_write(grp, "solve_params", s.solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);
       h5_write(grp, "D0_iw", s.D0_iw);
       h5_write(grp, "Jperp_iw", s.Jperp_iw);
@@ -76,6 +83,8 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solver_core &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
       h5_read(grp, "", s.result_set());
+      h5_read(grp, "constr_params", s.constr_params);
+      h5_read(grp, "solve_params", s.solve_params);
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "D0_iw", s.D0_iw);
       h5_read(grp, "Jperp_iw", s.Jperp_iw);

@@ -121,13 +121,14 @@ namespace triqs_ctint {
     triqs::clef::placeholder<5> iw1_;
     triqs::clef::placeholder<6> iw2_;
     triqs::clef::placeholder<7> iw3_;
-    triqs::clef::placeholder<8> t_;
-    triqs::clef::placeholder<9> t1_;
-    triqs::clef::placeholder<10> t2_;
-    triqs::clef::placeholder<11> t3_;
-    triqs::clef::placeholder<12> bl_;
-    triqs::clef::placeholder<13> bl1_;
-    triqs::clef::placeholder<14> bl2_;
+    triqs::clef::placeholder<8> iw4_;
+    triqs::clef::placeholder<9> t_;
+    triqs::clef::placeholder<10> t1_;
+    triqs::clef::placeholder<11> t2_;
+    triqs::clef::placeholder<12> t3_;
+    triqs::clef::placeholder<13> bl_;
+    triqs::clef::placeholder<14> bl1_;
+    triqs::clef::placeholder<15> bl2_;
   } // anonymous namespace
 
 } // namespace triqs_ctint

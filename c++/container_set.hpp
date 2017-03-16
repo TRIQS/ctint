@@ -63,6 +63,15 @@ namespace triqs_ctint {
     /// Building block for the susceptibility (xph channel) in Matsubara frequencies
     std::optional<chi4_iw_t> F_iw;
 
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
+    std::optional<chi3_iw_t> chi3pp_iw;
+
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
+    std::optional<chi3_iw_t> chi3ph_iw;
+
+    /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
+    std::optional<chi3_iw_t> chi3xph_iw;
+
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
@@ -84,6 +93,9 @@ namespace triqs_ctint {
       h5_write(grp, "M2ph_iw", c.M2ph_iw);
       h5_write(grp, "M2xph_iw", c.M2xph_iw);
       h5_write(grp, "F_iw", c.F_iw);
+      h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
+      h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
+      h5_write(grp, "chi3xph_iw", c.chi3xph_iw);
     }
 
     /// Function that read all containers to hdf5 file
@@ -107,6 +119,9 @@ namespace triqs_ctint {
       h5_read(grp, "M2ph_iw", c.M2ph_iw);
       h5_read(grp, "M2xph_iw", c.M2xph_iw);
       h5_read(grp, "F_iw", c.F_iw);
+      h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
+      h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
+      h5_read(grp, "chi3xph_iw", c.chi3xph_iw);
     }
   };
 

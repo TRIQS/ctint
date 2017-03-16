@@ -39,6 +39,12 @@ namespace triqs_ctint {
       for (auto const &bl : gf_struct) v.push_back(bl.first);
       return v;
     }
+
+    /// Write constr_params_t to hdf5
+    friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp);
+
+    /// Read constr_params_t from hdf5
+    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp);
   };
 
   struct solve_params_t {
@@ -122,6 +128,12 @@ namespace triqs_ctint {
 
     /// Perform post processing
     bool post_process = true;
+
+    /// Write constr_params_t to hdf5
+    friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
+
+    /// Read constr_params_t from hdf5
+    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
   };
 
   struct params_t : constr_params_t, solve_params_t {
