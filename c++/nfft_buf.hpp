@@ -9,11 +9,10 @@
 
 #include "nfft3.h"
 
-using dcomplex = std::complex<double>;
-
 namespace triqs::utility {
 
   using triqs::arrays::array_view;
+  using dcomplex = std::complex<double>;
 
   template <int Rank> struct nfft_buf_t {
 
@@ -22,7 +21,7 @@ namespace triqs::utility {
     //  -Move plan initialization to do_nfft for memory gain in case of large buf_size (performance penalty?)
 
     /// Default constructor, creates unusable buffer!
-    nfft_buf_t() = default; 
+    nfft_buf_t() = default;
 
     /// Constructor
     nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, bool do_checks_ = false)
@@ -34,23 +33,16 @@ namespace triqs::utility {
       for (int n : freq_extents) {
         if (n % 2 != 0) TRIQS_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";
         extents_int.push_back(n);
+        common_factor *= (n / 2) % 2 ? -1 : 1; // Additional Minus sign for uneven Matsubara offset
       }
 
       // Init nfft_plan
       plan_ptr = std::make_unique<nfft_plan>();
-      int m    = 6; // Truncation order for the window functions
-      for (int i = 0; i < Rank; i++) {
-        int power       = log2(extents_int.data()[i]);
-        extents_fftw[i] = pow(2.0, 1.0 + ceil(power));
-        n_dcomplex_fftw *= extents_fftw[i];
-      }
-      unsigned nfft_flags = PRE_PHI_HUT | PRE_PSI | MALLOC_X | MALLOC_F_HAT | MALLOC_F /*| FFTW_INIT |FFT_OUT_OF_PLACE*/ | NFFT_SORT_NODES;
-      unsigned fftw_flags = FFTW_ESTIMATE | FFTW_DESTROY_INPUT;
-      nfft_init_guru(plan_ptr.get(), Rank, extents_int.data(), buf_size, extents_fftw, m, nfft_flags, fftw_flags);
+      nfft_init(plan_ptr.get(), Rank, extents_int.data(), buf_size);
     }
 
     ~nfft_buf_t() {
-      if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n"; 
+      if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";
       if (plan_ptr) nfft_finalize(plan_ptr.get());
     }
 
@@ -63,7 +55,8 @@ namespace triqs::utility {
     /// Rebind nfft buffer to new accumulation container of same shape
     void rebind(array_view<dcomplex, Rank> new_fiw_arr) {
       flush();
-      TRIQS_ASSERT(get_shape(new_fiw_arr) == get_shape(fiw_arr) && " Nfft Buffer: Rebind to array of different shape not allowed ");
+      TRIQS_ASSERT((get_shape(new_fiw_arr) == get_shape(fiw_arr) || get_shape(fiw_arr) == get_shape(array_view<dcomplex, Rank>{}))
+                   && " Nfft Buffer: Rebind to array of different shape not allowed ");
       fiw_arr.rebind(new_fiw_arr);
     }
 
@@ -99,6 +92,9 @@ namespace triqs::utility {
       // Check if buffer has been properly initialized
       if (!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
+      // Don't do anything if buffer is empty
+      if (is_empty()) return;
+
       // Trivial initialization of the remaining points
       for (int i = buf_counter; i < buf_size; ++i) {
         fx_arr()[i] = 0.0;
@@ -124,11 +120,14 @@ namespace triqs::utility {
     // Nfft3 plan that allocates memory and performs NFFT transform
     std::unique_ptr<nfft_plan> plan_ptr;
 
-    // Counter for elements currently in buffer
+    // Counter for elements currently in the buffer
     int buf_counter = 0;
 
     // Size of underlying fftw array. Each dimension should be 2-4 times larger than nfft freq extents (oversampling factor)
-    int extents_fftw[Rank];  
+    int extents_fftw[Rank];
+
+    // Common factor in container assignment
+    int common_factor = 1;
 
     // Number of dcomplex in the fftw array of NFFT
     int n_dcomplex_fftw = 1;
@@ -143,7 +142,10 @@ namespace triqs::utility {
     const dcomplex *fk_arr() const { return reinterpret_cast<dcomplex *>(plan_ptr->f_hat); }
 
     // Function to check whether buffer is filled
-    bool is_full() const { return (buf_counter >= buf_size); }
+    bool is_full() const { return buf_counter >= buf_size; }
+
+    // Function to check whether buffer is filled
+    bool is_empty() const { return buf_counter == 0; }
 
     // Perform NFFT transform and accumulate inside fiw_arr
     void do_nfft() {
@@ -159,24 +161,14 @@ namespace triqs::utility {
         if (error_str != 0) TRIQS_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
       }
 
-      // Initialize fftw_plan for Backward transform inside nfft_plan (compare X(init_help) in nfft.c)
-      auto fftw_ptr           = fftw_alloc_complex(n_dcomplex_fftw);
-      plan_ptr->g1            = fftw_ptr;
-      plan_ptr->g2            = fftw_ptr;
-      plan_ptr->my_fftw_plan2 = fftw_plan_dft(Rank, extents_fftw, fftw_ptr, fftw_ptr, FFTW_BACKWARD, plan_ptr->fftw_flags);
-
       // Execute transform
       nfft_adjoint(plan_ptr.get());
-
-      // Free fftw memory and destroy plan
-      fftw_free(fftw_ptr);
-      fftw_destroy_plan(plan_ptr->my_fftw_plan2);
 
       // Accumulate results in fiw_arr. Care to normalize results afterwards
       int count = 0;
       for (auto fiw_itr = fiw_arr.begin(); fiw_itr != fiw_arr.end(); ++fiw_itr) {
-        int factor = (sum(fiw_itr.indices()) % 2 ? -1 : 1);
-        *fiw_itr += fk_arr()[count] * factor;
+        int factor = common_factor * (sum(fiw_itr.indices()) % 2 ? -1 : 1);
+        *fiw_itr += 1.0; //fk_arr()[count] * factor;
         ++count;
       }
     }

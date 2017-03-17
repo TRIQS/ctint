@@ -124,7 +124,7 @@ namespace triqs_ctint {
     int n_iw_M2            = 128;
 
     /// Size of the Nfft buffer
-    int nfft_buf_size = 100000;
+    int nfft_buf_size = 500;
 
     /// Perform post processing
     bool post_process = true;
