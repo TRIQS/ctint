@@ -39,8 +39,11 @@ namespace triqs_ctint::measures {
     // The average sign
     double Z = 0.0;
 
-    // Container of nfft_buffers. buf_arrarr(block_1,block_2)(u_i,u_j,u_k,u_l)
-    array<array<nfft_buf_t<3>, 4>, 2> buf_arrarr;
+    // Container of nfft_buffers: buf_arrarr(block)(u_j,u_i)
+    array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
+
+    // Intermediate scattering matrix in the measurement of M4
+    block_gf<cartesian_product<imfreq,imfreq>, matrix_valued> M;
   };
 
 } // namespace triqs_ctint::measures

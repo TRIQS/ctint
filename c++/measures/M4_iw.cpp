@@ -3,7 +3,7 @@
 namespace triqs_ctint::measures {
 
   M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks(), params_.n_blocks()) {
+     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M4};
@@ -14,53 +14,45 @@ namespace triqs_ctint::measures {
     M4_iw_.rebind(*results->M4_iw);
     M4_iw_() = 0;
 
-    // Create nfft buffers
-    for (int b1 : range(params.n_blocks()))
-      for (int b2 : range(params.n_blocks())) {
-        auto init_target_func = [&](int i, int j, int k, int l) {
-          return nfft_buf_t<3>{slice_target_to_scalar(M4_iw_(b1, b2), i, j, k, l).data(), params.nfft_buf_size, params.beta};
-        };
-        buf_arrarr(b1, b2) = array<nfft_buf_t<3>, 4>{M4_iw_(b1, b2).target_shape(), init_target_func};
-      }
+    // Construct Matsubara mesh for temporary Matrix
+    gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, 3 * params.n_iw_M4};
+    gf_mesh<cartesian_product<imfreq, imfreq>> M_mesh{iw_mesh_large, iw_mesh};
 
-    //for (auto & [ b1, b2, B ] : enumerate(buf_arrarr)) { // FIXME c++17
-      //B = array<nfft_buf_t, 4>{M4_iw_(b1, b2).target_shape()};
-      //for (auto & [ i, j, k, l, x ] : enumerate(B))
-        //x = nfft_buf_t<3>{slice_target_to_scalar(M4_iw_(b1, b2), i, j, k, l).data(), params.nfft_buf_size, params.beta};
-    //}
+    // Initialize intermediate scattering matrix
+    M = make_block_gf(M_mesh, params.gf_struct);
+
+    // Create nfft buffers
+    for (int b : range(params.n_blocks())) {
+      auto init_target_func = [&](int i, int j) {
+        return nfft_buf_t<2>{slice_target_to_scalar(M[b], i, j).data(), params.nfft_buf_size, params.beta};
+      };
+      buf_arrarr(b) = array<nfft_buf_t<2>, 2>{M[b].target_shape(), init_target_func};
+    }
   }
 
   void M4_iw::accumulate(double sign) {
     // Accumulate sign
     Z += sign;
 
-    for (int b1 : range(params.n_blocks()))
+    // Calculate intermediate scattering matrix
+    M() = 0;
+    for (int b : range(params.n_blocks()))
       //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
-      foreach (qmc_config.dets[b1], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv1) {
-        for (int b2 : range(params.n_blocks()))
-          foreach (qmc_config.dets[b2], [&](c_t const &c_k, cdag_t const &cdag_l, auto const &Ginv2) {
-
-            auto add_to_buf = [&](auto &c_1, auto &cdag_2, auto &c_3, auto &cdag_4, double factor) {
-              double tau1    = cyclic_difference(c_1.tau, cdag_4.tau);
-              double tau2    = cyclic_difference(cdag_4.tau, cdag_2.tau); // Account for opposite sign in frequency of c^\dagger by swap
-              double tau3    = cyclic_difference(c_3.tau, cdag_4.tau);
-              int sign_flips = int(c_1.tau < cdag_4.tau) + int(cdag_4.tau < cdag_2.tau) + int(c_3.tau < cdag_4.tau);
-              buf_arrarr(b1, b2)(c_1.u, cdag_2.u, c_3.u, cdag_4.u).push_back({tau1, tau2, tau3}, Ginv1 * Ginv2 * (sign_flips % 2 ? -factor : factor));
-            };
-
-            add_to_buf(c_i, cdag_j, c_k, cdag_l, sign);
-            if (b1 == b2) add_to_buf(c_i, cdag_l, c_k, cdag_j, -sign);
-          })
-            ;
+      foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) { // Care for negative frequency in Cdag transform
+        buf_arrarr(b)(cdag_j.u, c_i.u).push_back({params.beta - double(cdag_j.tau), double(c_i.tau)}, Ginv);
       })
         ;
+    for (auto &buf_arr : buf_arrarr)
+      for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
+
+    for (int bl1 : range(params.n_blocks())) // FIXME Block indeces for blocks working?
+      for (int bl2 : range(params.n_blocks()))
+        M4_iw_(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw_(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+              + sign * (M(bl1)(iw2_, iw1_)(j_, i_) * M(bl2)(iw1_ + iw3_ - iw2_, iw3_)(l_, k_)
+                        - kronecker(bl1, bl2) * M(bl1)(iw1_ + iw3_ - iw2_, iw1_)(l_, i_) * M(bl2)(iw2_, iw3_)(j_, k_));
   }
 
   void M4_iw::collect_results(triqs::mpi::communicator const &comm) {
-    // Flush remaining points in nfft buffers
-    for (auto &buf_arr : buf_arrarr)
-      for (auto &buf : buf_arr) buf.flush();
-
     // Collect results and normalize
     Z      = mpi_all_reduce(Z, comm);
     M4_iw_ = mpi_all_reduce(M4_iw_, comm);

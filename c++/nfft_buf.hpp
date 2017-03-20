@@ -168,7 +168,7 @@ namespace triqs::utility {
       int count = 0;
       for (auto fiw_itr = fiw_arr.begin(); fiw_itr != fiw_arr.end(); ++fiw_itr) {
         int factor = common_factor * (sum(fiw_itr.indices()) % 2 ? -1 : 1);
-        *fiw_itr += 1.0; //fk_arr()[count] * factor;
+        *fiw_itr += fk_arr()[count] * factor;
         ++count;
       }
     }
