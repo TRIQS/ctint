@@ -45,11 +45,27 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    for (int bl1 : range(params.n_blocks())) // FIXME Block indeces for blocks working?
-      for (int bl2 : range(params.n_blocks()))
-        M4_iw_(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw_(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-              + sign * (M(bl1)(iw2_, iw1_)(j_, i_) * M(bl2)(iw1_ + iw3_ - iw2_, iw3_)(l_, k_)
-                        - kronecker(bl1, bl2) * M(bl1)(iw1_ + iw3_ - iw2_, iw1_)(l_, i_) * M(bl2)(iw2_, iw3_)(j_, k_));
+    auto const &iw_mesh = std::get<0>(M4_iw_(0, 0).mesh());
+
+    for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
+      for (int bl2 : range(params.n_blocks())) {
+        int bl1_size   = M[bl1].target_shape()[0];
+        int bl2_size   = M[bl2].target_shape()[0];
+        auto const &M1 = M[bl1];
+        auto const &M2 = M[bl2];
+        auto &M4       = M4_iw_(bl1, bl2);
+        for (int i : range(bl1_size))
+          for (int j : range(bl1_size))
+            for (int k : range(bl2_size))
+              for (int l : range(bl2_size))
+                for (auto const &iw1 : iw_mesh)
+                  for (auto const &iw2 : iw_mesh)
+                    for (auto const &iw3 : iw_mesh) {
+                      gf_mesh<imfreq>::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
+                      M4[{iw1, iw2, iw3}](i, j, k, l) +=
+                         sign * (M1[{iw2, iw1}](j, i) * M2[{iw4, iw3}](l, k) - kronecker(bl1, bl2) * M1[{iw4, iw1}](l, i) * M2[{iw2, iw3}](j, k));
+                    }
+      }
   }
 
   void M4_iw::collect_results(triqs::mpi::communicator const &comm) {
