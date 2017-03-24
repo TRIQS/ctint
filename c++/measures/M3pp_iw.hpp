@@ -10,15 +10,15 @@ namespace triqs_ctint::measures {
   *
   * $M^3$ is the essential building block for the fermion-boson verticies
   */
-  template <Chan_t Chan> struct M3_iw {
+  struct M3pp_iw {
 
-    M3_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);
+    M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);
 
-    // M3_iw needs to be uncopyable due to nfft_buf_t
-    M3_iw(M3_iw const &) = delete;
-    M3_iw(M3_iw &&)      = default;
-    M3_iw &operator=(M3_iw const &) = delete;
-    M3_iw &operator=(M3_iw &&) = default;
+    // M3pp_iw needs to be uncopyable due to nfft_buf_t
+    M3pp_iw(M3pp_iw const &) = delete;
+    M3pp_iw(M3pp_iw &&)      = default;
+    M3pp_iw &operator=(M3pp_iw const &) = delete;
+    M3pp_iw &operator=(M3pp_iw &&) = default;
 
     /// Accumulate M_tau using binning
     void accumulate(double sign);
@@ -34,18 +34,19 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<cartesian_product<imfreq, imfreq>, tensor_valued<4>> M3_iw_;
+    block2_gf_view<cartesian_product<imfreq, imfreq>, tensor_valued<4>> M3pp_iw_;
 
     // The average sign
     double Z = 0.0;
 
-    // Container of nfft_buffers. buf_arrarr(block_1,block_2)(u_i,u_j,u_k,u_l)
-    array<array<nfft_buf_t<2>, 4>, 2> buf_arrarr;
+    // Container of nfft_buffers. buf_arrarr(block)(u_i,u_j)
+    array<array<nfft_buf_t<1>, 2>, 1> buf_arrarr;
 
     // The non-interacting Green function
     block_gf<imtime, matrix_valued> const &G0_tau;
+
+    // Intermediate scattering matrix in the measurement of M3pp
+    block_gf<imfreq, matrix_valued> GM;
   };
 
 } // namespace triqs_ctint::measures
-
-#include "M3_iw_impl.hpp"

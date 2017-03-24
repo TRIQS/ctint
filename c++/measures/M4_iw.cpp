@@ -22,11 +22,11 @@ namespace triqs_ctint::measures {
     M = make_block_gf(M_mesh, params.gf_struct);
 
     // Create nfft buffers
-    for (int b : range(params.n_blocks())) {
+    for (int bl : range(params.n_blocks())) {
       auto init_target_func = [&](int i, int j) {
-        return nfft_buf_t<2>{slice_target_to_scalar(M[b], i, j).data(), params.nfft_buf_size, params.beta};
+        return nfft_buf_t<2>{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta};
       };
-      buf_arrarr(b) = array<nfft_buf_t<2>, 2>{M[b].target_shape(), init_target_func};
+      buf_arrarr(bl) = array<nfft_buf_t<2>, 2>{M[bl].target_shape(), init_target_func};
     }
   }
 
@@ -36,10 +36,10 @@ namespace triqs_ctint::measures {
 
     // Calculate intermediate scattering matrix
     M() = 0;
-    for (int b : range(params.n_blocks()))
+    for (int bl : range(params.n_blocks()))
       //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
-      foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) { // Care for negative frequency in Cdag transform
-        buf_arrarr(b)(cdag_j.u, c_i.u).push_back({params.beta - double(cdag_j.tau), double(c_i.tau)}, Ginv);
+      foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) { // Care for negative frequency in Cdag transform
+        buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({params.beta - double(cdag_j.tau), double(c_i.tau)}, Ginv_ji);
       })
         ;
     for (auto &buf_arr : buf_arrarr)

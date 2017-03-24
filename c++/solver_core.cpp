@@ -82,9 +82,8 @@ namespace triqs_ctint {
     if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
     if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
-    if (params.measure_M3pp_iw) mc.add_measure(measures::M3_iw<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
-    if (params.measure_M3ph_iw) mc.add_measure(measures::M3_iw<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
-    if (params.measure_M3xph_iw) mc.add_measure(measures::M3_iw<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_iw measure");
+    if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
+    if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
     if (params.measure_M2pp_tau) mc.add_measure(measures::M2_tau<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M2pp_tau measure");
     if (params.measure_M2ph_tau) mc.add_measure(measures::M2_tau<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2ph_tau measure");
     if (params.measure_M2xph_tau) mc.add_measure(measures::M2_tau<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2xph_tau measure");
@@ -163,7 +162,6 @@ namespace triqs_ctint {
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw && M_iw) chi3pp_iw   = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
     if (M3ph_iw && M_iw) chi3ph_iw   = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
-    if (M3xph_iw && M_iw) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(*M3xph_iw, *M_iw, G0_shift_iw);
   }
 
 } // namespace triqs_ctint

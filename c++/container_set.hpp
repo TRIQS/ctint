@@ -28,9 +28,6 @@ namespace triqs_ctint {
     /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3ph_iw;
 
-    /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
-    std::optional<chi3_iw_t> M3xph_iw;
-
     /// Building block for the susceptibility (pp channel) in imaginary time
     std::optional<chi2_tau_t> M2pp_tau;
 
@@ -69,9 +66,6 @@ namespace triqs_ctint {
     /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
     std::optional<chi3_iw_t> chi3ph_iw;
 
-    /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
-    std::optional<chi3_iw_t> chi3xph_iw;
-
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
@@ -82,7 +76,6 @@ namespace triqs_ctint {
       h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
-      h5_write(grp, "M3xph_iw", c.M3xph_iw);
       h5_write(grp, "M2pp_tau", c.M2pp_tau);
       h5_write(grp, "M2ph_tau", c.M2ph_tau);
       h5_write(grp, "M2xph_tau", c.M2xph_tau);
@@ -95,7 +88,6 @@ namespace triqs_ctint {
       h5_write(grp, "F_iw", c.F_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
-      h5_write(grp, "chi3xph_iw", c.chi3xph_iw);
     }
 
     /// Function that read all containers to hdf5 file
@@ -108,7 +100,6 @@ namespace triqs_ctint {
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
-      h5_read(grp, "M3xph_iw", c.M3xph_iw);
       h5_read(grp, "M2pp_tau", c.M2pp_tau);
       h5_read(grp, "M2ph_tau", c.M2ph_tau);
       h5_read(grp, "M2xph_tau", c.M2xph_tau);
@@ -121,7 +112,6 @@ namespace triqs_ctint {
       h5_read(grp, "F_iw", c.F_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
-      h5_read(grp, "chi3xph_iw", c.chi3xph_iw);
     }
   };
 

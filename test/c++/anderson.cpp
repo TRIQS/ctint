@@ -59,7 +59,6 @@ TEST(CtInt, Anderson) {
 
   //ps.measure_M3pp_iw  = true;
   //ps.measure_M3ph_iw  = true;
-  //ps.measure_M3xph_iw = true;
   //ps.n_iw_M3          = 64;
 
   //ps.measure_M2pp_tau  = true;
@@ -68,7 +67,7 @@ TEST(CtInt, Anderson) {
   //ps.n_tau_M2          = 1000;
   //ps.n_iw_M2           = 128;
 
-  ps.nfft_buf_size = 100000;
+  ps.nfft_buf_size = 50;
 
   solver_core ctqmc(pc);
 

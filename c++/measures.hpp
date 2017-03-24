@@ -3,5 +3,6 @@
 #include "./measures/M_iw.hpp"
 #include "./measures/F_tau.hpp"
 #include "./measures/M4_iw.hpp"
-#include "./measures/M3_iw.hpp"
+#include "./measures/M3pp_iw.hpp"
+#include "./measures/M3ph_iw.hpp"
 #include "./measures/M2_tau.hpp"
