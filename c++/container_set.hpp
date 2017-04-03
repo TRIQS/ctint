@@ -1,5 +1,5 @@
 #pragma once
-#include <triqs/utility/optional_compat.hpp>
+#include <optional>
 
 namespace triqs_ctint {
 
