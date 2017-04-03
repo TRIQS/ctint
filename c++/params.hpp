@@ -115,6 +115,11 @@ namespace triqs_ctint {
     bool measure_M3ph_iw  = false;
     int n_iw_M3           = 64;
 
+    /// Measure M3(iw)
+    bool measure_M3pp_tau  = false;
+    bool measure_M3ph_tau  = false;
+    int n_tau_M3           = 1000;
+
     /// Measure M2(tau)
     bool measure_M2pp_tau  = false;
     bool measure_M2ph_tau  = false;

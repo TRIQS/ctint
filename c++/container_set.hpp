@@ -23,10 +23,16 @@ namespace triqs_ctint {
     std::optional<chi4_iw_t> M4_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
-    std::optional<chi3_iw_t> M3pp_iw;
+    std::optional<chi3_iw_t> M3pp_iw_nfft;
 
     /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
-    std::optional<chi3_iw_t> M3ph_iw;
+    std::optional<chi3_iw_t> M3ph_iw_nfft;
+
+    /// Building block for the fermion boson vertex (pp channel) in imaginary time
+    std::optional<chi3_tau_t> M3pp_tau;
+
+    /// Building block for the fermion boson vertex (ph channel) in imaginary time
+    std::optional<chi3_tau_t> M3ph_tau;
 
     /// Building block for the susceptibility (pp channel) in imaginary time
     std::optional<chi2_tau_t> M2pp_tau;
@@ -47,6 +53,12 @@ namespace triqs_ctint {
 
     /// Self-energy in Matsubara frequencies. Dependent on M_iw
     std::optional<g_iw_t> Sigma_iw;
+
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
+    std::optional<chi3_iw_t> M3pp_iw;
+
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
+    std::optional<chi3_iw_t> M3ph_iw;
 
     /// Building block for the susceptibility (pp channel) in Matsubara frequencies
     std::optional<chi2_iw_t> M2pp_iw;
@@ -74,14 +86,16 @@ namespace triqs_ctint {
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "F_tau", c.F_tau);
       h5_write(grp, "M4_iw", c.M4_iw);
-      h5_write(grp, "M3pp_iw", c.M3pp_iw);
-      h5_write(grp, "M3ph_iw", c.M3ph_iw);
+      h5_write(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
+      h5_write(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_write(grp, "M2pp_tau", c.M2pp_tau);
       h5_write(grp, "M2ph_tau", c.M2ph_tau);
       h5_write(grp, "M2xph_tau", c.M2xph_tau);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
+      h5_write(grp, "M3pp_iw", c.M3pp_iw);
+      h5_write(grp, "M3ph_iw", c.M3ph_iw);
       h5_write(grp, "M2pp_iw", c.M2pp_iw);
       h5_write(grp, "M2ph_iw", c.M2ph_iw);
       h5_write(grp, "M2xph_iw", c.M2xph_iw);
@@ -98,14 +112,16 @@ namespace triqs_ctint {
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "F_tau", c.F_tau);
       h5_read(grp, "M4_iw", c.M4_iw);
-      h5_read(grp, "M3pp_iw", c.M3pp_iw);
-      h5_read(grp, "M3ph_iw", c.M3ph_iw);
+      h5_read(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
+      h5_read(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_read(grp, "M2pp_tau", c.M2pp_tau);
       h5_read(grp, "M2ph_tau", c.M2ph_tau);
       h5_read(grp, "M2xph_tau", c.M2xph_tau);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
+      h5_read(grp, "M3pp_iw", c.M3pp_iw);
+      h5_read(grp, "M3ph_iw", c.M3ph_iw);
       h5_read(grp, "M2pp_iw", c.M2pp_iw);
       h5_read(grp, "M2ph_iw", c.M2ph_iw);
       h5_read(grp, "M2xph_iw", c.M2xph_iw);

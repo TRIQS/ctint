@@ -84,6 +84,8 @@ namespace triqs_ctint {
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
     if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
+    if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");
+    if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
     if (params.measure_M2pp_tau) mc.add_measure(measures::M2_tau<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M2pp_tau measure");
     if (params.measure_M2ph_tau) mc.add_measure(measures::M2_tau<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2ph_tau measure");
     if (params.measure_M2xph_tau) mc.add_measure(measures::M2_tau<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2xph_tau measure");
@@ -155,6 +157,10 @@ namespace triqs_ctint {
     if (M2pp_tau) M2pp_iw   = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
     if (M2ph_tau) M2ph_iw   = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
     if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
+
+    // Calculate M3_iw from M3_tau
+    if (M3pp_tau) M3pp_iw   = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3);
+    if (M3ph_tau) M3ph_iw   = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3);
 
     // Calculate F_iw from M4_iw and M_iw
     if (M4_iw && M_iw) F_iw = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
