@@ -5,7 +5,7 @@
 #include "./moves/remove.hpp"
 #include "./measures.hpp"
 #include "./post_process.hpp"
-#include "./fourier_factories.hpp"
+#include "./fourier.hpp"
 
 namespace triqs_ctint {
 
