@@ -1,0 +1,1345 @@
+%% LyX 2.2.1 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\geometry{verbose,tmargin=2cm,bmargin=2cm,lmargin=2cm,rmargin=2cm}
+\setlength{\parskip}{\smallskipamount}
+\setlength{\parindent}{0pt}
+\usepackage{color}
+\definecolor{note_fontcolor}{rgb}{1, 0, 0}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[unicode=true,pdfusetitle,
+ bookmarks=true,bookmarksnumbered=false,bookmarksopen=false,
+ breaklinks=true,pdfborder={0 0 0},pdfborderstyle={},backref=false,colorlinks=true]
+ {hyperref}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+%% The greyedout annotation environment
+\newenvironment{lyxgreyedout}
+  {\textcolor{note_fontcolor}\bgroup\ignorespaces}
+  {\ignorespacesafterend\egroup}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\usepackage{color}
+
+
+\newcommand{\up}{\uparrow}
+\newcommand{\dn}{\downarrow}
+\newcommand{\upup}{\uparrow\uparrow}
+\newcommand{\updn}{\uparrow\downarrow}
+\newcommand{\dnup}{\downarrow\uparrow}
+\newcommand{\dndn}{\downarrow\downarrow}
+
+%opening
+\title{Cluster CTINT with dynamic interactions - implementation notes}
+
+\makeatother
+
+\begin{document}
+
+\title{CTINT: derivation and implementation notes}
+\maketitle
+\begin{abstract}
+In this document, we derive the equations of the CTINT algorithm,
+and then give a detailed account of the implementation of this algorithm
+using the TRIQS toolbox.
+\end{abstract}
+\tableofcontents{}
+
+\pagebreak{}
+
+\section{Derivation of the CTINT algorithm}
+
+\subsection{General description of the algorithm}
+
+\subsubsection{Definitions}
+
+We consider the following impurity action 
+\begin{equation}
+S=S_{0}+S_{\mathrm{int}}
+\end{equation}
+with 
+\begin{equation}
+S_{0}=\sum_{ab}\iint\limits _{0}^{\beta}\mathrm{d}\tau\mathrm{d}\tau'\bar{c}_{a}(\tau)\left[-\mathcal{G}_{ab}^{-1}(\tau-\tau')\right]c_{b}(\tau')
+\end{equation}
+
+and
+\begin{eqnarray}
+\mathcal{S}_{\mathrm{int}} & = & \frac{1}{4N_{s}}\iint_{0}^{\beta}\mathrm{d}\tau\mathrm{d}\tau'\sum_{abs}\mathcal{D}_{ab}(\tau-\tau')\tilde{n}_{as}(\tau)\tilde{n}_{bs}(\tau')\\
+ &  & +\frac{1}{2}\iint_{0}^{\beta}\mathrm{d}\tau\mathrm{d}\tau'\sum_{ij}{\cal J}_{ij}^{\perp}(\tau-\tau')s_{i}^{+}(\tau)s_{j}^{-}(\tau')
+\end{eqnarray}
+where 
+\begin{eqnarray}
+\mathcal{D}_{ab}(\tau) & = & \mathcal{U}_{ab}(\tau)+{\cal J}^{z}(\tau)\\
+\tilde{n}_{as}(\tau) & \equiv & \hat{n}_{\sigma}(\tau)-\alpha^{sa}\\
+\alpha^{sa} & \equiv & A_{a}+(2f_{sa}-1)\delta
+\end{eqnarray}
+and 
+\[
+s_{i}^{+}(\tau)=\bar{d}_{i\uparrow\tau}c_{i\downarrow\tau},\;\;\;s_{i}^{-}(\tau)=\bar{c}_{i\downarrow\tau}c_{i\uparrow\tau}
+\]
+$a$ and $b$ is combined orbital/spin index, $i$ is just orbital,
+$\sigma$ just spin. Note however that $s^{+}$ can only act on a
+singly occupied site with spin down fermion and vice versa for $s^{-}$.
+
+Notes:
+\begin{itemize}
+\item the $1/N_{s}$ term is necessary to avoid multiple counting of the
+interaction terms. However there is no sum over $s$ for the ${\cal J}^{\perp}$
+interaction, and it does not figure in the renormalization of the
+chemical potential. 
+\item the prefactor $1/4$ avoids double counting due to two symmetries
+$n_{i}n_{j}=n_{j}n_{i}$ and ${\cal D}(\tau)={\cal D}(-\tau)$. In
+the case of spin-exchange interaction, $s_{i}^{+}s_{j}^{-}\neq s_{j}^{+}s_{i}^{-}$
+but ${\cal J}^{\perp}(\tau)={\cal J}^{\perp}(-\tau)$ so we should
+have $1/2$, but in the code I have $1/4$ because for each $(i,j)$
+I add both $s_{i}^{+}s_{j}^{-}$ and $s_{i}^{-}s_{j}^{+}$ to the
+list of vertices.
+\item $\delta$ is a free small parameter which reduces the sign problem
+and $f_{sa}$ is some function of auxiliary spin $s$ and combined
+index $a$ such that it returns either $1$ or $0$. The $\alpha$'s
+only appear in the interaction term. This comes at the cost of redefining
+the noninteracting Green's function as 
+\begin{equation}
+\tilde{\mathcal{G}}_{ab}^{-1}(\tau)\equiv\mathcal{G}_{ab}^{-1}(\tau)-\frac{1}{N_{s}}\left[\sum_{cs}\alpha_{cs}\int_{0}^{\beta}\mathrm{d}\bar{\tau}\mathcal{D}_{ac}(\tau-\bar{\tau})\right]\delta_{ab}\delta(\tau)
+\end{equation}
+\end{itemize}
+We can compute 
+\begin{eqnarray*}
+\int_{0}^{\beta}\mathrm{d}\bar{\tau}\mathcal{D}_{ab}(\tau-\bar{\tau}) & = & \int_{\tau-\beta}^{\tau}\mathrm{d}\tilde{\tau}\mathcal{D}_{ab}(\tilde{\tau})\\
+ & = & \int_{\tau-\beta}^{0^{-}}\mathrm{d}\tilde{\tau}\mathcal{D}_{ab}(\tilde{\tau})+\int_{0^{+}}^{\tau}\mathrm{d}\tilde{\tau}\mathcal{D}_{ab}(\tilde{\tau})\\
+ & = & K'_{ab}(0^{-})-K'_{ab}(\tau-\beta)+K'_{ab}(\tau)-K'_{ab}(0^{+})\\
+ & = & -2K'_{ab}(0^{+})
+\end{eqnarray*}
+where $K(\tau)$ is defined as $K''(\tau)=\mathcal{D}(\tau)$ for
+$\tau\in]0,\beta[$, and $K(0^{+})=K(\beta^{-})=0$.
+
+\subsubsection{Interaction expansion}
+
+The CT-INT algorithm consists in expanding the partition function
+\begin{equation}
+Z\equiv\int\mathcal{D}[\bar{c},c]e^{\bar{c}_{a}\mathcal{G}_{ab}^{-1}c_{b}-S_{\mathrm{int}}}\label{eq:partition_function_def}
+\end{equation}
+in powers of $\mathcal{S}_{\mathrm{int}}$. One obtains:
+
+\begin{eqnarray*}
+Z & = & Z_{0}\sum_{k=0}^{\infty}\frac{(-)^{k}}{k!\,4^{k}}\sum_{k_{\perp}=0}^{\infty}\frac{(-)^{k_{\perp}}}{k_{\perp}!\,2^{k_{\perp}}}\int_{0}^{\beta}\mathrm{d}\tau\ldots\mathrm{d}\tau\int\limits _{0}^{\beta}\mathrm{d}\tau'_{1}\ldots\mathrm{d}\tau'_{k+k_{\perp}}\times\\
+ &  & \times\prod_{i=1}^{k}\frac{{\cal D}_{a_{i}b_{i}}(\tau_{i}-\tau_{i}')}{4N_{s}}\prod_{j=k+1}^{k+k_{\perp}}\frac{{\cal J}^{\perp}(\tau_{j}-\tau'_{j})}{2}\times\\
+ &  & \times\sum_{\substack{a_{1}\dots a_{k}\\
+b_{1}\dots b_{k}
+}
+}\sum_{\substack{c_{1}\dots c_{k_{\perp}}\\
+d_{1}\dots d_{k_{\perp}}
+}
+}\Big\langle T\tilde{n}_{a_{1}}(\tau_{1})\dots\tilde{n}_{a_{k}}(\tau_{k})\tilde{n}_{b_{1}}(\tau_{1}')\dots\tilde{n}_{b_{k}}(\tau_{k}')\times\\
+ &  & \times s_{c_{1}}^{\dagger}(\tau_{k+1})...s_{c_{k_{\perp}}}^{\dagger}(\tau_{k+k_{\perp}})s_{d_{1}}^{-}(\tau'_{k+1})...s_{d_{k_{\perp}}}^{-}(\tau'_{k+k_{\perp}})\Big\rangle_{0}
+\end{eqnarray*}
+
+where $T_{\tau}$ is the time ordering operator. We now order the
+times of the first integrals, but for $k$ and $k_{\perp}$times independently
+so that the prefactor factorials are cancelled. Using the properties
+of the time ordering operator
+
+\begin{eqnarray*}
+Z & = & Z_{0}\sum_{k=0}^{\infty}\sum_{k_{\perp}=0}^{\infty}(-)^{k+k_{\perp}}\int_{>}\mathrm{d}\tau\ldots\mathrm{d}\tau\int_{>}\mathrm{d}\tau\ldots\mathrm{d}\tau\int\limits _{0}^{\beta}\mathrm{d}\tau'_{1}\ldots\mathrm{d}\tau'_{k+k_{\perp}}\\
+ &  & \times\prod_{i=1}^{k}\frac{{\cal D}_{a_{i}b_{i}}(\tau_{i}-\tau_{i}')}{4N_{s}}\prod_{j=k+1}^{k+k_{\perp}}\frac{{\cal J}^{\perp}(\tau_{j}-\tau'_{j})}{2}\times\\
+ &  & \times\sum_{\substack{a_{1}\dots a_{k}\\
+b_{1}\dots b_{k}
+}
+}\sum_{\substack{c_{1}\dots c_{k_{\perp}}\\
+d_{1}\dots d_{k_{\perp}}
+}
+}\Big\langle T\tilde{n}_{a_{1}}(\tau_{1})\dots\tilde{n}_{a_{k}}(\tau_{k})\tilde{n}_{b_{1}}(\tau_{1}')\dots\tilde{n}_{b_{k}}(\tau_{k}')\times\\
+ &  & \times s_{c_{1}}^{\dagger}(\tau_{k+1})...s_{c_{k_{\perp}}}^{\dagger}(\tau_{k+k_{\perp}})s_{d_{1}}^{-}(\tau'_{k+1})...s_{d_{k_{\perp}}}^{-}(\tau'_{k+k_{\perp}})\Big\rangle_{0}
+\end{eqnarray*}
+Note that we do not order the integrals on $\tau'$.
+
+Assuming no spin-offdiagonal terms in the bare Green's function, we
+split the average in spin up and down parts. However, for this we
+need to rearrange the $d$ fields which will produce an additional
+minus sign in front 
+\begin{eqnarray*}
+Z & = & Z_{0}\sum_{k=0}^{\infty}\sum_{k_{\perp}=0}^{\infty}(-)^{k+k_{\perp}}\int_{>}\mathrm{d}\tau\ldots\mathrm{d}\tau\int_{>}\mathrm{d}\tau\ldots\mathrm{d}\tau\int\limits _{0}^{\beta}\mathrm{d}\tau'_{1}\ldots\mathrm{d}\tau'_{k+k_{\perp}}\times\\
+ &  & \times\prod_{i=1}^{k}\frac{{\cal D}_{a_{i}b_{i}}(\tau_{i}-\tau_{i}')}{4N_{s}}\prod_{j=k+1}^{k+k_{\perp}}\frac{{\cal J}^{\perp}(\tau_{j}-\tau'_{j})}{2}\times\\
+ &  & \times(-)^{k_{\perp}}\sum_{s_{1...k}}\sum_{\substack{i_{1}\dots i_{k+k_{\perp}}}
+}\Big\langle T(\bar{c}_{i_{1}\uparrow\tau_{1}}c_{i_{1}\uparrow\tau_{1}}-\alpha^{s_{1}\uparrow})\dots(\bar{c}_{i_{k}\uparrow\tau_{k}}c_{i_{k}\uparrow\tau_{k}}-\alpha^{s_{k}\uparrow})\\
+ &  & \;\;\;\;\;\;\;\;\;\;\;\;\;\bar{c}_{i_{k+1}\uparrow\tau_{k+1}}c_{i_{k+1}\uparrow\tau'_{k+1}}...\bar{c}_{i_{k+k_{\perp}}\uparrow\tau_{k+k_{\perp}}}c_{i_{k+k_{\perp}}\uparrow\tau'_{k+k_{\perp}}}\Big\rangle_{0}\times\\
+ &  & \times\sum_{\substack{j_{1}\dots j_{k+k_{\perp}}}
+}\Big\langle T(\bar{c}_{j_{1}\downarrow\tau_{1}}c_{j_{1}\downarrow\tau_{1}}-\alpha^{s_{1}\downarrow})\dots(\bar{c}_{j_{k}\downarrow\tau_{k}}c_{j_{k}\downarrow\tau_{k}}-\alpha^{s_{k}\downarrow})\\
+ &  & \;\;\;\;\;\;\;\;\;\;\;\;\;c_{j_{k+1}\downarrow\tau_{k+1}}\bar{c}_{j_{k+1}\downarrow\tau'_{k+1}}...c_{j_{k+k_{\perp}}\downarrow\tau_{k+k_{\perp}}}\bar{c}_{j_{k+k_{\perp}}\downarrow\tau'_{k+k_{\perp}}}\Big\rangle_{0}
+\end{eqnarray*}
+such that we see that the sign does NOT depend on the perturbation
+order in ${\cal J}^{\perp}$.
+
+The expression above can be written in a more compact form: 
+\begin{eqnarray*}
+Z & = & Z_{0}\sum_{k\geq0,\mathbf{a},\mathbf{b}}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]\langle c_{a_{1}}^{\dagger}...c_{a_{2k}}^{\dagger}c_{b_{1}}...c_{b_{2k}}\rangle_{0}
+\end{eqnarray*}
+where $\mathbf{a}\equiv\{a_{i}\}\equiv(a_{1},...,a_{2k})$, and analogously
+for $\mathbf{b}$. We now apply Wick's theorem to evaluate the noninteracting
+expectation value, getting 
+\begin{eqnarray}
+Z & = & Z_{0}\Xi\label{eq:Z_as_Z0Xi}
+\end{eqnarray}
+
+with
+\begin{equation}
+\Xi\equiv\sum_{k\geq0,\mathbf{a},\mathbf{b}}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]\det\hat{\mathcal{G}}_{k}[{\cal G},\mathbf{a},\mathbf{b}]\label{eq:Xi_def}
+\end{equation}
+and we have defined the matrix $\hat{\mathcal{G}}$ as: 
+\begin{eqnarray}
+[\hat{\mathcal{G}}]_{ij}\equiv\mathcal{G}_{a_{i}b_{j}}\label{defD}
+\end{eqnarray}
+
+and the second term can be considered a functional of only the interaction
+and the bare propagator 
+
+\subsubsection{Definitions of the main correlation functions}
+
+\paragraph{Single-particle correlation function}
+
+The single-particle Green's function is defined as
+\begin{equation}
+G_{ab}\equiv-\langle c_{a}\bar{c}_{b}\rangle\label{eq:G_def}
+\end{equation}
+
+Using (\ref{eq:partition_function_def}), we note $\frac{\partial Z}{\partial\mathcal{G}_{ab}^{-1}}=Z\langle\bar{c}_{a}c_{b}\rangle$
+i.e
+\begin{equation}
+G_{ab}=\frac{1}{Z}\frac{\partial Z}{\partial\mathcal{G}_{ba}^{-1}}\label{eq:G_as_derivative_of_Z}
+\end{equation}
+
+
+\paragraph{Four-point function}
+
+The four-point function $\chi_{abcd}^{4}$ is defined as
+\begin{equation}
+\chi_{abcd}^{4}\equiv\langle\bar{c}_{a}c_{b}\bar{c}_{c}c_{d}\rangle\label{eq:chi4_def}
+\end{equation}
+
+Using (\ref{eq:partition_function_def}), we note $\frac{\partial Z}{\partial\mathcal{G}_{ab}^{-1}\partial\mathcal{G}_{cd}^{-1}}=Z\langle\bar{c}_{a}c_{b}\bar{c}_{c}c_{d}\rangle$
+i.e
+\begin{equation}
+\chi_{abcd}^{4}=\frac{1}{Z}\frac{\partial Z}{\partial\mathcal{G}_{ab}^{-1}\partial\mathcal{G}_{cd}^{-1}}\label{eq:chi4_as_derivative_of_Z}
+\end{equation}
+
+We define its Fourier transform as:
+
+\begin{equation}
+\chi_{abcd}^{4}(i\omega,i\omega',i\Omega)\equiv\iiiint e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\chi_{abcd}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\label{eq:FT_4_point_fcts}
+\end{equation}
+which can be rewritten symbolically as:
+\[
+\chi_{abcd}^{4}(i\omega,i\omega',i\Omega)=\langle c_{a}^{\dagger}(i\omega)c_{b}(i\omega+i\nu)c_{c}^{\dagger}(i\omega'+i\nu)c_{d}(i\omega')\rangle
+\]
+
+The inverse Fourier transform is:
+\begin{equation}
+\chi_{abcd}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\equiv\sum_{i\omega,i\omega',i\Omega}e^{i\omega\tau_{1}}e^{-(i\omega+i\Omega)\tau_{2}}e^{(i\omega'+i\Omega)\tau_{3}}e^{-i\omega'\tau_{4}}\chi_{abcd}^{4}(i\omega,i\omega',i\Omega)\label{eq:inverse_FT_4_point_fcts}
+\end{equation}
+
+
+\paragraph{Alternative definition of $\chi^{4}$}
+
+Let us define:
+\begin{equation}
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\equiv\langle c_{a}(\tau_{1})\bar{c}_{\bar{b}}(\tau_{2})c_{c}(\tau_{3})\bar{c}_{\bar{d}}(\tau_{4})\rangle\label{eq:chi4_tilde_def}
+\end{equation}
+
+We have
+\begin{equation}
+\tilde{\chi}_{abcd}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})=\chi_{badc}^{4}(\tau_{2},\tau_{1},\tau_{4},\tau_{3})\label{eq:chi4_chi4tilde_time}
+\end{equation}
+
+In frequency,
+
+\begin{equation}
+\tilde{\chi}_{abcd}^{4}(i\omega,i\omega',i\Omega)\equiv\iiiint e^{i\omega\tau_{1}}e^{-(i\omega+i\Omega)\tau_{2}}e^{(i\omega'+i\Omega)\tau_{3}}e^{-i\omega'\tau_{4}}\tilde{\chi}_{abcd}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\label{eq:FT_4_point_fcts-1}
+\end{equation}
+
+Hence:
+
+\begin{align}
+\chi_{abcd}^{4}(i\omega,i\omega',i\Omega) & \equiv\iiiint e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\tilde{\chi}_{badc}^{4}(\tau_{2},\tau_{1},\tau_{4},\tau_{3})\nonumber \\
+ & =\iiiint e^{-i\omega\tau_{2}}e^{(i\omega+i\Omega)\tau_{1}}e^{-(i\omega'+i\Omega)\tau_{4}}e^{i\omega'\tau_{3}}\tilde{\chi}_{badc}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\nonumber \\
+ & =\iiiint e^{(i\omega+i\Omega)\tau_{1}}e^{-i\omega\tau_{2}}e^{i\omega'\tau_{3}}e^{-(i\omega'+i\Omega)\tau_{4}}\tilde{\chi}_{badc}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\nonumber \\
+ & =\tilde{\chi}_{badc}^{4}(\omega+\Omega,\omega'+\Omega,-\Omega)\label{eq:chi4_chi4tilde_freq}
+\end{align}
+
+or equivalently
+\begin{equation}
+\tilde{\chi}_{abcd}^{4}(i\omega,i\omega',i\Omega)=\chi_{badc}^{4}(\omega+\Omega,\omega'+\Omega,-\Omega)\label{eq:chi4tilde_chi4_freq}
+\end{equation}
+
+The connected correlation function is defined as:
+\begin{equation}
+\tilde{\chi}_{abcd}^{4,\mathrm{conn}}\equiv\tilde{\chi}_{abcd}^{4}-G_{ab}G_{cd}+G_{ad}G_{cb}\label{eq:chi4tilde_conn_def}
+\end{equation}
+
+In frequency space:
+
+\begin{equation}
+\tilde{\chi}_{abcd}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)=\tilde{\chi}_{abcd}^{4}(i\omega,i\omega',i\Omega)-G_{ab}(\omega)G_{cd}(\omega')\beta\delta_{\Omega}+G_{ad}(\omega+\Omega)G_{cb}(\omega)\beta\delta_{\omega\omega'}\label{eq:chi4tilde_conn_freq}
+\end{equation}
+
+Last, we note that the fully reducible two-particle vertex is defined
+as
+\begin{equation}
+F_{\bar{a}b\bar{c}d}\equiv G_{\bar{a}a}^{-1}G_{\bar{b}b}^{-1}\chi_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}}G_{\bar{c}c}^{-1}G_{\bar{d}d}^{-1}\label{eq:F_def}
+\end{equation}
+
+
+\paragraph{Two-point correlation function}
+
+We define
+
+\begin{equation}
+\chi_{ab}^{2}\equiv\langle n_{a}n_{b}\rangle\label{eq:chi3_def}
+\end{equation}
+
+
+\paragraph{Three-point function}
+
+The three-point correlation function is defined as:
+\begin{equation}
+\chi_{a\bar{b}c}^{3}\equiv-\langle c_{a}\bar{c}_{\bar{b}}n_{c}\rangle\label{eq:chi3_def-1}
+\end{equation}
+
+Note the minus sign compared to the definition in TRILEX. Its Fourier
+transform is defined (symbolically) as
+
+\[
+\chi_{aa'b}^{3}(i\omega,i\nu)\equiv-\langle c_{a}(i\omega)\bar{c}_{a'}(i\omega+i\nu)n_{b}(i\nu)\rangle
+\]
+
+The connected function is
+
+\begin{equation}
+\chi_{ijk}^{3,\mathrm{conn}}(\omega,\Omega)\equiv\chi_{ijk}^{3}(\omega,\Omega)+G_{ij}(\omega)n_{k}\beta\delta_{\Omega}-G_{ik}(\omega+\Omega)G_{kj}(\omega)\label{eq:chi3_conn_def}
+\end{equation}
+
+
+\subsubsection{Useful identities}
+
+For later reference, let us remind the reader of the following identities
+(see Appendix \ref{sec:Details} for a derivation):
+\begin{align}
+\frac{\partial f}{\partial G_{ab}} & =-G_{ua}^{-1}\frac{\partial f}{G_{uv}^{-1}}G_{bv}^{-1}\label{eq:df_dG_vs_df_dinvG}\\
+\frac{\partial G_{ab}^{-1}}{\partial x} & =-G_{ac}^{-1}\frac{\partial G_{cd}}{\partial x}G_{db}^{-1}\label{eq:dinvG_dx}\\
+\frac{\partial\mathrm{det}A}{\partial A_{ab}} & =A_{ba}^{-1}\mathrm{det}A\label{eq:ddet}
+\end{align}
+
+We also note that
+\[
+Z_{0}=\mathrm{det}\mathcal{G}^{-1}
+\]
+
+Hence
+\begin{equation}
+\frac{\partial Z_{0}}{\partial\mathcal{G}_{ab}^{-1}}=\mathcal{G}_{ba}Z_{0}\label{eq:dZ0_dinvG}
+\end{equation}
+
+and $\frac{\partial Z_{0}}{\partial\mathcal{G}_{ab}}=-\mathcal{G}_{ua}^{-1}\frac{\partial Z_{0}}{\partial\mathcal{G}_{uv}^{-1}}\mathcal{G}_{vb}^{-1}$
+implies
+\begin{equation}
+\frac{\partial Z_{0}}{\partial\mathcal{G}_{ab}}=-\mathcal{G}_{ba}^{-1}Z_{0}\label{eq:dZ0_dG}
+\end{equation}
+
+
+\subsubsection{From $\tilde{\chi}^{4}$ to $\chi^{3}$}
+
+Let us first note that:
+
+\begin{align}
+\chi_{ijk}^{3}(\omega,\Omega) & =-\iint e^{i\omega\tau+i\Omega\tau'}\langle Tc_{i}(\tau)\bar{c}_{j}(0)\bar{c}_{k}(\tau'^{+})c_{k}(\tau')\rangle=\iint e^{i\omega\tau+i\Omega\tau'}\langle Tc_{i}(\tau)\bar{c}_{j}(0)c_{k}(\tau')\bar{c}_{k}(\tau'^{+})\rangle\label{eq:chi3_interm}
+\end{align}
+
+Here, we have just used the properties of the time-ordering operator.
+On the other hand:
+
+\begin{align*}
+\tilde{\chi}_{abcd}^{4}(i\omega,i\omega',i\Omega) & =\iiiint e^{i\omega(\tau_{1}-\tau_{2})}e^{i\Omega(\tau_{3}-\tau_{2})}e^{i\omega'(\tau_{3}-\tau_{4})}\tilde{\chi}_{abcd}^{4}(\tau_{1},\tau_{2},\tau_{3},\tau_{4})\\
+ & =\iiint e^{i\omega(\tau_{1})}e^{i\Omega(\tau_{3})}e^{i\omega'(\tau_{3}-\tau_{4})}\tilde{\chi}_{abcd}^{4}(\tau_{1},0^{+},\tau_{3},\tau_{4})
+\end{align*}
+
+Summed over $\omega'$ (and multiplied by $e^{i\omega0^{+}}$):
+
+\begin{align*}
+\sum_{\omega'}\tilde{\chi}_{abcd}^{4}(i\omega,i\omega',i\Omega)e^{i\omega'0^{+}} & =\iiint e^{i\omega(\tau_{1})}e^{i\Omega(\tau_{3})}\sum_{\omega'}e^{i\omega'(\tau_{3}-\tau_{4})}e^{i\omega'0^{+}}\langle Tc_{a}(\tau_{1})\bar{c}_{b}(0^{+})c_{c}(\tau_{3})\bar{c}_{d}(\tau_{4})\rangle\\
+ & =\iiint e^{i\omega(\tau_{1})}e^{i\Omega(\tau_{3})}\langle Tc_{a}(\tau_{1})\bar{c}_{b}(0^{+})c_{c}(\tau_{3})\bar{c}_{d}(\tau_{3}^{+})\rangle
+\end{align*}
+
+The $e^{i\omega0^{+}}$ factor is important to get the $\tau_{3}^{+}$.
+
+One recognizes the term in Eq. (\ref{eq:chi3_interm}). Thus:
+
+\begin{equation}
+\chi_{ijk}^{3}(\omega,\Omega)=\sum_{\omega'}\tilde{\chi}_{ijkk}^{4}(i\omega,i\omega',i\Omega)e^{i\omega'0^{+}}\label{eq:chi3_chi4_rel}
+\end{equation}
+This sum on $\omega'$ is not well behaved because of the disconnected
+terms. Let us remove them: replacing $\tilde{\chi}^{4}$ with its
+connected part using (\ref{eq:chi4tilde_conn_freq}), we obtain:
+
+\begin{align}
+\chi_{ijk}^{3}(\omega,\Omega) & =\sum_{\omega'}\tilde{\chi}_{ijkk}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)e^{i\omega'0^{+}}-G_{ij}(\omega)\sum_{\omega'}G_{kk}(\omega')e^{i\omega'0^{+}}\beta\delta_{\Omega}+G_{ik}(\omega+\Omega)G_{kj}(\omega)\nonumber \\
+ & =\sum_{\omega'}\tilde{\chi}_{ijkk}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)e^{i\omega'0^{+}}-G_{ij}(\omega)n_{k}\beta\delta_{\Omega}+G_{ik}(\omega+\Omega)G_{kj}(\omega)\label{eq:chi3_vs_chi4tilde_conn_final}
+\end{align}
+
+Hence, using (\ref{eq:chi3_conn_def}):
+
+\begin{align}
+\chi_{ijk}^{3,\mathrm{conn}}(\omega,\Omega) & =\sum_{\omega'}\tilde{\chi}_{ijkk}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)e^{i\omega'0^{+}}\label{eq:chi3conn_vs_chi4tilde_conn_final}
+\end{align}
+
+This result makes sense.\footnote{Compare (\ref{eq:chi3_chi4_rel}) to 
+
+\begin{equation}
+\chi_{aa'b}^{3}(i\omega,i\nu)=\frac{1}{2}G_{aa'}(i\omega)\beta\delta_{\nu}+\frac{1}{\beta}\sum_{i\omega'}\tilde{\chi}_{aa'bb}^{4}(i\omega,i\omega',i\nu)\label{eq:chi3_from_chi4}
+\end{equation}
+
+and my previous derivation:
+
+tentative proof:
+\[
+\tilde{\chi}^{4}(i\omega,i\omega',i\Omega)\equiv\langle c_{\omega}c_{\omega+\Omega}^{\dagger}c_{\omega'+\Omega}c_{\omega'}^{\dagger}\rangle
+\]
+
+Let us sum over $\omega'$:
+\begin{align}
+\frac{1}{\beta}\sum_{\omega'}\tilde{\chi}^{4}(i\omega,i\omega',i\Omega) & =\iiiint_{\tau_{1}\tau_{2}\tau_{3}\tau_{4}}e^{i\omega\tau_{1}-i(\omega+\Omega)\tau_{2}+\Omega\tau_{3}}\underbrace{\frac{1}{\beta}\sum_{\omega'}e^{i\omega'(\tau_{3}-\tau_{4})}}_{=\frac{1}{2}\delta_{\tau_{3}-\tau_{4}}}\langle c_{\tau_{1}}c_{\tau_{2}}^{\dagger}c_{\tau_{3}}c_{\tau_{4}}^{\dagger}\rangle\\
+ & =\frac{1}{2}\iiint_{\tau_{1}\tau_{2}\tau_{3}}e^{i\omega\tau_{1}-i(\omega+\Omega)\tau_{2}+\Omega\tau_{3}}\langle c_{\tau_{1}}c_{\tau_{2}}^{\dagger}\left(1-c_{\tau_{3}}^{\dagger}c_{\tau_{3}}\right)\rangle\\
+ & =\frac{1}{2}\iiint_{\tau_{1}\tau_{2}\tau_{3}}e^{i\omega\tau_{1}-i(\omega+\Omega)\tau_{2}+\Omega\tau_{3}}\langle c_{\tau_{1}}c_{\tau_{2}}^{\dagger}\rangle-\frac{1}{2}\iiint_{\tau_{1}\tau_{2}\tau_{3}}e^{i\omega\tau_{1}-i(\omega+\Omega)\tau_{2}+\Omega\tau_{3}}\langle c_{\tau_{1}}c_{\tau_{2}}^{\dagger}c_{\tau_{3}}^{\dagger}c_{\tau_{3}}\rangle\\
+ & =-\frac{1}{2}G_{\omega}\beta\delta_{i\Omega}-\frac{1}{2}\langle c_{\omega}c_{\omega+\Omega}^{\dagger}n_{\Omega}\rangle
+\end{align}
+
+Hence:
+\begin{equation}
+\chi_{\omega\Omega}^{3}\equiv-\langle c_{\omega}c_{\omega+\Omega}^{\dagger}n_{\Omega}\rangle=G_{\omega}\beta\delta_{\Omega}+\frac{2}{\beta}\sum_{\omega'}\tilde{\chi}^{4}(i\omega,i\omega',i\Omega)\label{eq:chi3_chi4}
+\end{equation}
+
+which is different from Eq. (\ref{eq:chi3_from_chi4}).} One can expect that the sum on $\omega'$ of $\tilde{\chi}^{4,\mathrm{conn}}$
+is better behaved than that of $\tilde{\chi}^{4}$. %
+\begin{lyxgreyedout}
+In fact, it is not the case (I obtain the same result as direct sum
+of $\tilde{\chi}^{4}$). Reason(?): $M^{4,\mathrm{conn}}$, which
+is similar to the fully reducible vertex $F$ (see section \ref{par:Fully-reducible-vertex}),
+does not decay at large frequencies. See Figs\ref{fig:M4conn} and
+\ref{fig:M4irred}. %
+\end{lyxgreyedout}
+Let us indeed look at the asymptotics of the summand: 
+\[
+\sum_{\omega'}\tilde{\chi}_{ijkk}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)=\sum_{\omega'}{\cal G}_{u\bar{k}}(\omega'){\cal G}_{k\bar{v}}(\omega'+\Omega)\underbrace{M_{uvxy}^{4,\mathrm{conn}}(\omega',\omega,\Omega)}_{\rightarrow_{\omega'\rightarrow\infty}\mathrm{const}\neq0}{\cal G}_{x\bar{j}}(\omega+\Omega){\cal G}_{i\bar{y}}(\omega)
+\]
+
+A possible way out:
+
+\begin{align}
+\sum_{\omega'}\tilde{\chi}_{ijkk}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega) & =\sum_{\omega'}{\cal G}_{u\bar{k}}(\omega'){\cal G}_{k\bar{v}}(\omega'+\Omega)\underbrace{\left\{ M_{uvxy}^{4,\mathrm{conn}}(\omega',\omega,\Omega)-M_{uvxy}^{4,\mathrm{conn}}(\infty,\omega,\Omega)\right\} }_{\equiv M^{4,\mathrm{irred}}}{\cal G}_{x\bar{j}}(\omega+\Omega){\cal G}_{i\bar{y}}(\omega)\nonumber \\
+ & \;\;+\underbrace{\sum_{\omega'}{\cal G}_{u\bar{k}}(\omega'){\cal G}_{k\bar{v}}(\omega'+\Omega)}_{\equiv P_{u\bar{k}k\bar{v}}(\Omega)}\left\{ M_{uvxy}^{4,\mathrm{conn}}(\infty,\omega,\Omega)\right\} {\cal G}_{x\bar{j}}(\omega+\Omega){\cal G}_{i\bar{y}}(\omega)\label{eq:sum_chi4conn}
+\end{align}
+
+and compute $P(\Omega)$ as a bubble in imaginary time. I have implemented
+this, still issues, %
+\begin{lyxgreyedout}
+which probably come from the fact that, formally, $M_{uvxy}^{4,\mathrm{conn}}(\infty,\omega,\Omega)$
+is not really defined%
+\end{lyxgreyedout}
+{} (?) (see Nils's paper, the asymptotics of $F$ are not really what
+one should work with... should look at $\Phi^{r}$ in their respective
+``native'' notation and extract $\mathcal{K}^{1}$, $\mathcal{K}^{2}$...?)
+
+\begin{figure}
+\begin{centering}
+\includegraphics[width=0.8\columnwidth]{/home/tayral/Documents/2016/saclay/ctint/figures/M4conn}
+\par\end{centering}
+\caption{$M^{4,\mathrm{conn}}(\omega,\omega',\Omega)$ ($U=1$)\label{fig:M4conn}}
+
+\end{figure}
+
+\begin{figure}
+\begin{centering}
+\includegraphics[width=0.8\columnwidth]{/home/tayral/Documents/2016/saclay/ctint/figures/M4irred}
+\par\end{centering}
+\caption{$M^{4,\mathrm{irred}}(\omega,\omega',\Omega)$ ($U=1$)\label{fig:M4irred}
+(defined in (\ref{eq:sum_chi4conn}))}
+\end{figure}
+
+An alternative: directly perform the inverse FT of $M^{4,\mathrm{conn}}$
+(with one-variable tail fitting), and select $\tau'=0$. But will
+it solve our problem?
+
+\subsection{Monte-Carlo algorithm}
+
+The sum in Eq. (\ref{eq:Xi_def}) is sampled using the Metropolis-Hastings
+algorithm, i.e we write it as a sum over configurations
+\[
+\Xi=\sum_{\mathcal{C}}w_{\mathcal{C}}
+\]
+
+The expectation value of a observable $\hat{O}$ is computed as:
+\begin{equation}
+\langle\hat{O}\rangle\approx\langle\hat{O}\rangle_{\mathrm{MC}}\equiv\frac{\sum_{\mathcal{C}}w_{\mathcal{C}}O_{\mathcal{C}}}{\sum_{\mathcal{C}}w_{\mathcal{C}}}=\frac{1}{\Xi}\sum_{\mathcal{C}}w_{\mathcal{C}}O_{\mathcal{C}}\label{eq:MC_average_def}
+\end{equation}
+
+
+\subsubsection{Single-particle Green's function $G$}
+
+Starting from Eqs (\ref{eq:G_as_derivative_of_Z}) and (\ref{eq:Z_as_Z0Xi}-\ref{eq:Xi_def}),
+we obtain
+\begin{align}
+G_{ab} & =\frac{1}{Z}\left[\frac{\partial Z_{0}}{\partial\mathcal{G}_{ba}^{-1}}\Xi+Z_{0}\frac{\partial\Xi}{\partial\mathcal{G}_{ba}^{-1}}\right]==\frac{1}{Z}\left[\mathcal{G}_{ab}Z_{0}\Xi-Z_{0}\Xi\mathcal{G}_{cb}\frac{1}{\Xi}\frac{\partial\Xi}{\partial\mathcal{G}_{cd}}\mathcal{G}_{ad}\right]\label{eq:G_interm}
+\end{align}
+
+Hence:
+\begin{equation}
+G_{ab}=\mathcal{G}_{ab}+\mathcal{G}_{ad}M_{dc}\mathcal{G}_{cb}\label{eq:G_vs_M}
+\end{equation}
+
+where we have defined:
+\begin{equation}
+M_{ab}\equiv-\frac{1}{\Xi}\frac{\partial\Xi}{\partial\mathcal{G}_{ba}}\label{eq:M_def}
+\end{equation}
+
+In the code, $M_{ab}$ is the observable which is measured.
+
+We use Eq (\ref{eq:Xi_def}) to compute it as:
+
+\[
+M_{ab}=-\frac{1}{\Xi}\sum_{k\geq0,\mathbf{a},\mathbf{b}}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]\frac{\partial\det\hat{\mathcal{G}}_{k}}{\partial\mathcal{G}_{ba}}
+\]
+
+Using the chain rule $\frac{\partial\det\hat{\mathcal{G}}_{k}}{\partial\mathcal{G}_{ba}}=\sum_{ij}\frac{\partial\det\hat{\mathcal{G}}_{k}}{\partial\mathcal{\hat{G}}_{ij}}\frac{\partial\hat{\mathcal{G}}_{ij}}{\partial\mathcal{G}_{ba}}$,
+we obtain:
+
+\begin{align}
+M_{ab} & =-\frac{1}{\Xi}\sum_{k\geq0,\mathbf{a},\mathbf{b}}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]\partial\det\hat{\mathcal{G}}_{k}\sum_{ij}\hat{\mathcal{G}}_{ji}^{-1}\delta_{a_{i}b}\delta_{b_{j}a}\nonumber \\
+ & =-\frac{1}{\Xi}\sum_{\mathcal{C}}w_{\mathcal{C}}\left\{ \sum_{ij}\hat{\mathcal{G}}_{ji}^{-1}\delta_{a_{i}b}\delta_{b_{j}a}\right\} \nonumber \\
+ & =\Big\langle-\sum_{ij}\hat{\mathcal{G}}_{ji}^{-1}\delta_{a_{i}b}\delta_{b_{j}a}\Big\rangle_{\mathrm{MC}}\label{eq:M_MC_final}
+\end{align}
+
+The MC average corresponds to a stochastic sum over configurations,
+such that the probability of visiting a given configuration is $w({\cal C})$.
+
+\paragraph{Implementation details}
+
+Furthermore, in practice, on measures the binned version of $M$,
+in points $\tau_{l}$ separated by $\Delta\tau$ 
+\begin{eqnarray*}
+\tilde{M}_{uv}(\tau_{l}) & = & -\frac{1}{\beta\Delta\tau\langle\mathrm{sgn}({\cal C})\rangle_{\mathrm{MC}}}\left\langle \sum_{ij}\delta_{ub_{i}}\delta_{va_{j}}\left(\tilde{\delta}(\tau_{l},\tau'_{i}-\tau_{j})-\tilde{\delta}(\tau_{l},\beta-\tau_{j}+\tau'_{i})\right)[\hat{\mathcal{G}}_{k}^{-1}]_{ij}\mathrm{sgn}({\cal C})\right\rangle _{\mathrm{MC}}
+\end{eqnarray*}
+where $\tilde{\delta}$ is the approximate Kronecker delta checking
+whether the time difference falls into the given bin, and one restricts
+oneself to only positive times 
+\[
+0\leq\tau_{l}\leq\beta
+\]
+When there are non-density-density time dependent interaction, times
+$\tau_{i}$ and $\tau'_{i}$ may not be the same. Here $i,j$ are
+rows/columns of the $\hat{\mathcal{G}}^{-1}$ matrix, corresponding
+to pairs of inserted operators $c$ and $c^{\dagger}$ at corresponding
+$a_{i}$ and $b_{j}$ with $\tau_{i}\equiv\tau_{a_{i}}$ and $\tau'_{j}\equiv\tau_{b_{j}}$.
+Note the extra minus sign in front of the second $\tilde{\delta}$
+- because the time-diff is negative, we're measuring $-M$.
+
+The prefactor $1/\Delta\tau$ comes from the fact that for any binned
+quantity $\tilde{A}(\tau_{l})=\frac{1}{\Delta\tau}\int_{\tau_{l}-\Delta\tau/2}^{\tau_{l}+\Delta\tau/2}\mathrm{d}\tau A(\tau)$
+The extra $1/\beta$ comes because we are visiting the same $\tau_{l}$
+many times $\int\mathrm{d}\tau A(\tau)=\frac{1}{\beta}\int\mathrm{d}\tau\mathrm{d}\tau'A(\tau-\tau')$.
+
+\paragraph{Frequency measure}
+
+We can also measure directly in frequency, and directly $G$ 
+\begin{eqnarray*}
+G_{uv}(i\omega_{n}) & = & {\cal G}_{uv}(i\omega_{n})-\frac{1}{\beta\langle\mathrm{sgn}({\cal C})\rangle_{\mathrm{MC}}}\left\langle \sum_{ab}\sum_{ij}\delta_{bb_{i}}\delta_{aa_{j}}e^{i\omega_{n}(\tau'_{i}-\tau_{j})}{\cal G}_{ub}(i\omega_{n})[\hat{\mathcal{G}}_{k}^{-1}]_{ij}{\cal G}_{av}(i\omega_{n})\mathrm{sgn}({\cal C})\right\rangle _{\mathrm{MC}}
+\end{eqnarray*}
+Here, there's no binning, so there's no $1/\Delta\tau$, but there
+is $1/\beta$ for the same reason.
+
+Note however, that when we are measuring 
+\[
+F_{uv}=M_{ua}{\cal G}_{av}
+\]
+there is an additional integral over time which we do not do explicitly
+calculate, but sample also within the monte carlo 
+\begin{eqnarray}
+F(\tau_{l}) & = & \int\mathrm{d}\tau M(\tau_{l}-\tau){\cal G}(\tau)\\
+ & = & \Delta\tau\sum_{j}\tilde{M}(\tau_{l}-\tau_{j}){\cal G}(\tau_{j})\\
+ & = & \frac{\beta}{N_{\tau}}\sum_{j}\tilde{M}(\tau_{l}-\tau_{j}){\cal G}(\tau_{j})\\
+ & = & \beta\langle\tilde{M}(\tau_{l}-\tau_{j}){\cal G}(\tau_{j})\rangle
+\end{eqnarray}
+so the $1/\beta$ prefactor is cancelled. 
+\begin{eqnarray}
+F_{uv}(\tau_{l}) & = & -\frac{1}{\Delta\tau}\left\langle \sum_{ij}\delta_{ub_{j}}\tilde{\delta}(\tau_{l},\tau'_{j})[\hat{\mathcal{G}}_{k}^{-1}]_{ji}{\cal G}_{a_{i}v}(\tau_{i})\mathrm{sgn}({\cal C})\right\rangle _{\mathrm{MC}}
+\end{eqnarray}
+
+
+\subsubsection{Four-point correlator $\chi^{4}$\label{subsec:Measuring-the-4-point}}
+
+Starting from Eqs (\ref{eq:chi4_as_derivative_of_Z}), (\ref{eq:G_as_derivative_of_Z})
+and (\ref{eq:df_dG_vs_df_dinvG}), we first note:
+
+\begin{equation}
+\chi_{abef}^{4}=\frac{1}{Z}\frac{\partial(ZG_{ba})}{\partial\mathcal{G}_{ef}^{-1}}=-\frac{1}{Z}\mathcal{G}_{ue}\frac{\partial(ZG_{ba})}{\partial\mathcal{G}_{uv}}\mathcal{G}_{fv}\label{eq:chi4_interm}
+\end{equation}
+
+Let us now evaluate $\frac{\partial(ZG_{ba})}{\partial\mathcal{G}_{uv}}$
+using (\ref{eq:G_interm}). We have (using (\ref{eq:dZ0_dG})):
+
+\begin{align}
+\frac{\partial(ZG_{ba})}{\partial\mathcal{G}_{uv}} & =\frac{\partial}{\partial\mathcal{G}_{uv}}\left[\mathcal{G}_{ba}Z_{0}\Xi-Z_{0}\mathcal{G}_{ca}\frac{\partial\Xi}{\partial\mathcal{G}_{cd}}\mathcal{G}_{bd}\right]\nonumber \\
+ & =\delta_{bu}\delta_{va}Z_{0}\Xi+\mathcal{G}_{ba}\frac{\partial Z_{0}}{\partial\mathcal{G}_{uv}}\Xi+\mathcal{G}_{ba}Z_{0}\frac{\partial\Xi}{\partial\mathcal{G}_{uv}}\nonumber \\
+ & \;\;-\frac{\partial Z_{0}}{\partial\mathcal{G}_{uv}}\mathcal{G}_{ca}\frac{\partial\Xi}{\partial\mathcal{G}_{cd}}\mathcal{G}_{bd}-Z_{0}\delta_{uc}\delta_{av}\frac{\partial\Xi}{\partial\mathcal{G}_{cd}}\mathcal{G}_{bd}-Z_{0}\mathcal{G}_{ca}\frac{\partial\Xi}{\partial\mathcal{G}_{uv}\partial\mathcal{G}_{cd}}\mathcal{G}_{bd}-Z_{0}\mathcal{G}_{ca}\frac{\partial\Xi}{\partial\mathcal{G}_{cd}}\delta_{bu}\delta_{dv}\nonumber \\
+ & =\delta_{bu}\delta_{va}Z_{0}\Xi-\mathcal{G}_{ba}\mathcal{G}_{vu}^{-1}Z_{0}\Xi-\mathcal{G}_{ba}Z_{0}\Xi M_{vu}\nonumber \\
+ & \;\;-\mathcal{G}_{vu}^{-1}Z_{0}\mathcal{G}_{ca}\Xi M_{dc}\mathcal{G}_{bd}+\Xi Z_{0}\delta_{uc}\delta_{av}M_{dc}\mathcal{G}_{bd}-Z_{0}\mathcal{G}_{ca}\Xi M_{vudc}^{4}\mathcal{G}_{bd}+Z_{0}\mathcal{G}_{ca}\Xi M_{dc}\delta_{bu}\delta_{dv}\nonumber \\
+ & =Z\Big\{\delta_{bu}\delta_{va}-\mathcal{G}_{ba}\mathcal{G}_{vu}^{-1}-\mathcal{G}_{ba}M_{vu}-\mathcal{G}_{vu}^{-1}\mathcal{G}_{ca}M_{dc}\mathcal{G}_{bd}\nonumber \\
+ & \;\;\;+\delta_{av}M_{du}\mathcal{G}_{bd}-\mathcal{G}_{ca}M_{uvcd}^{4}\mathcal{G}_{bd}+\mathcal{G}_{ca}M_{vc}\delta_{bu}\Big\}\label{eq:chi4_interm_2}
+\end{align}
+
+where we have defined:
+
+\begin{equation}
+M_{u\bar{v}c\bar{d}}^{4}\equiv\frac{1}{\Xi}\frac{\partial\Xi}{\partial\mathcal{G}_{u\bar{v}}\partial\mathcal{G}_{c\bar{d}}}\label{eq:M4_def}
+\end{equation}
+
+Plugging (\ref{eq:chi4_interm_2}) into (\ref{eq:chi4_interm}), we
+obtain
+\begin{align*}
+\chi_{abef}^{4} & =-\mathcal{G}_{be}\mathcal{G}_{fa}+\mathcal{G}_{fe}\mathcal{G}_{ba}+\mathcal{G}_{ba}\mathcal{G}_{fv}M_{vu}\mathcal{G}_{ue}+\mathcal{G}_{bd}M_{dc}\mathcal{G}_{ca}\mathcal{G}_{fe}\\
+ & \;\;-\mathcal{G}_{bd}M_{du}\mathcal{G}_{ue}\mathcal{G}_{fa}+\mathcal{G}_{fv}\mathcal{G}_{ue}M_{uvcd}^{4}\mathcal{G}_{bd}\mathcal{G}_{ca}-\mathcal{G}_{be}\mathcal{G}_{fv}M_{vc}\mathcal{G}_{ca}
+\end{align*}
+
+i.e, after relabeling and reordering:
+
+\begin{align}
+\chi_{\bar{a}b\bar{c}d}^{4} & =\mathcal{G}_{d\bar{v}}\mathcal{G}_{u\bar{c}}M_{u\bar{v}x\bar{y}}^{4}\mathcal{G}_{b\bar{y}}\mathcal{G}_{x\bar{a}}\nonumber \\
+ & \;\;+\mathcal{G}_{b\bar{a}}\mathcal{G}_{d\bar{c}}+[\mathcal{G}M\mathcal{G}]_{b\bar{a}}\mathcal{G}_{d\bar{c}}+\mathcal{G}_{b\bar{a}}[\mathcal{G}M\mathcal{G}]_{d\bar{c}}\nonumber \\
+ & \;\;-\mathcal{G}_{b\bar{c}}\mathcal{G}_{d\bar{a}}-[\mathcal{G}M\mathcal{G}]_{b\bar{c}}\mathcal{G}_{d\bar{a}}-\mathcal{G}_{b\bar{c}}[\mathcal{G}M\mathcal{G}]_{d\bar{a}}\label{eq:chi4_final}
+\end{align}
+
+Thus, in order to compute $\chi^{4}$, one needs to compute $M$ and
+$M^{4}$.
+
+\paragraph{Formulation in frequency}
+
+Let us rewrite the terms of Eq. (\ref{eq:chi4_final}) in frequency
+space:
+
+\begin{align*}
+\chi_{abcd}^{4,0}(i\omega,i\omega',i\Omega) & \equiv\iiiint_{1234}e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\\
+ & \;\;\;\iiiint_{5678}{\cal G}_{uc}(\tau_{5}-\tau_{3}){\cal G}_{dv}(\tau_{4}-\tau_{6})M_{uvxy}^{4}(\tau_{5},\tau_{6},\tau_{7},\tau_{8}){\cal G}_{xa}(\tau_{7}-\tau_{1}){\cal G}_{by}(\tau_{2}-\tau_{8})\\
+ & =\sum_{\omega_{1}\omega_{2}\omega_{3}\omega_{3}'\Omega_{3}\omega_{4}\omega_{5}}\iiiint_{1\dots8}\left\{ e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\right\} e^{-i\omega_{1}(\tau_{5}-\tau_{3})}e^{-i\omega_{2}(\tau_{4}-\tau_{6})}\\
+ & \;\;\;e^{-i\omega_{4}(\tau_{7}-\tau_{1})}e^{-i\omega_{5}(\tau_{2}-\tau_{8})}e^{i\omega_{3}\tau_{5}-(i\omega_{3}+i\Omega_{3})\tau_{6}+(i\omega_{3}'+i\Omega_{3})\tau_{7}-i\omega_{3}'\tau_{8}}\\
+ & \;\;\;{\cal G}_{uc}(i\omega_{1}){\cal G}_{dv}(i\omega_{2})M_{uvxy}^{4}(i\omega_{3},i\omega_{3}',i\Omega{}_{3}){\cal G}_{xa}(i\omega_{4}){\cal G}_{by}(i\omega_{5})\\
+ & =\sum_{\omega_{1}\omega_{2}\omega_{3}\omega_{3}'\Omega_{3}\omega_{4}\omega_{5}}\iiiint_{1\dots8}e^{i\tau_{1}(-\omega+\omega_{4})+i\tau_{2}(\omega+\Omega-\omega_{5})+i\tau_{3}(-\omega'-\Omega'+\omega_{1})+i\tau_{4}(\omega'-\omega_{2})}\\
+ & \;\;\;e^{i\tau_{5}(-\omega_{1}+\omega_{3})+i\tau_{6}(\omega_{2}-\omega_{3}-\Omega_{3})+i\tau_{7}(-\omega_{4}+\omega_{3}'+\Omega_{3})+i\tau_{8}(\omega_{5}-\omega_{3}')}\\
+ & \;\;\;{\cal G}_{uc}(i\omega_{1}){\cal G}_{dv}(i\omega_{2})M_{uvxy}^{4}(i\omega_{3},i\omega_{3}',i\Omega{}_{3}){\cal G}_{xa}(i\omega_{4}){\cal G}_{by}(i\omega_{5})\\
+ & ={\cal G}_{uc}(\omega'+\Omega'){\cal G}_{dv}(\omega')M_{uvxy}^{4}(\omega'+\Omega',\omega+\Omega,-\Omega){\cal G}_{xa}(\omega){\cal G}_{by}(\omega+\Omega)
+\end{align*}
+
+\begin{align*}
+\chi_{abcd}^{4,1}(i\omega,i\omega',i\Omega) & \equiv\iiiint_{1234}e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\mathcal{G}_{ba}(\tau_{2}-\tau_{1})\mathcal{G}_{dc}(\tau_{4}-\tau_{3})\\
+ & =\iiiint_{1234}e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\iiiint_{5678}\\
+ & \;\;\sum_{\omega_{1},\omega_{2}}e^{-i\omega_{1}(\tau_{2}-\tau_{1})-i\omega_{2}(\tau_{4}-\tau_{3})}\mathcal{G}_{ba}(i\omega_{1})\mathcal{G}_{dc}(i\omega_{2})\\
+ & =\sum_{\omega_{1},\omega_{2}}\iiiint_{1234}e^{i\tau_{1}(-\omega+\omega_{1})+i\tau_{2}(\omega+\Omega-\omega_{1})+i\tau_{3}(-\omega'-\Omega+\omega_{2})+i\tau_{4}(\omega'-\omega_{2})}\\
+ & \;\;\mathcal{G}_{ba}(\omega)\mathcal{G}_{dc}(\omega')\beta\delta_{\Omega}
+\end{align*}
+
+\begin{align*}
+\chi_{abcd}^{4,2}i\omega,i\omega',i\Omega) & \equiv\iiiint_{1234}e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}\mathcal{G}_{bc}(\tau_{2}-\tau_{3})\mathcal{G}_{da}(\tau_{4}-\tau_{1})\\
+ & =\sum_{\omega_{1}\omega_{2}}\iiiint_{1234}e^{-i\omega\tau_{1}}e^{(i\omega+i\Omega)\tau_{2}}e^{-(i\omega'+i\Omega)\tau_{3}}e^{i\omega'\tau_{4}}e^{-i\omega_{1}(\tau_{2}-\tau_{3})}e^{-i\omega_{2}(\tau_{4}-\tau_{1})}\mathcal{G}_{bc}(\omega_{1})\mathcal{G}_{da}(\omega_{2})\\
+ & =\sum_{\omega_{1}\omega_{2}}\iiiint_{1234}e^{i\tau_{1}(-\omega+\omega_{2})}e^{i\tau_{2}(\omega+\Omega-\omega_{1})}e^{\tau_{3}(-\omega'-\Omega+\omega_{1})}e^{i\tau_{4}(\omega'-\omega_{2})}\mathcal{G}_{bc}(\omega_{1})\mathcal{G}_{da}(\omega_{2})\\
+ & =\mathcal{G}_{bc}(\omega+\Omega)\mathcal{G}_{da}(\omega)\beta\delta_{\omega,\omega'}
+\end{align*}
+
+Thus, we obtain the final expression:
+
+\begin{align}
+\chi_{abcd}^{4,0}(i\omega,i\omega',i\Omega) & ={\cal G}_{uc}(\omega'+\Omega){\cal G}_{dv}(\omega')M_{uvxy}^{4}(\omega'+\Omega,\omega+\Omega,-\Omega){\cal G}_{xa}(\omega){\cal G}_{by}(\omega+\Omega)\label{eq:chi4_final_freq}\\
+ & \;\;+\mathcal{G}_{ba}(\omega)\mathcal{G}_{dc}(\omega')\beta\delta_{\Omega}+[\mathcal{G}M\mathcal{G}]_{ba}(\omega)\mathcal{G}_{dc}(\omega')\beta\delta_{\Omega}+\mathcal{G}_{ba}(\omega)[\mathcal{G}M\mathcal{G}]_{dc}(\omega')\beta\delta_{\Omega}\nonumber \\
+ & \;\;-\mathcal{G}_{bc}(\omega+\Omega)\mathcal{G}_{da}(\omega)\beta\delta_{\omega,\omega'}-[\mathcal{G}M\mathcal{G}]_{bc}(\omega+\Omega)\mathcal{G}_{da}(\omega)\beta\delta_{\omega,\omega'}-\mathcal{G}_{bc}(\omega+\Omega)[\mathcal{G}M\mathcal{G}]_{da}(\omega)\beta\delta_{\omega,\omega'}\nonumber 
+\end{align}
+
+Or, in terms of $\tilde{\chi}^{4}$ (see Eq.(\ref{eq:chi4_tilde_def})
+for a definition and (\ref{eq:chi4tilde_chi4_freq}) for the relation
+to $\chi^{4}$):
+
+\begin{align}
+\tilde{\chi}_{abcd}^{4,0}(i\omega,i\omega',i\Omega) & ={\cal G}_{ud}(\omega'){\cal G}_{cv}(\omega'+\Omega)M_{uvxy}^{4}(\omega',\omega,\Omega){\cal G}_{xb}(\omega+\Omega){\cal G}_{ay}(\omega)\label{eq:chi4_final_freq-1}\\
+ & \;\;+\left\{ \mathcal{G}_{ab}(\omega)\mathcal{G}_{cd}(\omega')+[\mathcal{G}M\mathcal{G}]_{ab}(\omega)\mathcal{G}_{cd}(\omega')+\mathcal{G}_{ab}(\omega)[\mathcal{G}M\mathcal{G}]_{cd}(\omega')\right\} \beta\delta_{\Omega}\nonumber \\
+ & \;\;-\left\{ \mathcal{G}_{ad}(\omega)\mathcal{G}_{cb}(\omega+\Omega)+[\mathcal{G}M\mathcal{G}]_{ad}(\omega)\mathcal{G}_{cb}(\omega+\Omega)+\mathcal{G}_{ad}(\omega)[\mathcal{G}M\mathcal{G}]_{cb}(\omega+\Omega)\right\} \beta\delta_{\omega,\omega'}\nonumber 
+\end{align}
+
+\begin{lyxgreyedout}
+Note that this is (a priori) different from the previous version of
+the notes ($\omega'$ and $\omega$ swapped in $M^{4}$...))
+\begin{eqnarray}
+\chi_{\sigma\sigma'}^{4}(i\omega,i\omega',i\nu) & = & \Big({\cal G}_{\sigma}(i\omega){\cal G}_{\sigma'}(i\omega')+[{\cal G}M{\cal G}]_{\sigma}(i\omega){\cal G}_{\sigma'}(i\omega')+{\cal G}_{\sigma}(i\omega)[{\cal G}M{\cal G}]_{\sigma'}(i\omega')\Big)\delta_{i\nu,0}\\
+ &  & -\Big({\cal G}_{\sigma}(i\omega){\cal G}_{\sigma}(i\omega+i\nu)+[{\cal G}M{\cal G}]_{\sigma}(i\omega){\cal G}_{\sigma}(i\omega+i\nu)+{\cal G}_{\sigma}(i\omega)[{\cal G}M{\cal G}]_{\sigma}(i\omega+i\nu)\Big)\delta_{\sigma,\sigma'}\delta_{i\omega,i\omega'}\nonumber \\
+ &  & +{\cal G}_{\sigma}(i\omega){\cal G}_{\sigma}(i\omega+i\nu)M_{\sigma\sigma'}^{4}(i\omega,i\omega',i\nu){\cal G}_{\sigma'}(i\omega'){\cal G}_{\sigma'}(i\omega'+i\nu)\label{chi4toM4}
+\end{eqnarray}
+\end{lyxgreyedout}
+
+At the moment, what is implemented in the code is $\tilde{\chi}_{a\bar{b}c\bar{d}}^{4}(i\omega,i\omega',i\Omega)$.
+
+\paragraph{Connected four-point function}
+
+The connected correlation function (see Eq(\ref{eq:chi4tilde_conn_def}))
+is:
+\begin{align*}
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}} & =\tilde{\chi}_{abcd}^{4}-\left[\mathcal{G}+\mathcal{G}M\mathcal{G}\right]_{ab}\left[\mathcal{G}+\mathcal{G}M\mathcal{G}\right]_{cd}+\left[\mathcal{G}+\mathcal{G}M\mathcal{G}\right]_{ad}\left[\mathcal{G}+\mathcal{G}M\mathcal{G}\right]_{cb}\\
+ & =\tilde{\chi}_{abcd}^{4}\\
+ & \;\;-\left\{ \mathcal{G}_{ab}\mathcal{G}_{cd}+\mathcal{G}_{ab}\left[\mathcal{G}M\mathcal{G}\right]_{cd}+\left[\mathcal{G}M\mathcal{G}\right]_{ab}\mathcal{G}_{cd}+\left[\mathcal{G}M\mathcal{G}\right]_{ab}\left[\mathcal{G}M\mathcal{G}\right]_{cd}\right\} \\
+ & \;\;+\left\{ \mathcal{G}_{ad}\mathcal{G}_{cb}+\mathcal{G}_{ad}\left[\mathcal{G}M\mathcal{G}\right]_{cb}+\left[\mathcal{G}M\mathcal{G}\right]_{ad}\mathcal{G}_{cb}+\left[\mathcal{G}M\mathcal{G}\right]_{ad}\left[\mathcal{G}M\mathcal{G}\right]_{cb}\right\} 
+\end{align*}
+
+By inspection of Eq.(\ref{eq:chi4_final}), we see that
+
+\begin{align}
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}} & =\mathcal{G}_{c\bar{v}}\mathcal{G}_{u\bar{d}}M_{u\bar{v}x\bar{y}}^{4}\mathcal{G}_{a\bar{y}}\mathcal{G}_{x\bar{b}}\nonumber \\
+ & \;\;-\left[\mathcal{G}M\mathcal{G}\right]_{a\bar{b}}\left[\mathcal{G}M\mathcal{G}\right]_{c\bar{d}}+\left[\mathcal{G}M\mathcal{G}\right]_{a\bar{d}}\left[\mathcal{G}M\mathcal{G}\right]_{c\bar{b}}\label{eq:chi4tilde_conn_final}
+\end{align}
+
+Or in other words:
+
+\[
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}}=\mathcal{G}_{c\bar{v}}\mathcal{G}_{u\bar{d}}M_{u\bar{v}x\bar{y}}^{4,\mathrm{conn}}\mathcal{G}_{a\bar{y}}\mathcal{G}_{x\bar{b}}
+\]
+
+where we have defined:
+
+\[
+M_{u\bar{v}x\bar{y}}^{4,\mathrm{conn}}\equiv M_{u\bar{v}x\bar{y}}^{4}-M_{\bar{v}u}M_{\bar{y}x}+M_{\bar{v}x}M_{\bar{y}u}
+\]
+
+In frequency space:
+
+\begin{align}
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega) & ={\cal G}_{ud}(\omega'){\cal G}_{cv}(\omega'+\Omega)M_{uvxy}^{4}(\omega',\omega,\Omega){\cal G}_{xb}(\omega+\Omega){\cal G}_{ay}(\omega)\nonumber \\
+ & \;\;-[\mathcal{G}M\mathcal{G}]_{ab}(\omega)[\mathcal{G}M\mathcal{G}]_{cd}(\omega')\beta\delta_{\Omega}+[\mathcal{G}M\mathcal{G}]_{ad}(\omega)[\mathcal{G}M\mathcal{G}]_{cb}(\omega+\Omega)\beta\delta_{\omega,\omega'}\label{eq:chi4tilde_conn_final_freq}
+\end{align}
+
+or
+
+\[
+\tilde{\chi}_{a\bar{b}c\bar{d}}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)={\cal G}_{u\bar{d}}(\omega'){\cal G}_{c\bar{v}}(\omega'+\Omega)M_{uvxy}^{4,\mathrm{conn}}(\omega',\omega,\Omega){\cal G}_{x\bar{b}}(\omega+\Omega){\cal G}_{a\bar{y}}(\omega)
+\]
+\label{eq:chi4tilde_conn_final_freq_v2}
+
+with
+\[
+M_{u\bar{v}x\bar{y}}^{4,\mathrm{conn}}(i\omega,i\omega',i\Omega)=M_{u\bar{v}x\bar{y}}^{4}(i\omega,i\omega',i\Omega)-M_{\bar{v}u}(\omega)M_{\bar{y}x}(\omega')\beta\delta_{\Omega}+M_{\bar{v}x}(\omega+\Omega)M_{\bar{y}u}(\omega)\beta\delta_{\omega,\omega'}
+\]
+
+Eq. (\ref{eq:chi4tilde_conn_final_freq_v2}) is a bit faster in terms
+of computing time than (\ref{eq:chi4tilde_conn_final_freq}). %
+\begin{lyxgreyedout}
+Sampling directly $M^{4,\mathrm{conn}}$ (instead of $M^{4}$) probably
+leads to better statistics.%
+\end{lyxgreyedout}
+
+
+\paragraph{Fully reducible vertex\label{par:Fully-reducible-vertex}}
+
+Using (\ref{eq:F_def}), we get
+
+\[
+F_{\bar{a}b\bar{c}d}=\left\{ G_{\bar{a}a}^{-1}{\cal G}_{a\bar{y}}\right\} \left\{ {\cal G}_{x\bar{b}}G_{\bar{b}b}^{-1}\right\} M_{uvxy}^{4,\mathrm{conn}}\left\{ G_{\bar{c}c}^{-1}{\cal G}_{c\bar{v}}\right\} \left\{ {\cal G}_{u\bar{d}}G_{\bar{d}d}^{-1}\right\} 
+\]
+
+i.e, recalling (\ref{eq:G_vs_M}),
+
+\begin{equation}
+F_{\bar{a}b\bar{c}d}=\left\{ 1+M\mathcal{G}\right\} _{\bar{a}\bar{y}}^{-1}\left\{ 1+M\mathcal{G}\right\} _{xb}^{-1}M_{u\bar{v}x\bar{y}}^{4,\mathrm{conn}}\left\{ 1+M\mathcal{G}\right\} _{\bar{c}\bar{v}}^{-1}\left\{ 1+M\mathcal{G}\right\} _{ud}^{-1}\label{eq:F_final}
+\end{equation}
+
+From this expression, one can see that $F$ and $M^{4,\mathrm{conn}}$
+have the same asymptotics.
+
+\begin{lyxgreyedout}
+Could one sample $F$ directly? Is it numerically better?%
+\end{lyxgreyedout}
+
+
+\paragraph{Implementation: measurement of $M^{4}$}
+
+One measures: 
+\begin{eqnarray}
+\frac{\delta^{2}\xi}{\delta{\cal G}_{a_{j}b_{i}}\delta{\cal G}_{a_{l}b_{k}}} & \sim & \frac{\delta^{2}\det\hat{\mathcal{G}}}{\delta\hat{\mathcal{G}}_{ji}\delta\hat{\mathcal{G}}_{lk}}\nonumber \\
+ & = & \left([\hat{\mathcal{G}}^{-1}]_{ij}[\hat{\mathcal{G}}^{-1}]_{kl}-[\hat{\mathcal{G}}^{-1}]_{il}[\hat{\mathcal{G}}^{-1}]_{kj}\right)\det\hat{\mathcal{G}}
+\end{eqnarray}
+so 
+\begin{eqnarray}
+M_{abcd}^{4}\sim\frac{1}{\langle\mathrm{sgn}(\mathcal{C})\rangle_{\mathrm{MC}}}\Big\langle\sum_{ijkl}\Big([\hat{\mathcal{G}}^{-1}]_{ij}[\hat{\mathcal{G}}^{-1}]_{kl}-[\hat{\mathcal{G}}^{-1}]_{il}[\hat{\mathcal{G}}^{-1}]_{kj}\Big)\delta_{aa_{j}}\delta_{bb_{i}}\delta_{ca_{l}}\delta_{db_{k}}\mathrm{sgn}(\mathcal{C})\Big\rangle_{\mathrm{MC}}
+\end{eqnarray}
+
+In practice, to avoid doing a quadruple loop over operators ($ijkl$),
+for a given configuration we can define a ``time-translationaly broken
+scattering matrix'' 
+\begin{equation}
+M_{uv}(\tau,\tau')\equiv\sum_{ij}[\hat{\mathcal{G}}^{-1}]_{ji}\delta_{a_{i}u}\delta_{b_{j}v}\delta_{\tau_{i}\tau}\delta_{\tau'_{j}\tau'}
+\end{equation}
+and then 
+\begin{equation}
+M_{uvxw}^{4}(\tau_{1},\tau_{2},\tau_{3})\sim\frac{1}{\langle\mathrm{sgn}(\mathcal{C})\rangle_{\mathrm{MC}}}\Big\langle\Big(M_{uv}(\tau_{1},\tau_{2})M_{xw}(\tau_{3},0)-M_{uw}(\tau_{1},0)M_{xv}(\tau_{3},\tau_{2})\Big)\mathrm{sgn}(\mathcal{C})\Big\rangle_{\mathrm{MC}}
+\end{equation}
+In frequency space: 
+\begin{equation}
+M_{uv}(i\omega,i\omega')=\sum_{ij}[\hat{\mathcal{G}}^{-1}]_{ji}\delta_{a_{i}u}\delta_{b_{j}v}e^{i\omega\tau-i\omega'\tau'_{j}}
+\end{equation}
+where the minus sign in fron of $\tau'$ term in the exponent is due
+to definition of Fourier transform of $FT(c^{\dagger}(\tau))=FT^{*}(c(\tau))$
+\begin{equation}
+M_{uvxw}^{4}(i\omega,i\omega',i\nu)\sim\Big\langle\Big(M_{uv}(i\omega,i\omega+i\nu)M_{xw}(i\omega'+i\nu,i\omega')-M_{uw}(i\omega,i\omega')M_{xv}(i\omega'+i\nu,i\omega'+i\nu)\Big)\mathrm{sgn}(\mathcal{C})\Big\rangle_{\mathrm{MC}}
+\end{equation}
+
+
+\subsubsection{Two-point correlation function $\chi^{2}$ \label{subsec:Measuring-the-two-point}}
+
+The two-point correlation function is measured by operator insertion.
+
+Let us perform the following interaction expansion: 
+\begin{eqnarray}
+\chi^{2} & = & \frac{1}{Z}\int{\cal D}[c^{\dagger},c]\,e^{c_{u}^{\dagger}[{\cal G}^{-1}]_{uv}c_{v}}\sum_{k,\mathbf{a},\mathbf{b}}(-)^{k}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]n_{u}n_{v}c_{a_{1}}^{\dagger}...c_{a_{2k}}^{\dagger}c_{b_{1}}...c_{b_{2k}}\nonumber \\
+ & = & \frac{Z_{0}}{Z}\sum_{k,\mathbf{a},\mathbf{b}}A_{k}[{\cal U},\mathbf{a},\mathbf{b}]\det D_{k}^{[u,v]}[{\cal G},\mathbf{a},\mathbf{b}]
+\end{eqnarray}
+where 
+\begin{eqnarray}
+D_{k}^{[u,v]}[{\cal G},\mathbf{a},\mathbf{b}]=\left(\begin{array}{ccccc}
+{\cal G}_{uu} & {\cal G}_{uv} & {\cal G}_{ub_{1}} & ... & {\cal G}_{ub_{2k}}\\
+{\cal G}_{vu} & {\cal G}_{vv} & {\cal G}_{vb_{1}} & ... & {\cal G}_{vb_{2k}}\\
+{\cal G}_{a_{1}u} & {\cal G}_{a_{1}v} & {\cal G}_{a_{1}b_{1}} & ... & {\cal G}_{a_{1}b_{2k}}\\
+... & ... & ... & ... & ...\\
+{\cal G}_{a_{2k}u} & {\cal G}_{a_{2k}v} & ... & ... & {\cal G}_{a_{2k}b_{2k}}
+\end{array}\right)
+\end{eqnarray}
+The determinant of this matrix can be expressed as 
+\begin{eqnarray}
+\det D_{k}^{[u,v]}=P\det D_{k}
+\end{eqnarray}
+where $D_{k}$ is defined in Eq.~\ref{defD}, while the determinant
+ratio $P$ can be evaluated by the Woodbury identity and is what is
+returned by try-insert-two. The effort is $O(k^{2})$ + the determinant
+of $2\times2$ matrix which is negligible. In The case when $u$ and
+$v$ are in different blocks, then, only one insertion is necessary
+and we have for example 
+\begin{equation}
+\det D_{k}^{[u,v]}=\det D_{\sigma_{u}k}^{[u]}\det D_{\sigma_{v}k}^{[v]}=P_{\sigma_{v}}P_{\sigma_{u}}\det D_{\sigma_{v}k}\det D_{\sigma_{u}k}
+\end{equation}
+
+Finally, we use $\det D$ as the weight and the measurement is nothing
+but 
+\begin{equation}
+\chi^{2}=\frac{1}{\langle\mathrm{sgn}{\cal C}\rangle_{\mathrm{MC}}}\left\langle P\right\rangle _{\mathrm{MC}}
+\end{equation}
+
+The same can be done for the 3-point correlation function $\chi_{uvw}^{3}$
+defined later (Eq (\ref{eq:chi3_def-1})) and for the 4-point correlation
+function $\chi_{uvwx}^{4}$ (Eq. (\ref{eq:chi4_def})). However, the
+computational effort for a single measurement here is $O(k^{2})$
+while by cutting lines is $O(1)$, because the determinant ratio is
+only one element of the inverse matrix. However, the quality of measurement
+is better controlled by doing the insertion. It becomes especially
+important when we only have non-density density interactions – in
+that case measurement of correlators including density operators is
+not possible by cutting lines in $\Xi$.
+
+\subsubsection{Three-point correlation function $\chi^{3}$}
+
+\paragraph{Computation from $\chi^{4}$}
+
+See Eq. (\ref{eq:chi3_from_chi4}).
+
+Note: In practice we don't put $1/\beta$ in front of the summation
+over Matsubara frequencies because we don't multiply the disconnected
+terms in Eq.\ref{chi4toM4}, but then we must divide the connected
+term by $\beta$ for everything to be consistent. 
+
+The Fourier conventions are given in Appendix \ref{sec:Fourier-conventions}.
+
+\paragraph{Measurement by operator insertion}
+
+See section \ref{subsec:Measuring-the-two-point}. To be continued.
+
+\pagebreak{}
+
+\section{Implementation notes}
+
+\subsection{General structure of the code}
+
+To be continued
+
+\subsubsection{Structure of the blocks}
+
+\subsubsection{Structure of the interaction vertex}
+
+\subsection{Monte-Carlo updates (moves)}
+
+We have a list of vertices with all indices specified in advance,
+including the auxiliary spin $s$. So when a vertex is chosen for
+insertion one only needs to pick a vertex from a list and generate
+random time(s).
+
+\subsubsection{Move insert vertex }
+\begin{itemize}
+\item choose the vertex from the list 
+\item if static, chose one time $\tau\in[0,\beta]$, otherwise two times
+$\tau,\tau'$ 
+\item add to the list of vertices in configuration 
+\end{itemize}
+Depending on whether the vertex is static or dynamic, the probability
+to choose the given vertex and the corresponding times is 
+\begin{eqnarray*}
+P^{i\rightarrow f} & = & \frac{1}{N_{ver}\beta^{(2)}}\\
+\end{eqnarray*}
+Note that the $N_{s}$ is already included in $N_{ver}$, because
+density-density vertices appear in $N_{s}$ copies with each possible
+$s$. To go back, one just needs to choose this one out of all the
+vertices present in the configuration, which there will be $k+1$
+when we insert the chosen vertex, at the present (total) perturbation
+order $k$ 
+\begin{eqnarray*}
+P^{f\rightarrow i} & = & \frac{1}{k+1}
+\end{eqnarray*}
+The weight ratio is 
+\[
+w=-\frac{N_{ver}\beta^{(2)}{\cal U}_{uv}}{k+1}\times\frac{\det\hat{\mathcal{G}}^{[u,v]}}{\det\hat{\mathcal{G}}}
+\]
+where ${\cal U}_{uv}$ is the interaction amplitude. For example if
+the vertex is dynamic density-density, it is ${\cal U}_{uv}={\cal D}_{uv}/4$.
+{\color{red} Why am I not missing here $1/N_{s}$ in the amplitude?
+} Note also the minus sign in front which comes from $(-)^{k}$.
+However, an extra minus sigh should be put in ${\cal J}^{\perp}$
+because the sign does NOT depend on the perturbation order in ${\cal J}^{\perp}$.
+Note that in the code one does not see $k+1$ but only $k$ because
+at that point, the perturbation order is already increased (the vertex
+is already added to the list of vertices in the configuration, and
+if the move is not acepted will be removed from it). If accepted: 
+\begin{itemize}
+\item complete insertions in determinants 
+\item together with the amliptude ${\cal U}_{uv}$ to be used when vertex
+is evenutally removed. 
+\end{itemize}
+If rejected: 
+\begin{itemize}
+\item remove the vertex from the list of vertices present in the configuration 
+\end{itemize}
+
+\subsubsection{Move remove vertex}
+\begin{itemize}
+\item choose one vertex among the vertices present in the configuration
+(double removal if same block, remove in different determinants if
+different blocks) 
+\end{itemize}
+If accepted 
+\begin{itemize}
+\item complete operations on determinants 
+\item erase vertex from the list of vertices in the configuration 
+\end{itemize}
+The weight ratio is 
+\[
+w=-\frac{k}{N_{ver}\beta^{(2)}{\cal U}_{uv}}\times\frac{\det\hat{\mathcal{G}}^{(u,v)}}{\det D}
+\]
+
+
+\subsection{Monte-Carlo measures}
+
+The measures can be found in the folder c++/measures. One measure
+is performed by class. The list of all measures is:
+\begin{enumerate}
+\item measure\_chi3pmt ($\chi_{\pm}^{2}[\sigma,\sigma'](\tau)$)
+\item measure\_ft ($F_{ab}[\sigma](\tau)$)
+\item measure\_gw ($G_{ab}[\sigma](i\omega)$)
+\item measure\_M4t ($M_{abcd}^{4}[\sigma,\sigma'](\tau,\tau',\tau'')$)
+\item measure\_Mt ($M_{ab}[\sigma](\tau)$)
+\item measure\_nnt ($\chi_{ab}^{2}[\sigma,\sigma'](\tau)$)
+\item measure\_chipmt
+\item measure\_g2t ($\chi_{abc}^{3}[\sigma,\sigma'](\tau,\tau')$)
+\item measure\_hist: measure of the histogram of expansion oder.
+\item measure\_M4w
+\item measure\_nn ($\chi_{ab}^{2}[\sigma,\sigma']$)
+\item measure\_sign: measure of the Monte-Carlo sign
+\end{enumerate}
+\pagebreak{}
+
+\section{Future development and known issues}
+
+\subsection{Future development}
+
+\subsection{Known issues}
+
+\pagebreak{}
+
+\appendix
+
+\section{Details of derivations\label{sec:Details}}
+
+\subsection{Derivative of inverse matrix\label{subsec:Derivative-of-inverse}}
+
+\subsection{Derivative of determinant \label{subsec:Derivative-of-determinant}}
+
+This can be proven the following way. We know the grassman gaussian
+integral 
+\begin{equation}
+\int{\cal D}[c^{\dagger},c]e^{-c_{u}^{+}A_{uv}c_{v}}=\det\mathbf{A}
+\end{equation}
+So we can use this 
+\begin{eqnarray}
+\frac{\delta}{\delta A_{ij}}\det\mathbf{A} & = & \frac{\delta}{\delta A_{ij}}\int{\cal D}[c^{\dagger},c]e^{-c_{u}^{+}A_{uv}c_{v}}\\
+ & = & \int{\cal D}[c^{\dagger},c](-c_{i}^{+}c_{j})e^{-c_{u}^{+}A_{uv}c_{v}}\\
+ & = & -\det\mathbf{A}\langle c_{i}^{+}c_{j}\rangle
+\end{eqnarray}
+where the average is taken with respect to the action 
+\[
+S=c_{u}^{+}A_{uv}c_{v}
+\]
+and is by definition the bare propagator ${\cal G}_{ji}=\langle c_{i}^{+}c_{j}\rangle$.
+However, we know that ${\cal G}=-\mathbf{A}^{-1}$ so 
+\begin{eqnarray}
+\frac{\delta}{\delta A_{ij}}\det\mathbf{A} & = & [\mathbf{A}^{-1}]_{ji}\,\det\mathbf{A}
+\end{eqnarray}
+
+
+\section{Fourier conventions\label{sec:Fourier-conventions}}
+
+We define: 
+\begin{equation}
+\chi_{abcd}^{4}(i\omega,i\omega',i\nu)\equiv\langle c_{a}(i\omega)c_{b}^{\dagger}(i\omega+i\nu)c_{c}(i\omega'+i\nu)c_{d}^{+}(i\omega')\rangle
+\end{equation}
+as the Fourier transform of 
+\begin{equation}
+\chi_{abcd}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})\equiv\langle Tc_{a}(\tau_{1})c_{b}^{\dagger}(\tau_{2})c_{c}(\tau_{3})c_{d}^{+}(\tau_{4})\rangle\label{eq:chi4_def-1}
+\end{equation}
+We can show it the following way 
+\begin{equation}
+\chi_{abcd}^{4}(i\omega_{1},i\omega_{2},i\omega_{3},i\omega_{4})=\int\prod_{i=1}^{4}\mathrm{d}\tau e^{i\omega_{1}\tau_{1}-i\omega_{2}\tau_{2}+i\omega_{3}\tau_{3}-i\omega_{4}\tau_{4}}\langle Tc_{a}(\tau_{1})c_{b}^{\dagger}(\tau_{2})c_{c}(\tau_{3})c_{d}^{+}(\tau_{4})\rangle
+\end{equation}
+Now we impose energy conservation 
+\begin{equation}
+i\omega_{1}+i\omega_{3}=i\omega_{2}+i\omega_{4}
+\end{equation}
+so we can define a bosonic frequency 
+\begin{equation}
+i\nu=i\omega_{2}-i\omega_{1}=i\omega_{4}-i\omega_{3}
+\end{equation}
+\begin{eqnarray*}
+\chi_{abcd}^{4}(i\omega_{1},i\omega_{4},i\nu) & = & \frac{1}{\beta}\int\prod_{i=1}^{4}\mathrm{d}\tau e^{i\omega_{1}\tau_{1}-(i\omega_{1}+i\nu)\tau_{2}+(i\omega_{4}-i\nu)\tau_{3}-i\omega_{4}\tau_{4}}\langle Tc_{a}(\tau_{1})c_{b}^{\dagger}(\tau_{2})c_{c}(\tau_{3})c_{d}^{+}(\tau_{4})\rangle\\
+ & = & \frac{1}{\beta}\int\prod_{i=1}^{4}\mathrm{d}\tau e^{i\omega_{1}(\tau_{1}-\tau_{2})+i\nu(\tau_{2}-\tau_{3})+i\omega_{4}(\tau_{3}-\tau_{4})}\langle Tc_{a}(\tau_{1})c_{b}^{\dagger}(\tau_{2})c_{c}(\tau_{3})c_{d}^{+}(\tau_{4})\rangle
+\end{eqnarray*}
+So 
+\begin{equation}
+\chi_{abcd}^{4}(i\omega,i\omega',i\nu)=\int\mathrm{d}\tau\mathrm{d}\tau'\mathrm{d}\tau''e^{i\omega\tau+i\nu\tau''+i\omega'\tau'}\chi_{abcd}^{4}(\tau,\tau',\tau'')
+\end{equation}
+
+Note also the subtlety that the 4-point correlator has 6 spin-blocks.
+Consider the single-site case 
+\begin{equation}
+\chi_{\sigma_{1}\sigma_{2}\sigma_{3}\sigma_{4}}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\langle Tc_{\sigma_{1}}(\tau_{1})c_{\sigma_{2}}^{+}(\tau_{2})c_{\sigma_{3}}(\tau_{3})c_{\sigma_{4}}^{+}(\tau_{4})\rangle
+\end{equation}
+So we may have $\sigma_{1}=\sigma_{2}$ and $\sigma_{3}=\sigma_{4}$
+or $\sigma_{1}=\sigma_{4}$ and $\sigma_{3}=\sigma_{2}$. The latter
+case one may denote with the extra bar over the spin indices. 
+\begin{equation}
+\chi_{\sigma\sigma'}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\langle Tc_{\sigma}(\tau_{1})c_{\sigma}^{+}(\tau_{2})c_{\sigma'}(\tau_{3})c_{\sigma'}^{+}(\tau_{4})\rangle
+\end{equation}
+\begin{equation}
+\chi_{\overline{\sigma\sigma'}}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\langle Tc_{\sigma}(\tau_{1})c_{\sigma'}^{+}(\tau_{2})c_{\sigma'}(\tau_{3})c_{\sigma}^{+}(\tau_{4})\rangle
+\end{equation}
+However, the two are connected by symmetry 
+\begin{equation}
+\chi_{\sigma\sigma'}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\chi_{\overline{\sigma\sigma'}}^{4}(\tau_{1}-\tau_{4},\tau_{3}-\tau_{2},\tau_{4}-\tau_{3})
+\end{equation}
+For the calculation of $\chi^{3}$ this is not needed.
+
+\section{Symmetries of correlators}
+
+\subsection{Four-point correlator $\chi^{4}$}
+
+We define:
+
+\begin{equation}
+\chi_{\downarrow\uparrow\,ijkl}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})\equiv\langle Tc_{\downarrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle
+\end{equation}
+Assume now 
+\begin{equation}
+\beta>\tau_{1}>\tau_{2}>\tau_{3}>\tau_{4}>0\label{time_order}
+\end{equation}
+we get 
+\begin{equation}
+\langle Tc_{\downarrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle=\langle c_{\downarrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle\label{time_ordered}
+\end{equation}
+On the other hand 
+\begin{equation}
+\chi_{\overline{\downarrow\uparrow}\,ijkl}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\langle Tc_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\downarrow l}^{+}(\tau_{4})\rangle=\langle c_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\downarrow l}^{+}(\tau_{4})\rangle\label{overline_du}
+\end{equation}
+wher in the last step we assumed Eq.\ref{time_order}. However, for
+the time-ordered average to be equal to the r.h.s. of Eq.\ref{time_ordered}
+we need to map 
+\begin{eqnarray}
+\tau_{1}\rightarrow\tau_{1}, & i\rightarrow i\\
+\tau_{2}\rightarrow\tau_{4}, & j\rightarrow l\\
+\tau_{3}\rightarrow\tau_{3}, & k\rightarrow k\\
+\tau_{4}\rightarrow\tau_{2}, & l\rightarrow j
+\end{eqnarray}
+and then 
+\begin{equation}
+\chi_{\overline{\downarrow\uparrow}\,ilkj}^{4}(\tau_{1}-\tau_{4},\tau_{3}-\tau_{2},\tau_{2}-\tau_{3})=\langle Tc_{\downarrow i}(\tau_{1})c_{\uparrow l}^{+}(\tau_{4})c_{\uparrow k}(\tau_{3})c_{\downarrow j}^{+}(\tau_{2})\rangle=-\langle c_{\downarrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle\label{time_ordered2}
+\end{equation}
+Now 
+\begin{eqnarray}
+\tau & = & \tau_{1}-\tau_{2}\label{tau_conversion}\\
+\tau' & = & \tau_{3}-\tau_{4}\nonumber \\
+\tau'' & = & \tau_{2}-\tau_{3}\nonumber \\
+\tau_{1} & = & \tau+\tau_{2}\nonumber \\
+\tau_{4} & = & \tau_{3}-\tau'\nonumber \\
+\tau_{1}-\tau_{4} & = & \tau+\tau_{2}-\tau_{3}+\tau'=\tau+\tau'+\tau''\nonumber 
+\end{eqnarray}
+and therefore in general 
+\begin{equation}
+\boxed{\chi_{\downarrow\uparrow\,ijkl}^{4}(\tau,\tau',\tau'')=-\chi_{\overline{\downarrow\uparrow}\,ilkj}^{4}(\tau+\tau'+\tau'',-\tau'',-\tau')}\label{overline_vs_no_overline}
+\end{equation}
+
+Furthermore 
+\begin{equation}
+\chi_{\overline{\uparrow\downarrow}\,ijkl}^{4}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{4},\tau_{2}-\tau_{3})=\langle Tc_{\uparrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\downarrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle=\langle c_{\uparrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\downarrow k}(\tau_{3})c_{\uparrow l}^{+}(\tau_{4})\rangle\label{overline_ud}
+\end{equation}
+where we applied time order according to Eq.\ref{time_order}. For
+the time-ordered product to be the same as the r.h.s. of Eq.\ref{overline_du},
+we need to map 
+\begin{eqnarray}
+\tau_{1}\rightarrow\tau_{3}, & i\rightarrow k\\
+\tau_{2}\rightarrow\tau_{4}, & j\rightarrow l\\
+\tau_{3}\rightarrow\tau_{1}, & k\rightarrow i\\
+\tau_{4}\rightarrow\tau_{2}, & l\rightarrow j
+\end{eqnarray}
+\begin{equation}
+\chi_{\overline{\uparrow\downarrow}\,klij}^{4}(\tau_{3}-\tau_{4},\tau_{1}-\tau_{2},\tau_{4}-\tau_{1})=\langle Tc_{\uparrow k}(\tau_{3})c_{\downarrow l}^{+}(\tau_{4})c_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})\rangle=\langle c_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})c_{\uparrow k}(\tau_{3})c_{\downarrow l}^{+}(\tau_{4})\rangle\label{time_ordered2}
+\end{equation}
+and again using Eqs.\ref{tau_conversion}, we get that in general
+\begin{equation}
+\boxed{\chi_{\overline{\downarrow\uparrow}\,ijkl}^{4}(\tau,\tau',\tau'')=\chi_{\overline{\uparrow\downarrow}\,klij}^{4}(\tau',\tau,-\tau-\tau'-\tau'')}\label{overlined_property}
+\end{equation}
+Anologously, it also holds 
+\begin{equation}
+\boxed{\chi_{\downarrow\uparrow\,ijkl}^{4}(\tau,\tau',\tau'')=\chi_{\uparrow\downarrow\,klij}^{4}(\tau',\tau,-\tau-\tau'-\tau'')}\label{no_overlined_property}
+\end{equation}
+
+In the case when the symmetry between the spins is preserved, we know
+\begin{eqnarray}
+\chi_{\sigma\sigma',ijkl}^{4} & = & \chi_{\sigma'\sigma,ijkl}^{4}\\
+\chi_{\overline{\sigma\sigma'},ijkl}^{4} & = & \chi_{\overline{\sigma'\sigma},ijkl}^{4}
+\end{eqnarray}
+at all times $(\tau,\tau',\tau'')$. We can use this together with
+properties Eq.\ref{overlined_property} and \ref{no_overlined_property}
+to get a further property, that when no spin symmetry is broken
+
+\begin{equation}
+\boxed{\chi_{\overline{\sigma\sigma'}\,ijkl}^{4}(\tau,\tau',\tau'')=\chi_{\overline{\sigma\sigma'}\,klij}^{4}(\tau',\tau,-\tau-\tau'-\tau'')}\label{chi4_property}
+\end{equation}
+\begin{equation}
+\boxed{\chi_{\sigma\sigma'\,ijkl}^{4}(\tau,\tau',\tau'')=\chi_{\sigma\sigma'\,klij}^{4}(\tau',\tau,-\tau-\tau'-\tau'')}
+\end{equation}
+
+
+\subsection{Three-point correlator}
+
+First, let's look at some definitions. The pauli matrices in the $(\uparrow,\downarrow)$
+basis 
+\begin{equation}
+\sigma_{x}=\begin{pmatrix}0 & 1\\
+1 & 0
+\end{pmatrix},\;\;\sigma_{y}=\begin{pmatrix}0 & -i\\
+i & 0
+\end{pmatrix},\;\;\sigma_{z}=\begin{pmatrix}1 & 0\\
+0 & -1
+\end{pmatrix}
+\end{equation}
+The spin operators 
+\begin{eqnarray}
+\mathbf{S} & = & (S^{x},S^{y},S^{z})\\
+S^{I} & = & \frac{1}{2}\sum_{\sigma,\sigma'=\uparrow,\downarrow}c_{\sigma}^{\dagger}\sigma_{\sigma\sigma'}^{I}c_{\sigma'}\nonumber \\
+S^{z} & = & \frac{1}{2}(n_{\uparrow}-n_{\downarrow})\nonumber \\
+S^{+} & = & S^{x}+iS^{y}=c_{\uparrow}^{\dagger}c_{\downarrow}\nonumber \\
+S^{-} & = & S^{x}-iS^{y}=c_{\downarrow}^{\dagger}c_{\uparrow}\nonumber \\
+S^{x} & = & \frac{1}{2}(S^{+}+S^{-})\nonumber \\
+S^{y} & = & \frac{1}{2i}(S^{+}-S^{-})\nonumber \\
+\mathbf{S}\cdot\mathbf{S} & = & S^{x}S^{x}+S^{y}S^{y}+S^{z}S^{z}\nonumber \\
+ & = & \frac{1}{4}(S^{+}S^{+}+S^{-}S^{-}+S^{+}S^{-}+S^{-}S^{+})-\frac{1}{4}(S^{+}S^{+}+S^{-}S^{-}-S^{+}S^{-}-S^{-}S^{+})+S^{z}S^{z}\nonumber \\
+ & = & \frac{1}{2}(S^{+}S^{-}+S^{-}S^{+})+\frac{1}{2}(n_{\uparrow}n_{\uparrow}+n_{\downarrow}n_{\downarrow}-n_{\uparrow}n_{\downarrow}-n_{\downarrow}n_{\uparrow})\nonumber 
+\end{eqnarray}
+
+First consider 
+\begin{eqnarray}
+\chi_{\sigma\sigma'ijk}^{3,z}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2}) & = & \langle Tc_{\sigma i}(\tau_{1})c_{\sigma'j}^{+}(\tau_{2})S_{k}^{z}(\tau_{3})\rangle\\
+ & = & \langle Tc_{\sigma i}(\tau_{1})c_{\sigma'j}^{+}(\tau_{2})(n_{\uparrow\,k}(\tau_{3})-n_{\downarrow\,k}(\tau_{3}))\rangle
+\end{eqnarray}
+In the absence of the spin-mixing terms one of the spin indices drops
+off 
+\begin{eqnarray*}
+\chi_{\sigma\,ijk}^{3,z}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2}) & = & \frac{1}{2}\left(\langle Tc_{\sigma i}(\tau_{1})c_{\sigma j}^{+}(\tau_{2})n_{\uparrow\,k}(\tau_{3})\rangle-\langle Tc_{\sigma i}(\tau_{1})c_{\sigma j}^{+}(\tau_{2})n_{\downarrow\,k}(\tau_{3}))\rangle\right)\\
+ & = & \frac{1}{2}\left(\chi_{\sigma,ijk}^{3,n_{\up}}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2})-\chi_{\sigma,ijk}^{3,n_{\dn}}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2})\right)
+\end{eqnarray*}
+where we defined 
+\begin{eqnarray}
+\chi_{\sigma,ijk}^{3,n_{\sigma'}}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2}) & = & \langle Tc_{\sigma i}(\tau_{1})c_{\sigma j}^{+}(\tau_{2})n_{\sigma'\,k}(\tau_{3})\rangle\\
+ & = & \langle Tc_{\sigma i}(\tau_{1})c_{\sigma j}^{+}(\tau_{2})c_{\sigma'\,k}^{+}(\tau_{3})c_{\sigma'\,k}(\tau_{3})\rangle\nonumber \\
+ &  & ...\;\;\mathrm{assume}\;\;\beta>\tau_{1}>\tau_{2}>\tau_{3}>0\;\;\mathrm{then\;apply\;time\;order}\nonumber \\
+ & = & \langle c_{\sigma i}(\tau_{1})c_{\sigma j}^{+}(\tau_{2})(1-c_{\sigma'\,k}(\tau_{3})c_{\sigma'\,k}^{+}(\tau_{3}))\rangle\nonumber \\
+ & = & G_{\sigma\,ij}(\tau_{1}-\tau_{2})+\chi_{\sigma\sigma'\,ijkk}^{4}(\tau_{1}-\tau_{2},0^{+},\tau_{2}-\tau_{3})\nonumber \\
+ & = & -\chi_{\sigma\sigma'\,ijkk}^{4}(\tau_{1}-\tau_{2},0^{-},\tau_{2}-\tau_{3})\nonumber 
+\end{eqnarray}
+where the extra minus is due to time ordering in $\chi^{4}$. 
+\begin{eqnarray}
+\chi_{\up\,ijk}^{3,z}(\tau,\tau') & = & -\frac{1}{2}\left(\chi_{\upup\,ijkk}^{4}(\tau,0^{-},-\tau')-\chi_{\updn,ijkk}^{4}(\tau,0^{-},-\tau')\right)\label{chi3z_fromchi4}\\
+\chi_{\dn\,ijk}^{3,z}(\tau,\tau') & = & -\frac{1}{2}\left(\chi_{\dnup\,ijkk}^{4}(\tau,0^{-},-\tau')-\chi_{\dndn,ijkk}^{4}(\tau,0^{-},-\tau')\right)
+\end{eqnarray}
+and when the symmetry between spins is preserved 
+\begin{equation}
+\boxed{\chi_{\up\,ijk}^{3,z}(\tau,\tau')=-\chi_{\dn\,ijk}^{3,z}(\tau,\tau')}\label{chi3z_fromchi4}
+\end{equation}
+
+Consider now 
+\begin{equation}
+\chi_{\sigma\sigma'ijk}^{3,\pm}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2})=\langle Tc_{\sigma i}(\tau_{1})c_{\sigma'j}^{+}(\tau_{2})S_{k}^{\pm}(\tau_{3})\rangle
+\end{equation}
+In the absence of spin-mixing terms in the action, 
+\begin{equation}
+\chi_{\sigma\sigma'ijk}^{3,+}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2})=\delta_{\sigma,\uparrow}\delta_{\sigma',\downarrow}\langle Tc_{\uparrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})S_{k}^{+}(\tau_{3})\rangle
+\end{equation}
+\begin{equation}
+\chi_{\sigma\sigma'ijk}^{3,-}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2})=\delta_{\sigma,\downarrow}\delta_{\sigma',\uparrow}\langle Tc_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})S_{k}^{-}(\tau_{3})\rangle
+\end{equation}
+and therefore we drop the spin indices and redefine 
+\begin{eqnarray}
+\chi_{ijk}^{3,+}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2}) & \equiv & \langle Tc_{\uparrow i}(\tau_{1})c_{\downarrow j}^{+}(\tau_{2})c_{\uparrow k}^{+}(\tau_{3}^{+})c_{\downarrow k}(\tau_{3})\rangle\\
+ & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(\tau_{1}-\tau_{2},0^{-},\tau_{2}-\tau_{3})\\
+ & = & \chi_{\uparrow\downarrow\,ijkk}^{4}(\tau_{1}-\tau_{3},\tau_{3}-\tau_{2},0^{+})
+\end{eqnarray}
+\begin{eqnarray}
+\chi_{ijk}^{3,-}(\tau_{1}-\tau_{2},\tau_{3}-\tau_{2}) & \equiv & \langle Tc_{\downarrow i}(\tau_{1})c_{\uparrow j}^{+}(\tau_{2})c_{\downarrow k}^{+}(\tau_{3}^{+})c_{\uparrow k}(\tau_{3}))\rangle\\
+ & = & -\chi_{\overline{\downarrow\uparrow}\,ijkk}^{4}(\tau_{1}-\tau_{2},0^{-},\tau_{2}-\tau_{3})
+\end{eqnarray}
+Or 
+\begin{eqnarray}
+\chi_{ijk}^{3,+}(\tau,\tau') & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(\tau,0^{-},-\tau')\label{chi3p_fromchi4}
+\end{eqnarray}
+\begin{eqnarray}
+\chi_{ijk}^{3,-}(\tau,\tau') & = & -\chi_{\overline{\downarrow\uparrow}\,ijkk}^{4}(\tau,0^{-},-\tau')\\
+ & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(0^{-},\tau,\tau'-\tau)
+\end{eqnarray}
+When the psin-symmetry is preserved, one can make use of Eq.\ref{chi4_property}
+to do a few more steps 
+\begin{eqnarray}
+\chi_{ijk}^{3,-}(\tau,\tau') & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(0^{-},\tau,\tau'-\tau)\\
+ & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(\tau,0^{-},-\tau'+\tau-\tau)\\
+ & = & -\chi_{\overline{\uparrow\downarrow}\,ijkk}^{4}(\tau,0^{-},-\tau')\\
+ & = & \chi_{ijk}^{3,+}(\tau,\tau')
+\end{eqnarray}
+In the non-interacting case, $\chi^{3}\pm$ can be expressed with
+only the disconnected term. We assume here $\beta>\tau>\tau'>0$,
+and we know $G=G_{0}$ 
+\begin{eqnarray}
+\chi_{ijk}^{3,+}(\tau,\tau') & = & \langle c_{\up\,i}(\tau)c_{\up\,k}^{+}(\tau')c_{\dn\,k}(\tau')c_{\dn\,j}^{+}(0)\rangle\\
+ & = & G_{\up,ik}(\tau-\tau')G_{\dn,kj}(\tau')\\
+\chi_{ijk}^{3,-}(\bar{\tau},\bar{\tau}') & = & \langle c_{\dn\,i}(\bar{\tau})c_{\dn\,k}^{+}(\bar{\tau}')c_{\up\,k}(\bar{\tau}')c_{\up\,j}^{+}(0)\rangle\\
+ & = & G_{\dn,ik}(\bar{\tau}-\bar{\tau}')G_{\up,kj}(\bar{\tau}')
+\end{eqnarray}
+So for the two to be the same one must have 
+\begin{eqnarray}
+\bar{\tau}-\bar{\tau}' & = & \tau'\\
+\bar{\tau}' & = & \tau-\tau'\\
+...\mathrm{which\;,means}\\
+\bar{\tau}-\tau+\tau'=\tau'\Longrightarrow\bar{\tau} & = & \tau
+\end{eqnarray}
+but also 
+\begin{eqnarray}
+k & = & i\\
+j & = & k
+\end{eqnarray}
+which is always satisfied in the single-site impurity problem, but
+not always on the lattice. However, in the presence of translational
+and inversion symmetry on must satisfy only 
+\begin{eqnarray}
+|\vec{k}-\vec{i}| & = & |\vec{j}-\vec{k}|
+\end{eqnarray}
+which would mean 
+\begin{eqnarray}
+\chi_{rr'}^{3,+}(\tau,\tau') & = & \chi_{r'r}^{3,-}(\tau,\tau-\tau')
+\end{eqnarray}
+{\color{red} But is this valid in the general case, with interactions?
+} Consider the single-site problem. Note that in $\chi^{3,+}$ $c_{\up}^{+}$
+and $c_{\dn}$ appear at the same time ($\tau_{3}$), while in $\chi^{3,-}$
+they appear at different times ($\tau_{2}$ and $\tau_{1}$) respectively.
+That means that a-priori, there is no reason for the two to be same
+in general, unless there is some symmetry which connects $\chi_{\overline{\updn}\,ijkk}^{4}(\tau,0^{-},\tau')$
+and $\chi_{\overline{\dnup}\,ijkk}^{4}(\tau,0^{-},\tau')$ in the
+general case. To me it seems there is no such relation. If there is,
+it needs to reduce to $\chi_{\overline{\updn}\,ijkk}^{4}(\tau,0^{-},\tau')=\chi_{\overline{\dnup}\,ijkk}^{4}(\tau,0^{-},\tau')$
+in the spin-symmetric case.
+
+We can now define 
+\begin{eqnarray}
+\chi_{\sigma\sigma'\,ijk}^{3,x} & = & \frac{1}{2}(\delta_{\sigma,\uparrow}\delta_{\sigma',\downarrow}\chi_{ijk}^{3,+}+\delta_{\sigma,\downarrow}\delta_{\sigma',\uparrow}\chi_{ijk}^{3,-})\\
+\chi_{\sigma\sigma'\,ijk}^{3,y} & = & \frac{1}{2i}(\delta_{\sigma,\uparrow}\delta_{\sigma',\downarrow}\chi_{ijk}^{3,+}-\delta_{\sigma,\downarrow}\delta_{\sigma',\uparrow}\chi_{ijk}^{3,-})
+\end{eqnarray}
+{ \color{red} Important! } Even in the presence of spin symmetry,
+$\chi_{\sigma\sigma'\,ijk}^{3,x}\neq\chi_{\sigma\sigma'\,ijk}^{3,y}$.
+
+\subsection{Two-point correlators}
+
+Let's prove in the presence of spin symmetry that 
+\begin{equation}
+\langle S^{z}(\tau)S^{z}(0)\rangle=\langle S^{x}(\tau)S^{x}(0)\rangle
+\end{equation}
+holds, and that it doesn't in general. We also know 
+\begin{equation}
+\langle S^{x}(\tau)S^{x}(0)\rangle=\frac{1}{4}\langle S^{+}S^{+}+S^{-}S^{-}+S^{+}S^{-}+S^{-}S^{+}\rangle
+\end{equation}
+In the absence of spin mixing the first two terms are zero. Also,
+relabeling $\uparrow\rightarrow\downarrow$ maps $S^{+}\rightarrow S^{-}$,
+so the last two terms must be the same in the presence of spin symmetry
+\begin{equation}
+\langle S^{x}(\tau)S^{x}(0)\rangle=\frac{1}{2}\langle S^{+}(\tau)S^{-}(0)\rangle
+\end{equation}
+Therefore we need to prove 
+\begin{equation}
+\frac{1}{2}(\langle n_{\uparrow}(\tau)n_{\uparrow}(0)\rangle-\langle n_{\uparrow}(\tau)n_{\downarrow}(0)\rangle)=\frac{1}{2}\langle S^{+}(\tau)S^{-}(0)\rangle
+\end{equation}
+\begin{equation}
+\langle c_{\uparrow}^{+}(\tau^{+})c_{\uparrow}(\tau)c_{\uparrow}^{+}(0^{+})c_{\uparrow}(0)\rangle-\langle c_{\uparrow}^{+}(\tau^{+})c_{\uparrow}(\tau)c_{\downarrow}^{+}(0^{+})c_{\downarrow}(0)\rangle=\langle c_{\uparrow}^{+}(\tau^{+})c_{\downarrow}(\tau)c_{\downarrow}^{+}(0^{+})c_{\uparrow}(0)\rangle
+\end{equation}
+\begin{equation}
+\chi_{\uparrow\uparrow}^{4}(0^{-},0^{-},\tau)-\chi_{\uparrow\downarrow}^{4}(0^{-},0^{-},\tau)=\chi_{\overline{\uparrow\downarrow}}^{4}(0^{-},0^{-},\tau)
+\end{equation}
+\begin{equation}
+\chi_{\uparrow\uparrow}^{4}(0^{-},0^{-},\tau)=\chi_{\uparrow\downarrow}^{4}(0^{-},0^{-},\tau)+\chi_{\overline{\uparrow\downarrow}}^{4}(0^{-},0^{-},\tau)
+\end{equation}
+which is an identity, and in fact, we have in general (see Georg thesis,
+Eq.2.89, {\color{red} PROVE}) 
+\begin{equation}
+\boxed{\chi_{\uparrow\uparrow}^{4}(\tau,\tau',\tau'')=\chi_{\uparrow\downarrow}^{4}(\tau,\tau',\tau'')+\chi_{\overline{\uparrow\downarrow}}^{4}(\tau,\tau',\tau'')}
+\end{equation}
+and therefore in the presence of spin symmetry, 
+\begin{equation}
+\boxed{-\chi_{\dn\,ijk}^{3,z}(\tau,\tau')=\chi_{\uparrow}^{3,z}(\tau,\tau')=\frac{1}{2}\chi^{3,+}(\tau,\tau')=\frac{1}{2}\chi^{3,-}(\tau,\tau')}
+\end{equation}
+
+In the ordered phase, as we know 
+\[
+[S^{+},S^{-}]=2S^{z}
+\]
+there will be a discontinuity (jump) of 
+\[
+\chi^{+-}(\tau-\tau')=\langle TS^{+}(\tau)S^{-}(\tau')\rangle
+\]
+at $\tau=0$ of size $2S_{z}$, and we will have 
+\[
+\chi^{+-}(\tau)\neq\chi^{+-}(-\tau)
+\]
+which will produce an imaginary part in the polarization $P^{+-}(i\nu)$,
+and therefore in $W(i\nu)$
+\end{document}

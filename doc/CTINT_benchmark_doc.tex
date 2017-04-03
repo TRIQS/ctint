@@ -1,0 +1,375 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{pdfpages}
+
+\newcommand{\up}{\uparrow}
+\newcommand{\dn}{\downarrow}
+\newcommand{\upup}{\uparrow\uparrow}
+\newcommand{\updn}{\uparrow\downarrow}
+\newcommand{\dnup}{\downarrow\uparrow}
+\newcommand{\dndn}{\downarrow\downarrow}
+
+\usepackage{listings}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+
+
+%opening
+\title{CTINT benchmark documentation}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Here we test CTINT against CTHYB on a simple example of the Anderson impurity model, but with additional time dependent density-density and spin-spin interactions. This document contains the details of the calculation, summarizes the results and explains the usage of the code that was used to produce them.
+\end{abstract}
+
+\section{Model}
+
+Here we solve the Anderson model with time dependent interactions
+\begin{eqnarray}
+ S &=& \sum_\sigma \iint d\tau d\tau' c^+_\sigma(\tau)\left[ -{\cal G}_\sigma^{-1}(\tau-\tau')\right] c_\sigma(\tau')\\
+   &&  + U \,\int d\tau\; n_\up(\tau) \, n_\dn(\tau) \\
+   &&  + \frac{1}{4}\sum_{\sigma\sigma'} \iint d\tau d\tau' n_\sigma(\tau) \,{\cal D}_{\sigma\sigma'}(\tau-\tau')  \, n_{\sigma'}(\tau') \\
+   &&  + \frac{1}{2}\iint d\tau d\tau' S^+(\tau) \,{\cal J}^\perp(\tau-\tau')  \, S^-(\tau')
+\end{eqnarray}
+or more explicitly
+
+\begin{eqnarray}
+ S &=& \sum_\sigma \iint d\tau d\tau' c^+_\sigma(\tau)\left[ (\partial_\tau - \mu)\delta_{\tau\tau'} + \Delta_\sigma(\tau-\tau')\right] c_\sigma(\tau')\\
+   &&  + U \,\int d\tau\; c^+_\up(\tau) c_\up(\tau) \; c^+_\dn(\tau) c_\dn(\tau) \\
+   &&  + \frac{1}{4}\sum_{\sigma\sigma'} \iint d\tau d\tau' c^+_\sigma(\tau) c_\sigma(\tau) \,{\cal D}_{\sigma\sigma'}(\tau-\tau')  \, c^+_{\sigma'}(\tau') c_{\sigma'}(\tau') \\
+   &&  + \frac{1}{2}\iint d\tau d\tau' c^+_\up(\tau) c_\dn(\tau) \,{\cal J}^\perp(\tau-\tau')  \, c^+_\dn(\tau') c_\up(\tau')
+\end{eqnarray}
+
+We concentrate on half-filling, which means
+\begin{equation}
+ \mu_\sigma = \frac{1}{2}\left( U + \sum_{\sigma'} {\cal D}_{\sigma\sigma'}(i\nu_m=0) \right)
+\end{equation}
+The bath is taken to be semi-circular, with half-bandwidth $1.0$, as implemented in TRIQS. The Weiss field is then (I omit the spin index as it is the same for both species)
+\begin{equation}
+ {\cal G}(i\omega_n) = \frac{1}{i\omega_n+\mu - \Delta(i\omega_n)}
+\end{equation}
+
+The time-dependent interactions are parameterized with 3 parmeters $\omega_0$, $\mathrm{sgn}$ and $\lambda$. We distinguish 3 different interactions ${\cal J}^\perp$, ${\cal D}_{\sigma\sigma}$ and ${\cal D}_{\sigma\bar\sigma}$. The parameter $\omega_0$ is the same for all three, while $\mathrm{sgn}$ and $\lambda$ are specified in the code separately for each interaction. The interactions are given by
+\begin{equation}\label{discrete}
+ Q(i\nu_m) = \mathrm{sgn}_Q \lambda_Q^2 \left( \frac{1}{i\nu_m-\omega_0} - \frac{1}{i\nu_m+\omega_0}\right)
+\end{equation}
+where $Q = {\cal J}^\perp, {\cal D}_{\sigma\sigma},{\cal D}_{\sigma\bar\sigma}$ and $\mathrm{sgn}_Q$ and $\lambda_Q$ are corresponding parameters.
+The values used in the presented results are in the table below
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+     & $\mathrm{sgn}$ & $\lambda$  \\ \hline
+    ${\cal J}^\perp$ & $+1$ & $1.0$ \\ \hline
+    ${\cal D}_{\sigma\sigma}$ & $+1$ & $0.3$  \\ \hline
+    ${\cal D}_{\sigma\bar\sigma}$ & $-1$ & $0.5$ \\
+    \hline
+    \end{tabular}
+\end{center}
+Other parameters used are $\beta=20$, $U=3$.
+
+While not used in the example results, the code contains an additional option to take the interaction boson with a continuous spectrum determined by additional parameters $s$ and $\omega_c$, same for all interactions
+\begin{equation} \label{continuous}
+ Q(i\nu_m) = \left\{ \begin{array}{cc}
+                       \mathrm{sgn}_Q \left(-\frac{\lambda_Q^2}{2}\right)\;(s+1)\omega_c^{-s-1}\;\int d\epsilon \frac{\epsilon^{s+1}}{\nu^2+\epsilon^2}, & m\neq 0 \\
+                       \mathrm{sgn}_Q \left(-\frac{\lambda_Q^2}{2}\right)\;\frac{s+1}{s\,\omega_c}, & m= 0
+                     \end{array} \right.
+\end{equation}
+
+The quantities compared between CTINT and CTHYB results are
+\begin{eqnarray}
+ G(\tau) &=& -\langle T_\tau c(\tau) c^+(0) \rangle \\ 
+ \chi^{nn}_{\sigma\sigma'}(\tau) &=& \langle T_\tau n_\sigma(\tau) n_{\sigma'}(0) \rangle \\
+ \chi^{+-}(\tau) &=& \langle T_\tau S^+(\tau) S^-(0) \rangle \\
+ \chi^3_{\sigma\sigma'}(\tau,\tau') &=& \langle T_\tau c_\sigma(\tau) c^+_\sigma(0) n_{\sigma'}(\tau') \rangle
+\end{eqnarray}
+and the corresponding Fourier transforms $G(i\omega_n)$, $\chi^{nn}(i\nu_m)$, $\chi^{+-}(i\nu_m)$ and $\chi^3_{\sigma\sigma'}(i\omega_n,i\nu_m)$.
+
+We also compare the self-energy, which can be calculated in several ways from other, measured quantities as
+\begin{eqnarray}
+ \Sigma(i\omega_n) &=& {\cal G}^{-1}(i\omega_n) - G^{-1}(i\omega_n) \\
+                   &=& F(i\omega_n) G^{-1}(i\omega_n) \\
+                   &=& \tilde{\cal G}(i\omega_n) M(i\omega_n) G^{-1}(i\omega_n) - \tilde{\cal G}^{-1}(i\omega_n) + {\cal G}^{-1}(i\omega_n)
+\end{eqnarray}
+with $M(\tau) = -\frac{1}{\Xi}\frac{\partial \Xi}{\partial \tilde{\cal G}(-\tau)}$(see implementation notes), and $\tilde{\cal G}(i\omega_n)$ is the modified (inverse shifted, {\tt G0\_shift\_iw}) Green's function used in CTINT instead of the one in the action, such that $ G = \tilde{\cal G} + \tilde{\cal G} M \tilde{\cal G} = {\cal G} + {\cal G} \Sigma G = \frac{1}{{\cal G}^{-1}-\Sigma} = \frac{1}{\tilde{\cal G}^{-1}-\tilde\Sigma} = \frac{1}{\tilde{\cal G}^{-1}-\tilde{\cal G}M/G}$. See appendix for precise definitions of auxiliary quantities.
+
+\section{Code}
+
+The code can be (almost) readily executed on {\tt kondo} machine, and most probably easily on {\tt curie}.
+The code consits of the following files:
+\begin{enumerate}
+ \item {\tt script\_ctint.py}
+ \item {\tt script\_cthyb.py}
+ \item {\tt launch\_all.py}
+ \item {\tt task\_kondo.sh} 
+ \item {\tt benchmark\_plots.ipnb} 
+\end{enumerate}
+where the last one is just a python notebook used to produce the plots and will not be discussed here. {\tt task\_kondo.sh} is the {\tt pbs} job script which needs to be adapted (change folder, email, number of cores, etc.).
+
+\subsection{Running scripts}
+1 and 2 are general running scripts, one for each impurity solver. The first part are parameters ``left open'' to be set from outside by replacing {\tt=a} by an actual value. In original form, these scripts can not be run. The parameters to be set are, namely, the value of $U$, choice of continuous vs. discrete form (Eq.\ref{discrete} vs Eq.\ref{continuous}) of ${\cal J}^\perp$ and ${\cal D}$ independently, and $\lambda$ (denoted {\tt l}) and $\mathrm{sgn}$ for ${\cal J}^\perp$, ${\cal D}_{\sigma\sigma}$ (denoted {\tt diag}) and ${\cal D}_{\sigma\bar\sigma}$ (denoted {\tt offdiag}) independently.
+
+The next part are the parameters fixed in advance. Those are $\beta$, the number of cycles (which need not be the same in ctint and cthyb), and the numbers of frequencies/$\tau$-points etc, selected separately for each impurity solver .
+
+\begin{lstlisting}
+######## parameters fixed from outside ########
+
+U=a
+
+D_continuous=a
+Jperp_continuous=a
+
+l_Ddiag=a
+l_Doffdiag=a
+sgn_Ddiag=a
+sgn_Doffdiag=a
+l_Jperp=a
+sgn_Jperp=a
+
+
+################################################
+#--------------parameters fixed------------------#
+
+n_cycles = 100000
+
+beta = 20.0
+
+...
+\end{lstlisting}
+Then the block structure is specified, impurity solver is initialized, and input quantities are constructed (${\cal J}^\perp$, ${\cal D}$, $\mu$ and finally ${\cal G}$). This part of the code is basically the same in both scripts, although the CTINT version allows also that the impurity has more than one orbital, which can be controlled by the parameter {\tt N\_states}.
+
+In {\tt script\_ctint.py}, before the final execution of the solver, a series of short runs are performed measuring only the average sign to determine the optimal $\alpha$ and $\delta$ parameters. This part is put inside a trivial {\tt if} clause to be easily excluded, in which case the initial values are used. The values used in the result presented are ... and are output automatically in the final {\tt .h5} file.
+
+\begin{lstlisting}
+max_sign = 0.0
+best_alpha = 0.5
+best_delta = 0.2
+
+if True:
+	for ALPHA in my_range(0.3, 0.7, 0.025):
+	 for delta in [0.0, 0.01, 0.05, 0.1, 0.2]:
+	  # alpha[block][index,s]
+	  diag = ALPHA + delta
+	  odiag = ALPHA - delta
+	  alpha = [ [[diag,odiag]], [[odiag,diag]] ]
+
+	  S.solve(h_int=h_int,
+		alpha = alpha,
+		n_cycles = 5000,
+		length_cycle = 50,
+		n_warmup_cycles = 5000,
+		measure_hist = True,
+		only_sign = True,
+		g2t_indep = [])
+
+	  print "ALPHA: ", ALPHA, "delta: ", delta, " sign: ", S.average_sign
+	  if S.average_sign > max_sign:
+	    max_sign = S.average_sign
+	    best_alpha = ALPHA
+	    best_delta = delta
+\end{lstlisting}
+
+\subsection{Job launching script}
+File {\tt launch\_all.py} is the general launching script.
+
+First one needs to specify the folder where the running scripts and the job script are found. Apart from the {\tt pbs} job script, this is the only thing one needs to adapt to run the calculation on {\tt kondo}.
+\begin{lstlisting}
+#folder with template scripts
+folder="/data/jvucicev/TRIQS/run/benchmark"
+\end{lstlisting}
+Then specify a list of values for each of the parameters left open in the running scripts, and choices of impurity solvers (of which there may be more)
+\begin{lstlisting}
+######################################################
+solvers = ['ctint', 'cthyb']
+#
+Us = [ 3.0 ]
+
+#Jperp
+lJs = [ 1.0 ] # e-b coupling constant
+sJps = [ 1.0 ] # sign of the boson
+Jpcs = [ False ] # continuous or not
+
+#ddiag (Density-density spin diagonal, i.e. n_up n_up, and n_dn n_dn)
+lDds = [ 0.3 ] # e-b coupling constant
+sDds = [ 1.0 ] # sign of the boson
+#doffdiag (Density-density spin off-diagonal, i.e. n_up n_dn, and n_dn n_up)
+lDods = [0.5] # e-b coupling constant
+sDods = [-1.0] # sign of the boson
+
+Dcs  = [ False ] # continuous or not
+\end{lstlisting}
+Then construct a Decartes product of all lists, i.e. all possible combinations of parameters
+\begin{lstlisting}
+ps=itertools.product(Us,lJs,sJps,Jpcs,lDds,sDds,lDods,sDods,Dcs,solvers)
+
+for p in ps:    
+   #name stuff to avoid confusion   
+   U=p[0]
+   l_Jperp=p[1]
+   sgn_Jperp=p[2]
+   Jperp_continuous = p[3] 
+   Jpc =  "cont" if p[3] else "disc"
+   l_Ddiag=p[4]
+   sgn_Ddiag=p[5]
+   l_Doffdiag=p[6]
+   sgn_Doffdiag=p[7]
+   D_continuous = p[8] 
+   Dc = "cont" if p[8] else "disc"
+   solver=p[9]
+\end{lstlisting}   
+For each create a folder, copy the corresponding running script and the job script {\tt task\_kondo.sh} into it, change {\tt =a} in the running script by the actual value (using sed from the termial)
+\begin{lstlisting}
+   #########################    
+   script="%s/script_%s.py"%(folder,solver)
+
+   mydir = ("%s_U_%s_Jperp_l_%s_sgn_%s_%s_Ddiag_l_%s_sgn_%s_Doffdiag_l_%s_sgn_%s_%s"
+            %(solver,U, l_Jperp, sgn_Jperp, Jpc, l_Ddiag, sgn_Ddiag, l_Doffdiag, sgn_Doffdiag, Dc) )
+
+   os.system("mkdir -p %s"%mydir)
+
+   newscr = "%s/script.py"%mydir 
+
+   os.system("cp %s %s"%(script,newscr))
+   os.system("cp task_kondo.sh %s/"%mydir)   
+
+   params = {"U": U, 
+             "l_Jperp": l_Jperp, 
+             "sgn_Jperp": sgn_Jperp, 
+             "Jperp_continuous": Jperp_continuous,
+             "l_Ddiag": l_Ddiag,
+             "sgn_Ddiag": sgn_Ddiag,
+             "l_Doffdiag": l_Doffdiag,
+             "sgn_Doffdiag": sgn_Doffdiag,
+             "D_continuous": D_continuous }
+   for pk in params.keys():  
+     os.system("sed -i \"s/%s=a/%s=%s/g\" %s"%(pk,pk,params[pk],newscr) )
+
+\end{lstlisting} 
+Finally submit the job script to {\tt kondo} queue.
+\begin{lstlisting}        
+   os.chdir(mydir)
+   os.system("qsub task_kondo.sh")
+   os.chdir("..")
+\end{lstlisting}
+
+\section{Results}
+
+All results are found to be in excellent agreement between the two methods, except $F(i\omega_n)$ which seems to be off in cthyb.
+
+There is an extra prefactor of 1/2 one needs to include in $\chi^{+-}$ in the CTINT result to match it to CTHYB, but this is a matter of convention. However, it should be satisfied 
+\begin{equation}
+ 2\chi^{zz} = \chi^{nn}_{\up\up} - \chi^{nn}_{\up\dn} = \chi^{+-}
+\end{equation}
+regardless of the definition of the Pauli matrix. In CTINT this is found to be (almost) valid, while in CTHYB one still needs the extra prefactor $2$. The obvious discrepancy on page 13 in the pdf with plots, could be due to the spurious polarization in CTINT, but it is not clear why this happens in CTHYB.
+
+The difference in all quantities is found to be just noise of the order 1e-4.
+
+There is some spurious polarization in CTINT and one spin has slightly higher occupancy. In total, however, in both CTINT and CTHYB half-filling is satisfied to a high precision:
+\begin{center}
+    \begin{tabular}{| l | l | l |}
+    \hline
+    $\sigma$ & $n_\sigma$ CTINT & $n_\sigma$ CTHYB  \\ \hline
+    $\uparrow$ & 0.49953551 & ?? \\ \hline
+    $\downarrow$ & 0.50059798 & ??  \\ \hline
+    averaged & 0.50006674 & ?? \\
+    \hline
+    \end{tabular}
+\end{center}
+
+The average sign in CTINT is affected strongly by the spin diagonal density-density interaction and is 0.57. This is because it makes spin up and down configuration matrices different (spin diagonal vertex has both ends in the same matrix). While configuration matrices are the same, the determinant of both is the same, so the total determinant as the product of the two, is necessariliy positive. This property is lost also away from half-filling even in the absence of spin-diagonal interactions, because ${\cal G}(\tau)\neq-{\cal G}(-\tau)$.
+
+%\includepdf[pages=-]{/home/jvucicev/Desktop/benchmark_plots.pdf}
+
+\appendix
+
+\section{Precise definitions}
+
+To be fully precise with definitions
+\begin{eqnarray}
+  G &=& \tilde{\cal G} + \tilde{\cal G} \tilde{M} \tilde{\cal G} \\
+    &=& {\cal G} + {\cal G} M {\cal G} \\
+    &=& {\cal G} + {\cal G} \Sigma G \\
+    &=& \tilde{\cal G} + \tilde{\cal G} \tilde\Sigma G \\
+    &=& \tilde{\cal G} + \tilde{\cal G} \tilde{F} \\
+    &=& {\cal G} + {\cal G} F \\    
+ \tilde{F} &=& \tilde{M} \tilde{\cal G} \\  
+          &=& \tilde{\Sigma} G \\  
+ F &=& M {\cal G} \\  
+   &=& \Sigma G \\  
+   &=& \frac{\tilde{\cal G}}{{\cal G}}\left(\tilde{F}+1\right) - 1  \\
+ \Sigma &=& \tilde{\Sigma} - \tilde{\cal G}^{-1} + {\cal G}^{-1} \\
+ M &=& {\cal G}^{-1}\left(\frac{\tilde{\cal G}}{\cal G} - 1 \right) + \frac{\tilde{\cal G}}{\cal G} \tilde{M} \frac{\tilde{\cal G}}{\cal G} 
+\end{eqnarray}
+
+Concerning spin susceptibilities if pauli matrices are defined with 
+\begin{equation}
+ \sigma_x =
+    \begin{pmatrix}
+      0&1\\
+      1&0
+    \end{pmatrix}, \;\;
+  \sigma_y =
+    \begin{pmatrix}
+      0&-i\\
+      i&0
+    \end{pmatrix}, \;\;
+  \sigma_z =
+    \begin{pmatrix}
+      1&0\\
+      0&-1
+    \end{pmatrix} 
+\end{equation}
+The spin operators
+\begin{eqnarray} 
+ \mathbf{S} &=& (S^x,S^y,S^z) \\ \nonumber
+ S^I &=& \frac{1}{2}\sum_{\sigma,\sigma'=\uparrow,\downarrow} c^\dagger_\sigma \sigma^I_{\sigma\sigma'} c_{\sigma'} \\ \nonumber
+ S^z &=& \frac{1}{2}(n_\uparrow - n_\downarrow)\\ \nonumber
+ S^+ &=& S^x + iS^y = c^\dagger_\uparrow c_\downarrow\\ \nonumber
+ S^- &=& S^x - iS^y = c^\dagger_\downarrow c_\uparrow \\ \nonumber 
+ S^x &=& \frac{1}{2}(S^+ + S^-) \\ \nonumber
+ S^y &=& \frac{1}{2i}(S^+ - S^-) \\ \nonumber
+\end{eqnarray}
+then
+\begin{equation}
+ \chi^{zz} = \frac{1}{4}\sum_{\sigma\sigma'}(-)^{1-\delta_{\sigma\sigma'}} \chi^{nn}_{\sigma\sigma'} = \frac{1}{2} (\chi^{nn}_{\up\dn} - \chi^{nn}_{\up\dn})
+\end{equation}
+\begin{equation}
+ \chi^{xx} = \frac{1}{4}(\chi^{+-} + \chi^{-+}) = \frac{1}{2}\chi^{+-}
+\end{equation}
+and we know
+\begin{equation}
+ \chi^{zz} = \chi^{xx} 
+\end{equation}
+
+
+
+
+\end{document}
+
+

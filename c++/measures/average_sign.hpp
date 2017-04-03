@@ -1,0 +1,26 @@
+#pragma once
+#include "../qmc_config.hpp"
+#include "../container_set.hpp"
+
+namespace triqs_ctint::measures {
+
+  /// Measure of the average sign
+  struct average_sign {
+
+    average_sign(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+
+    /// Accumulate average sign
+    void accumulate(double s);
+
+    /// Reduce and normalize
+    void collect_results(triqs::mpi::communicator const &comm);
+
+    private:
+    // Reference to double for accumulation
+    double &average_sign_;
+
+    // Accumulation counter
+    int count;
+  };
+
+} // namespace triqs_ctint::measures
