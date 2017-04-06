@@ -46,10 +46,10 @@ namespace triqs_ctint::measures {
         return idx_t{gf_closest_point<imtime, int>::invoke(M_tau_mesh, closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u};
       };
 
-      c_vec_G0.push_back(make_vector_from_range(transform(det.get_x_values(), x_to_G0_mesh)));
-      cdag_vec_G0.push_back(make_vector_from_range(transform(det.get_y_values(), y_to_G0_mesh)));
-      c_vec_M.push_back(make_vector_from_range(transform(det.get_x_values(), x_to_M_mesh)));
-      cdag_vec_M.push_back(make_vector_from_range(transform(det.get_y_values(), y_to_M_mesh)));
+      c_vec_G0.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_G0_mesh)));
+      cdag_vec_G0.push_back(make_vector_from_range(transform(det.get_y_internal_order(), y_to_G0_mesh)));
+      c_vec_M.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_M_mesh)));
+      cdag_vec_M.push_back(make_vector_from_range(transform(det.get_y_internal_order(), y_to_M_mesh)));
     }
 
     // The intermediate scattering matrices
@@ -74,7 +74,7 @@ namespace triqs_ctint::measures {
           G_left(u, i)  = G0_tau[bl][cdag[i].tau_idx](u, cdag[i].u);
           G_right(i, u) = G0_tau[bl][c[i].tau_idx](c[i].u, u);
         }
-      M_vec.push_back(det.inverse_matrix_values());
+      M_vec.push_back(det.inverse_matrix_internal_order());
       GM_vec.push_back(G_left * M_vec[bl]);
       MG_vec.push_back(M_vec[bl] * G_right);
       GMG_vec.push_back(GM_vec[bl] * G_right);

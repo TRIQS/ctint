@@ -37,8 +37,8 @@ namespace triqs_ctint::measures {
         return idx_t{gf_closest_point<imtime, int>::invoke(G0_tau_mesh, closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u};
       };
 
-      c_vec.push_back(make_vector_from_range(transform(det.get_x_values(), x_to_mesh)));
-      cdag_vec.push_back(make_vector_from_range(transform(det.get_y_values(), y_to_mesh)));
+      c_vec.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_mesh)));
+      cdag_vec.push_back(make_vector_from_range(transform(det.get_y_internal_order(), y_to_mesh)));
     }
 
     // The intermediate scattering matrix
@@ -56,7 +56,7 @@ namespace triqs_ctint::measures {
       for (int b_u : range(bl_size))
         for (int j : range(det_size)) G(b_u, j) = G0_tau[bl][cdag[j].tau_idx](b_u, cdag[j].u);
 
-      GM_vec.push_back(G * det.inverse_matrix_values());
+      GM_vec.push_back(G * det.inverse_matrix_internal_order());
     }
 
     // Calculate M3pp
