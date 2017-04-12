@@ -1,27 +1,29 @@
-# Version number of the application
-set (CTINT_VERSION "1.5")
-set (CTINT_RELEASE "1.5.0")
+# Adjust CMake Module Path and includes
+list(APPEND CMAKE_MODULE_PATH ${TRIQS_PATH}/share/triqs/cmake ${CMAKE_SOURCE_DIR}/cmake)
+include(GetGitRevisionDescription)
 
-# Append triqs installed files to the cmake load path
-list(APPEND CMAKE_MODULE_PATH ${TRIQS_PATH}/share/triqs/cmake)
-
-# start configuration 
+# Initialize configuration 
 cmake_minimum_required(VERSION 2.8)
 project(ctint CXX)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING " Defaults to type Release " FORCE)
 endif()
-enable_testing()
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -std=c++17" CACHE STRING " The compiler flags " FORCE)
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O1" CACHE STRING " The debugging flags " FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING " The release flags " FORCE)
-
 message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
+enable_testing()
+
+# Version number of CTINT
+set (CTINT_VERSION "1.5")
 
 # We use shared libraries
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-# Find NFFT Library
+# Adjust Compiler Flags
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_SHA1=${GIT_SHA1} -std=c++17" CACHE STRING " The compiler flags " FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG_CTINT -O1" CACHE STRING " The debugging flags " FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native" CACHE STRING " The release flags " FORCE)
+
+# Find the NFFT Library
 message( STATUS "-------- NFFT detection -------------")
 find_package(NFFT REQUIRED)
 include_directories(SYSTEM ${NFFT_INCLUDE_DIR})
@@ -29,14 +31,14 @@ if(NFFT_OLD_API)
   add_definitions(-DNFFT_OLD_API)
 endif(NFFT_OLD_API)
 
-# Load TRIQS, including all predefined variables from TRIQS installation
+# Load TRIQS, including all predefined variables from the TRIQS installation
 message( STATUS "-------- TRIQS detection ------------")
 find_package(TRIQS REQUIRED)
 include_directories(${TRIQS_INCLUDE_ALL})
 list(REMOVE_ITEM TRIQS_CXX_DEFINITIONS -std=c++1y)
 add_definitions(${TRIQS_CXX_DEFINITIONS}) 
 
-# Check that versions are compatible
+# Check that ctint is compatible with the TRIQS version
 if(NOT CTINT_VERSION EQUAL TRIQS_VERSION)
   message(FATAL_ERROR "The application version is not compatible with the TRIQS library (TRIQS library version: ${TRIQS_VERSION} while this application version: ${CTINT_VERSION})")
 endif()

@@ -72,6 +72,7 @@ namespace triqs_ctint {
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
       h5_write(grp, "", s.result_set());
+      h5_write(grp, "GIT_SHA1", std::string(STRINGIZE(GIT_SHA1)));
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "solve_params", s.solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);

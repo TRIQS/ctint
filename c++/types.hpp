@@ -1,5 +1,8 @@
 #pragma once
 
+#define STR(x) #x
+#define STRINGIZE(x) STR(x)
+
 #ifdef DEBUG_CTINT
 #define TRIQS_ARRAYS_ENFORCE_BOUNDCHECK
 #define TRIQS_EXCEPTION_SHOW_CPP_TRACE
@@ -63,6 +66,10 @@ namespace triqs::gfs {
     }
 
     return make_block2_gf(block_names, block_names, std::move(gf_vecvec));
+  }
+
+  template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
+    return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
   }
 
 } // namespace triqs::gfs
