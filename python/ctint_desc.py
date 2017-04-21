@@ -6,7 +6,6 @@ from wrap_generator import *
 module = module_(full_name = "ctint", doc = "", app_name = "ctint")
 
 # All the triqs C++/Python modules
-module.use_module('gf', 'triqs')
 module.use_module('operators', 'triqs')
 
 # Add here all includes beyond what is automatically included by the triqs modules
@@ -17,10 +16,10 @@ module.add_preamble("""
 #include <triqs/python_tools/converters/map.hpp>
 #include <triqs/python_tools/converters/vector.hpp>
 #include <triqs/python_tools/converters/pair.hpp>
+#include <triqs/python_tools/converters/gf.hpp>
 #include <triqs/python_tools/converters/arrays.hpp>
 #include <triqs/python_tools/converters/optional.hpp>
 #include <triqs/python_tools/converters/variant.hpp>
-using namespace triqs::gfs;
 using triqs::operators::many_body_operator;
 using namespace triqs_ctint;
 #include "./ctint_converters.hxx"
@@ -39,42 +38,122 @@ c.add_member(c_name = "average_sign",
              doc = """Average sign of the CTINT """)
 
 c.add_member(c_name = "M_tau",
-             c_type = "std::optional<block_gf<imtime, matrix_valued> >",
+             c_type = "std::optional<g_tau_t>",
              read_only= True,
              doc = """Building block for the Green function in imaginary time (Eq. (23) in Notes) """)
 
 c.add_member(c_name = "M_iw_nfft",
-             c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<g_iw_t>",
              read_only= True,
-             doc = """Same as M_tau, but measured directly in frequencies """)
+             doc = """Same as M_tau, but measured directly in Matsubara frequencies using NFFT """)
 
 c.add_member(c_name = "F_tau",
-             c_type = "std::optional<block_gf<imtime, matrix_valued> >",
+             c_type = "std::optional<g_tau_t>",
              read_only= True,
              doc = """The improved estimator F_tau """)
 
+c.add_member(c_name = "M4_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = """Same as M4_tau, but measured directly in Matsubara frequencies using NFFT """)
+
+c.add_member(c_name = "M3pp_iw_nfft",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M3ph_iw_nfft",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M3pp_tau",
+             c_type = "std::optional<chi3_tau_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (pp channel) in imaginary time """)
+
+c.add_member(c_name = "M3ph_tau",
+             c_type = "std::optional<chi3_tau_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (ph channel) in imaginary time """)
+
+c.add_member(c_name = "M2pp_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (pp channel) in imaginary time """)
+
+c.add_member(c_name = "M2ph_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (ph channel) in imaginary time """)
+
+c.add_member(c_name = "M2xph_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (xph channel) in imaginary time """)
+
 c.add_member(c_name = "M_iw",
-             c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<g_iw_t>",
              read_only= True,
              doc = """The Fourier-transform of M_tau. Dependent on M_tau """)
 
 c.add_member(c_name = "G_iw",
-             c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<g_iw_t>",
              read_only= True,
-             doc = """Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_tau """)
+             doc = """Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw """)
 
 c.add_member(c_name = "Sigma_iw",
-             c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<g_iw_t>",
              read_only= True,
-             doc = """Self-energy in Matsubara frequencies. Dependent on M_tau """)
+             doc = """Self-energy in Matsubara frequencies. Dependent on M_iw """)
+
+c.add_member(c_name = "M3pp_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M3ph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M2pp_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (pp channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M2ph_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (ph channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "M2xph_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (xph channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "F_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = """Building block for the susceptibility (xph channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "chi3pp_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies """)
+
+c.add_member(c_name = "chi3ph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies """)
 
 c.add_member(c_name = "G0_iw",
-             c_type = "block_gf<triqs::gfs::imfreq, triqs::gfs::matrix_valued>",
+             c_type = "g_iw_t",
              read_only= True,
              doc = """Noninteracting Green Function in Matsubara frequencies """)
 
 c.add_member(c_name = "D0_iw",
-             c_type = "std::optional<block_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<g_iw_t>",
              read_only= True,
              doc = """Dynamic density-density interaction in Matsubara frequencies """)
 
@@ -142,7 +221,15 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
 | measure_F_tau        | bool                | false                                          | Measure F(tau)                                                               |
 +----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
-| nfft_buf_size        | int                 | 10000                                          | Size of the Nfft buffer                                                      |
+| measure_M4_iw        | bool                | false                                          | Measure M4(iw) NFFT                                                          |
++----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
+| measure_M3pp_iw      | bool                | false                                          | Measure M3(iw)                                                               |
++----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
+| measure_M3pp_tau     | bool                | false                                          | Measure M3(iw)                                                               |
++----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
+| measure_M2pp_tau     | bool                | false                                          | Measure M2(tau)                                                              |
++----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
+| nfft_buf_size        | int                 | 500                                            | Size of the Nfft buffer                                                      |
 +----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+
 | post_process         | bool                | true                                           | Perform post processing                                                      |
 +----------------------+---------------------+------------------------------------------------+------------------------------------------------------------------------------+ """)
