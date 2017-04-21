@@ -17,6 +17,8 @@ module.add_preamble("""
 #include <triqs/python_tools/converters/vector.hpp>
 #include <triqs/python_tools/converters/pair.hpp>
 #include <triqs/python_tools/converters/gf.hpp>
+#include <triqs/python_tools/converters/block_gf.hpp>
+#include <triqs/python_tools/converters/block2_gf.hpp>
 #include <triqs/python_tools/converters/arrays.hpp>
 #include <triqs/python_tools/converters/optional.hpp>
 #include <triqs/python_tools/converters/variant.hpp>
