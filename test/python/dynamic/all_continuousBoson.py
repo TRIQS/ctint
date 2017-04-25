@@ -1,9 +1,9 @@
 from itertools import product
-from pytriqs.gf.local import *
+from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
-from pytriqs.gf.local.descriptors import Function
+from pytriqs.gf.descriptors import Function
 from numpy import linspace
 from ctint import SolverCore
 

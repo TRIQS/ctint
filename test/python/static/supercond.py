@@ -1,5 +1,5 @@
 from itertools import product
-from pytriqs.gf.local import *
+from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from numpy import array, zeros, identity, matrix

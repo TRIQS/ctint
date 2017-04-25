@@ -1,5 +1,5 @@
 from pytriqs.applications.impurity_solvers.ctint import Solver
-from pytriqs.gf.local import *
+from pytriqs.gf import *
 from pytriqs.archive import *
 import numpy as np
 

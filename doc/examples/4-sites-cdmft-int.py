@@ -1,4 +1,4 @@
-from pytriqs.gf.local import *
+from pytriqs.gf import *
 from pytriqs.lattice.tight_binding import *
 from pytriqs.lattice.bz_patch import *
 from pytriqs.dos.hilbert_transform import *

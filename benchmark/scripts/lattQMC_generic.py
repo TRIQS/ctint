@@ -1,4 +1,4 @@
-from pytriqs.gf.local import *
+from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 import numpy
@@ -6,7 +6,7 @@ from numpy import zeros,matrix
 from numpy import array,sinh,cosh, cos, sin, exp, arctan, linspace
 from math import sqrt, pi
 import pytriqs.utility.mpi as mpi
-from pytriqs.gf.local.descriptors import Function
+from pytriqs.gf.descriptors import Function
 from pytriqs.applications.impurity_solvers.ctint import SolverCore
 
 ################################################
