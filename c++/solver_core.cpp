@@ -97,9 +97,9 @@ namespace triqs_ctint {
     // Post Processing
     if (params.post_process) post_process(params, qmc_config, &result_set());
 
-    // Write results to file
-    triqs::h5::file h5file("ctqmc_out.h5", 'w');
-    h5_write(h5file, "", *this);
+    //// Write results to file
+    //triqs::h5::file h5file("ctqmc_out.h5", 'w');
+    //h5_write(h5file, "", *this);
   }
 
   // -------------------------------------------------------------------------------
