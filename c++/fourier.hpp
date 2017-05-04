@@ -9,7 +9,7 @@ namespace triqs_ctint {
   // 2D Fourier
   template <typename M_out, typename M_in, typename T>
   // First argument should be const &, but slicing has to be fixed first (creates const_view otherwise)
-  void _fourier_impl(gf_view<cartesian_product<M_out, M_out>, T> G_out, gf_const_view<cartesian_product<M_in, M_in>, T> const &G_in) { 
+  void _fourier_impl(gf_view<cartesian_product<M_out, M_out>, T> G_out, gf_const_view<cartesian_product<M_in, M_in>, T> const &G_in) {
 
     // Assume all in/out meshes to be equal and fetch the first
     auto mesh_in  = std::get<0>(G_in.mesh());
@@ -69,7 +69,7 @@ namespace triqs_ctint {
   template <template <typename, typename> class Gf, typename M_out, typename M_in, typename T>
   typename Gf<M_out, T>::regular_type _make_gf_impl(typename Gf<M_in, T>::const_view_type const &G_in, int n) {
     auto out_mesh = gf_mesh<M_out>{G_in.mesh().domain(), n};
-    auto G_out    = gf<M_out, T>{out_mesh, G_in.target_shape()};
+    auto G_out    = gf<M_out, T>{out_mesh, G_in.target_shape(), G_in.indices()};
     _fourier_impl(G_out(), G_in);
     return G_out;
   }
@@ -79,7 +79,7 @@ namespace triqs_ctint {
   _make_gf_impl_2d(typename Gf<cartesian_product<M_in, M_in>, T>::const_view_type const &G_in, int n_1, int n_2) {
     auto domain   = std::get<0>(G_in.mesh()).domain(); // Assume equal domains
     auto out_mesh = gf_mesh<cartesian_product<M_out, M_out>>{{domain, n_1}, {domain, n_2}};
-    auto G_out    = gf<cartesian_product<M_out, M_out>, T>{out_mesh, G_in.target_shape()};
+    auto G_out    = gf<cartesian_product<M_out, M_out>, T>{out_mesh, G_in.target_shape(), G_in.indices()};
     triqs_ctint::_fourier_impl(G_out(), G_in);
     return G_out;
   }
@@ -89,7 +89,7 @@ namespace triqs_ctint {
   _make_gf_impl_3d(typename Gf<cartesian_product<M_in, M_in, M_in>, T>::const_view_type const &G_in, int n_1, int n_2, int n_3) {
     auto domain   = std::get<0>(G_in.mesh()).domain(); // Assume equal domains
     auto out_mesh = gf_mesh<cartesian_product<M_out, M_out, M_out>>{{domain, n_1}, {domain, n_2}, {domain, n_3}};
-    auto G_out    = gf<cartesian_product<M_out, M_out, M_out>, T>{out_mesh, G_in.target_shape()};
+    auto G_out    = gf<cartesian_product<M_out, M_out, M_out>, T>{out_mesh, G_in.target_shape(), G_in.indices()};
     triqs_ctint::_fourier_impl(G_out(), G_in);
     return G_out;
   }
@@ -97,7 +97,7 @@ namespace triqs_ctint {
   // Factory to create Matsubara frequency Green functions from inverse fourier transform of gf[_const][_view]
   template <template <typename, typename> class Gf, typename T>
   std::enable_if_t<is_gf<Gf<imtime, T>>::value, typename Gf<imfreq, T>::regular_type> make_gf_from_fourier(Gf<imtime, T> const &G_tau,
-                                                                                                               int n_iw = -1) {
+                                                                                                           int n_iw = -1) {
     if (n_iw == -1) n_iw = (G_tau.mesh().size() - 1) / 2;
     return _make_gf_impl<Gf, imtime, imfreq, T>(G_tau, n_iw);
   }
@@ -105,7 +105,7 @@ namespace triqs_ctint {
   // Factory to create imaginary time Green functions from inverse fourier transform of gf[_const][_view]
   template <template <typename, typename> class Gf, typename T>
   std::enable_if_t<is_gf<Gf<imfreq, T>>::value, typename Gf<imtime, T>::regular_type> make_gf_from_inverse_fourier(Gf<imfreq, T> const &G_iw,
-                                                                                                                       int n_tau = -1) {
+                                                                                                                   int n_tau = -1) {
     if (n_tau == -1) n_tau = 2 * (G_iw.mesh().last_index() + 1) + 1;
     return _make_gf_impl<Gf, imfreq, imtime, T>(G_iw, n_tau);
   }
@@ -226,8 +226,8 @@ namespace triqs_ctint {
 
   // Factory to create Matsubara frequency Green functions from inverse fourier transform of block[2]_gf[_const][_view]
   template <template <typename, typename> class Gf, typename T>
-  std::enable_if_t<is_block_gf_or_view<Gf<imtime, T>>::value, typename Gf<imfreq, T>::regular_type>
-  make_gf_from_fourier(Gf<imtime, T> const &G_tau, int n_iw = -1) {
+  std::enable_if_t<is_block_gf_or_view<Gf<imtime, T>>::value, typename Gf<imfreq, T>::regular_type> make_gf_from_fourier(Gf<imtime, T> const &G_tau,
+                                                                                                                         int n_iw = -1) {
     return _make_block_gf_impl<Gf, imfreq, imtime, T>(G_tau, n_iw);
   }
 

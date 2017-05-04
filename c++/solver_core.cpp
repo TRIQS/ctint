@@ -148,6 +148,8 @@ namespace triqs_ctint {
 
     // Calculate M_iw from M_tau
     if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw);
+
+    // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
       G_iw     = G0_shift_iw + G0_shift_iw * (*M_iw) * G0_shift_iw;
       Sigma_iw = inverse(G0_iw) - inverse(*G_iw); // Careful, dont use shifted Gf here
