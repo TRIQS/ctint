@@ -69,8 +69,11 @@ namespace triqs_ctint {
     /// Building block for the susceptibility (xph channel) in Matsubara frequencies
     std::optional<chi2_iw_t> M2xph_iw;
 
-    /// Building block for the susceptibility (xph channel) in Matsubara frequencies
+    /// The two-particle vertex function in purely fermionic notation (iw1, iw2, iw3)
     std::optional<chi4_iw_t> F_iw;
+
+    /// The connected part of the two-particle Green function
+    std::optional<chi4_iw_t> G2c_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;

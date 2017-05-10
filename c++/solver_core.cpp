@@ -42,7 +42,10 @@ namespace triqs_ctint {
 
   // -------------------------------------------------------------------------------
 
-  void solver_core::solve(solve_params_t const &_solve_params) { solve_params = _solve_params; solve(); }
+  void solver_core::solve(solve_params_t const &_solve_params) {
+    solve_params = _solve_params;
+    solve();
+  }
 
   void solver_core::solve() {
 
@@ -161,15 +164,16 @@ namespace triqs_ctint {
     if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
 
     // Calculate M3_iw from M3_tau
-    if (M3pp_tau) M3pp_iw   = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3);
-    if (M3ph_tau) M3ph_iw   = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3);
+    if (M3pp_tau) M3pp_iw = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3);
+    if (M3ph_tau) M3ph_iw = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3);
 
     // Calculate F_iw from M4_iw and M_iw
-    if (M4_iw && M_iw) F_iw = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
+    if (M4_iw && M_iw) F_iw   = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
+    if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw && M_iw) chi3pp_iw   = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
-    if (M3ph_iw && M_iw) chi3ph_iw   = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
+    if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
+    if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
   }
 
 } // namespace triqs_ctint
