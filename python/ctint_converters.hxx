@@ -43,7 +43,7 @@ template <> struct py_converter<constr_params_t> {
   _get_optional(dic, "n_tau"                       , res.n_tau                          ,10000);
   _get_optional(dic, "n_iw"                        , res.n_iw                           ,500);
   res.beta = convert_from_python<double>(PyDict_GetItemString(dic, "beta"));
-  res.gf_struct = convert_from_python<gf_struct_t>(PyDict_GetItemString(dic, "gf_struct"));
+  res.gf_struct = convert_from_python<triqs::hilbert_space::gf_struct_t>(PyDict_GetItemString(dic, "gf_struct"));
   _get_optional(dic, "use_D"                       , res.use_D                          ,false);
   _get_optional(dic, "use_Jperp"                   , res.use_Jperp                      ,false);
   _get_optional(dic, "n_tau_dynamical_interactions", res.n_tau_dynamical_interactions   ,10001);
@@ -90,14 +90,14 @@ template <> struct py_converter<constr_params_t> {
     fs << "\n"<< ++err << " The parameter '" << k << "' is not recognized.";
 #endif
 
-  _check_optional <int        >(dic, fs, err, "n_tau"                       , "int");
-  _check_optional <int        >(dic, fs, err, "n_iw"                        , "int");
-  _check_mandatory<double     >(dic, fs, err, "beta"                        , "double");
-  _check_mandatory<gf_struct_t>(dic, fs, err, "gf_struct"                   , "gf_struct_t");
-  _check_optional <bool       >(dic, fs, err, "use_D"                       , "bool");
-  _check_optional <bool       >(dic, fs, err, "use_Jperp"                   , "bool");
-  _check_optional <int        >(dic, fs, err, "n_tau_dynamical_interactions", "int");
-  _check_optional <int        >(dic, fs, err, "n_iw_dynamical_interactions" , "int");
+  _check_optional <int                              >(dic, fs, err, "n_tau"                       , "int");
+  _check_optional <int                              >(dic, fs, err, "n_iw"                        , "int");
+  _check_mandatory<double                           >(dic, fs, err, "beta"                        , "double");
+  _check_mandatory<triqs::hilbert_space::gf_struct_t>(dic, fs, err, "gf_struct"                   , "triqs::hilbert_space::gf_struct_t");
+  _check_optional <bool                             >(dic, fs, err, "use_D"                       , "bool");
+  _check_optional <bool                             >(dic, fs, err, "use_Jperp"                   , "bool");
+  _check_optional <int                              >(dic, fs, err, "n_tau_dynamical_interactions", "int");
+  _check_optional <int                              >(dic, fs, err, "n_iw_dynamical_interactions" , "int");
   if (err) goto _error;
   return true;
 
@@ -164,10 +164,10 @@ template <> struct py_converter<solve_params_t> {
  static solve_params_t py2c(PyObject *dic) {
   solve_params_t res;
   _get_optional(dic, "hartree_shift"       , res.hartree_shift          ,std::vector<double>{});
-  res.h_int = convert_from_python<many_body_operator>(PyDict_GetItemString(dic, "h_int"));
+  res.h_int = convert_from_python<triqs::operators::many_body_operator>(PyDict_GetItemString(dic, "h_int"));
   _get_optional(dic, "use_alpha"           , res.use_alpha              ,false);
   _get_optional(dic, "n_s"                 , res.n_s                    ,2);
-  res.alpha = convert_from_python<alpha_t>(PyDict_GetItemString(dic, "alpha"));
+  res.alpha = convert_from_python<triqs_ctint::alpha_t>(PyDict_GetItemString(dic, "alpha"));
   res.n_cycles = convert_from_python<int>(PyDict_GetItemString(dic, "n_cycles"));
   _get_optional(dic, "length_cycle"        , res.length_cycle           ,50);
   _get_optional(dic, "n_warmup_cycles"     , res.n_warmup_cycles        ,5000);
@@ -228,29 +228,29 @@ template <> struct py_converter<solve_params_t> {
     fs << "\n"<< ++err << " The parameter '" << k << "' is not recognized.";
 #endif
 
-  _check_optional <std::vector<double>>(dic, fs, err, "hartree_shift"       , "std::vector<double>");
-  _check_mandatory<many_body_operator >(dic, fs, err, "h_int"               , "many_body_operator");
-  _check_optional <bool               >(dic, fs, err, "use_alpha"           , "bool");
-  _check_optional <int                >(dic, fs, err, "n_s"                 , "int");
-  _check_mandatory<alpha_t            >(dic, fs, err, "alpha"               , "alpha_t");
-  _check_mandatory<int                >(dic, fs, err, "n_cycles"            , "int");
-  _check_optional <int                >(dic, fs, err, "length_cycle"        , "int");
-  _check_optional <int                >(dic, fs, err, "n_warmup_cycles"     , "int");
-  _check_optional <int                >(dic, fs, err, "random_seed"         , "int");
-  _check_optional <std::string        >(dic, fs, err, "random_name"         , "std::string");
-  _check_optional <bool               >(dic, fs, err, "use_double_insertion", "bool");
-  _check_optional <int                >(dic, fs, err, "max_time"            , "int");
-  _check_optional <int                >(dic, fs, err, "verbosity"           , "int");
-  _check_optional <bool               >(dic, fs, err, "measure_average_sign", "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M_tau"       , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M_iw"        , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_F_tau"       , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M4_iw"       , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M3pp_iw"     , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M3pp_tau"    , "bool");
-  _check_optional <bool               >(dic, fs, err, "measure_M2pp_tau"    , "bool");
-  _check_optional <int                >(dic, fs, err, "nfft_buf_size"       , "int");
-  _check_optional <bool               >(dic, fs, err, "post_process"        , "bool");
+  _check_optional <std::vector<double>                 >(dic, fs, err, "hartree_shift"       , "std::vector<double>");
+  _check_mandatory<triqs::operators::many_body_operator>(dic, fs, err, "h_int"               , "triqs::operators::many_body_operator");
+  _check_optional <bool                                >(dic, fs, err, "use_alpha"           , "bool");
+  _check_optional <int                                 >(dic, fs, err, "n_s"                 , "int");
+  _check_mandatory<triqs_ctint::alpha_t                >(dic, fs, err, "alpha"               , "triqs_ctint::alpha_t");
+  _check_mandatory<int                                 >(dic, fs, err, "n_cycles"            , "int");
+  _check_optional <int                                 >(dic, fs, err, "length_cycle"        , "int");
+  _check_optional <int                                 >(dic, fs, err, "n_warmup_cycles"     , "int");
+  _check_optional <int                                 >(dic, fs, err, "random_seed"         , "int");
+  _check_optional <std::string                         >(dic, fs, err, "random_name"         , "std::string");
+  _check_optional <bool                                >(dic, fs, err, "use_double_insertion", "bool");
+  _check_optional <int                                 >(dic, fs, err, "max_time"            , "int");
+  _check_optional <int                                 >(dic, fs, err, "verbosity"           , "int");
+  _check_optional <bool                                >(dic, fs, err, "measure_average_sign", "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M_tau"       , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M_iw"        , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_F_tau"       , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M4_iw"       , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M3pp_iw"     , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M3pp_tau"    , "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_M2pp_tau"    , "bool");
+  _check_optional <int                                 >(dic, fs, err, "nfft_buf_size"       , "int");
+  _check_optional <bool                                >(dic, fs, err, "post_process"        , "bool");
   if (err) goto _error;
   return true;
 
