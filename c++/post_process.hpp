@@ -11,8 +11,10 @@ namespace triqs_ctint {
 
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
   chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, block_gf_const_view<imfreq, matrix_valued> M_iw,
-                      block_gf_const_view<imfreq, matrix_valued> G0_iw);
+                        block_gf_const_view<imfreq, matrix_valued> G0_iw);
 
+  /// Calculate the two-particle Green function from G2c_iw and G_iw
+  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, block_gf_const_view<imfreq, matrix_valued> G_iw);
 
   /// Calculate the $\chi_3$ function from the building block M3_iw and M_iw
   template <Chan_t Chan> chi3_iw_t chi3_from_M3(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {

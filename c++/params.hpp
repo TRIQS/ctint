@@ -108,23 +108,32 @@ namespace triqs_ctint {
 
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
+    /// Number of positive Matsubara frequencies in M4
     int n_iw_M4        = 32;
 
-    /// Measure M3(iw)
+    /// Measure M3pp(iw)
     bool measure_M3pp_iw  = false;
+    /// Measure M3ph(iw)
     bool measure_M3ph_iw  = false;
+    /// Number of positive Matsubara frequencies in M3
     int n_iw_M3           = 64;
 
-    /// Measure M3(iw)
+    /// Measure M3pp(iw)
     bool measure_M3pp_tau  = false;
+    /// Measure M3ph(iw)
     bool measure_M3ph_tau  = false;
+    /// Number of imaginary time points in M3
     int n_tau_M3           = 1000;
 
-    /// Measure M2(tau)
+    /// Measure M2pp(tau)
     bool measure_M2pp_tau  = false;
+    /// Measure M2ph(tau)
     bool measure_M2ph_tau  = false;
+    /// Measure M2xph(tau)
     bool measure_M2xph_tau = false;
+    /// Number of imaginary time points in M2
     int n_tau_M2           = 10000;
+    /// Number of positive Matsubara frequencies in M2
     int n_iw_M2            = 128;
 
     /// Size of the Nfft buffer

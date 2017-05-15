@@ -75,6 +75,9 @@ namespace triqs_ctint {
     /// The connected part of the two-particle Green function
     std::optional<chi4_iw_t> G2c_iw;
 
+    /// The two-particle Green function
+    std::optional<chi4_iw_t> G2_iw;
+
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;
 
