@@ -98,11 +98,13 @@ namespace triqs_ctint {
     mc.collect_results(world);
 
     // Post Processing
-    if (params.post_process) post_process(params, qmc_config, &result_set());
+    if (params.post_process && !triqs::mpi::communicator().rank()) post_process(params, qmc_config, &result_set());
 
     //// Write results to file
-    //triqs::h5::file h5file("ctqmc_out.h5", 'w');
-    //h5_write(h5file, "", *this);
+    //if (!triqs::mpi::communicator().rank()) {
+      //triqs::h5::file h5file("ctqmc_out.h5", 'w');
+      //h5_write(h5file, "", *this);
+    //}
   }
 
   // -------------------------------------------------------------------------------
@@ -149,6 +151,8 @@ namespace triqs_ctint {
 
   void solver_core::post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results) {
 
+    std::cout << " Post-processing ... \n"; 
+
     // Calculate M_iw from M_tau
     if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw);
 
@@ -159,8 +163,8 @@ namespace triqs_ctint {
     }
 
     // Calculate M2_iw from M2_tau
-    if (M2pp_tau) M2pp_iw   = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
-    if (M2ph_tau) M2ph_iw   = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
+    if (M2pp_tau) M2pp_iw = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
+    if (M2ph_tau) M2ph_iw = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
     if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
 
     // Calculate M3_iw from M3_tau
@@ -168,7 +172,7 @@ namespace triqs_ctint {
     if (M3ph_tau) M3ph_iw = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3);
 
     // Calculate F_iw, G2c_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw && M_iw) F_iw   = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
+    if (M4_iw && M_iw) F_iw = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
     if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
     if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
