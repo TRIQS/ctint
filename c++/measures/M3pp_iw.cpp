@@ -10,8 +10,8 @@ namespace triqs_ctint::measures {
     gf_mesh<cartesian_product<imfreq, imfreq>> M3pp_iw_mesh{iw_mesh, iw_mesh};
 
     // Init measurement container and capture view
-    results->M3pp_iw = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
-    M3pp_iw_.rebind(*results->M3pp_iw);
+    results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
+    M3pp_iw_.rebind(*results->M3pp_iw_nfft);
     M3pp_iw_() = 0;
 
     // Initialize intermediate scattering matrix
