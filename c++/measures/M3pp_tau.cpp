@@ -29,12 +29,10 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_mesh = [&M_tau_mesh](c_t const &c_i) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(M_tau_mesh, closest_mesh_pt(double(c_i.tau))), c_i.u};
-      };
+      auto x_to_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u}; };
 
       auto y_to_mesh = [ beta = params.beta, &G0_tau_mesh ](cdag_t const &cdag_j) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(G0_tau_mesh, closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u};
+        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u};
       };
 
       c_vec.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_mesh)));
@@ -42,7 +40,7 @@ namespace triqs_ctint::measures {
     }
 
     // The intermediate scattering matrix
-    std::vector<matrix<dcomplex>> GM_vec; // GM[bl](u, i)
+    std::vector<matrix<dcomplex>> GM_vec; // GM_vec[bl](u, i)
 
     // Calculate intermediate scattering matrix
     for (int bl : range(params.n_blocks())) {

@@ -17,9 +17,6 @@ namespace triqs_ctint::measures {
     } else if (Chan == Chan_t::PH) {
       results->M2ph_tau = make_block2_gf(tau_mesh, params.gf_struct);
       M2_tau_.rebind(*results->M2ph_tau);
-    } else if (Chan == Chan_t::XPH) {
-      results->M2xph_tau = make_block2_gf(tau_mesh, params.gf_struct);
-      M2_tau_.rebind(*results->M2xph_tau);
     }
     M2_tau_() = 0;
   }
@@ -44,14 +41,13 @@ namespace triqs_ctint::measures {
             auto beta                 = params.beta;
             auto Ginv1_x_Ginv2_x_sign = Ginv1 * Ginv2 * sign;
 
-            auto G0 =
-               [this](int b, double tau_c, double tau_cdag, int u_c, int u_cdag) {
-                 if (tau_c < tau_cdag) return -G0_tau[b][closest_mesh_pt(tau_cdag - tau_c)](u_c, u_cdag);
-                 return G0_tau[b][closest_mesh_pt(tau_c - tau_cdag)](u_c, u_cdag);
-               }; 
+            auto G0 = [this](int b, double tau_c, double tau_cdag, int u_c, int u_cdag) {
+              if (tau_c < tau_cdag) return -G0_tau[b][closest_mesh_pt(tau_cdag - tau_c)](u_c, u_cdag);
+              return G0_tau[b][closest_mesh_pt(tau_c - tau_cdag)](u_c, u_cdag);
+            };
 
             // Particle-particle channel
-            for (auto &tau_pt : M2_tau_(b1,b2).mesh()) {
+            for (auto &tau_pt : M2_tau_(b1, b2).mesh()) {
               double tau = double(tau_pt);
 
               for (int abar_u : range(b1_size))
@@ -80,20 +76,8 @@ namespace triqs_ctint::measures {
                           auto G0_dj = G0_tau[b2][closest_mesh_pt(beta - tau_j)](d_u, cdag_j.u);
                           M2_tau_(b1, b2)[tau_pt](abar_u, b_u, cbar_u, d_u) += G0_ia * G0_kc * G0_bl * G0_dj * Ginv1_x_Ginv2_x_sign;
                         }
-                      } else if (Chan == Chan_t::XPH) { // Particle-hole transverse channel
-                        auto G0_ia = G0(b1, tau_i, tau, c_i.u, abar_u);
-                        auto G0_kc = G0_tau[b2][closest_mesh_pt(c_k.tau)](c_k.u, cbar_u);
-                        auto G0_bj = G0_tau[b1][closest_mesh_pt(beta - tau_j)](b_u, cdag_j.u);
-                        auto G0_dl = G0(b2, tau, tau_l, d_u, cdag_l.u);
-                        M2_tau_(b1, b2)[tau_pt](abar_u, b_u, cbar_u, d_u) += -G0_ia * G0_kc * G0_bj * G0_dl * Ginv1_x_Ginv2_x_sign;
-                        if (b1 == b2) {
-                          auto G0_bl = G0_tau[b1][closest_mesh_pt(beta - tau_l)](b_u, cdag_l.u);
-                          auto G0_dj = G0(b2, tau, tau_j, d_u, cdag_j.u);
-                          M2_tau_(b1, b2)[tau_pt](abar_u, b_u, cbar_u, d_u) += G0_ia * G0_kc * G0_bl * G0_dj * Ginv1_x_Ginv2_x_sign;
-                        }
                       }
             }
-
           })
             ;
       })

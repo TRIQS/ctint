@@ -30,20 +30,14 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points for different meshes
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(G0_tau_mesh, closest_mesh_pt(double(c_i.tau))), c_i.u};
-      };
-
+      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), G0_tau_mesh), c_i.u}; };
       auto y_to_G0_mesh = [ beta = params.beta, &G0_tau_mesh ](cdag_t const &cdag_j) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(G0_tau_mesh, closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u};
+        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u};
       };
 
-      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(M_tau_mesh, closest_mesh_pt(double(c_i.tau))), c_i.u};
-      };
-
+      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u}; };
       auto y_to_M_mesh = [ beta = params.beta, &M_tau_mesh ](cdag_t const &cdag_j) {
-        return idx_t{gf_closest_point<imtime, int>::invoke(M_tau_mesh, closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u};
+        return idx_t{bin_to_mesh(double(cdag_j.tau), M_tau_mesh), cdag_j.u};
       };
 
       c_vec_G0.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_G0_mesh)));

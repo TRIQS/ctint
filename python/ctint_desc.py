@@ -89,11 +89,6 @@ c.add_member(c_name = "M2ph_tau",
              read_only= True,
              doc = """Building block for the susceptibility (ph channel) in imaginary time """)
 
-c.add_member(c_name = "M2xph_tau",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = """Building block for the susceptibility (xph channel) in imaginary time """)
-
 c.add_member(c_name = "M_iw",
              c_type = "std::optional<g_iw_t>",
              read_only= True,
@@ -128,11 +123,6 @@ c.add_member(c_name = "M2ph_iw",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = """Building block for the susceptibility (ph channel) in Matsubara frequencies """)
-
-c.add_member(c_name = "M2xph_iw",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = """Building block for the susceptibility (xph channel) in Matsubara frequencies """)
 
 c.add_member(c_name = "F_iw",
              c_type = "std::optional<chi4_iw_t>",
@@ -252,8 +242,6 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | measure_M2pp_tau     | bool                                 | false                                          | Measure M2pp(tau)                                                            |
 +----------------------+--------------------------------------+------------------------------------------------+------------------------------------------------------------------------------+
 | measure_M2ph_tau     | bool                                 | false                                          | Measure M2ph(tau)                                                            |
-+----------------------+--------------------------------------+------------------------------------------------+------------------------------------------------------------------------------+
-| measure_M2xph_tau    | bool                                 | false                                          | Measure M2xph(tau)                                                           |
 +----------------------+--------------------------------------+------------------------------------------------+------------------------------------------------------------------------------+
 | n_tau_M2             | int                                  | 10000                                          | Number of imaginary time points in M2                                        |
 +----------------------+--------------------------------------+------------------------------------------------+------------------------------------------------------------------------------+

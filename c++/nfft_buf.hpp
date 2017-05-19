@@ -123,14 +123,8 @@ namespace triqs::utility {
     // Counter for elements currently in the buffer
     int buf_counter = 0;
 
-    // Size of underlying fftw array. Each dimension should be 2-4 times larger than nfft freq extents (oversampling factor)
-    int extents_fftw[Rank];
-
     // Common factor in container assignment
     int common_factor = 1;
-
-    // Number of dcomplex in the fftw array of NFFT
-    int n_dcomplex_fftw = 1;
 
     // Get pointer to array containing x values for the NFFT transform
     double *x_arr() { return plan_ptr->x; }

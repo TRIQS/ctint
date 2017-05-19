@@ -129,8 +129,6 @@ namespace triqs_ctint {
     bool measure_M2pp_tau  = false;
     /// Measure M2ph(tau)
     bool measure_M2ph_tau  = false;
-    /// Measure M2xph(tau)
-    bool measure_M2xph_tau = false;
     /// Number of imaginary time points in M2
     int n_tau_M2           = 10000;
     /// Number of positive Matsubara frequencies in M2

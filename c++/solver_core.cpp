@@ -91,7 +91,6 @@ namespace triqs_ctint {
     if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
     if (params.measure_M2pp_tau) mc.add_measure(measures::M2_tau<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M2pp_tau measure");
     if (params.measure_M2ph_tau) mc.add_measure(measures::M2_tau<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2ph_tau measure");
-    if (params.measure_M2xph_tau) mc.add_measure(measures::M2_tau<Chan_t::XPH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2xph_tau measure");
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
@@ -165,7 +164,6 @@ namespace triqs_ctint {
     // Calculate M2_iw from M2_tau
     if (M2pp_tau) M2pp_iw = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
     if (M2ph_tau) M2ph_iw = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
-    if (M2xph_tau) M2xph_iw = make_gf_from_fourier(*M2xph_tau, p.n_iw_M2);
 
     // Calculate M3_iw from M3_tau
     if (M3pp_tau) M3pp_iw = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3);
@@ -175,6 +173,14 @@ namespace triqs_ctint {
     if (M4_iw && M_iw) F_iw = F_from_M4(*M4_iw, *M_iw, G0_shift_iw);
     if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
     if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
+
+    // Calculate chi2_tau from M2_tau and M_iw
+    if (M2pp_iw && M_iw) chi2pp_tau = chi2_from_M2<Chan_t::PP>(*M2pp_tau, *M_iw, G0_shift_iw);
+    if (M2ph_iw && M_iw) chi2ph_tau = chi2_from_M2<Chan_t::PH>(*M2ph_tau, *M_iw, G0_shift_iw);
+
+    // Calculate chi2_iw from chi2_tau
+    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_M2);
+    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_M2);
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);

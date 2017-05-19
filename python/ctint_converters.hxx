@@ -148,7 +148,6 @@ template <> struct py_converter<solve_params_t> {
   PyDict_SetItemString( d, "n_tau_M3"            , convert_to_python(x.n_tau_M3));
   PyDict_SetItemString( d, "measure_M2pp_tau"    , convert_to_python(x.measure_M2pp_tau));
   PyDict_SetItemString( d, "measure_M2ph_tau"    , convert_to_python(x.measure_M2ph_tau));
-  PyDict_SetItemString( d, "measure_M2xph_tau"   , convert_to_python(x.measure_M2xph_tau));
   PyDict_SetItemString( d, "n_tau_M2"            , convert_to_python(x.n_tau_M2));
   PyDict_SetItemString( d, "n_iw_M2"             , convert_to_python(x.n_iw_M2));
   PyDict_SetItemString( d, "nfft_buf_size"       , convert_to_python(x.nfft_buf_size));
@@ -199,7 +198,6 @@ template <> struct py_converter<solve_params_t> {
   _get_optional(dic, "n_tau_M3"            , res.n_tau_M3               ,1000);
   _get_optional(dic, "measure_M2pp_tau"    , res.measure_M2pp_tau       ,false);
   _get_optional(dic, "measure_M2ph_tau"    , res.measure_M2ph_tau       ,false);
-  _get_optional(dic, "measure_M2xph_tau"   , res.measure_M2xph_tau      ,false);
   _get_optional(dic, "n_tau_M2"            , res.n_tau_M2               ,10000);
   _get_optional(dic, "n_iw_M2"             , res.n_iw_M2                ,128);
   _get_optional(dic, "nfft_buf_size"       , res.nfft_buf_size          ,500);
@@ -234,7 +232,7 @@ template <> struct py_converter<solve_params_t> {
   std::stringstream fs, fs2; int err=0;
 
 #ifndef TRIQS_ALLOW_UNUSED_PARAMETERS
-  std::vector<std::string> ks, all_keys = {"hartree_shift","h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","measure_M2xph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
+  std::vector<std::string> ks, all_keys = {"hartree_shift","h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
   pyref keys = PyDict_Keys(dic);
   if (!convertible_from_python<std::vector<std::string>>(keys, true)) {
    fs << "\nThe dict keys are not strings";
@@ -273,7 +271,6 @@ template <> struct py_converter<solve_params_t> {
   _check_optional <int                                 >(dic, fs, err, "n_tau_M3"            , "int");
   _check_optional <bool                                >(dic, fs, err, "measure_M2pp_tau"    , "bool");
   _check_optional <bool                                >(dic, fs, err, "measure_M2ph_tau"    , "bool");
-  _check_optional <bool                                >(dic, fs, err, "measure_M2xph_tau"   , "bool");
   _check_optional <int                                 >(dic, fs, err, "n_tau_M2"            , "int");
   _check_optional <int                                 >(dic, fs, err, "n_iw_M2"             , "int");
   _check_optional <int                                 >(dic, fs, err, "nfft_buf_size"       , "int");

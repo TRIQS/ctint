@@ -52,9 +52,9 @@ namespace triqs_ctint::measures {
 
     // Reset intermediate scattering matrices
     for (auto &i : GMG) { i() = 0; }
-    GM()                      = 0;
-    MG()                      = 0;
-    M()                       = 0;
+    GM() = 0;
+    MG() = 0;
+    M()  = 0;
 
     double beta = params.beta;
 
@@ -71,16 +71,16 @@ namespace triqs_ctint::measures {
         // Fill M, Negative frequency accounted for, while sign cancels with GMG
         buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({beta - tau_j, tau_i}, Ginv_ji);
 
-	//Fill GMG, GM, MG
-	for (int abar_u : range(bl_size)) {
-	  auto G0_ia = G0_tau[bl][closest_mesh_pt(c_i.tau)](c_i.u, abar_u);
-	  for (int b_u : range(bl_size)) {
-	    auto G0_bj = G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, cdag_j.u);
-	    GMG(bl)(abar_u, b_u) += G0_bj * Ginv_ji * G0_ia;
-	    buf_arrarr_GM(bl)(b_u, c_i.u).push_back({tau_i}, G0_bj * Ginv_ji);
-	    buf_arrarr_MG(bl)(b_u, c_i.u).push_back({beta - tau_j}, Ginv_ji * G0_ia);
-	  }
-	}
+        //Fill GMG, GM, MG
+        for (int abar_u : range(bl_size)) {
+          auto G0_ia = G0_tau[bl][closest_mesh_pt(c_i.tau)](c_i.u, abar_u);
+          for (int b_u : range(bl_size)) {
+            auto G0_bj = G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, cdag_j.u);
+            GMG(bl)(abar_u, b_u) += G0_bj * Ginv_ji * G0_ia;
+            buf_arrarr_GM(bl)(b_u, c_i.u).push_back({tau_i}, G0_bj * Ginv_ji);
+            buf_arrarr_MG(bl)(b_u, c_i.u).push_back({beta - tau_j}, Ginv_ji * G0_ia);
+          }
+        }
       })
         ;
     }
