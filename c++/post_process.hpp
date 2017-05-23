@@ -16,7 +16,7 @@ namespace triqs_ctint {
   /// Calculate the two-particle Green function from G2c_iw and G_iw
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, block_gf_const_view<imfreq, matrix_valued> G_iw);
 
-  /// Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
+  // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
   template <Chan_t Chan> chi2_tau_t chi2_from_M2(chi2_tau_t::const_view_type M2_tau, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
 
     double beta  = M_iw[0].domain().beta;
@@ -33,6 +33,8 @@ namespace triqs_ctint {
     g_iw_t G_iw   = G0_iw + G0_iw * M_iw * G0_iw;
     g_tau_t G_tau = make_gf_from_inverse_fourier(G_iw, 10000);
 
+    auto const &tau_mesh = M2_tau(0, 0).mesh();
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -42,23 +44,59 @@ namespace triqs_ctint {
 
         if (Chan == Chan_t::PP) { // =====  Particle-particle channel // FIXME c++17 if constexpr
 
-          chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)(t_)(i_, j_, k_, l_)
-                - GMG_tau[bl1](beta - t_)(j_, i_) * GMG_tau[bl2](beta - t_)(l_, k_)
-                + kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](beta - t_)(j_, k_);
+          //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) // FIXME TAIL ERROR
+          //- GMG_tau[bl1](beta - t_)(j_, i_) * GMG_tau[bl2](beta - t_)(l_, k_)
+          //+ kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](beta - t_)(j_, k_);
 
-          chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_)
-                + G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](beta - t_)(l_, k_)
-                + kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](beta - t_)(j_, k_);
+          //chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_)
+          //+ G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](beta - t_)(l_, k_)
+          //+ kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](beta - t_)(j_, k_);
+
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size))
+                  for (auto const &t : tau_mesh)
+                    chi2_tau_conn(bl1, bl2)[t](i, j, k, l) = M2_tau(bl1, bl2)[t](i, j, k, l)
+                          - GMG_tau[bl1](beta - t)(j, i) * GMG_tau[bl2](beta - t)(l, k)
+                          + kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](beta - t)(j, k);
+
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size))
+                  for (auto const &t : tau_mesh)
+                    chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
+                          + G_tau[bl1](beta - t)(j, i) * G_tau[bl2](beta - t)(l, k)
+                          + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](beta - t)(j, k);
 
         } else if (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-          chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)(t_)(i_, j_, k_, l_)
-                - GMG_tau[bl1](beta - 1e-10)(j_, i_) * GMG_tau[bl2](beta - 1e-10)(l_, k_)
-                - kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](t_)(j_, k_);
+          //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)(t_)(i_, j_, k_, l_)
+          //- GMG_tau[bl1](beta - 1e-10)(j_, i_) * GMG_tau[bl2](beta - 1e-10)(l_, k_)
+          //- kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](t_)(j_, k_);
 
-          chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_)
-                + G_tau[bl1](beta - 1e-10)(j_, i_) * G_tau[bl2](beta - 1e-10)(l_, k_)
-                + kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](t_)(j_, k_);
+          //chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_)
+          //+ G_tau[bl1](beta - 1e-10)(j_, i_) * G_tau[bl2](beta - 1e-10)(l_, k_)
+          //+ kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](t_)(j_, k_);
+
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size))
+                  for (auto const &t : tau_mesh)
+                    chi2_tau_conn(bl1, bl2)[t](i, j, k, l) = M2_tau(bl1, bl2)[t](i, j, k, l)
+                          - GMG_tau[bl1](beta - 1e-10)(j, i) * GMG_tau[bl2](beta - 1e-10)(l, k)
+                          - kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](t)(j, k);
+
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size))
+                  for (auto const &t : tau_mesh)
+                    chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
+                          + G_tau[bl1](beta - 1e-10)(j, i) * G_tau[bl2](beta - 1e-10)(l, k)
+                          + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](t)(j, k);
         }
       }
 

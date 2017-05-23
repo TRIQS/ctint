@@ -139,15 +139,45 @@ c.add_member(c_name = "G2_iw",
              read_only= True,
              doc = """The two-particle Green function """)
 
+c.add_member(c_name = "chi2pp_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in imaginary times """)
+
+c.add_member(c_name = "chi2ph_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary times """)
+
+c.add_member(c_name = "chi2pp_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in Matsubara frequencies """)
+
+c.add_member(c_name = "chi2ph_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in Matsubara frequencies """)
+
 c.add_member(c_name = "chi3pp_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
-             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies """)
+             doc = """The equal time correlator :math:`\\chi_3` in the particle-particle channel in Matsubara frequencies """)
 
 c.add_member(c_name = "chi3ph_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
-             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies """)
+             doc = """The equal time correlator :math:`\\chi_3` in the particle-hole channel in Matsubara frequencies """)
+
+c.add_member(c_name = "chi3pp_iw_nfft",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_3` in the particle-particle channel in Matsubara frequencies as obtained by the NFFT :math:`M_3` measurement """)
+
+c.add_member(c_name = "chi3ph_iw_nfft",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_3` in the particle-hole channel in Matsubara frequencies as obtained by the NFFT :math:`M_3` measurement """)
 
 c.add_member(c_name = "G0_iw",
              c_type = "triqs_ctint::g_iw_t",

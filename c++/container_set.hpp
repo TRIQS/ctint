@@ -90,6 +90,12 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3ph_iw;
 
+    /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement
+    std::optional<chi3_iw_t> chi3pp_iw_nfft;
+
+    /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement
+    std::optional<chi3_iw_t> chi3ph_iw_nfft;
+
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);

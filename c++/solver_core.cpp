@@ -185,6 +185,8 @@ namespace triqs_ctint {
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
     if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
+    if (M3pp_iw_nfft && M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
+    if (M3ph_iw_nfft && M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
   }
 
 } // namespace triqs_ctint

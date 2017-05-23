@@ -99,7 +99,7 @@ namespace triqs_ctint {
   std::enable_if_t<is_gf<Gf<imtime, T>>::value, typename Gf<imfreq, T>::regular_type> make_gf_from_fourier(Gf<imtime, T> const &G_tau,
                                                                                                            int n_iw = -1) {
     if (n_iw == -1) n_iw = (G_tau.mesh().size() - 1) / 2;
-    return _make_gf_impl<Gf, imfreq, imfreq, T>(G_tau, n_iw);
+    return _make_gf_impl<Gf, imfreq, imtime, T>(G_tau, n_iw);
   }
 
   // Factory to create imaginary time Green functions from inverse fourier transform of gf[_const][_view]
@@ -107,7 +107,7 @@ namespace triqs_ctint {
   std::enable_if_t<is_gf<Gf<imfreq, T>>::value, typename Gf<imtime, T>::regular_type> make_gf_from_inverse_fourier(Gf<imfreq, T> const &G_iw,
                                                                                                                    int n_tau = -1) {
     if (n_tau == -1) n_tau = 2 * (G_iw.mesh().last_index() + 1) + 1;
-    return _make_gf_impl<Gf, imfreq, imtime, T>(G_iw, n_tau);
+    return _make_gf_impl<Gf, imtime, imfreq, T>(G_iw, n_tau);
   }
 
   // Factory to create Matsubara frequency Green functions from inverse fourier transform of gf[_const][_view]
@@ -121,7 +121,7 @@ namespace triqs_ctint {
   template <template <typename, typename> class Gf, typename T>
   std::enable_if_t<is_gf<Gf<cartesian_product<imfreq, imfreq>, T>>::value, typename Gf<cartesian_product<imtime, imtime>, T>::regular_type>
   make_gf_from_inverse_fourier(Gf<cartesian_product<imfreq, imfreq>, T> const &G_iw, int n_tau1, int n_tau2) {
-    return _make_gf_impl_2d<Gf, imtime, imfreq, T>(G_tau, n_iw1, n_iw2);
+    return _make_gf_impl_2d<Gf, imtime, imfreq, T>(G_iw, n_tau1, n_tau2);
   }
 
   // Factory to create Matsubara frequency Green functions from inverse fourier transform of gf[_const][_view]
