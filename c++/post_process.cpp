@@ -31,7 +31,7 @@ namespace triqs_ctint {
           for (int n : range(bl1_size))
             for (int o : range(bl2_size))
               for (int p : range(bl2_size))
-                G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G0_iw[bl1](iw1_)(j_, n) * G0_iw[bl2](iw1_ + iw2_ - iw3_)(l_, p)
+                G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G0_iw[bl1](iw2_)(j_, n) * G0_iw[bl2](iw1_ + iw3_ - iw2_)(l_, p)
                       * M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p) * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
       }
 
@@ -47,7 +47,7 @@ namespace triqs_ctint {
 
     // Calculate vertex function F
     chi4_iw_t F_iw = G2c_iw; // FIXME Product Ranges with += Lazy Expressions
-    F_iw() = 0;
+    F_iw()         = 0;
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -59,7 +59,7 @@ namespace triqs_ctint {
             for (int o : range(bl2_size))
               for (int p : range(bl2_size))
                 F_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << F_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-                      + Ginv[bl1](iw1_)(j_, n) * Ginv[bl2](iw1_ + iw2_ - iw3_)(l_, p) * G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
+                      + Ginv[bl1](iw2_)(j_, n) * Ginv[bl2](iw1_ + iw2_ - iw3_)(l_, p) * G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
                          * Ginv[bl1](iw1_)(m, i_) * Ginv[bl2](iw3_)(o, k_);
       }
 
@@ -75,9 +75,9 @@ namespace triqs_ctint {
     chi4_iw_t G2_iw = G2c_iw;
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks))
-	G2_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-	      + beta * kronecker(iw1_, iw2_) * G_iw[bl1](iw1_)(j_, i_) * G_iw[bl2](iw3_)(l_, k_)
-	      - beta * kronecker(bl1, bl2) * kronecker(iw2_, iw3_) * G_iw[bl1](iw1_)(l_, i_) * G_iw[bl2](iw3_)(j_, k_);
+        G2_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+              + beta * kronecker(iw1_, iw2_) * G_iw[bl1](iw1_)(j_, i_) * G_iw[bl2](iw3_)(l_, k_)
+              - beta * kronecker(bl1, bl2) * kronecker(iw2_, iw3_) * G_iw[bl1](iw1_)(l_, i_) * G_iw[bl2](iw3_)(j_, k_);
 
     return G2_iw;
   }

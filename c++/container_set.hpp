@@ -116,12 +116,16 @@ namespace triqs_ctint {
       h5_write(grp, "M2pp_iw", c.M2pp_iw);
       h5_write(grp, "M2ph_iw", c.M2ph_iw);
       h5_write(grp, "F_iw", c.F_iw);
+      h5_write(grp, "G2_iw", c.G2_iw);
+      h5_write(grp, "G2c_iw", c.G2c_iw);
       h5_write(grp, "chi2pp_tau", c.chi2pp_tau);
       h5_write(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_write(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_write(grp, "chi2ph_iw", c.chi2ph_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
+      h5_write(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
+      h5_write(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
     }
 
     /// Function that read all containers to hdf5 file
@@ -144,12 +148,16 @@ namespace triqs_ctint {
       h5_read(grp, "M2pp_iw", c.M2pp_iw);
       h5_read(grp, "M2ph_iw", c.M2ph_iw);
       h5_read(grp, "F_iw", c.F_iw);
+      h5_read(grp, "G2_iw", c.G2_iw);
+      h5_read(grp, "G2c_iw", c.G2c_iw);
       h5_read(grp, "chi2pp_tau", c.chi2pp_tau);
       h5_read(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_read(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
+      h5_read(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
+      h5_read(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
     }
   };
 

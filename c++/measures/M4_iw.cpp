@@ -38,9 +38,10 @@ namespace triqs_ctint::measures {
     M() = 0;
     for (int bl : range(params.n_blocks()))
       //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
-      foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) { // Care for negative frequency in Cdag transform
-        buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({params.beta - double(cdag_j.tau), double(c_i.tau)}, Ginv_ji);
-      })
+      foreach (qmc_config.dets[bl],
+               [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) { // Care for negative frequency in c transform (for M-objects)
+                 buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({double(cdag_j.tau), params.beta - double(c_i.tau)}, -Ginv_ji);
+               })
         ;
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
