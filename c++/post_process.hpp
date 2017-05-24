@@ -5,16 +5,14 @@
 
 namespace triqs_ctint {
 
-  /// Calculate the vertex function $F$ from the the building blocks M4_iw and M_iw
-  chi4_iw_t F_from_M4(chi4_iw_t::const_view_type M4_iw, block_gf_const_view<imfreq, matrix_valued> M_iw,
-                      block_gf_const_view<imfreq, matrix_valued> G0_iw);
-
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
-  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, block_gf_const_view<imfreq, matrix_valued> M_iw,
-                        block_gf_const_view<imfreq, matrix_valued> G0_iw);
+  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw);
+
+  /// Calculate the vertex function $F$ from G2c_iw and G_iw
+  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw);
 
   /// Calculate the two-particle Green function from G2c_iw and G_iw
-  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, block_gf_const_view<imfreq, matrix_valued> G_iw);
+  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw);
 
   // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
   template <Chan_t Chan> chi2_tau_t chi2_from_M2(chi2_tau_t::const_view_type M2_tau, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
@@ -58,8 +56,8 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau_conn(bl1, bl2)[t](i, j, k, l) = M2_tau(bl1, bl2)[t](i, j, k, l)
-                          - GMG_tau[bl1](beta - t)(j, i) * GMG_tau[bl2](beta - t)(l, k)
-                          + kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](beta - t)(j, k);
+                       - GMG_tau[bl1](beta - t)(j, i) * GMG_tau[bl2](beta - t)(l, k)
+                       + kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](beta - t)(j, k);
 
           for (int i : range(bl1_size))
             for (int j : range(bl1_size))
@@ -67,8 +65,8 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
-                          + G_tau[bl1](beta - t)(j, i) * G_tau[bl2](beta - t)(l, k)
-                          + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](beta - t)(j, k);
+                       + G_tau[bl1](beta - t)(j, i) * G_tau[bl2](beta - t)(l, k)
+                       + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](beta - t)(j, k);
 
         } else if (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -86,8 +84,8 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau_conn(bl1, bl2)[t](i, j, k, l) = M2_tau(bl1, bl2)[t](i, j, k, l)
-                          - GMG_tau[bl1](beta - 1e-10)(j, i) * GMG_tau[bl2](beta - 1e-10)(l, k)
-                          - kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](t)(j, k);
+                       - GMG_tau[bl1](beta - 1e-10)(j, i) * GMG_tau[bl2](beta - 1e-10)(l, k)
+                       - kronecker(bl1, bl2) * GMG_tau[bl1](beta - t)(l, i) * GMG_tau[bl2](t)(j, k);
 
           for (int i : range(bl1_size))
             for (int j : range(bl1_size))
@@ -95,8 +93,8 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
-                          + G_tau[bl1](beta - 1e-10)(j, i) * G_tau[bl2](beta - 1e-10)(l, k)
-                          + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](t)(j, k);
+                       + G_tau[bl1](beta - 1e-10)(j, i) * G_tau[bl2](beta - 1e-10)(l, k)
+                       + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](t)(j, k);
         }
       }
 
