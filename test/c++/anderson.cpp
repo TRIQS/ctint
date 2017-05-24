@@ -63,12 +63,10 @@ TEST(CtInt, Anderson) {
 
   //ps.measure_M3pp_tau  = true;
   //ps.measure_M3ph_tau  = true;
-  //ps.measure_M3xph_tau = true;
-  //ps.n_iw_M3           = 1000;
+  //ps.n_tau_M3           = 1000;
 
   //ps.measure_M2pp_tau  = true;
   //ps.measure_M2ph_tau  = true;
-  //ps.measure_M2xph_tau = true;
   //ps.n_tau_M2          = 1000;
   //ps.n_iw_M2           = 128;
 
