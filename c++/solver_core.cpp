@@ -166,6 +166,8 @@ namespace triqs_ctint {
     if (M2ph_tau) M2ph_iw = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
 
     // Calculate M3_iw from M3_tau
+    // Signs and times already adjusted such that e^{iwt} transforms are correct.
+    // FIXME Adjust fourier transforms to make this choice at this stage
     if (M3pp_tau) M3pp_iw = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3);
     if (M3ph_tau) M3ph_iw = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3);
 

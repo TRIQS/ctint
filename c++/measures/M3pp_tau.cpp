@@ -29,12 +29,14 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u}; };
+      // Consider shifted time here as need in fourier transform (for the transform of unbarred index of M)
+      auto x_to_mesh = [ beta = params.beta, &M_tau_mesh ](c_t const &c_i) { return idx_t{bin_to_mesh(beta - double(c_i.tau), M_tau_mesh), c_i.u}; };
 
       auto y_to_mesh = [ beta = params.beta, &G0_tau_mesh ](cdag_t const &cdag_j) {
         return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u};
       };
 
+      // Careful: Use the row and column indices of the matrix in their internal storage order
       c_vec.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_mesh)));
       cdag_vec.push_back(make_vector_from_range(transform(det.get_y_internal_order(), y_to_mesh)));
     }

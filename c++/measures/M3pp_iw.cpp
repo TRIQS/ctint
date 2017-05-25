@@ -37,10 +37,8 @@ namespace triqs_ctint::measures {
       for (int b_u : range(bl_size))
         //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[bl1]) // FIXME c++17
         foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) {
-          // Note: Minus sign from the shift of -dcag_j.tau
-          auto G0_bj = -G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))](b_u, cdag_j.u);
-          // Note: Minus sign from the shift of -c_i.tau
-          buf_arrarr(bl)(b_u, c_i.u).push_back({params.beta - double(c_i.tau)}, -G0_bj * Ginv_ji);
+          auto G0_bj = G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))](b_u, cdag_j.u);
+          buf_arrarr(bl)(b_u, c_i.u).push_back({params.beta - double(c_i.tau)}, G0_bj * Ginv_ji);
         })
           ;
     }
