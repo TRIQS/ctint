@@ -30,7 +30,7 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M4_iw::accumulate(double sign) {
+  void M4_iw::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 

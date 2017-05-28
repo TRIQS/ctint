@@ -12,10 +12,10 @@ namespace triqs_ctint::measures {
   */
   template <Chan_t Chan> struct M2_tau {
 
-    M2_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_);
+    M2_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_);
 
     /// Accumulate M_tau using binning
-    void accumulate(double sign);
+    void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
     void collect_results(triqs::mpi::communicator const &comm);
@@ -31,10 +31,10 @@ namespace triqs_ctint::measures {
     block2_gf_view<imtime, tensor_valued<4>> M2_tau_;
 
     // The average sign
-    double Z = 0.0;
+    mc_weight_t Z = 0.0;
 
     // The non-interacting Green function
-    block_gf<imtime, matrix_valued> const &G0_tau;
+    g_tau_cv_t G0_tau;
   };
 
 } // namespace triqs_ctint::measures

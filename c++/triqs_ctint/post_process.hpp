@@ -25,11 +25,15 @@ namespace triqs_ctint {
     chi2_tau_t chi2_tau_conn = M2_tau;
 
     // Temporary quantities
-    g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
-    auto GMG_tau  = make_gf_from_inverse_fourier(GMG_iw, 10000);
+    g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
 
-    g_iw_t G_iw   = G0_iw + G0_iw * M_iw * G0_iw;
+#ifdef GTAU_IS_COMPLEX
+    auto GMG_tau  = make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000);
     g_tau_t G_tau = make_gf_from_inverse_fourier(G_iw, 10000);
+#else
+    auto GMG_tau  = get_real(make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000), true);
+    g_tau_t G_tau = get_real(make_gf_from_inverse_fourier(G_iw, 10000), true);
+#endif
 
     auto const &tau_mesh = M2_tau(0, 0).mesh();
 
@@ -114,12 +118,17 @@ namespace triqs_ctint {
     chi3_iw_t chi3_iw = M3_iw;
 
     // Temporary quantities
-    auto G0_x_M  = G0_iw * M_iw;
-    auto M_x_G0  = M_iw * G0_iw;
-    auto GMG_tau = make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000);
+    auto G0_x_M = G0_iw * M_iw;
+    auto M_x_G0 = M_iw * G0_iw;
+    g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
 
-    g_iw_t G_iw   = G0_iw + G0_iw * M_iw * G0_iw;
+#ifdef GTAU_IS_COMPLEX
+    auto GMG_tau  = make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000);
     g_tau_t G_tau = make_gf_from_inverse_fourier(G_iw, 10000);
+#else
+    auto GMG_tau  = get_real(make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000), true);
+    g_tau_t G_tau = get_real(make_gf_from_inverse_fourier(G_iw, 10000), true);
+#endif
 
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {

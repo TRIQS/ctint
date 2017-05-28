@@ -18,7 +18,7 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M_iw::accumulate(double sign) {
+  void M_iw::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 
@@ -33,7 +33,7 @@ namespace triqs_ctint::measures {
         double tau = cyclic_difference(cdag_j.tau, c_i.tau);
 
         // Care for sign-change in case of tau-shift
-        int factor = (c_i.tau > cdag_j.tau) ? -sign : sign;
+        mc_weight_t factor = (c_i.tau > cdag_j.tau) ? -sign : sign;
 
         // Push {tau, f(tau)} pair into nfft buffer
         auto &buf = buf_vec[b](cdag_j.u, c_i.u);

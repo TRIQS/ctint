@@ -10,14 +10,14 @@ namespace triqs_ctint::measures {
     average_sign(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
     /// Accumulate average sign
-    void accumulate(double s);
+    void accumulate(mc_weight_t sign);
 
     /// Reduce and normalize
     void collect_results(triqs::mpi::communicator const &comm);
 
     private:
     // Reference to double for accumulation
-    double &average_sign_;
+    mc_weight_t &average_sign_;
 
     // Accumulation counter
     int count = 0;

@@ -11,7 +11,7 @@ namespace triqs_ctint {
   /// Type of the Monte-Carlo configuration
   class qmc_config_t {
     public:
-    qmc_config_t(params_t const &params, block_gf<imtime, matrix_valued> const &G0_tau);
+    qmc_config_t(params_t const &params, g_tau_cv_t G0_tau);
 
     /// Unordered list of all vertices currently inserted
     std::vector<vertex_t> vertex_lst;

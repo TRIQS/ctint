@@ -76,7 +76,7 @@ namespace triqs_ctint {
     tau_t tau1, tau2, tau3, tau4;
 
     /// Amplitude of the vertex, i.e. U, U(tau1-tau2), etc...
-    double amplitude;
+    U_scalar_t amplitude;
 
     /// Probability of proposition for this vertex
     double proposition_proba;

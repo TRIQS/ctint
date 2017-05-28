@@ -33,7 +33,7 @@ c = class_(
 )
 
 c.add_member(c_name = "average_sign",
-             c_type = "double",
+             c_type = "triqs_ctint::mc_weight_t",
              read_only= True,
              doc = """Average sign of the CTINT""")
 
@@ -43,7 +43,7 @@ c.add_member(c_name = "average_k",
              doc = """Average perturbation order""")
 
 c.add_member(c_name = "M_tau",
-             c_type = "std::optional<g_tau_t>",
+             c_type = "std::optional<block_gf<imtime, M_tau_target_t> >",
              read_only= True,
              doc = """Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 
@@ -51,11 +51,6 @@ c.add_member(c_name = "M_iw_nfft",
              c_type = "std::optional<g_iw_t>",
              read_only= True,
              doc = """Same as M_tau, but measured directly in Matsubara frequencies using NFFT""")
-
-c.add_member(c_name = "F_tau",
-             c_type = "std::optional<g_tau_t>",
-             read_only= True,
-             doc = """The improved estimator F_tau""")
 
 c.add_member(c_name = "M4_iw",
              c_type = "std::optional<chi4_iw_t>",

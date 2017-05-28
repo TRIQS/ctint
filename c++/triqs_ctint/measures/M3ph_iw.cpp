@@ -2,7 +2,7 @@
 
 namespace triqs_ctint::measures {
 
-  M3ph_iw::M3ph_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_)
+  M3ph_iw::M3ph_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_),
        qmc_config(qmc_config_),
        G0_tau(G0_tau_),
@@ -46,7 +46,7 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M3ph_iw::accumulate(double sign) {
+  void M3ph_iw::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 

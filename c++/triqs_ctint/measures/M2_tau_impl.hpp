@@ -3,8 +3,7 @@
 namespace triqs_ctint::measures {
 
   template <Chan_t Chan>
-  M2_tau<Chan>::M2_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results,
-                       block_gf<imtime, matrix_valued> const &G0_tau_)
+  M2_tau<Chan>::M2_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_) {
 
     // Construct Matsubara mesh
@@ -21,7 +20,7 @@ namespace triqs_ctint::measures {
     M2_tau_() = 0;
   }
 
-  template <Chan_t Chan> void M2_tau<Chan>::accumulate(double sign) {
+  template <Chan_t Chan> void M2_tau<Chan>::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 

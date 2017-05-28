@@ -21,7 +21,7 @@ namespace triqs_ctint::measures {
     M_iw &operator=(M_iw &&) = default;
 
     /// Accumulate M_iw using nfft
-    void accumulate(double sign);
+    void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
     void collect_results(triqs::mpi::communicator const &comm);
@@ -37,7 +37,7 @@ namespace triqs_ctint::measures {
     block_gf_view<imfreq, matrix_valued> M_iw_;
 
     // The average sign
-    double Z = 0.0;
+    mc_weight_t Z = 0.0;
 
     // Container of nfft_buffers. buf_vec[block_idx](a,b)
     std::vector<array<nfft_buf_t<1>, 2>> buf_vec;

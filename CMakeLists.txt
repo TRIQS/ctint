@@ -11,6 +11,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
 
+option(GTAU_IS_COMPLEX "If ON, the non-interacting Green-function G_0(tau) is complex" OFF)
+option(INTERACTION_IS_COMPLEX "If ON, the interaction vertices (dynamic and static) are complex" OFF)
+
 # Use shared libraries
 set(BUILD_SHARED_LIBS ON)
 
@@ -39,6 +42,8 @@ add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER
   			-DCTINT_GIT_HASH=${CTINT_GIT_HASH} -DTRIQS_GIT_HASH=${TRIQS_GIT_HASH}
 			$<$<CONFIG:Release>:-march=native>
 			$<$<CONFIG:Debug>:-DDEBUG_CTINT>
+			$<$<BOOL:GTAU_IS_COMPLEX>:-DGTAU_IS_COMPLEX>
+			$<$<BOOL:INTERACTION_IS_COMPLEX>:-DINTERACTION_IS_COMPLEX>
 			)
 
 # Common to all targets (ctint, python, tests).

@@ -1,4 +1,5 @@
 #include "./vertex_factories.hpp"
+#include "types.hpp"
 
 namespace triqs_ctint {
 
@@ -10,12 +11,12 @@ namespace triqs_ctint {
 
     {
       std::vector<vertex_idx_t> indices;
-      std::vector<dcomplex> amplitudes;
+      std::vector<U_scalar_t> amplitudes;
 
       // Loop over the interaction hamiltonian and insert the corresponding indices/amplitiudes into the lists for the factory
       for (auto const &term : params.h_int) {
 
-        amplitudes.push_back(-dcomplex(term.coef)); // n_s not needed here, cancels against prop_proba
+        amplitudes.push_back(-U_scalar_t(term.coef)); // n_s not needed here, cancels against prop_proba
         auto const &m = term.monomial;
         if (m.size() != 4 or !(m[0].dagger && m[1].dagger && !m[2].dagger && !m[3].dagger))
           TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c ";
@@ -34,7 +35,7 @@ namespace triqs_ctint {
           tau_t t                   = tau_t::get_random(rng);
           int s                     = is_densdens_interact ? rng(n_s) : 0;
           double prop_proba         = 1.0 / (beta * indices.size()); // n_s here not needed, cancels against amplitude
-          return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, is_densdens_interact, s}; // TODO Real/Imag
+          return vertex_t{indices[n], t, t, t, t, amplitudes[n], prop_proba, is_densdens_interact, s};
         };
 
         vertex_factories.emplace_back(l);
@@ -45,7 +46,11 @@ namespace triqs_ctint {
     if (D0_iw) {
 
       std::vector<vertex_idx_t> indices;
-      std::vector<gf_const_view<imtime, scalar_valued>> D0_tau_lst;
+#ifdef INTERACTION_IS_COMPLEX
+      std::vector<gf<imtime, scalar_valued>> D0_tau_lst;
+#else
+      std::vector<gf<imtime, scalar_real_valued>> D0_tau_lst;
+#endif
 
       // Loop over block indices
       for (int bl1 : range((*D0_iw).size1()))
@@ -61,7 +66,12 @@ namespace triqs_ctint {
               // Add Vertex generator only if d is non-zero
               if (max_norm(d) > 1e-10) {
                 indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
+#ifdef INTERACTION_IS_COMPLEX
                 D0_tau_lst.emplace_back(d);
+#else
+                if (!is_gf_real(d)) TRIQS_RUNTIME_ERROR << " Assuming real interaction values, but Imag(D0(tau)) > 0 ";
+                D0_tau_lst.emplace_back(get_real(d));
+#endif
               }
             }
         }
@@ -74,7 +84,7 @@ namespace triqs_ctint {
           double d_tau      = cyclic_difference(t, tp);
           int s             = rng(n_s);
           double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
-          return vertex_t{indices[n], t, t, tp, tp, -real(D0_tau_lst[n](d_tau)) / n_s, prop_proba, true, s};
+          return vertex_t{indices[n], t, t, tp, tp, -D0_tau_lst[n](d_tau) / n_s, prop_proba, true, s};
         };
 
         vertex_factories.emplace_back(l);
@@ -85,7 +95,11 @@ namespace triqs_ctint {
     if (Jperp_iw) {
 
       std::vector<vertex_idx_t> indices;
-      std::vector<gf_const_view<imtime, scalar_valued>> Jperp_tau_lst;
+#ifdef INTERACTION_IS_COMPLEX
+      std::vector<gf<imtime, scalar_valued>> Jperp_tau_lst;
+#else
+      std::vector<gf<imtime, scalar_real_valued>> Jperp_tau_lst;
+#endif
 
       // Jperp requires that blocks are of same size and that they represent spins which means there must be exactly two blocks WHAT?
       auto J = make_gf_from_inverse_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
@@ -98,7 +112,12 @@ namespace triqs_ctint {
           if (max_norm(d) > 1e-10)
             for (int bl = 0; bl < 2; bl++) {                           // FIXME Ugly ...
               indices.push_back({1 - bl, a, bl, a, bl, b, 1 - bl, b}); //S^+_a(tau) S^-_b(tau')
+#ifdef INTERACTION_IS_COMPLEX
               Jperp_tau_lst.emplace_back(d);
+#else
+              if (!is_gf_real(d)) TRIQS_RUNTIME_ERROR << " Assuming real interaction values, but Imag(Jperp(tau)) > 0 ";
+              Jperp_tau_lst.emplace_back(get_real(d));
+#endif
             }
         }
 
@@ -109,7 +128,7 @@ namespace triqs_ctint {
           tau_t tp          = tau_t::get_random(rng);
           double d_tau      = cyclic_difference(t, tp);
           double prop_proba = 1.0 / (beta * beta * indices.size());
-          return vertex_t{indices[n], t, t, tp, tp, real(Jperp_tau_lst[n](d_tau)) / 4.0, prop_proba};
+          return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](d_tau) / 4.0, prop_proba};
         };
 
         vertex_factories.emplace_back(l);

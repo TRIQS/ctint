@@ -16,7 +16,7 @@ namespace triqs_ctint {
 
     // Allocate essential QMC containers
     G0_iw        = make_block_gf(gf_mesh<imfreq>{p.beta, Fermion, p.n_iw}, p.gf_struct);
-    G0_shift_tau = make_block_gf(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
+    G0_shift_tau = make_block_gf<imtime, g_tau_t::target_t>(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
 
     // Allocate containers for dynamical density-density interaction
     if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);
@@ -49,7 +49,7 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Construct the generic Monte-Carlo solver
-    triqs::mc_tools::mc_generic<double> mc(params.random_name, params.random_seed, 1.0 /* initial sign */, params.verbosity);
+    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, 1.0 /* initial sign */, params.verbosity);
 
     // Capture random number generator
     auto &rng = mc.get_rng();
@@ -72,7 +72,6 @@ namespace triqs_ctint {
     if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
     if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
     if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
-    if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
     if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
@@ -149,7 +148,11 @@ namespace triqs_ctint {
 
     // Invert and Fourier transform to imaginary times
     G0_shift_iw  = inverse(G0_inv);
+#ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
+#else
+    G0_shift_tau = get_real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau), true); 
+#endif
   }
 
   // -------------------------------------------------------------------------------
@@ -159,7 +162,7 @@ namespace triqs_ctint {
     std::cout << " Post-processing ... \n";
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw);
+    if (M_tau) M_iw = make_gf_from_fourier( block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {

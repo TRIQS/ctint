@@ -31,7 +31,7 @@ namespace triqs_ctint {
     return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, cdag);
   }
 
-  double lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
+  g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
 
     // Equal number of creation and annihilation operators required
     if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << " ERROR: Trying to insert unequal number of c and c_dag operators into block! ";
@@ -63,7 +63,7 @@ namespace triqs_ctint {
     }
   }
 
-  double lazy_det_operation_t::one_block::execute_try_remove(det_t *d) {
+  g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_remove(det_t *d) {
 
     // Equal number of creation and annihilation operators required
     if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Internal Error";

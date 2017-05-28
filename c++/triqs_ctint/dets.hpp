@@ -36,15 +36,15 @@ namespace triqs_ctint {
    */
   struct G0hat_t {
     /// The (shifted) non-interacting Green function
-    gf<imtime, matrix_valued> const &G0_shift_tau; 
+    gf_const_view<imtime, g_tau_t::target_t> G0_shift_tau; 
 
     /// The alpha function
     array<double, 2> alpha;
 
-    double operator()(c_t const &c, cdag_t const &cdag) const { // TODO Real/Imag
-      if ((c.tau == cdag.tau) && (c.u == cdag.u)) { return real(G0_shift_tau[0](c.u, cdag.u)) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
+    g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
+      if ((c.tau == cdag.tau) && (c.u == cdag.u)) { return G0_shift_tau[0](c.u, cdag.u) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
       double d_tau = cyclic_difference(c.tau, cdag.tau);
-      double res   = real(G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u));
+      auto res   = G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u);
       return (c.tau >= cdag.tau ? res : -res);
     }
   };
