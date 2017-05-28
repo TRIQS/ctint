@@ -13,7 +13,7 @@ namespace triqs_ctint {
 
   /// Function that returns a list vertex factories, one for each interaction type
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
-                                                      std::optional<block_gf_const_view<imfreq, matrix_valued>> D0_iw,
+                                                      std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
                                                       std::optional<gf_const_view<imfreq, matrix_valued>> Jperp_iw);
 
 } // namespace triqs_ctint

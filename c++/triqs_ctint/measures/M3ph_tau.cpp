@@ -102,7 +102,6 @@ namespace triqs_ctint::measures {
   }
 
   void M3ph_tau::collect_results(triqs::mpi::communicator const &comm) {
-
     // Collect results and normalize
     Z           = mpi_all_reduce(Z, comm);
     M3ph_tau_   = mpi_all_reduce(M3ph_tau_, comm);

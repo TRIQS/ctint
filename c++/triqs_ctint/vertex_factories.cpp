@@ -3,35 +3,38 @@
 namespace triqs_ctint {
 
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
-                                                      std::optional<block_gf_const_view<imfreq, matrix_valued>> D0_iw,
+                                                      std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
                                                       std::optional<gf_const_view<imfreq, matrix_valued>> Jperp_iw) {
 
     std::vector<vertex_factory_t> vertex_factories;
 
-    // ----- TODO Rework interface
-
     {
       std::vector<vertex_idx_t> indices;
       std::vector<dcomplex> amplitudes;
-      auto U = params.get_U();
 
-      for (int a = 0; a < U.shape(0); ++a)
-        for (int b = 0; b < U.shape(1); ++b)
-          for (int i = 0; i < U(a, b).shape(0); ++i)
-            for (int j = 0; j < U(a, b).shape(1); ++j) {
-              if (std::abs(U(a, b)(i, j)) <= std::numeric_limits<double>::epsilon()) continue;
-              indices.push_back({a, i, a, i, b, j, b, j});
-              amplitudes.emplace_back(-U(a, b)(i, j) / 2.0 / params.n_s);
-            }
+      // Loop over the interaction hamiltonian and insert the corresponding indices/amplitiudes into the lists for the factory
+      for (auto const &term : params.h_int) {
+
+        amplitudes.push_back(-dcomplex(term.coef)); // n_s not needed here, cancels against prop_proba
+        auto const &m = term.monomial;
+        if (m.size() != 4 or !(m[0].dagger && m[1].dagger && !m[2].dagger && !m[3].dagger))
+          TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c ";
+        std::vector<std::pair<int, int>> vec;
+        for (auto op : m) { vec.push_back(get_int_indices(op, params.gf_struct)); }
+        // Careful: h_int monomials automatically ordered as c^+_1 c^+_2 c_3 c_4
+        indices.push_back({vec[0].first, vec[0].second, vec[3].first, vec[3].second, vec[1].first, vec[1].second, vec[2].first, vec[2].second});
+      }
 
       if (indices.size() > 0) {
-        // move capture: moving the two vectors into the lambda
+        // Construct the factory and insert into list
         auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng ] {
-          int n             = rng(indices.size());
-          tau_t t           = tau_t::get_random(rng);
-          int s             = rng(n_s);
-          double prop_proba = 1.0 / (beta * indices.size() * n_s);
-          return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, true, s}; // TODO Real/Imag
+          int n                     = rng(indices.size());
+          auto &idx                 = indices[n];
+          bool is_densdens_interact = (idx.b1 == idx.b2) && (idx.b3 == idx.b4) && (idx.u1 == idx.u2) && (idx.u3 == idx.u4);
+          tau_t t                   = tau_t::get_random(rng);
+          int s                     = is_densdens_interact ? rng(n_s) : 0;
+          double prop_proba         = 1.0 / (beta * indices.size()); // n_s here not needed, cancels against amplitude
+          return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, is_densdens_interact, s}; // TODO Real/Imag
         };
 
         vertex_factories.emplace_back(l);
@@ -42,64 +45,75 @@ namespace triqs_ctint {
     if (D0_iw) {
 
       std::vector<vertex_idx_t> indices;
-      std::vector<gf_const_view<imtime, scalar_valued>> ktau_s;
+      std::vector<gf_const_view<imtime, scalar_valued>> D0_tau_lst;
 
-      //--density-density
-      for (int n = 0; n < (*D0_iw).size(); n++) {
-        auto D = make_gf_from_inverse_fourier((*D0_iw)[n], params.n_tau_dynamical_interactions); // Use block_gf fourier
-        for (int a = 0; a < D.target_shape()[0]; a++)
-          for (int b = 0; b < D.target_shape()[1]; b++) {
+      // Loop over block indices
+      for (int bl1 : range((*D0_iw).size1()))
+        for (int bl2 : range((*D0_iw).size1())) {
 
-            int bl1 = n / params.n_blocks();
-            int bl2 = n % params.n_blocks();
+          auto D = make_gf_from_inverse_fourier((*D0_iw)(bl1, bl2), params.n_tau_dynamical_interactions);
 
-            indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
-            auto d = slice_target_to_scalar(D, a, b);
-            ktau_s.emplace_back(d);
-          }
+          // Loop over non-block indices
+          for (int a = 0; a < D.target_shape()[0]; a++)
+            for (int b = 0; b < D.target_shape()[1]; b++) {
+              auto d = slice_target_to_scalar(D, a, b);
+
+              // Add Vertex generator only if d is non-zero
+              if (max_norm(d) > 1e-10) {
+                indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
+                D0_tau_lst.emplace_back(d);
+              }
+            }
+        }
+
+      if (indices.size() > 0) {
+        auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), D0_tau_lst = std::move(D0_tau_lst), &rng ] {
+          int n             = rng(indices.size());
+          tau_t t           = tau_t::get_random(rng);
+          tau_t tp          = tau_t::get_random(rng);
+          double d_tau      = cyclic_difference(t, tp);
+          int s             = rng(n_s);
+          double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
+          return vertex_t{indices[n], t, t, tp, tp, -real(D0_tau_lst[n](d_tau)) / n_s, prop_proba, true, s};
+        };
+
+        vertex_factories.emplace_back(l);
       }
-
-      auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), ktau_s = std::move(ktau_s), &rng ] {
-        int n             = rng(indices.size());
-        tau_t t           = tau_t::get_random(rng);
-        tau_t tp          = tau_t::get_random(rng);
-        double d_tau      = cyclic_difference(t, tp);
-        int s             = rng(n_s);
-        double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
-        return vertex_t{indices[n], t, t, tp, tp, -real(ktau_s[n](d_tau)) / 2.0 / n_s, prop_proba, true, s};
-      };
-
-      vertex_factories.emplace_back(l);
     }
 
     // ------------ Create Vertex Factory for Dynamic Spin-Spin Interactions --------------
     if (Jperp_iw) {
 
-      auto J = make_gf_from_inverse_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
       std::vector<vertex_idx_t> indices;
-      std::vector<gf_const_view<imtime, scalar_valued>> ktau_s;
+      std::vector<gf_const_view<imtime, scalar_valued>> Jperp_tau_lst;
 
-      // Jperp requires that blocks are of same size and that they represent spins which means there must be exactly two blocks
+      // Jperp requires that blocks are of same size and that they represent spins which means there must be exactly two blocks WHAT?
+      auto J = make_gf_from_inverse_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
+
+      // Loop over non-block indices
       for (int a = 0; a < J.target_shape()[0]; a++)
         for (int b = 0; b < J.target_shape()[1]; b++) {
           auto d = slice_target_to_scalar(J, a, b);
 
-          for (int bl = 0; bl < 2; bl++) {                           // FIXME Ugly ...
-            indices.push_back({1 - bl, a, bl, a, bl, b, 1 - bl, b}); //S^+_a(tau) S^-_b(tau')
-            ktau_s.emplace_back(d);
-          }
+          if (max_norm(d) > 1e-10)
+            for (int bl = 0; bl < 2; bl++) {                           // FIXME Ugly ...
+              indices.push_back({1 - bl, a, bl, a, bl, b, 1 - bl, b}); //S^+_a(tau) S^-_b(tau')
+              Jperp_tau_lst.emplace_back(d);
+            }
         }
 
-      auto l = [ beta = params.beta, indices = std::move(indices), ktau_s = std::move(ktau_s), &rng ] {
-        int n             = rng(indices.size());
-        tau_t t           = tau_t::get_random(rng);
-        tau_t tp          = tau_t::get_random(rng);
-        double d_tau      = cyclic_difference(t, tp);
-        double prop_proba = 1.0 / (beta * beta * indices.size());
-        return vertex_t{indices[n], t, t, tp, tp, real(ktau_s[n](d_tau)) / 4.0, prop_proba};
-      };
+      if (indices.size() > 0) {
+        auto l = [ beta = params.beta, indices = std::move(indices), Jperp_tau_lst = std::move(Jperp_tau_lst), &rng ] {
+          int n             = rng(indices.size());
+          tau_t t           = tau_t::get_random(rng);
+          tau_t tp          = tau_t::get_random(rng);
+          double d_tau      = cyclic_difference(t, tp);
+          double prop_proba = 1.0 / (beta * beta * indices.size());
+          return vertex_t{indices[n], t, t, tp, tp, real(Jperp_tau_lst[n](d_tau)) / 4.0, prop_proba};
+        };
 
-      vertex_factories.emplace_back(l);
+        vertex_factories.emplace_back(l);
+      }
     }
 
     return vertex_factories;

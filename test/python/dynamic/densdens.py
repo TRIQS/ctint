@@ -54,9 +54,9 @@ for b1 in block_names:
     for i in range(N_states):
       for j in range(N_states):
         if i==j and b1==b2:
-          S.D0_iw[b1+"|"+b2][i,j]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))  
+          S.D0_iw(b1,b2)[i,j]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))  
         else:
-          S.D0_iw[b1+"|"+b2][i,j]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+          S.D0_iw(b1,b2)[i,j]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
  
 # --------- Solve! ----------
 S.solve(h_int=h_int,

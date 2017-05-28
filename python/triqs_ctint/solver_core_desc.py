@@ -188,7 +188,7 @@ c.add_member(c_name = "G0_iw",
              doc = """Noninteracting Green Function in Matsubara frequencies""")
 
 c.add_member(c_name = "D0_iw",
-             c_type = "std::optional<g_iw_t>",
+             c_type = "std::optional<block2_gf<imfreq, matrix_valued> >",
              read_only= True,
              doc = """Dynamic density-density interaction in Matsubara frequencies""")
 

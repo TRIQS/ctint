@@ -7,7 +7,7 @@ add_executable(test_nfft ${CMAKE_CURRENT_SOURCE_DIR}/nfft.cpp)
 target_link_libraries (test_nfft triqs_ctint_c gtest ${NFFT_LIBRARIES})
 add_test(test_nfft ${CMAKE_CURRENT_BINARY_DIR}/test_nfft)
 
-set(all_tests "")
+set(all_tests util)
 
 foreach(t ${all_tests})
   add_executable(${t} ${CMAKE_CURRENT_SOURCE_DIR}/${t}.cpp)
