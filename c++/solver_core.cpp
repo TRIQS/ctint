@@ -97,7 +97,7 @@ namespace triqs_ctint {
     mc.collect_results(world);
 
     // Post Processing
-    if (params.post_process && !triqs::mpi::communicator().rank()) post_process(params, qmc_config, &result_set());
+    if (params.post_process && !triqs::mpi::communicator().rank()) post_process(params);
 
     //// Write results to file
     //if (!triqs::mpi::communicator().rank()) {
@@ -148,7 +148,7 @@ namespace triqs_ctint {
 
   // -------------------------------------------------------------------------------
 
-  void solver_core::post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results) {
+  void solver_core::post_process(params_t const &p) {
 
     std::cout << " Post-processing ... \n";
 

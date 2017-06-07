@@ -61,14 +61,14 @@ namespace triqs_ctint {
     // Calculate G0_shift_tau given G0_iw
     void prepare_G0_shift_tau(params_t const &params);
 
-    // Perform post-processing
-    void post_process(params_t const &p, qmc_config_t const &qmc_config, container_set *results);
+    // Function to perform the post-processing steps
+    void post_process(params_t const &p);
 
     // Return reference to container_set
     container_set &result_set() { return static_cast<container_set &>(*this); }
     container_set const &result_set() const { return static_cast<container_set const &>(*this); }
 
-    /// Function that writes the solver_core to hdf5 file
+    // Function that writes the solver_core to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
       h5_write(grp, "", s.result_set());
@@ -80,7 +80,7 @@ namespace triqs_ctint {
       h5_write(grp, "Jperp_iw", s.Jperp_iw);
     }
 
-    /// Function that read all containers to hdf5 file
+    // Function that read all containers to hdf5 file
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solver_core &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
       h5_read(grp, "", s.result_set());
