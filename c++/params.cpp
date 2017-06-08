@@ -41,7 +41,7 @@ namespace triqs_ctint {
   }
 
   void h5_read(triqs::h5::group h5group, std::string subgroup_name, constr_params_t &cp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
     h5_read(grp, "n_tau", cp.n_tau);
     h5_read(grp, "n_iw", cp.n_iw);
     h5_read(grp, "beta", cp.beta);
@@ -88,7 +88,7 @@ namespace triqs_ctint {
   }
 
   void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t &sp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
     h5_read(grp, "hartree_shift", sp.hartree_shift);
     h5_read(grp, "h_int", sp.h_int);
     h5_read(grp, "use_alpha", sp.use_alpha);
