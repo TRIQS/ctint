@@ -19,7 +19,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 # Adjust Compiler Flags
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_SHA1=${GIT_SHA1} -std=c++17" CACHE STRING " The compiler flags " FORCE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_SHA1=${GIT_SHA1} -std=c++17 -DHAS_OPTIONAL_HEADER" CACHE STRING " The compiler flags " FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG_CTINT -O1" CACHE STRING " The debugging flags " FORCE)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native" CACHE STRING " The release flags " FORCE)
 
