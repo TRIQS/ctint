@@ -96,8 +96,8 @@ namespace triqs_ctint {
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
     mc.collect_results(world);
 
-    // Post Processing
-    if (params.post_process && !triqs::mpi::communicator().rank()) post_process(params);
+    // Post Processing 
+    if (params.post_process) post_process(params);
 
     // Write results to file
     if (!triqs::mpi::communicator().rank()) {
