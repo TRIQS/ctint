@@ -1,11 +1,15 @@
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-  add_definitions(-DDEBUG_CTINT)
-endif()
-
 FILE(GLOB_RECURSE cpp_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 add_library(ctint_c ${cpp_sources})
-target_link_libraries(ctint_c ${TRIQS_LIBRARY_ALL} ${NFFT_LIBRARIES})
-triqs_set_rpath_for_target(ctint_c)
+target_link_libraries(ctint_c triqs)
 
+# Find the NFFT Library
+message( STATUS "-------- NFFT detection -------------")
+find_package(NFFT REQUIRED)
+target_include_directories(ctint_c SYSTEM PRIVATE ${NFFT_INCLUDE_DIR})
+if(NFFT_OLD_API)
+  target_compile_definitions(ctint_c NFFT_OLD_API)
+endif(NFFT_OLD_API)
+target_link_libraries(ctint_c ${NFFT_LIBRARIES})
+
+# Install
 install(TARGETS ctint_c DESTINATION lib)
-
