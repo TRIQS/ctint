@@ -11,6 +11,8 @@ namespace triqs_ctint {
 
   solver_core::solver_core(constr_params_t const &p) : constr_params(p) {
 
+    std::cout << " ENTER\n"; 
+
     // Set inverse temperature for all $\tau$ points
     tau_t::beta = p.beta;
 
@@ -38,6 +40,8 @@ namespace triqs_ctint {
       auto bl  = *(p.gf_struct.begin());
       Jperp_iw = gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl.second.size(), bl.second.size())};
     }
+
+    std::cout << " EXIT\n"; 
   }
 
   // -------------------------------------------------------------------------------

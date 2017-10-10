@@ -1,4 +1,5 @@
 from itertools import product
+import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
