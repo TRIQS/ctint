@@ -3,9 +3,9 @@ file(GLOB all_h5_files *.h5)
 file(COPY ${all_h5_files} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # NFFT Test
-add_executable(nfft ${CMAKE_CURRENT_SOURCE_DIR}/nfft.cpp)
-target_link_libraries (nfft ctint_c gtest ${NFFT_LIBRARIES})
-add_test(nfft ${CMAKE_CURRENT_BINARY_DIR}/nfft)
+add_executable(test_nfft ${CMAKE_CURRENT_SOURCE_DIR}/nfft.cpp)
+target_link_libraries (test_nfft ctint_c gtest ${NFFT_LIBRARIES})
+add_test(test_nfft ${CMAKE_CURRENT_BINARY_DIR}/test_nfft)
 
 set(all_tests anderson)
 

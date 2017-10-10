@@ -11,15 +11,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
 
-enable_testing()
-
 # Use shared libraries
 set(BUILD_SHARED_LIBS ON)
 
 # Load TRIQS, (and Cpp2Py automatically)
 find_package(TRIQS REQUIRED)
 
-# Adjust CMake Module Path and includes
+# We will need the FindNNFT of triqs, so we adjust CMake Module Path to find it
 list(APPEND CMAKE_MODULE_PATH ${TRIQS_ROOT}/share/cmake)
 
 # Check that ctint is compatible with the TRIQS version
@@ -34,6 +32,7 @@ add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER -DGIT_SHA1=${GIT_HASH}
 			"$<$<CONFIG:Debug>:-DDEBUG_CTINT>"
 			)
 
+# Common to all targets (ctint, python, tests).
 include_directories(c++)
 
 # To be fixed!!
@@ -41,8 +40,10 @@ triqs_set_rpath_for_all_targets()
 
 add_subdirectory(c++)
 add_subdirectory(python)
-add_subdirectory(test)
 
+# Tests
+enable_testing()
+add_subdirectory(test)
 
 # Build the documentation
 option(BUILD_DOC "Build documentation" OFF)
