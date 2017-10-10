@@ -1,1 +1,2 @@
-triqs_add_all_subdirectories_with_cmakelist()
+#add_subdirectory(static)
+add_subdirectory(dynamic)

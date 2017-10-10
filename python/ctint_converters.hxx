@@ -1,122 +1,12 @@
 // DO NOT EDIT
-// Generated automatically using libclang using the command :
-// c++2py.py ../c++/solver_core.hpp -p --members_read_only -m ctint -o ctint
-
-
-// --- C++ Python converter for constr_params_t
-#include <triqs/python_tools/converters/vector.hpp>
-#include <triqs/python_tools/converters/string.hpp>
-#include <algorithm>
-
-namespace triqs { namespace py_tools {
-
-template <> struct py_converter<constr_params_t> {
- static PyObject *c2py(constr_params_t const & x) {
-  PyObject * d = PyDict_New();
-  PyDict_SetItemString( d, "n_tau"                       , convert_to_python(x.n_tau));
-  PyDict_SetItemString( d, "n_iw"                        , convert_to_python(x.n_iw));
-  PyDict_SetItemString( d, "beta"                        , convert_to_python(x.beta));
-  PyDict_SetItemString( d, "gf_struct"                   , convert_to_python(x.gf_struct));
-  PyDict_SetItemString( d, "use_D"                       , convert_to_python(x.use_D));
-  PyDict_SetItemString( d, "use_Jperp"                   , convert_to_python(x.use_Jperp));
-  PyDict_SetItemString( d, "n_tau_dynamical_interactions", convert_to_python(x.n_tau_dynamical_interactions));
-  PyDict_SetItemString( d, "n_iw_dynamical_interactions" , convert_to_python(x.n_iw_dynamical_interactions));
-  return d;
- }
-
- template <typename T, typename U> static void _get_optional(PyObject *dic, const char *name, T &r, U const &init_default) {
-  if (PyDict_Contains(dic, pyref::string(name)))
-   r = convert_from_python<T>(PyDict_GetItemString(dic, name));
-  else
-   r = init_default;
- }
-
- template <typename T> static void _get_optional(PyObject *dic, const char *name, T &r) {
-  if (PyDict_Contains(dic, pyref::string(name)))
-   r = convert_from_python<T>(PyDict_GetItemString(dic, name));
-  else
-   r = T{};
- }
-
- static constr_params_t py2c(PyObject *dic) {
-  constr_params_t res;
-  _get_optional(dic, "n_tau"                       , res.n_tau                          ,10000);
-  _get_optional(dic, "n_iw"                        , res.n_iw                           ,500);
-  res.beta = convert_from_python<double>(PyDict_GetItemString(dic, "beta"));
-  res.gf_struct = convert_from_python<triqs::hilbert_space::gf_struct_t>(PyDict_GetItemString(dic, "gf_struct"));
-  _get_optional(dic, "use_D"                       , res.use_D                          ,false);
-  _get_optional(dic, "use_Jperp"                   , res.use_Jperp                      ,false);
-  _get_optional(dic, "n_tau_dynamical_interactions", res.n_tau_dynamical_interactions   ,10001);
-  _get_optional(dic, "n_iw_dynamical_interactions" , res.n_iw_dynamical_interactions    ,200);
-  return res;
- }
-
- template <typename T>
- static void _check(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
-  if (!convertible_from_python<T>(PyDict_GetItemString(dic, name), false))
-   fs << "\n" << ++err << " The parameter " << name << " does not have the right type : expecting " << tname
-      << " in C++, but got '" << PyDict_GetItemString(dic, name)->ob_type->tp_name << "' in Python.";
- }
-
- template <typename T>
- static void _check_mandatory(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
-  if (!PyDict_Contains(dic, pyref::string(name)))
-   fs << "\n" << ++err << " Mandatory parameter " << name << " is missing.";
-  else _check<T>(dic,fs,err,name,tname);
- }
-
- template <typename T>
- static void _check_optional(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
-  if (PyDict_Contains(dic, pyref::string(name))) _check<T>(dic, fs, err, name, tname);
- }
-
- static bool is_convertible(PyObject *dic, bool raise_exception) {
-  if (dic == nullptr or !PyDict_Check(dic)) {
-   if (raise_exception) { PyErr_SetString(PyExc_TypeError, "The function must be called with named arguments");}
-   return false;
-  }
-  std::stringstream fs, fs2; int err=0;
-
-#ifndef TRIQS_ALLOW_UNUSED_PARAMETERS
-  std::vector<std::string> ks, all_keys = {"n_tau","n_iw","beta","gf_struct","use_D","use_Jperp","n_tau_dynamical_interactions","n_iw_dynamical_interactions"};
-  pyref keys = PyDict_Keys(dic);
-  if (!convertible_from_python<std::vector<std::string>>(keys, true)) {
-   fs << "\nThe dict keys are not strings";
-   goto _error;
-  }
-  ks = convert_from_python<std::vector<std::string>>(keys);
-  for (auto & k : ks)
-   if (std::find(all_keys.begin(), all_keys.end(), k) == all_keys.end())
-    fs << "\n"<< ++err << " The parameter '" << k << "' is not recognized.";
-#endif
-
-  _check_optional <int                              >(dic, fs, err, "n_tau"                       , "int");
-  _check_optional <int                              >(dic, fs, err, "n_iw"                        , "int");
-  _check_mandatory<double                           >(dic, fs, err, "beta"                        , "double");
-  _check_mandatory<triqs::hilbert_space::gf_struct_t>(dic, fs, err, "gf_struct"                   , "triqs::hilbert_space::gf_struct_t");
-  _check_optional <bool                             >(dic, fs, err, "use_D"                       , "bool");
-  _check_optional <bool                             >(dic, fs, err, "use_Jperp"                   , "bool");
-  _check_optional <int                              >(dic, fs, err, "n_tau_dynamical_interactions", "int");
-  _check_optional <int                              >(dic, fs, err, "n_iw_dynamical_interactions" , "int");
-  if (err) goto _error;
-  return true;
-
- _error:
-   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class constr_params_t\n" <<fs.str();
-   if (raise_exception) PyErr_SetString(PyExc_TypeError, fs2.str().c_str());
-  return false;
- }
-};
-
-}}
-
-
 // --- C++ Python converter for solve_params_t
-#include <triqs/python_tools/converters/vector.hpp>
-#include <triqs/python_tools/converters/string.hpp>
+#include <cpp2py/converters/vector.hpp>
+#include <cpp2py/converters/string.hpp>
 #include <algorithm>
 
-namespace triqs { namespace py_tools {
+using namespace triqs_ctint; 
+
+namespace cpp2py {
 
 template <> struct py_converter<solve_params_t> {
  static PyObject *c2py(solve_params_t const & x) {
@@ -285,4 +175,111 @@ template <> struct py_converter<solve_params_t> {
  }
 };
 
-}}
+}
+// DO NOT EDIT
+// --- C++ Python converter for constr_params_t
+#include <cpp2py/converters/vector.hpp>
+#include <cpp2py/converters/string.hpp>
+#include <algorithm>
+
+namespace cpp2py {
+
+template <> struct py_converter<constr_params_t> {
+ static PyObject *c2py(constr_params_t const & x) {
+  PyObject * d = PyDict_New();
+  PyDict_SetItemString( d, "n_tau"                       , convert_to_python(x.n_tau));
+  PyDict_SetItemString( d, "n_iw"                        , convert_to_python(x.n_iw));
+  PyDict_SetItemString( d, "beta"                        , convert_to_python(x.beta));
+  PyDict_SetItemString( d, "gf_struct"                   , convert_to_python(x.gf_struct));
+  PyDict_SetItemString( d, "use_D"                       , convert_to_python(x.use_D));
+  PyDict_SetItemString( d, "use_Jperp"                   , convert_to_python(x.use_Jperp));
+  PyDict_SetItemString( d, "n_tau_dynamical_interactions", convert_to_python(x.n_tau_dynamical_interactions));
+  PyDict_SetItemString( d, "n_iw_dynamical_interactions" , convert_to_python(x.n_iw_dynamical_interactions));
+  return d;
+ }
+
+ template <typename T, typename U> static void _get_optional(PyObject *dic, const char *name, T &r, U const &init_default) {
+  if (PyDict_Contains(dic, pyref::string(name)))
+   r = convert_from_python<T>(PyDict_GetItemString(dic, name));
+  else
+   r = init_default;
+ }
+
+ template <typename T> static void _get_optional(PyObject *dic, const char *name, T &r) {
+  if (PyDict_Contains(dic, pyref::string(name)))
+   r = convert_from_python<T>(PyDict_GetItemString(dic, name));
+  else
+   r = T{};
+ }
+
+ static constr_params_t py2c(PyObject *dic) {
+  constr_params_t res;
+  _get_optional(dic, "n_tau"                       , res.n_tau                          ,10000);
+  _get_optional(dic, "n_iw"                        , res.n_iw                           ,500);
+  res.beta = convert_from_python<double>(PyDict_GetItemString(dic, "beta"));
+  res.gf_struct = convert_from_python<triqs::hilbert_space::gf_struct_t>(PyDict_GetItemString(dic, "gf_struct"));
+  _get_optional(dic, "use_D"                       , res.use_D                          ,false);
+  _get_optional(dic, "use_Jperp"                   , res.use_Jperp                      ,false);
+  _get_optional(dic, "n_tau_dynamical_interactions", res.n_tau_dynamical_interactions   ,10001);
+  _get_optional(dic, "n_iw_dynamical_interactions" , res.n_iw_dynamical_interactions    ,200);
+  return res;
+ }
+
+ template <typename T>
+ static void _check(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
+  if (!convertible_from_python<T>(PyDict_GetItemString(dic, name), false))
+   fs << "\n" << ++err << " The parameter " << name << " does not have the right type : expecting " << tname
+      << " in C++, but got '" << PyDict_GetItemString(dic, name)->ob_type->tp_name << "' in Python.";
+ }
+
+ template <typename T>
+ static void _check_mandatory(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
+  if (!PyDict_Contains(dic, pyref::string(name)))
+   fs << "\n" << ++err << " Mandatory parameter " << name << " is missing.";
+  else _check<T>(dic,fs,err,name,tname);
+ }
+
+ template <typename T>
+ static void _check_optional(PyObject *dic, std::stringstream &fs, int &err, const char *name, const char *tname) {
+  if (PyDict_Contains(dic, pyref::string(name))) _check<T>(dic, fs, err, name, tname);
+ }
+
+ static bool is_convertible(PyObject *dic, bool raise_exception) {
+  if (dic == nullptr or !PyDict_Check(dic)) {
+   if (raise_exception) { PyErr_SetString(PyExc_TypeError, "The function must be called with named arguments");}
+   return false;
+  }
+  std::stringstream fs, fs2; int err=0;
+
+#ifndef TRIQS_ALLOW_UNUSED_PARAMETERS
+  std::vector<std::string> ks, all_keys = {"n_tau","n_iw","beta","gf_struct","use_D","use_Jperp","n_tau_dynamical_interactions","n_iw_dynamical_interactions"};
+  pyref keys = PyDict_Keys(dic);
+  if (!convertible_from_python<std::vector<std::string>>(keys, true)) {
+   fs << "\nThe dict keys are not strings";
+   goto _error;
+  }
+  ks = convert_from_python<std::vector<std::string>>(keys);
+  for (auto & k : ks)
+   if (std::find(all_keys.begin(), all_keys.end(), k) == all_keys.end())
+    fs << "\n"<< ++err << " The parameter '" << k << "' is not recognized.";
+#endif
+
+  _check_optional <int                              >(dic, fs, err, "n_tau"                       , "int");
+  _check_optional <int                              >(dic, fs, err, "n_iw"                        , "int");
+  _check_mandatory<double                           >(dic, fs, err, "beta"                        , "double");
+  _check_mandatory<triqs::hilbert_space::gf_struct_t>(dic, fs, err, "gf_struct"                   , "triqs::hilbert_space::gf_struct_t");
+  _check_optional <bool                             >(dic, fs, err, "use_D"                       , "bool");
+  _check_optional <bool                             >(dic, fs, err, "use_Jperp"                   , "bool");
+  _check_optional <int                              >(dic, fs, err, "n_tau_dynamical_interactions", "int");
+  _check_optional <int                              >(dic, fs, err, "n_iw_dynamical_interactions" , "int");
+  if (err) goto _error;
+  return true;
+
+ _error:
+   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class constr_params_t\n" <<fs.str();
+   if (raise_exception) PyErr_SetString(PyExc_TypeError, fs2.str().c_str());
+  return false;
+ }
+};
+
+}
