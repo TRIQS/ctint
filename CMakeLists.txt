@@ -25,6 +25,13 @@ if(NOT CTINT_VERSION EQUAL TRIQS_VERSION)
   message(FATAL_ERROR "The application version is not compatible with the TRIQS library (TRIQS library version: ${TRIQS_VERSION} while this application version: ${CTINT_VERSION})")
 endif()
 
+# Default Install directory to TRIQS_ROOT
+#if((NOT CMAKE_INSTALL_PREFIX) OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
+  #message(" No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+  set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT})
+#endif()
+message( STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
+
 get_git_hash_of_source_dir(GIT_HASH)
 
 add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER -DGIT_SHA1=${GIT_HASH}
@@ -46,7 +53,7 @@ enable_testing()
 add_subdirectory(test)
 
 # Build the documentation
-option(BUILD_DOC "Build documentation" OFF)
+option(Build_Documentation "Build documentation" OFF)
 if(${BUILD_DOC})
   if(NOT TRIQS_WITH_DOCUMENTATION)
     message("Error: TRIQS library has not been compiled with its documentation")
