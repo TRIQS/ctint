@@ -26,17 +26,18 @@ if(NOT CTINT_VERSION EQUAL TRIQS_VERSION)
 endif()
 
 # Default Install directory to TRIQS_ROOT
-#if((NOT CMAKE_INSTALL_PREFIX) OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
-  #message(" No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
+  message(" No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
   set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT})
-#endif()
+endif()
 message( STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
 
-get_git_hash_of_source_dir(GIT_HASH)
+get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
-add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER -DGIT_SHA1=${GIT_HASH}
+add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER 
+  			-DCTINT_GIT_HASH=${CTINT_GIT_HASH} -DTRIQS_GIT_HASH=${TRIQS_GIT_HASH}
 			"$<$<CONFIG:Release>:-march=native>"
-			"$<$<CONFIG:Debug>:-DDEBUG_CTINT>"
+			"$<$<CONFIG:Debug>:-DDEBUG_CTINT -fsanitize=address>"
 			)
 
 # Common to all targets (ctint, python, tests).
@@ -54,7 +55,7 @@ add_subdirectory(test)
 
 # Build the documentation
 option(Build_Documentation "Build documentation" OFF)
-if(${BUILD_DOC})
+if(${Build_Documentation})
   if(NOT TRIQS_WITH_DOCUMENTATION)
     message("Error: TRIQS library has not been compiled with its documentation")
   endif()

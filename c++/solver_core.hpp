@@ -72,9 +72,11 @@ namespace triqs_ctint {
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
       h5_write(grp, "", s.result_set());
-      h5_write(grp, "GIT_SHA1", std::string(STRINGIZE(GIT_SHA1)));
+      h5_write(grp, "TRIQS_GIT_HASH", std::string(STRINGIZE(TRIQS_GIT_HASH)));
+      h5_write(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "solve_params", s.solve_params);
+      h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_iw", s.G0_iw);
       h5_write(grp, "D0_iw", s.D0_iw);
       h5_write(grp, "Jperp_iw", s.Jperp_iw);
@@ -86,6 +88,7 @@ namespace triqs_ctint {
       h5_read(grp, "", s.result_set());
       h5_read(grp, "constr_params", s.constr_params);
       h5_read(grp, "solve_params", s.solve_params);
+      h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "D0_iw", s.D0_iw);
       h5_read(grp, "Jperp_iw", s.Jperp_iw);

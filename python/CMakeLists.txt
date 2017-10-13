@@ -2,6 +2,8 @@
 add_cpp2py_module(ctint)
 
 target_link_libraries(ctint ctint_c)
+
+# We need to include the convertes.hxx files
 target_include_directories(ctint PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS ctint DESTINATION ${CPP2PY_PYTHON_LIB_DEST_ROOT}/triqs_ctint)
