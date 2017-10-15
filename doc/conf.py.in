@@ -10,7 +10,7 @@ extensions = ['sphinx.ext.autodoc',
 source_suffix = '.rst'
 
 project = u'TRIQS Interaction Expansion Solver'
-copyright = u'2013, A. Antipov, I. Krivenko, M. Ferrero, O. Parcollet'
+copyright = u'2017, N. Wentzell, M. Ferrero, O. Parcollet'
 version = '@CTINT_VERSION@'
 release = '@CTINT_RELEASE@'
 
@@ -31,4 +31,7 @@ html_sidebars = {'index': ['sideb.html', 'searchbox.html']}
 
 htmlhelp_basename = 'TRIQSIntdoc'
 
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('http://ipht.cea.fr/triqs', None)}
+#intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('http://ipht.cea.fr/triqs', None)}
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('@TRIQS_SPHINX_INVENTORY_DIR@', None)}
+
+
