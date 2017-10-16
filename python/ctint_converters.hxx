@@ -1,15 +1,14 @@
 // DO NOT EDIT
-// --- C++ Python converter for solve_params_t
+
+// --- C++ Python converter for triqs_ctint::solve_params_t
 #include <cpp2py/converters/vector.hpp>
 #include <cpp2py/converters/string.hpp>
 #include <algorithm>
 
-using namespace triqs_ctint; 
-
 namespace cpp2py {
 
-template <> struct py_converter<solve_params_t> {
- static PyObject *c2py(solve_params_t const & x) {
+template <> struct py_converter<triqs_ctint::solve_params_t> {
+ static PyObject *c2py(triqs_ctint::solve_params_t const & x) {
   PyObject * d = PyDict_New();
   PyDict_SetItemString( d, "hartree_shift"       , convert_to_python(x.hartree_shift));
   PyDict_SetItemString( d, "h_int"               , convert_to_python(x.h_int));
@@ -59,8 +58,8 @@ template <> struct py_converter<solve_params_t> {
    r = T{};
  }
 
- static solve_params_t py2c(PyObject *dic) {
-  solve_params_t res;
+ static triqs_ctint::solve_params_t py2c(PyObject *dic) {
+  triqs_ctint::solve_params_t res;
   _get_optional(dic, "hartree_shift"       , res.hartree_shift          ,std::vector<double>{});
   res.h_int = convert_from_python<triqs::operators::many_body_operator>(PyDict_GetItemString(dic, "h_int"));
   _get_optional(dic, "use_alpha"           , res.use_alpha              ,false);
@@ -169,7 +168,7 @@ template <> struct py_converter<solve_params_t> {
   return true;
 
  _error:
-   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class solve_params_t\n" <<fs.str();
+   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class triqs_ctint::solve_params_t\n" <<fs.str();
    if (raise_exception) PyErr_SetString(PyExc_TypeError, fs2.str().c_str());
   return false;
  }
@@ -177,15 +176,16 @@ template <> struct py_converter<solve_params_t> {
 
 }
 // DO NOT EDIT
-// --- C++ Python converter for constr_params_t
+
+// --- C++ Python converter for triqs_ctint::constr_params_t
 #include <cpp2py/converters/vector.hpp>
 #include <cpp2py/converters/string.hpp>
 #include <algorithm>
 
 namespace cpp2py {
 
-template <> struct py_converter<constr_params_t> {
- static PyObject *c2py(constr_params_t const & x) {
+template <> struct py_converter<triqs_ctint::constr_params_t> {
+ static PyObject *c2py(triqs_ctint::constr_params_t const & x) {
   PyObject * d = PyDict_New();
   PyDict_SetItemString( d, "n_tau"                       , convert_to_python(x.n_tau));
   PyDict_SetItemString( d, "n_iw"                        , convert_to_python(x.n_iw));
@@ -212,8 +212,8 @@ template <> struct py_converter<constr_params_t> {
    r = T{};
  }
 
- static constr_params_t py2c(PyObject *dic) {
-  constr_params_t res;
+ static triqs_ctint::constr_params_t py2c(PyObject *dic) {
+  triqs_ctint::constr_params_t res;
   _get_optional(dic, "n_tau"                       , res.n_tau                          ,10000);
   _get_optional(dic, "n_iw"                        , res.n_iw                           ,500);
   res.beta = convert_from_python<double>(PyDict_GetItemString(dic, "beta"));
@@ -276,7 +276,7 @@ template <> struct py_converter<constr_params_t> {
   return true;
 
  _error:
-   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class constr_params_t\n" <<fs.str();
+   fs2 << "\n---- There " << (err > 1 ? "are " : "is ") << err<< " error"<<(err >1 ?"s" : "")<< " in Python -> C++ transcription for the class triqs_ctint::constr_params_t\n" <<fs.str();
    if (raise_exception) PyErr_SetString(PyExc_TypeError, fs2.str().c_str());
   return false;
  }

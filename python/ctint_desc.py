@@ -24,12 +24,11 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/variant.hpp>
 #include "ctint_converters.hxx"
-using namespace triqs_ctint; 
 """)
 # The class solver_core
 c = class_(
         py_type = "SolverCore",  # name of the python class
-        c_type = "solver_core",   # name of the C++ class
+        c_type = "triqs_ctint::solver_core",   # name of the C++ class
         doc = """The Solver class""",   # doc of the C++ class
 )
 
