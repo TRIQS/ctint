@@ -27,7 +27,7 @@ endif()
 
 # Default Install directory to TRIQS_ROOT
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
-  message(" No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+  message(STATUS " No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
   set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT})
 endif()
 message( STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
