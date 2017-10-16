@@ -16,15 +16,13 @@ add_custom_target(docs_sphinx ALL DEPENDS ${sphinx_top} ${CMAKE_CURRENT_BINARY_D
 add_dependencies(docs_sphinx ctint) 
 
 # ------------------------------------------------------------------------------------------------
-# Link the source to the current dir. 
-# Needed since part of the rst files are generated here by c++2rst
-# And sphinx requires a unique source directory
+# Copy the directory substructure and link all files with relevant extensions
+# cp_rs is a script in cpp2py/bin, it mimics cp -rs on Linux
+# and filters the relevant extension
 # ------------------------------------------------------------------------------------------------
 
-FILE(GLOB all_rst_files  *.rst _* implementation_notes examples)
-foreach(f ${all_rst_files})
- execute_process(COMMAND ln -sf ${f} . WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-endforeach()
+set(EXT_FOR_DOC "rst png txt css_t conf css js gif jpg py html bib")
+execute_process(COMMAND cp_rs ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${EXT_FOR_DOC})
 
 # ---------------------------------
 # Run c++2rst
