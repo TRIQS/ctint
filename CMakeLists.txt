@@ -37,8 +37,8 @@ triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
 add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER 
   			-DCTINT_GIT_HASH=${CTINT_GIT_HASH} -DTRIQS_GIT_HASH=${TRIQS_GIT_HASH}
-			"$<$<CONFIG:Release>:-march=native>"
-			"$<$<CONFIG:Debug>:-DDEBUG_CTINT -fsanitize=address>"
+			$<$<CONFIG:Release>:-march=native>
+			$<$<CONFIG:Debug>:-DDEBUG_CTINT>
 			)
 
 # Common to all targets (ctint, python, tests).
