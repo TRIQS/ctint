@@ -32,7 +32,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTA
 endif()
 message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
 
-get_git_hash_of_source_dir(CTINT_GIT_HASH)
+triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
 add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER 
   			-DCTINT_GIT_HASH=${CTINT_GIT_HASH} -DTRIQS_GIT_HASH=${TRIQS_GIT_HASH}
