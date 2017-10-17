@@ -1,0 +1,30 @@
+
+language: cpp
+sudo: required
+dist: trusty
+
+compiler:
+  - gcc
+  - clang
+
+before_install:
+  - sudo apt-add-repository 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update
+  - sudo apt-get install -y g++-7 clang-5.0 --allow-unauthenticated
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-5.0 60 --slave /usr/bin/clang++ clang++ /usr/bin/clang++-5.0
+  - sudo apt-get install -y libboost-all-dev cmake git libgfortran3 gfortran openmpi-bin openmpi-common openmpi-doc libopenmpi-dev libblas-dev liblapack-dev libfftw3-dev libgmp-dev hdf5-tools libhdf5-serial-dev python-h5py python-dev python-numpy python-scipy python-jinja2 python-virtualenv python-matplotlib python-tornado python-zmq python-mpi4py python-mako clang-format-5.0 libclang-5.0-dev python-clang-5.0 python-sphinx libjs-mathjax valgrind libnfft3-dev --allow-unauthenticated
+
+install: true
+
+script:
+  - git clone https://github.com/Wentzell/triqs
+  - cd triqs && mkdir build && cd build
+  - git checkout unstable
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install -DCMAKE_BUILD_TYPE=Debug
+  - make -j8 install
+  - cd ../..
+  - mkdir build && cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DTRIQS_PATH=$PWD/../root_install -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register'
+  - make -j8 && make test && make install
