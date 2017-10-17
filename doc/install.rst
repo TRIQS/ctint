@@ -16,15 +16,15 @@ Installation steps
 
 #. Download the sources of the solver from github:: 
  
-     $ git clone https://bitbucket.org/A32167/ctint.git src
+     $ git clone https://bitbucket.org/Wentzell/ctint.git ctint.src
  
 #. Create an empty build directory where you will compile the code:: 
  
-     $ mkdir build && cd build 
+     $ mkdir ctint.build && cd ctint.build 
  
-#. In the build directory call cmake specifying where the TRIQS library is installed:: 
+#. In the build directory call cmake (take care that triqsvars.sh was sourced)
  
-     $ cmake -DTRIQS_PATH=path_to_triqs ../src 
+     $ cmake ../src
  
 #. Compile the code, run the tests and install the application:: 
  

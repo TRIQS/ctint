@@ -1,5 +1,5 @@
 
-.. module:: pytriqs.applications.impurity_solvers.ctint
+.. module:: triqs_ctint
 
 .. _documentation:
 
@@ -20,5 +20,4 @@ Further documentation
 
    examples/examples
    reference
-
 

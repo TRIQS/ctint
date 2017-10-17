@@ -3,7 +3,7 @@ Reporting issues
 ================
 
 Please report all problems and bugs directly at the bitbucket issue page
-`<https://bitbucket.org/A32167/ctint/issues>`_. In order to make it easier for
+`<https://bitbucket.org/Wentzell/ctint/issues>`_. In order to make it easier for
 us to solve the issue please follow these guidelines:
 
 #. In all cases specify which version of the application you are using. You can
