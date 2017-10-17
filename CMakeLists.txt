@@ -14,8 +14,9 @@ message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} -------------")
 # Use shared libraries
 set(BUILD_SHARED_LIBS ON)
 
-# Load TRIQS, (and Cpp2Py automatically)
+# Load TRIQS and Cpp2Py
 find_package(TRIQS REQUIRED)
+find_package(CPP2PY REQUIRED)
 
 # We will need the FindNNFT of triqs, so we adjust CMake Module Path to find it
 list(APPEND CMAKE_MODULE_PATH ${TRIQS_ROOT}/share/cmake)

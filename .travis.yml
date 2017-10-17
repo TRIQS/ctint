@@ -19,12 +19,20 @@ before_install:
 install: true
 
 script:
+  - git clone https://github.com/triqs/cpp2py
+  - cd cpp2py && mkdir build && cd build
+  - git checkout master
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install
+  - make -j8 install
+  - cd ../..
+  - source root_install/share/cpp2pyvars.sh
   - git clone https://github.com/Wentzell/triqs
   - cd triqs && mkdir build && cd build
-  - git checkout unstable
+  - git checkout dev_externCpp2Py
   - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install -DCMAKE_BUILD_TYPE=Debug
   - make -j8 install
   - cd ../..
+  - source root_install/share/triqsvars.sh
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DTRIQS_PATH=$PWD/../root_install -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register'
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register'
   - make -j8 && make test && make install
