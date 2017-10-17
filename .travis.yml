@@ -34,5 +34,5 @@ script:
   - cd ../..
   - source root_install/share/triqsvars.sh
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register'
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register -fsanitize=address'
   - make -j8 && make test && make install
