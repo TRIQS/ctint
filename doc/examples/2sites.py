@@ -1,4 +1,4 @@
-from pytriqs.applications.impurity_solvers.ctint import Solver
+from triqs_ctint import SolverCore
 from pytriqs.gf import *
 from pytriqs.archive import *
 import numpy as np

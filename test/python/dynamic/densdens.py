@@ -4,7 +4,7 @@ from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
-from ctint import SolverCore
+from triqs_ctint import SolverCore
 
 test_name = "densdens"
 

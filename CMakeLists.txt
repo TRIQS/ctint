@@ -3,7 +3,7 @@ set (CTINT_VERSION "1.5")
 
 # Start configuration
 cmake_minimum_required(VERSION 2.8)
-project(ctint CXX)
+project(triqs_ctint CXX)
 
 # Default to Release build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -16,7 +16,7 @@ set(BUILD_SHARED_LIBS ON)
 
 # Load TRIQS and Cpp2Py
 find_package(TRIQS REQUIRED)
-find_package(CPP2PY REQUIRED)
+find_package(Cpp2Py REQUIRED)
 
 # We will need the FindNNFT of triqs, so we adjust CMake Module Path to find it
 list(APPEND CMAKE_MODULE_PATH ${TRIQS_ROOT}/share/cmake)

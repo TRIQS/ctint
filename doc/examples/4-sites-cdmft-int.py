@@ -90,7 +90,7 @@ SK = SumkDiscreteFromLattice(TB, n_points = n_k)
 # Construct CT-INT solver
 ##################################################################################
 
-from pytriqs.applications.impurity_solvers.ctint import Solver
+from triqs_ctint import SolverCore
 
 S = Solver(beta = beta, gf_struct = {'up':[0,1,2,3], 'down':[0,1,2,3]})
 Sigma_iw = S.G0_iw.copy()

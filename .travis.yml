@@ -9,6 +9,7 @@ compiler:
 
 before_install:
   - sudo apt-add-repository 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
+  - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update
   - sudo apt-get install -y g++-7 clang-5.0 --allow-unauthenticated
@@ -34,5 +35,7 @@ script:
   - cd ../..
   - source root_install/share/triqsvars.sh
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-Wno-register -fsanitize=address'
+  - export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer-5.0)
+  - export ASAN_OPTIONS=symbolize=1:detect_leaks=0
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer -Wno-register -Wno-macro-redefined -Wno-#warnings'
   - make -j8 && make test && make install

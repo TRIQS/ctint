@@ -31,7 +31,7 @@ alpha = [ [[diag,odiag],[diag, odiag]] ]
 gf_struct = {block_names[0] : [0,1]}
 
 # Construct the segment solver
-from ctint import SolverCore
+from triqs_ctint import SolverCore
 S = SolverCore(beta = beta, 
                gf_struct = gf_struct,
                n_iw = 200,  

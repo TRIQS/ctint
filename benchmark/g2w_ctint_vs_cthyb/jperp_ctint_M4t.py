@@ -3,7 +3,7 @@ import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
-from ctint import SolverCore
+from triqs_ctint import SolverCore
 
 n_cycles =10000000 # 40000
 max_time=1800

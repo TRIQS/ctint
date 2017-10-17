@@ -7,7 +7,7 @@ from numpy import array,sinh,cosh, cos, sin, exp, arctan, linspace
 from math import sqrt, pi
 import pytriqs.utility.mpi as mpi
 from pytriqs.gf.descriptors import Function
-from pytriqs.applications.impurity_solvers.ctint import SolverCore
+from triqs_ctint import SolverCore
 
 ################################################
 # Hamiltonian creator

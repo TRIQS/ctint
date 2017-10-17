@@ -23,7 +23,6 @@ r"""
 DOC
 
 """
-from ctint_solver import Solver
-from ctint import SolverCore
+from triqs_ctint import SolverCore
 
-__all__ = ['Solver', 'SolverCore']
+__all__ = ['SolverCore']

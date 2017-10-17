@@ -21,7 +21,7 @@ odiag = 0.5 - delta
 alpha = [[[diag,odiag]], [[odiag,diag]]]
 
 # Construct the interaction solver
-from pytriqs.applications.impurity_solvers.ctint import Solver
+from triqs_ctint import SolverCore
 S = Solver(beta = beta, block_names = ["up","down"], block_sizes = [1,1], n_iw = 200)
 
 # Initialize the Green's function

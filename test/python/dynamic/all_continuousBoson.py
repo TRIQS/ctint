@@ -6,7 +6,7 @@ from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
 from pytriqs.gf.descriptors import Function
 from numpy import linspace
-from ctint import SolverCore
+from triqs_ctint import SolverCore
 
 test_name = 'all_continuousBoson'
 
