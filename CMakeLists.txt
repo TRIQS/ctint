@@ -1,7 +1,7 @@
 # Version number of CTINT
 set (CTINT_VERSION "1.5")
 
-# start configuration
+# Start configuration
 cmake_minimum_required(VERSION 2.8)
 project(ctint CXX)
 
@@ -28,9 +28,9 @@ endif()
 # Default Install directory to TRIQS_ROOT
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
   message(STATUS " No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
-  set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT})
+  set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
 endif()
-message( STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
+message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
 
 get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
