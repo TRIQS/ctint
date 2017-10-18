@@ -13,6 +13,7 @@ before_install:
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update
   - sudo apt-get install -y g++-7 clang-5.0 --allow-unauthenticated
+  - export LIBRARY_PATH=/usr/lib/llvm-5.0/lib:$LIBRARY_PATH
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
   - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-5.0 60 --slave /usr/bin/clang++ clang++ /usr/bin/clang++-5.0
   - sudo apt-get install -y libboost-all-dev cmake git libgfortran3 gfortran openmpi-bin openmpi-common openmpi-doc libopenmpi-dev libblas-dev liblapack-dev libfftw3-dev libgmp-dev hdf5-tools libhdf5-serial-dev python-h5py python-dev python-numpy python-scipy python-jinja2 python-virtualenv python-matplotlib python-tornado python-zmq python-mpi4py python-mako clang-format-5.0 libclang-5.0-dev python-clang-5.0 python-sphinx libjs-mathjax valgrind libnfft3-dev --allow-unauthenticated
@@ -23,19 +24,25 @@ script:
   - git clone https://github.com/triqs/cpp2py
   - cd cpp2py && mkdir build && cd build
   - git checkout master
-  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install
   - make -j8 install
   - cd ../..
   - source root_install/share/cpp2pyvars.sh
   - git clone https://github.com/Wentzell/triqs
   - cd triqs && mkdir build && cd build
   - git checkout dev_externCpp2Py
-  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DPYTHON_INTERPRETER=/usr/bin/python -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install -DCMAKE_BUILD_TYPE=Debug
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install -DCMAKE_BUILD_TYPE=Debug
   - make -j8 install
   - cd ../..
   - source root_install/share/triqsvars.sh
   - mkdir build && cd build
-  - export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer-5.0)
+  - echo "int main(){}" > test.cpp
+  - /usr/bin/g++ -fsanitize=address -fno-omit-frame-pointer -Wno-register -Wno-macro-redefined test.cpp
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold -Wno-register -Wno-macro-redefined'
+  - make -j8 && make install
+  - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-5.0/bin/llvm-symbolizer
   - export ASAN_OPTIONS=symbolize=1:detect_leaks=0
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer -Wno-register -Wno-macro-redefined -Wno-#warnings'
-  - make -j8 && make test && make install
+  - export LD_PRELOAD=/usr/lib/llvm-5.0/lib/clang/5.0.1/lib/linux/libclang_rt.asan-x86_64.so
+  - ./test/c++/test_nfft
+  - python ../test/python/dynamic/all.py
+  - make test
