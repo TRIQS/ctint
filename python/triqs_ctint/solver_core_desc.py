@@ -1,16 +1,16 @@
 # Generated automatically using the command :
-# c++2py ../c++/solver_core.hpp -p --members_read_only -m SolverCore -o solver_core -C pytriqs
+# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17 -DHAS_OPTIONAL_HEADER"
 from cpp2py.wrap_generator import *
 
 # The module
-module = module_(full_name = "SolverCore", doc = "", app_name = "SolverCore")
+module = module_(full_name = "solver_core", doc = "", app_name = "solver_core")
 
 # Imports
 import pytriqs.gf
 import pytriqs.operators
 
 # Add here all includes
-module.add_include("solver_core.hpp")
+module.add_include("../triqs_ctint/solver_core.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
@@ -23,7 +23,7 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/variant.hpp>
-#include "SolverCore_converters.hxx"
+#include "solver_core_converters.hxx"
 """)
 # The class solver_core
 c = class_(

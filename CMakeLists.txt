@@ -42,13 +42,13 @@ add_compile_options(    -std=c++17 -DHAS_OPTIONAL_HEADER
 			)
 
 # Common to all targets (ctint, python, tests).
-include_directories(c++)
+include_directories(c++/triqs_ctint)
 
 # To be fixed!!
 triqs_set_rpath_for_all_targets()
 
-add_subdirectory(c++)
-add_subdirectory(python)
+add_subdirectory(c++/triqs_ctint)
+add_subdirectory(python/triqs_ctint)
 
 # Tests
 enable_testing()

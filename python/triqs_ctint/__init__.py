@@ -23,6 +23,6 @@ r"""
 DOC
 
 """
-from triqs_ctint import SolverCore
+from solver_core import SolverCore
 
 __all__ = ['SolverCore']
