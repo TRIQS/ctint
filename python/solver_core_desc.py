@@ -1,9 +1,9 @@
 # Generated automatically using the command :
-# c++2py ../c++/solver_core.hpp -p --members_read_only -m triqs_ctint -o triqs_ctint -C pytriqs
+# c++2py ../c++/solver_core.hpp -p --members_read_only -m SolverCore -o solver_core -C pytriqs
 from cpp2py.wrap_generator import *
 
 # The module
-module = module_(full_name = "triqs_ctint", doc = "", app_name = "triqs_ctint")
+module = module_(full_name = "SolverCore", doc = "", app_name = "SolverCore")
 
 # Imports
 import pytriqs.gf
@@ -23,7 +23,7 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/variant.hpp>
-#include "triqs_ctint_converters.hxx"
+#include "SolverCore_converters.hxx"
 """)
 # The class solver_core
 c = class_(
