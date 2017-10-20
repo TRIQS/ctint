@@ -10,6 +10,9 @@ namespace triqs_ctint {
     /// Average sign of the CTINT
     double average_sign = 0.0;
 
+    /// Average perturbation order 
+    double average_k = 0.0;
+
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<g_tau_t> M_tau;
 

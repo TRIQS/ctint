@@ -94,6 +94,9 @@ namespace triqs_ctint {
     /// Measure the MC sign
     bool measure_average_sign = true;
 
+    /// Measure the average perturbation order
+    bool measure_average_k = true;
+
     /// Measure M(tau)
     bool measure_M_tau = false;
 

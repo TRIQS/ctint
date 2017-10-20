@@ -23,6 +23,7 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
   PyDict_SetItemString( d, "max_time"            , convert_to_python(x.max_time));
   PyDict_SetItemString( d, "verbosity"           , convert_to_python(x.verbosity));
   PyDict_SetItemString( d, "measure_average_sign", convert_to_python(x.measure_average_sign));
+  PyDict_SetItemString( d, "measure_average_k"   , convert_to_python(x.measure_average_k));
   PyDict_SetItemString( d, "measure_M_tau"       , convert_to_python(x.measure_M_tau));
   PyDict_SetItemString( d, "measure_M_iw"        , convert_to_python(x.measure_M_iw));
   PyDict_SetItemString( d, "measure_F_tau"       , convert_to_python(x.measure_F_tau));
@@ -72,6 +73,7 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
   _get_optional(dic, "max_time"            , res.max_time               ,-1);
   _get_optional(dic, "verbosity"           , res.verbosity              ,triqs::mpi::communicator().rank()==0?3:0);
   _get_optional(dic, "measure_average_sign", res.measure_average_sign   ,true);
+  _get_optional(dic, "measure_average_k"   , res.measure_average_k      ,true);
   _get_optional(dic, "measure_M_tau"       , res.measure_M_tau          ,false);
   _get_optional(dic, "measure_M_iw"        , res.measure_M_iw           ,false);
   _get_optional(dic, "measure_F_tau"       , res.measure_F_tau          ,false);
@@ -119,7 +121,7 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
   std::stringstream fs, fs2; int err=0;
 
 #ifndef TRIQS_ALLOW_UNUSED_PARAMETERS
-  std::vector<std::string> ks, all_keys = {"h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
+  std::vector<std::string> ks, all_keys = {"h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_average_k","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
   pyref keys = PyDict_Keys(dic);
   if (!convertible_from_python<std::vector<std::string>>(keys, true)) {
    fs << "\nThe dict keys are not strings";
@@ -144,6 +146,7 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
   _check_optional <int                                 >(dic, fs, err, "max_time"            , "int");
   _check_optional <int                                 >(dic, fs, err, "verbosity"           , "int");
   _check_optional <bool                                >(dic, fs, err, "measure_average_sign", "bool");
+  _check_optional <bool                                >(dic, fs, err, "measure_average_k"   , "bool");
   _check_optional <bool                                >(dic, fs, err, "measure_M_tau"       , "bool");
   _check_optional <bool                                >(dic, fs, err, "measure_M_iw"        , "bool");
   _check_optional <bool                                >(dic, fs, err, "measure_F_tau"       , "bool");

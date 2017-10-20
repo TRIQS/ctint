@@ -37,6 +37,11 @@ c.add_member(c_name = "average_sign",
              read_only= True,
              doc = """Average sign of the CTINT""")
 
+c.add_member(c_name = "average_k",
+             c_type = "double",
+             read_only= True,
+             doc = """Average perturbation order""")
+
 c.add_member(c_name = "M_tau",
              c_type = "std::optional<g_tau_t>",
              read_only= True,
@@ -243,6 +248,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | verbosity            | int                                  | triqs::mpi::communicator().rank()==0?3:0       | Verbosity                                                             |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | measure_average_sign | bool                                 | true                                           | Measure the MC sign                                                   |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
+| measure_average_k    | bool                                 | true                                           | Measure the average perturbation order                                |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | measure_M_tau        | bool                                 | false                                          | Measure M(tau)                                                        |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+

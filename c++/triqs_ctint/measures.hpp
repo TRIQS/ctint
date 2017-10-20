@@ -1,4 +1,5 @@
 #include "./measures/average_sign.hpp"
+#include "./measures/average_k.hpp"
 #include "./measures/M_tau.hpp"
 #include "./measures/M_iw.hpp"
 #include "./measures/F_tau.hpp"
