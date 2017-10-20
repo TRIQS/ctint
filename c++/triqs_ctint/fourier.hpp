@@ -20,8 +20,8 @@ namespace triqs_ctint {
     var_t _{};
 
     gf<cartesian_product<M_out, M_in>, T> G_1{{mesh_out, mesh_in}, G_out.target_shape()};
-    for (auto const &i : mesh_in) _fourier_impl(G_1[_][i], G_in[_][i]);
-    for (auto const &o : mesh_out) _fourier_impl(G_out[o][_], make_const_view(G_1[o][_]));
+    for (auto const &i : mesh_in) _fourier_impl(G_1[_,i], G_in[_,i]);
+    for (auto const &o : mesh_out) _fourier_impl(G_out[o,_], make_const_view(G_1[o,_]));
   }
 
   // 3D Fourier
@@ -39,14 +39,14 @@ namespace triqs_ctint {
 
     gf<cartesian_product<M_out, M_in, M_in>, T> G_1{{mesh_out, mesh_in, mesh_in}, G_out.target_shape()};
     for (auto const &i1 : mesh_in)
-      for (auto const &i2 : mesh_in) _fourier_impl(G_1[_][i1][i2], G_in[_][i1][i2]);
+      for (auto const &i2 : mesh_in) _fourier_impl(G_1[_,i1,i2], G_in[_,i1,i2]);
 
     gf<cartesian_product<M_out, M_out, M_in>, T> G_2{{mesh_out, mesh_out, mesh_in}, G_out.target_shape()};
     for (auto const &o : mesh_out)
-      for (auto const &i : mesh_in) _fourier_impl(G_2[o][_][i], make_const_view(G_1[o][_][i]));
+      for (auto const &i : mesh_in) _fourier_impl(G_2[o,_,i], make_const_view(G_1[o,_,i]));
 
     for (auto const &o1 : mesh_out)
-      for (auto const &o2 : mesh_out) _fourier_impl(G_out[o1][o2][_], make_const_view(G_2[o1][o2][_]));
+      for (auto const &o2 : mesh_out) _fourier_impl(G_out[o1,o2,_], make_const_view(G_2[o1,o2,_]));
   }
 
   // Block fourier
