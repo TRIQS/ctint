@@ -30,7 +30,7 @@ script:
   - source root_install/share/cpp2pyvars.sh
   - git clone https://github.com/Wentzell/triqs
   - cd triqs && mkdir build && cd build
-  - git checkout dev_externCpp2Py
+  - git checkout unstable
   - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$PWD/../../root_install -DCMAKE_BUILD_TYPE=Debug
   - make -j8 install
   - cd ../..
