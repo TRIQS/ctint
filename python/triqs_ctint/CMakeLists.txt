@@ -6,8 +6,9 @@ target_link_libraries(solver_core triqs_ctint_c)
 # We need to include the convertes.hxx files
 target_include_directories(solver_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add version file
+# Add version and __init__ file
 configure_file(version.py.in version.py)
+configure_file(__init__.py __init__.py COPYONLY)
 
 set(PYTHON_SOURCES
  ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
