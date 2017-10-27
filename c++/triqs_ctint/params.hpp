@@ -51,9 +51,6 @@ namespace triqs_ctint {
 
     // ----------- System Specific -----------
 
-    /// Shift of the chemical potential mu_sigma --> mu_sigma + hartree_shift_sigma
-    std::vector<double> hartree_shift = std::vector<double>{};
-
     /// Interaction Hamiltonian
     many_body_operator h_int;
 

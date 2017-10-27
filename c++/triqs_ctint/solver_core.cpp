@@ -137,8 +137,7 @@ namespace triqs_ctint {
               if (D0_iw) term += (*D0_iw)[sig * p.n_blocks() + sigp][0](i, j) * p.alpha[sigp](j, s);
             }
         auto g         = slice_target_to_scalar(G0_inv[sig], i, i);
-        double h_shift = (p.hartree_shift.size() > 0) ? p.hartree_shift[sig] : 0.0;
-        g(iw_) << g(iw_) + h_shift - term / p.n_s;
+        g(iw_) << g(iw_) - term / p.n_s;
       }
     }
     // Invert and Fourier transform to imaginary times

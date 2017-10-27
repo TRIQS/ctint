@@ -10,7 +10,6 @@ namespace cpp2py {
 template <> struct py_converter<triqs_ctint::solve_params_t> {
  static PyObject *c2py(triqs_ctint::solve_params_t const & x) {
   PyObject * d = PyDict_New();
-  PyDict_SetItemString( d, "hartree_shift"       , convert_to_python(x.hartree_shift));
   PyDict_SetItemString( d, "h_int"               , convert_to_python(x.h_int));
   PyDict_SetItemString( d, "use_alpha"           , convert_to_python(x.use_alpha));
   PyDict_SetItemString( d, "n_s"                 , convert_to_python(x.n_s));
@@ -60,7 +59,6 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
 
  static triqs_ctint::solve_params_t py2c(PyObject *dic) {
   triqs_ctint::solve_params_t res;
-  _get_optional(dic, "hartree_shift"       , res.hartree_shift          ,std::vector<double>{});
   res.h_int = convert_from_python<triqs::operators::many_body_operator>(PyDict_GetItemString(dic, "h_int"));
   _get_optional(dic, "use_alpha"           , res.use_alpha              ,false);
   _get_optional(dic, "n_s"                 , res.n_s                    ,2);
@@ -121,7 +119,7 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
   std::stringstream fs, fs2; int err=0;
 
 #ifndef TRIQS_ALLOW_UNUSED_PARAMETERS
-  std::vector<std::string> ks, all_keys = {"hartree_shift","h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
+  std::vector<std::string> ks, all_keys = {"h_int","use_alpha","n_s","alpha","n_cycles","length_cycle","n_warmup_cycles","random_seed","random_name","use_double_insertion","max_time","verbosity","measure_average_sign","measure_M_tau","measure_M_iw","measure_F_tau","measure_M4_iw","n_iw_M4","measure_M3pp_iw","measure_M3ph_iw","n_iw_M3","measure_M3pp_tau","measure_M3ph_tau","n_tau_M3","measure_M2pp_tau","measure_M2ph_tau","n_tau_M2","n_iw_M2","nfft_buf_size","post_process"};
   pyref keys = PyDict_Keys(dic);
   if (!convertible_from_python<std::vector<std::string>>(keys, true)) {
    fs << "\nThe dict keys are not strings";
@@ -133,7 +131,6 @@ template <> struct py_converter<triqs_ctint::solve_params_t> {
     fs << "\n"<< ++err << " The parameter '" << k << "' is not recognized.";
 #endif
 
-  _check_optional <std::vector<double>                 >(dic, fs, err, "hartree_shift"       , "std::vector<double>");
   _check_mandatory<triqs::operators::many_body_operator>(dic, fs, err, "h_int"               , "triqs::operators::many_body_operator");
   _check_optional <bool                                >(dic, fs, err, "use_alpha"           , "bool");
   _check_optional <int                                 >(dic, fs, err, "n_s"                 , "int");
