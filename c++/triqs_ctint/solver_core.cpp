@@ -27,8 +27,7 @@ namespace triqs_ctint {
       std::vector<gf<imfreq, matrix_valued>> v_iw;
       for (auto const &bl1 : p.gf_struct)
         for (auto const &bl2 : p.gf_struct)
-          v_iw.emplace_back(
-             gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl1.second.size(), bl2.second.size())});
+          v_iw.emplace_back(gf_mesh<imfreq>{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl1.second.size(), bl2.second.size()));
 
       D0_iw = make_block_gf(D_block_names, v_iw);
     }
@@ -97,13 +96,13 @@ namespace triqs_ctint {
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
     mc.collect_results(world);
 
-    // Post Processing 
+    // Post Processing
     if (params.post_process) post_process(params);
 
     // Write results to file
     if (!triqs::mpi::communicator().rank()) {
-    triqs::h5::file h5file("ctqmc_out.h5", 'w');
-    h5_write(h5file, "", *this);
+      triqs::h5::file h5file("ctqmc_out.h5", 'w');
+      h5_write(h5file, "", *this);
     }
   }
 
@@ -137,7 +136,7 @@ namespace triqs_ctint {
               term += U(sig, sigp)(i, j) * p.alpha[sigp](j, s);
               if (D0_iw) term += (*D0_iw)[sig * p.n_blocks() + sigp][0](i, j) * p.alpha[sigp](j, s);
             }
-        auto g         = slice_target_to_scalar(G0_inv[sig], i, i);
+        auto g = slice_target_to_scalar(G0_inv[sig], i, i);
         g(iw_) << g(iw_) - term / p.n_s;
       }
     }

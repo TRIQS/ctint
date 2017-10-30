@@ -21,7 +21,7 @@ namespace triqs_ctint {
             for (int j = 0; j < U(a, b).shape(1); ++j) {
               if (std::abs(U(a, b)(i, j)) <= std::numeric_limits<double>::epsilon()) continue;
               indices.push_back({a, i, a, i, b, j, b, j});
-              amplitudes.push_back(-U(a, b)(i, j) / 2.0 / params.n_s);
+              amplitudes.emplace_back(-U(a, b)(i, j) / 2.0 / params.n_s);
             }
 
       // move capture: moving the two vectors into the lambda and rename them
