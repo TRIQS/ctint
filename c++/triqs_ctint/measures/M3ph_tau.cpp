@@ -70,7 +70,7 @@ namespace triqs_ctint::measures {
           G_left(u, i)  = -G0_tau[bl][cdag[i].tau_idx](u, cdag[i].u);
           G_right(i, u) = G0_tau[bl][c[i].tau_idx](c[i].u, u);
         }
-      M_vec.push_back(det.inverse_matrix_internal_order());
+      M_vec.emplace_back(det.inverse_matrix_internal_order());
       GM_vec.push_back(G_left * M_vec[bl]);
       MG_vec.push_back(M_vec[bl] * G_right);
       GMG_vec.push_back(GM_vec[bl] * G_right);

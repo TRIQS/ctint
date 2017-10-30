@@ -33,7 +33,7 @@ namespace triqs_ctint {
         return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, true, s}; // TODO Real/Imag
       };
 
-      vertex_factories.push_back(l);
+      vertex_factories.emplace_back(l);
     } // clean temporaries
 
     // ------------ Create Vertex Factory for Dynamic Density-Density Interactions --------------
@@ -53,7 +53,7 @@ namespace triqs_ctint {
 
             indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
             auto d = slice_target_to_scalar(D, a, b);
-            ktau_s.push_back(d);
+            ktau_s.emplace_back(d);
           }
       }
 
@@ -67,7 +67,7 @@ namespace triqs_ctint {
         return vertex_t{indices[n], t, t, tp, tp, -real(ktau_s[n](d_tau)) / 2.0 / n_s, prop_proba, true, s};
       };
 
-      vertex_factories.push_back(l);
+      vertex_factories.emplace_back(l);
     }
 
     // ------------ Create Vertex Factory for Dynamic Spin-Spin Interactions --------------
@@ -84,7 +84,7 @@ namespace triqs_ctint {
 
           for (int bl = 0; bl < 2; bl++) {                           // FIXME Ugly ...
             indices.push_back({1 - bl, a, bl, a, bl, b, 1 - bl, b}); //S^+_a(tau) S^-_b(tau')
-            ktau_s.push_back(d);
+            ktau_s.emplace_back(d);
           }
         }
 
@@ -97,7 +97,7 @@ namespace triqs_ctint {
         return vertex_t{indices[n], t, t, tp, tp, real(ktau_s[n](d_tau)) / 4.0, prop_proba};
       };
 
-      vertex_factories.push_back(l);
+      vertex_factories.emplace_back(l);
     }
 
     return vertex_factories;

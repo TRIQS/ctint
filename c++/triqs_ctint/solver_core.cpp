@@ -1,11 +1,11 @@
 #include "./solver_core.hpp"
-#include "./vertex_factories.hpp"
-#include "./qmc_config.hpp"
+#include "./fourier.hpp"
+#include "./measures.hpp"
 #include "./moves/insert.hpp"
 #include "./moves/remove.hpp"
-#include "./measures.hpp"
 #include "./post_process.hpp"
-#include "./fourier.hpp"
+#include "./qmc_config.hpp"
+#include "./vertex_factories.hpp"
 
 namespace triqs_ctint {
 

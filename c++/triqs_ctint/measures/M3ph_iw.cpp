@@ -65,8 +65,8 @@ namespace triqs_ctint::measures {
       //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
       foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) {
 
-        double tau_i = double(c_i.tau);
-        double tau_j = double(cdag_j.tau);
+        auto tau_i = double(c_i.tau);
+        auto tau_j = double(cdag_j.tau);
 
         // Fill M, Note: Minus sign from the shift of -tau_i
         buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({tau_j, beta - tau_i}, -Ginv_ji);
