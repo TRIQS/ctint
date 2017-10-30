@@ -24,16 +24,18 @@ namespace triqs_ctint {
               amplitudes.emplace_back(-U(a, b)(i, j) / 2.0 / params.n_s);
             }
 
-      // move capture: moving the two vectors into the lambda and rename them
-      auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng ] {
-        int n             = rng(indices.size());
-        tau_t t           = tau_t::get_random(rng);
-        int s             = rng(n_s);
-        double prop_proba = 1.0 / (beta * indices.size() * n_s);
-        return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, true, s}; // TODO Real/Imag
-      };
+      if (indices.size() > 0) {
+        // move capture: moving the two vectors into the lambda
+        auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng ] {
+          int n             = rng(indices.size());
+          tau_t t           = tau_t::get_random(rng);
+          int s             = rng(n_s);
+          double prop_proba = 1.0 / (beta * indices.size() * n_s);
+          return vertex_t{indices[n], t, t, t, t, real(amplitudes[n]), prop_proba, true, s}; // TODO Real/Imag
+        };
 
-      vertex_factories.emplace_back(l);
+        vertex_factories.emplace_back(l);
+      }
     } // clean temporaries
 
     // ------------ Create Vertex Factory for Dynamic Density-Density Interactions --------------
