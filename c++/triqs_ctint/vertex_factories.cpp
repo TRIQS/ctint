@@ -128,7 +128,7 @@ namespace triqs_ctint {
           tau_t tp          = tau_t::get_random(rng);
           double d_tau      = cyclic_difference(t, tp);
           double prop_proba = 1.0 / (beta * beta * indices.size());
-          return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](d_tau) / 4.0, prop_proba};
+          return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](d_tau) / 2.0, prop_proba}; // We add two identical terms above -> Divide by 2
         };
 
         vertex_factories.emplace_back(l);
