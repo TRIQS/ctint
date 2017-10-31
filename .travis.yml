@@ -46,3 +46,17 @@ script:
   - cd test/c++ && ctest -V
   - if [ "$CXX" = g++ ]; then export LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/7/libasan.so; elif [ "$CXX" = clang++ ]; then export LD_PRELOAD=/usr/lib/llvm-5.0/lib/clang/5.0.1/lib/linux/libclang_rt.asan-x86_64.so; fi
   - cd ../python && ctest -V
+  - cd ../../
+  - unset LD_PRELOAD
+  # ===== Set up CTINT and Test using fsanitize=memory
+  #- > ##### Currently not working: libstdc++ has to be instrumentized for fsanitize=memory as well (and other dependencies). Try -fsanitize-blacklist instead?
+    #if [ "$CXX" = clang++ ]; then
+      #make clean;
+      #export LDFLAGS=/usr/lib/llvm-5.0/lib/clang/5.0.1/lib/linux/libclang_rt.msan-x86_64.a
+      #cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=memory -fno-omit-frame-pointer -Wno-register -Wno-macro-redefined';
+      #make -j8;
+      #export MSAN_SYMBOLIZER_PATH=/usr/lib/llvm-5.0/bin/llvm-symbolizer;
+      #export MSAN_OPTIONS=symbolize=1;
+      #cd test/c++ && ctest -V;
+      #cd ../python && ctest -V;
+    #fi
