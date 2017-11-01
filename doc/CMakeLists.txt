@@ -13,7 +13,7 @@ add_custom_command(OUTPUT ${sphinx_top} DEPENDS ${sources}
 add_custom_target(docs_sphinx ALL DEPENDS ${sphinx_top} ${CMAKE_CURRENT_BINARY_DIR})
 
 # Application must be compiled first
-add_dependencies(docs_sphinx triqs_ctint) 
+add_dependencies(docs_sphinx ctint) 
 
 # ------------------------------------------------------------------------------------------------
 # Copy the directory substructure and link all files with relevant extensions
@@ -31,13 +31,13 @@ add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst.log
                     COMMAND c++2rst 
 		    ${CMAKE_SOURCE_DIR}/c++/solver_core.hpp 
 		    -N triqs_ctint
-		    --output_directory=${CMAKE_CURRENT_BINARY_DIR}/cpp2rst_generated
-		    --includes=${CMAKE_SOURCE_DIR}/c++ 
-		    --includes=${TRIQS_ROOT}/include 
+		    --output_directory ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst_generated
+		    -I ${CMAKE_SOURCE_DIR}/c++ 
+		    -I ${TRIQS_ROOT}/include 
 		    2>&1 > cpp2rst.log
 		    ) 
 add_custom_target(docs_cpp2rst DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst.log) 
-#add_dependencies(docs_cpp2rst triqs_ctint) # not needed ?
+#add_dependencies(docs_cpp2rst ctint) # not needed ?
 add_dependencies(docs_sphinx docs_cpp2rst)
 
 # ---------------------------------
@@ -45,7 +45,7 @@ add_dependencies(docs_sphinx docs_cpp2rst)
 # ---------------------------------
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html/ COMPONENT documentation DESTINATION share/doc/triqs_ctint
  FILES_MATCHING
- REGEX "\\.(html|pdf|png|gif|jpg|js|xsl|css|py|txt|inv)$"
+ REGEX "\\.(html|pdf|png|gif|jpg|js|xsl|css|py|txt|inv|bib)$"
  PATTERN "_*"
  )
 
