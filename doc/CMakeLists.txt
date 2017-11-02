@@ -25,17 +25,18 @@ set(EXT_FOR_DOC "rst png txt css_t conf css js gif jpg py html bib")
 execute_process(COMMAND cp_rs ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${EXT_FOR_DOC})
 
 # ---------------------------------
-# Run c++2rst
+# Generate C++ doc with c++2rst
 # ---------------------------------
 add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst.log
                     COMMAND c++2rst 
 		    ${CMAKE_SOURCE_DIR}/c++/solver_core.hpp 
 		    -N triqs_ctint
 		    --output_directory ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst_generated
+		    --cxxflags "-std=c++17 -DHAS_OPTIONAL_HEADER" 
 		    -I ${CMAKE_SOURCE_DIR}/c++ 
 		    -I ${TRIQS_ROOT}/include 
 		    2>&1 > cpp2rst.log
-		    ) 
+		    VERBATIM) 
 add_custom_target(docs_cpp2rst DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst.log) 
 #add_dependencies(docs_cpp2rst ctint) # not needed ?
 add_dependencies(docs_sphinx docs_cpp2rst)
