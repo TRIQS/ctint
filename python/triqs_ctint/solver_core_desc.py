@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17 -DHAS_OPTIONAL_HEADER"
+# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17 -DHAS_OPTIONAL_HEADER"
 from cpp2py.wrap_generator import *
 
 # The module
@@ -23,8 +23,11 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/variant.hpp>
-#include "solver_core_converters.hxx"
+
+using namespace triqs_ctint;
 """)
+
+
 # The class solver_core
 c = class_(
         py_type = "SolverCore",  # name of the python class
@@ -286,5 +289,216 @@ c.add_property(name = "solve",
                doc = """""")
 
 module.add_class(c)
+
+
+# Converter for solve_params_t
+c = converter_(
+        c_type = "triqs_ctint::solve_params_t",
+        doc = """""",
+)
+c.add_member(c_name = "h_int",
+             c_type = "triqs::operators::many_body_operator",
+             initializer = """  """,
+             doc = """Interaction Hamiltonian""")
+
+c.add_member(c_name = "use_alpha",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Switch for the use of the alpha function. Compare Sec. 1.3 in Notes.""")
+
+c.add_member(c_name = "n_s",
+             c_type = "int",
+             initializer = """ 2 """,
+             doc = """Number of auxiliary spins""")
+
+c.add_member(c_name = "alpha",
+             c_type = "triqs_ctint::alpha_t",
+             initializer = """  """,
+             doc = """Alpha parameter""")
+
+c.add_member(c_name = "n_cycles",
+             c_type = "int",
+             initializer = """  """,
+             doc = """Number of MC cycles""")
+
+c.add_member(c_name = "length_cycle",
+             c_type = "int",
+             initializer = """ 50 """,
+             doc = """Length of a MC cycles""")
+
+c.add_member(c_name = "n_warmup_cycles",
+             c_type = "int",
+             initializer = """ 5000 """,
+             doc = """Number of warmup cycles""")
+
+c.add_member(c_name = "random_seed",
+             c_type = "int",
+             initializer = """ 34788+928374*triqs::mpi::communicator().rank() """,
+             doc = """Random seed of the random generator""")
+
+c.add_member(c_name = "random_name",
+             c_type = "std::string",
+             initializer = """ "" """,
+             doc = """Name of the random generator""")
+
+c.add_member(c_name = "use_double_insertion",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Use double insertion""")
+
+c.add_member(c_name = "max_time",
+             c_type = "int",
+             initializer = """ -1 """,
+             doc = """Maximum running time in seconds (-1 : no limit)""")
+
+c.add_member(c_name = "verbosity",
+             c_type = "int",
+             initializer = """ triqs::mpi::communicator().rank()==0?3:0 """,
+             doc = """Verbosity""")
+
+c.add_member(c_name = "measure_average_sign",
+             c_type = "bool",
+             initializer = """ true """,
+             doc = """Measure the MC sign""")
+
+c.add_member(c_name = "measure_average_k",
+             c_type = "bool",
+             initializer = """ true """,
+             doc = """Measure the average perturbation order""")
+
+c.add_member(c_name = "measure_M_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M(tau)""")
+
+c.add_member(c_name = "measure_M_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M(iomega) using nfft""")
+
+c.add_member(c_name = "measure_F_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure F(tau)""")
+
+c.add_member(c_name = "measure_M4_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M4(iw) NFFT""")
+
+c.add_member(c_name = "n_iw_M4",
+             c_type = "int",
+             initializer = """ 32 """,
+             doc = """Number of positive Matsubara frequencies in M4""")
+
+c.add_member(c_name = "measure_M3pp_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M3pp(iw)""")
+
+c.add_member(c_name = "measure_M3ph_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M3ph(iw)""")
+
+c.add_member(c_name = "n_iw_M3",
+             c_type = "int",
+             initializer = """ 64 """,
+             doc = """Number of positive Matsubara frequencies in M3""")
+
+c.add_member(c_name = "measure_M3pp_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M3pp(iw)""")
+
+c.add_member(c_name = "measure_M3ph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M3ph(iw)""")
+
+c.add_member(c_name = "n_tau_M3",
+             c_type = "int",
+             initializer = """ 1000 """,
+             doc = """Number of imaginary time points in M3""")
+
+c.add_member(c_name = "measure_M2pp_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M2pp(tau)""")
+
+c.add_member(c_name = "measure_M2ph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure M2ph(tau)""")
+
+c.add_member(c_name = "n_tau_M2",
+             c_type = "int",
+             initializer = """ 10000 """,
+             doc = """Number of imaginary time points in M2""")
+
+c.add_member(c_name = "n_iw_M2",
+             c_type = "int",
+             initializer = """ 128 """,
+             doc = """Number of positive Matsubara frequencies in M2""")
+
+c.add_member(c_name = "nfft_buf_size",
+             c_type = "int",
+             initializer = """ 500 """,
+             doc = """Size of the Nfft buffer""")
+
+c.add_member(c_name = "post_process",
+             c_type = "bool",
+             initializer = """ true """,
+             doc = """Perform post processing""")
+
+module.add_converter(c)
+
+# Converter for constr_params_t
+c = converter_(
+        c_type = "triqs_ctint::constr_params_t",
+        doc = """""",
+)
+c.add_member(c_name = "n_tau",
+             c_type = "int",
+             initializer = """ 10000 """,
+             doc = """Number of tau points for gf<imtime, matrix_valued>""")
+
+c.add_member(c_name = "n_iw",
+             c_type = "int",
+             initializer = """ 500 """,
+             doc = """Number of Matsubara frequencies for gf<imfreq, matrix_valued>""")
+
+c.add_member(c_name = "beta",
+             c_type = "double",
+             initializer = """  """,
+             doc = """Inverse temperature""")
+
+c.add_member(c_name = "gf_struct",
+             c_type = "triqs::hilbert_space::gf_struct_t",
+             initializer = """  """,
+             doc = """block structure of the gf""")
+
+c.add_member(c_name = "use_D",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Switch for dynamic density-density interaction""")
+
+c.add_member(c_name = "use_Jperp",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Switch for dynamic spin-spin interaction""")
+
+c.add_member(c_name = "n_tau_dynamical_interactions",
+             c_type = "int",
+             initializer = """ 10001 """,
+             doc = """Number of tau pts for D0_tau and jperp_tau""")
+
+c.add_member(c_name = "n_iw_dynamical_interactions",
+             c_type = "int",
+             initializer = """ 200 """,
+             doc = """Number of matsubara freqs for D0_iw and jperp_iw""")
+
+module.add_converter(c)
+
 
 module.generate_code()
