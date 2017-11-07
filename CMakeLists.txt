@@ -38,17 +38,10 @@ message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} ---------
 # Macro defined in TRIQS which picks the hash of repo.
 triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
-# Options for compilation that apply to everythings (C++ solver, Python interface, tests).
-add_compile_options( -std=c++17 -DHAS_OPTIONAL_HEADER 
-                     -DCTINT_GIT_HASH=${CTINT_GIT_HASH} -DTRIQS_GIT_HASH=${TRIQS_GIT_HASH}
-                      $<$<CONFIG:Release>:-march=native>
-                      $<$<CONFIG:Debug>:-DDEBUG_CTINT>
-                      $<$<BOOL:${GTAU_IS_COMPLEX}>:-DGTAU_IS_COMPLEX>
-                      $<$<BOOL:${INTERACTION_IS_COMPLEX}>:-DINTERACTION_IS_COMPLEX>
-                      )
-
 # Common to all targets (ctint, python, tests).
 include_directories(c++/triqs_ctint)
+add_compile_options($<$<CONFIG:Release>:-march=native>
+		    $<$<CONFIG:Debug>:-Og>)
 
 # To be fixed!!
 triqs_set_rpath_for_all_targets()
