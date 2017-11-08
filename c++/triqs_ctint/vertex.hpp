@@ -104,8 +104,8 @@ namespace triqs_ctint {
     /// Probability of proposition for this vertex
     double proposition_proba;
 
-    /// Switch for alpha shift
-    bool has_alpha_shift = false;
+    /// The label of the vertex (position in h_int)
+    int vertex_label = 0;
 
     /// Value of auxiliary spin
     int s = 0;
