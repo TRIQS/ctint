@@ -50,13 +50,11 @@ namespace triqs_ctint {
 
   using namespace itertools;
 
-  using triqs::utility::kronecker;
-
   /// The channel type
   enum class Chan_t { PP, PH, XPH };
 
-  /// Container type of the alpha function. alpha[block](orbital,aux_spin)
-  using alpha_t = std::vector<array<double, 2>>;
+  /// Container type of the alpha function. alpha(vertex_index, aux_spin)
+  using alpha_t = array<double, 4>;
 
   /// The structure of the gf : block_idx -> pair of block_name and index list (int/string)
   using triqs::hilbert_space::gf_struct_t;

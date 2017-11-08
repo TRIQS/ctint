@@ -69,10 +69,10 @@ namespace triqs_ctint {
     /// Register a vertex for insertion/removal into the configuration
     lazy_det_operation_t &operator<<(vertex_t const &v) {
       // Separately lazy-add all four operators associated with this vertex
-      lazy_op_lst[v.idx.b1].lazy_add_cdag(cdag_t{v.tau1, v.idx.u1, v.has_alpha_shift, v.s}); //c^\dagger
-      lazy_op_lst[v.idx.b2].lazy_add_c(c_t{v.tau2, v.idx.u2, v.has_alpha_shift, v.s}); //c
-      lazy_op_lst[v.idx.b3].lazy_add_cdag(cdag_t{v.tau3, v.idx.u3, v.has_alpha_shift, v.s}); //c^\dagger
-      lazy_op_lst[v.idx.b4].lazy_add_c(c_t{v.tau4, v.idx.u4, v.has_alpha_shift, v.s}); //c
+      lazy_op_lst[v.idx.b1].lazy_add_cdag(cdag_t{v.tau1, v.idx.u1, v.vertex_label, 0, v.s});  //c^\dagger
+      lazy_op_lst[v.idx.b2].lazy_add_c(c_t{v.tau2, v.idx.u2, v.vertex_label, 0, v.s});        //c
+      lazy_op_lst[v.idx.b3].lazy_add_cdag(cdag_t{v.tau3, v.idx.u3, v.vertex_label, 1, v.s}); //c^\dagger
+      lazy_op_lst[v.idx.b4].lazy_add_c(c_t{v.tau4, v.idx.u4, v.vertex_label, 1, v.s});       //c
       return *this;
     }
 
@@ -92,4 +92,4 @@ namespace triqs_ctint {
       return det_ratio;
     }
   };
-}
+} // namespace triqs_ctint
