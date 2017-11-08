@@ -27,17 +27,97 @@
 
 namespace std {
   inline string to_string(string const &str) { return str; }
-}
+} // namespace std
 
 namespace triqs::gfs {
+
+  /// The imaginary part of a triqs Green function.
+  template <typename Gf> std::enable_if_t<is_gf<Gf>::value, typename Gf::regular_type::real_t> get_imag(Gf const &G) {
+    return {G.mesh(), imag(G.data()), G.memory_layout(), {}, G.indices()}; // FIXME TAIL NOT PROPERLY DONE
+  }
+
+  /// The imaginary part of a block[2] Green function
+  template <typename Gf> std::enable_if_t<is_block_gf_or_view<Gf>::value, typename Gf::regular_type::real_t> get_imag(Gf const &G) {
+    // block_gf[_const][_view]
+    if constexpr (Gf::arity == 1) {
+      std::vector<typename Gf::g_t::real_t> G_imag_vec;
+      for (auto const &bl : G) G_imag_vec.emplace_back(get_imag(bl));
+      return {G.block_names(), G_imag_vec};
+    }
+    // block2_gf[_const][_view]
+    else if (Gf::arity == 2) {
+      std::vector<std::vector<typename Gf::g_t::real_t>> G_imag_vecvec;
+      for (int i : range(G.size1())) {
+        std::vector<typename Gf::g_t> temp_vec;
+        for (int j : range(G.size2())) temp_vec.emplace_back(get_imag(G(i, j)));
+        G_imag_vecvec.emplace_back(std::move(temp_vec));
+      }
+      return {G.block_names(), G_imag_vecvec};
+    }
+  }
+
+  /// The real part of a triqs Green function with an optional check for a vanishing imaginary part
+  template <typename Gf> std::enable_if_t<is_gf<Gf>::value, typename Gf::regular_type::real_t> get_real(Gf const &G, bool check_no_imag = false) {
+    if (check_no_imag && !is_gf_real(G)) TRIQS_RUNTIME_ERROR << " Assuming real G, but found Imag(G) > 0 ";
+    return {G.mesh(), real(G.data()), G.memory_layout(), {}, G.indices()}; // FIXME TAIL NOT PROPERLY DONE
+  }
+
+  /// The real part of a block[2] Green function
+  template <typename Gf>
+  std::enable_if_t<is_block_gf_or_view<Gf>::value, typename Gf::regular_type::real_t> get_real(Gf const &G, bool check_no_imag = false) {
+    // block_gf[_const][_view]
+    if constexpr (Gf::arity == 1) {
+      std::vector<typename Gf::g_t::real_t> G_real_vec;
+      for (auto const &bl : G) G_real_vec.emplace_back(get_real(bl, check_no_imag));
+      return {G.block_names(), G_real_vec};
+    }
+    // block2_gf[_const][_view]
+    else if (Gf::arity == 2) {
+      std::vector<std::vector<typename Gf::g_t::real_t>> G_real_vecvec;
+      for (int i : range(G.size1())) {
+        std::vector<typename Gf::g_t> temp_vec;
+        for (int j : range(G.size2())) temp_vec.emplace_back(get_real(G(i, j), check_no_imag));
+        G_real_vecvec.emplace_back(std::move(temp_vec));
+      }
+      return {G.block_names(), G_real_vecvec};
+    }
+  }
+
+  /// Check if a block[2] Green function is real
+  template <typename Gf> std::enable_if_t<is_block_gf_or_view<Gf>::value, bool> is_gf_real(Gf const &G, double tolerance = 1.e-13) {
+    double max_abs_imag = 0.0;
+    // block_gf[_const][_view]
+    if constexpr (Gf::arity == 1) {
+      for (auto const &bl : G) max_abs_imag = std::max(max_abs_imag, max_element(abs(imag(bl.data()))));
+    }
+    // block2_gf[_const][_view]
+    else if (Gf::arity == 2) {
+      for (int i : range(G.size1()))
+        for (int j : range(G.size2())) max_abs_imag = std::max(max_abs_imag, max_element(abs(imag(G(i, j).data()))));
+    }
+    return max_abs_imag <= tolerance;
+  }
+
+  /// The maximum's norm of a triqs array. Takes element-wise absolute values of the data and returns the maximum of that.
+  //FIXME Implement with is_array trait
+  template <typename Value_t, int Rank> double max_norm(array_const_view<Value_t, Rank> const &arr) {
+    auto max_itr = std::max_element(arr.begin(), arr.end(), [](auto a, auto b) { return std::abs(a) < std::abs(b); });
+    return std::abs(*max_itr);
+  }
+  //FIXME array_const_view should be constructable from array_view
+  template <typename Value_t, int Rank> double max_norm(array_view<Value_t, Rank> const &arr) { return max_norm(make_const_view(arr)); }
+
+  /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
+  template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
 
   /// The structure of the gf : block_name -> [...]= list of indices (int/string). FIXME Change to pair of vec<str> and vec<int> or vec<pair<str,int>>
   using block_gf_structure_t = std::map<std::string, std::vector<triqs::utility::variant_int_string>>;
 
   // Function template for block_gf initialization
-  template <typename Var_t> block_gf<Var_t, matrix_valued> make_block_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+  template <typename Var_t, typename Target_t = matrix_valued>
+  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
 
-    std::vector<gf<Var_t, matrix_valued>> gf_vec;
+    std::vector<gf<Var_t, Target_t>> gf_vec;
     std::vector<std::string> block_names;
 
     //for (auto const & [ bname, idx_lst ] : gf_struct) { // C++17
@@ -53,9 +133,10 @@ namespace triqs::gfs {
     return make_block_gf(std::move(block_names), std::move(gf_vec));
   }
 
-  template <typename Var_t> block2_gf<Var_t, tensor_valued<4>> make_block2_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+  template <typename Var_t, typename Target = tensor_valued<4>>
+  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
 
-    std::vector<std::vector<gf<Var_t, tensor_valued<4>>>> gf_vecvec;
+    std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
     std::vector<std::string> block_names;
 
     for (auto const &bl1 : gf_struct) {
@@ -65,12 +146,16 @@ namespace triqs::gfs {
       std::vector<std::string> indices1;
       for (auto const &var : bl1.second) apply_visitor([&indices1](auto &&arg) { indices1.push_back(std::to_string(arg)); }, var);
 
-      std::vector<gf<Var_t, tensor_valued<4>>> gf_vec;
+      std::vector<gf<Var_t, Target>> gf_vec;
       for (auto const &bl2 : gf_struct) {
         int bl2_size = bl2.second.size();
         std::vector<std::string> indices2;
         for (auto const &var : bl2.second) apply_visitor([&indices2](auto &&arg) { indices2.push_back(std::to_string(arg)); }, var);
-        gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size), std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
+        if constexpr (Target::rank == 4)
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size),
+                              std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
+        else
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl2_size), std::vector<std::vector<std::string>>{indices1, indices2});
       }
       gf_vecvec.emplace_back(std::move(gf_vec));
     }
@@ -97,17 +182,44 @@ namespace triqs_ctint {
   /// The channel type
   enum class Chan_t { PP, PH, XPH };
 
-  /// Type of the Monte-Carlo weight. Either double or dcomplex
-  using mc_weight_t = double;
-
   /// Container type of the alpha function. alpha[block](orbital,aux_spin)
   using alpha_t = std::vector<array<double, 2>>;
 
   /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
   using g_iw_t = block_gf<imfreq, matrix_valued>;
 
-  /// Container type of two-particle Green and Vertex functions in imaginary time
+/// Container type of two-particle Green and Vertex functions in imaginary time
+#ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
+#else
+  using g_tau_t = block_gf<imtime, matrix_real_valued>;
+#endif
+
+  /// Scalar type of g_tau
+  using g_tau_scalar_t = g_tau_t::g_t::scalar_t; 
+
+/// Scalar type of all interaction vertices
+#ifdef INTERACTION_IS_COMPLEX
+  using U_scalar_t = dcomplex;
+#else
+  using U_scalar_t = double;
+#endif
+
+/// The target_type of the intermediate scattering matrices
+#if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX
+  using M_tau_target_t = matrix_valued; 
+#else
+  using M_tau_target_t = matrix_real_valued; 
+#endif
+
+  /// Type of the Monte-Carlo weight. Either double or dcomplex
+  using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{}); 
+
+  /// A const_view to a g_tau_t
+  using g_tau_cv_t = g_tau_t::const_view_type;
+
+  /// A view to a g_tau_t
+  using g_tau_v_t = g_tau_t::view_type;
 
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;

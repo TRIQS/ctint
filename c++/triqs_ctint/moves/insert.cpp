@@ -18,7 +18,7 @@ namespace triqs_ctint::moves {
 
       // Calculate Monte-Carlo weight
       double insert_proposition_proba = v.proposition_proba / n_fact;
-      double weight                   = v.amplitude / insert_proposition_proba;
+      U_scalar_t weight               = v.amplitude / insert_proposition_proba;
 
       // Move new vertex to its storage
       qmc_config->vertex_lst.push_back(std::move(v));
@@ -27,19 +27,19 @@ namespace triqs_ctint::moves {
     };
 
     // Lazy insert and capture the weight for one vertex
-    double ratio = single_insert();
+    U_scalar_t ratio = single_insert();
 
     // Perform previous step again in case of double removal
     if (double_insert) ratio *= single_insert();
 
     // Execute the insertion move
-    auto det_ratio = lazy_op.execute_try_insert();
+    g_tau_scalar_t det_ratio = lazy_op.execute_try_insert();
 
     // Calculate the removal proposition probability
     double remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_insert ? qmc_config->perturbation_order() : 1));
 
     // Return the overall weight
-    return det_ratio * remove_proposition_proba * ratio;
+    return mc_weight_t{det_ratio} * remove_proposition_proba * ratio;
   }
 
   mc_weight_t insert::accept() {

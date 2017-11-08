@@ -25,7 +25,7 @@ namespace triqs_ctint::moves {
     vpos = rng(qmc_config->perturbation_order());
 
     // Lazy insert and capture the weight for the first vertex
-    double ratio = single_remove(vpos);
+    U_scalar_t ratio = single_remove(vpos);
 
     // In case of double remove we pick up another vertex
     if (double_remove) {
@@ -35,13 +35,13 @@ namespace triqs_ctint::moves {
     }
 
     // Execute the removal move
-    auto det_ratio = lazy_op.execute_try_remove();
+    g_tau_scalar_t det_ratio = lazy_op.execute_try_remove();
 
     // Calculate the removal proposition probability
     double remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_remove ? qmc_config->perturbation_order() : 1));
 
     // Return the overall weight
-    return det_ratio * ratio / remove_proposition_proba;
+    return mc_weight_t{det_ratio} * ratio / remove_proposition_proba;
   }
 
   mc_weight_t remove::accept() {

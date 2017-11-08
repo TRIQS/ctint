@@ -21,7 +21,7 @@ namespace triqs_ctint::measures {
     M4_iw &operator=(M4_iw &&) = default;
 
     /// Accumulate M_tau using binning
-    void accumulate(double sign);
+    void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
     void collect_results(triqs::mpi::communicator const &comm);
@@ -37,7 +37,7 @@ namespace triqs_ctint::measures {
     block2_gf_view<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>> M4_iw_;
 
     // The average sign
-    double Z = 0.0;
+    mc_weight_t Z = 0.0;
 
     // Container of nfft_buffers: buf_arrarr(block)(u_j,u_i)
     array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;

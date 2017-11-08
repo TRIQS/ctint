@@ -1,7 +1,7 @@
 # Build the python module
 add_cpp2py_module(solver_core)
 
-target_link_libraries(solver_core triqs_ctint_c)
+target_link_libraries(solver_core ctint_c)
 
 # We need to include the convertes.hxx files
 target_include_directories(solver_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

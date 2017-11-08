@@ -109,30 +109,30 @@ namespace triqs_ctint {
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
     /// Number of positive Matsubara frequencies in M4
-    int n_iw_M4        = 32;
+    int n_iw_M4 = 32;
 
     /// Measure M3pp(iw)
-    bool measure_M3pp_iw  = false;
+    bool measure_M3pp_iw = false;
     /// Measure M3ph(iw)
-    bool measure_M3ph_iw  = false;
+    bool measure_M3ph_iw = false;
     /// Number of positive Matsubara frequencies in M3
-    int n_iw_M3           = 64;
+    int n_iw_M3 = 64;
 
     /// Measure M3pp(iw)
-    bool measure_M3pp_tau  = false;
+    bool measure_M3pp_tau = false;
     /// Measure M3ph(iw)
-    bool measure_M3ph_tau  = false;
+    bool measure_M3ph_tau = false;
     /// Number of imaginary time points in M3
-    int n_tau_M3           = 1000;
+    int n_tau_M3 = 1000;
 
     /// Measure M2pp(tau)
-    bool measure_M2pp_tau  = false;
+    bool measure_M2pp_tau = false;
     /// Measure M2ph(tau)
-    bool measure_M2ph_tau  = false;
+    bool measure_M2ph_tau = false;
     /// Number of imaginary time points in M2
-    int n_tau_M2           = 10000;
+    int n_tau_M2 = 10000;
     /// Number of positive Matsubara frequencies in M2
-    int n_iw_M2            = 128;
+    int n_iw_M2 = 128;
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 500;
@@ -149,9 +149,12 @@ namespace triqs_ctint {
 
   struct params_t : constr_params_t, solve_params_t {
     params_t(constr_params_t constr_params_, solve_params_t solve_params_) : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
-
-    /// Return matrix for static density-density interaction
-    array<array<dcomplex, 2>, 2> get_U() const;
   };
+
+  /// Function that returns a pair of integer indices (block, non_block), given the index of a c/c^dag operator
+  std::pair<int, int> get_int_indices(canonical_ops_t const &op_idx_vec, gf_struct_t const &gf_struct);
+
+  /// Check if monomial is density-density interaction
+  inline bool is_densdens_interact(monomial_t m) { return m.size() == 4 && m[0].indices == m[3].indices && m[1].indices == m[2].indices; }
 
 } // namespace triqs_ctint

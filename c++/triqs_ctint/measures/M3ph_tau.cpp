@@ -3,7 +3,7 @@
 
 namespace triqs_ctint::measures {
 
-  M3ph_tau::M3ph_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_)
+  M3ph_tau::M3ph_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_), tau_mesh{params_.beta, Fermion, params_.n_tau_M3} {
 
     // Construct Matsubara mesh
@@ -15,7 +15,7 @@ namespace triqs_ctint::measures {
     M3ph_tau_() = 0;
   }
 
-  void M3ph_tau::accumulate(double sign) {
+  void M3ph_tau::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 
@@ -102,7 +102,6 @@ namespace triqs_ctint::measures {
   }
 
   void M3ph_tau::collect_results(triqs::mpi::communicator const &comm) {
-
     // Collect results and normalize
     Z           = mpi_all_reduce(Z, comm);
     M3ph_tau_   = mpi_all_reduce(M3ph_tau_, comm);

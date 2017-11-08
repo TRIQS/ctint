@@ -39,7 +39,7 @@ script:
   - source root_install/share/triqsvars.sh
   # ===== Set up CTINT and Test using fsanitize=address
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold -Wno-register -Wno-macro-redefined'
+  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DGTAU_IS_COMPLEX=ON -DINTERACTION_IS_COMPLEX=ON -DCMAKE_CXX_FLAGS='-fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold -Wno-register -Wno-macro-redefined'
   - make -j8
   - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-5.0/bin/llvm-symbolizer
   - export ASAN_OPTIONS=symbolize=1:detect_leaks=0

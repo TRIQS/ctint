@@ -2,30 +2,21 @@
 
 namespace triqs_ctint {
 
-  array<array<dcomplex, 2>, 2> params_t::get_U() const { // TODO Clean and Rework!
+  std::pair<int, int> get_int_indices( canonical_ops_t const &op, gf_struct_t const &gf_struct) {
 
-    // Calculate U-Matrix U(block1,block2)(i,j)
-    array<array<dcomplex, 2>, 2> U(n_blocks(), n_blocks());
+    // The Fundamental operator-set allows for easy check of index validity
+    triqs::hilbert_space::fundamental_operator_set fs(gf_struct);
+    if (!fs.has_indices(op.indices)) TRIQS_RUNTIME_ERROR << " Index of c/c^+ operator not compatible with Green Function structure ";
 
-    // Extract flat U-Matrix, where indeces combine the block (non-leading) and non-block (leading) index
-    array<dcomplex, 2> Uall = dict_to_matrix(extract_U_dict2(h_int), gf_struct);
+    // Get block-name with apply visitor, lambda(0) is called to determine return type ...
+    std::string bl_name = apply_visitor([](auto idx) { return std::to_string(idx); }, op.indices[0]);
 
-    int ibl = 0, jbl = 0, offset_col = 0, offset_row = 0;
-    for (auto const &bl1 : gf_struct) {
-      jbl        = 0;
-      offset_col = 0;
-      for (auto const &bl2 : gf_struct) {
-        U(ibl, jbl).resize(bl1.second.size(), bl2.second.size());
-        for (int i = 0; i < bl1.second.size(); i++)
-          for (int j = 0; j < bl2.second.size(); j++) { U(ibl, jbl)(i, j) = Uall(offset_row + i, offset_col + j); } // j
-        offset_col += bl2.second.size();
-        jbl++;
-      } // bl2
-      offset_row += bl1.second.size();
-      ibl++;
-    } // bl1
+    // Capture positions in block and nonblock list
+    int bl_int_idx    = std::distance(gf_struct.cbegin(), gf_struct.find(bl_name));
+    auto idx_lst      = gf_struct.at(bl_name);
+    int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
 
-    return U;
+    return std::make_pair(bl_int_idx, nonbl_int_idx);
   }
 
   void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp) {

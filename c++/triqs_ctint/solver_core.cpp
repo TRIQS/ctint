@@ -16,21 +16,10 @@ namespace triqs_ctint {
 
     // Allocate essential QMC containers
     G0_iw        = make_block_gf(gf_mesh<imfreq>{p.beta, Fermion, p.n_iw}, p.gf_struct);
-    G0_shift_tau = make_block_gf(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
+    G0_shift_tau = make_block_gf<imtime, g_tau_t::target_t>(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
 
-    // Allocate containers for dynamical density-density interaction // FIXME Block2_gf ?
-    if (p.use_D) {
-      auto D_block_names = std::vector<std::string>{};
-      for (auto const &str1 : p.block_names())
-        for (auto const &str2 : p.block_names()) D_block_names.push_back(str1 + "|" + str2);
-
-      std::vector<gf<imfreq, matrix_valued>> v_iw;
-      for (auto const &bl1 : p.gf_struct)
-        for (auto const &bl2 : p.gf_struct)
-          v_iw.emplace_back(gf_mesh<imfreq>{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl1.second.size(), bl2.second.size()));
-
-      D0_iw = make_block_gf(D_block_names, v_iw);
-    }
+    // Allocate containers for dynamical density-density interaction
+    if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);
 
     // Allocate containers for dynamical spin-spin interaction
     if (p.use_Jperp) {
@@ -60,7 +49,7 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Construct the generic Monte-Carlo solver
-    triqs::mc_tools::mc_generic<double> mc(params.random_name, params.random_seed, 1.0 /* initial sign */, params.verbosity);
+    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, 1.0 /* initial sign */, params.verbosity);
 
     // Capture random number generator
     auto &rng = mc.get_rng();
@@ -83,7 +72,6 @@ namespace triqs_ctint {
     if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
     if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
     if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
-    if (params.measure_F_tau) mc.add_measure(measures::F_tau{params, qmc_config, &result_set(), G0_shift_tau}, "F_tau measure");
     if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
     if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
@@ -111,38 +99,60 @@ namespace triqs_ctint {
   void solver_core::prepare_G0_shift_tau(params_t const &p) {
 
     // Prepare shifted non-interacting Green Function G0_shift_tau for Monte Carlo
-
-    auto U = p.get_U();
-
-    // Renormalization of the chemical potential due to alpha
-    // Renormalized static interaction by the dynamical one (T.Ayral thesis Eq.11.23a)
-    // mu_{sigma i} ---> mu_{sigma i} - (1/n_s) sum_{j sigma' s} ( U_{ij sigma sigma'} - 2.0 int dtau D_{ij sigma sigma'}(tau-0) ) alpha_{s j sigma'}
-    // 1/n_s comes immediately from adding an additional sum over s
+    // with renormalization of the chemical potential due to alpha
 
     g_iw_t G0_inv = inverse(G0_iw);
 
-    // External loop over blocks
-    for (int sig : range(p.n_blocks())) {
+    // Loop over static density-density interaction terms
+    for (auto const &term : p.h_int) {
 
-      // Get Matrix Rank for block
-      int Rank = G0_iw[sig].target_shape()[0];
-      for (int i : range(Rank)) {
+      if (!is_densdens_interact(term.monomial)) continue;
 
-        // Calculate and subtract term according to equation above
-        dcomplex term = 0.0;
-        for (int sigp : range(p.n_blocks()))
-          for (int j : range(Rank))
-            for (int s : range(p.n_s)) {
-              term += U(sig, sigp)(i, j) * p.alpha[sigp](j, s);
-              if (D0_iw) term += (*D0_iw)[sig * p.n_blocks() + sigp][0](i, j) * p.alpha[sigp](j, s);
-            }
-        auto g = slice_target_to_scalar(G0_inv[sig], i, i);
-        g(iw_) << g(iw_) - term / p.n_s;
+      auto[bl1_idx, nonbl1_idx] = get_int_indices(term.monomial[0], p.gf_struct);
+      auto[bl2_idx, nonbl2_idx] = get_int_indices(term.monomial[1], p.gf_struct);
+
+      dcomplex shift_1 = 0.0;
+      dcomplex shift_2 = 0.0;
+      for (int s : range(p.n_s)) {
+        shift_1 += p.alpha[bl1_idx](nonbl1_idx, s);
+        shift_2 += p.alpha[bl2_idx](nonbl2_idx, s);
+      }
+      shift_1 *= dcomplex(term.coef) / p.n_s;
+      shift_2 *= dcomplex(term.coef) / p.n_s;
+
+      auto g_1 = slice_target_to_scalar(G0_inv[bl1_idx], nonbl1_idx, nonbl1_idx);
+      auto g_2 = slice_target_to_scalar(G0_inv[bl2_idx], nonbl2_idx, nonbl2_idx);
+      g_1(iw_) << g_1(iw_) - shift_1;
+      g_2(iw_) << g_2(iw_) - shift_2;
+    }
+
+    if (D0_iw) {
+
+      // External loop over blocks
+      for (int sig : range(p.n_blocks())) {
+
+        // Get Matrix Rank for block
+        int Rank = G0_iw[sig].target_shape()[0];
+        for (int i : range(Rank)) {
+
+          // Calculate and subtract term according to notes
+          dcomplex term = 0.0;
+          for (int sigp : range(p.n_blocks()))
+            for (int j : range(Rank))
+              for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha[sigp](j, s); }
+          auto g = slice_target_to_scalar(G0_inv[sig], i, i);
+          g(iw_) << g(iw_) - term / p.n_s;
+        }
       }
     }
+
     // Invert and Fourier transform to imaginary times
     G0_shift_iw  = inverse(G0_inv);
+#ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
+#else
+    G0_shift_tau = get_real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau), true); 
+#endif
   }
 
   // -------------------------------------------------------------------------------
@@ -152,7 +162,7 @@ namespace triqs_ctint {
     std::cout << " Post-processing ... \n";
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier(*M_tau, p.n_iw);
+    if (M_tau) M_iw = make_gf_from_fourier( block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
@@ -172,7 +182,7 @@ namespace triqs_ctint {
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
     if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
-    if (G2c_iw && G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
+    if (G2c_iw && G_iw) F_iw  = F_from_G2c(*G2c_iw, *G_iw);
     if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
     // Calculate chi2_tau from M2_tau and M_iw
@@ -184,8 +194,8 @@ namespace triqs_ctint {
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_M2);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
-    if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
+    if (M3pp_iw && M_iw) chi3pp_iw           = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
+    if (M3ph_iw && M_iw) chi3ph_iw           = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
     if (M3pp_iw_nfft && M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
     if (M3ph_iw_nfft && M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
   }

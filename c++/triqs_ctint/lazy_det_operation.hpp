@@ -46,10 +46,10 @@ namespace triqs_ctint {
       }
 
       // Tries to perform all insertions into the det, returning the det ratio
-      double execute_try_insert(det_t *d);
+      g_tau_scalar_t execute_try_insert(det_t *d);
 
       // Tries to perform all removals from the det, returning the det ratio
-      double execute_try_remove(det_t *d);
+      g_tau_scalar_t execute_try_remove(det_t *d);
     };
 
     // The list of lazy operations, one for each determinant
@@ -77,16 +77,16 @@ namespace triqs_ctint {
     }
 
     /// Tries to perform the insertions into all dets, returning the det ratio
-    mc_weight_t execute_try_insert() {
-      mc_weight_t det_ratio = 1.0;
+    g_tau_scalar_t execute_try_insert() {
+      g_tau_scalar_t det_ratio = 1.0;
       for (auto i : range(dets->size())) det_ratio *= lazy_op_lst[i].execute_try_insert(&(*dets)[i]);
       reset();
       return det_ratio;
     }
 
     /// Tries to perform the removal from all dets, returning the det ratio
-    mc_weight_t execute_try_remove() {
-      mc_weight_t det_ratio = 1.0;
+    g_tau_scalar_t execute_try_remove() {
+      g_tau_scalar_t det_ratio = 1.0;
       for (auto i : range(dets->size())) det_ratio *= lazy_op_lst[i].execute_try_remove(&(*dets)[i]);
       reset();
       return det_ratio;

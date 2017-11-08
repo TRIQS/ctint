@@ -13,7 +13,7 @@ namespace triqs_ctint {
     g_iw_t G0_iw;
 
     /// Dynamic density-density interaction in Matsubara frequencies
-    std::optional<g_iw_t> D0_iw;
+    std::optional<block2_gf<imfreq, matrix_valued>> D0_iw;
 
     /// Dynamic spin-spin interaction in Matsubara frequencies
     std::optional<gf<imfreq, matrix_valued>> Jperp_iw;

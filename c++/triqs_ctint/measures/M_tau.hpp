@@ -14,7 +14,7 @@ namespace triqs_ctint::measures {
     M_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
     /// Accumulate M_tau using binning
-    void accumulate(double sign);
+    void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
     void collect_results(triqs::mpi::communicator const &comm);
@@ -27,10 +27,10 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block_gf_view<imtime, matrix_valued> M_tau_;
+    block_gf_view<imtime, M_tau_target_t> M_tau_;
 
     // The average sign
-    double Z = 0.0;
+    mc_weight_t Z = 0.0;
   };
 
 } // namespace triqs_ctint::measures

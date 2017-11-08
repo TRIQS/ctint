@@ -2,7 +2,7 @@
 
 namespace triqs_ctint::measures {
 
-  M3pp_iw::M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, block_gf<imtime, matrix_valued> const &G0_tau_)
+  M3pp_iw::M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh
@@ -26,7 +26,7 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M3pp_iw::accumulate(double sign) {
+  void M3pp_iw::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 

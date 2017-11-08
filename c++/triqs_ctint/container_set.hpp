@@ -8,19 +8,16 @@ namespace triqs_ctint {
     //============ Containers for measurements
 
     /// Average sign of the CTINT
-    double average_sign = 0.0;
+    mc_weight_t average_sign = 0.0;
 
     /// Average perturbation order 
     double average_k = 0.0;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
-    std::optional<g_tau_t> M_tau;
+    std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
     /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<g_iw_t> M_iw_nfft;
-
-    /// The improved estimator F_tau
-    std::optional<g_tau_t> F_tau;
 
     /// Same as M4_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4_iw;
@@ -105,7 +102,6 @@ namespace triqs_ctint {
       h5_write(grp, "average_sign", c.average_sign);
       h5_write(grp, "M_tau", c.M_tau);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
-      h5_write(grp, "F_tau", c.F_tau);
       h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
       h5_write(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
@@ -137,7 +133,6 @@ namespace triqs_ctint {
       h5_read(grp, "average_sign", c.average_sign);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
-      h5_read(grp, "F_tau", c.F_tau);
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
       h5_read(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);

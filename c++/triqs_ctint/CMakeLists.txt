@@ -1,15 +1,18 @@
 FILE(GLOB_RECURSE cpp_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
-add_library(triqs_ctint_c ${cpp_sources})
-target_link_libraries(triqs_ctint_c PUBLIC triqs)
+add_library(ctint_c ${cpp_sources})
 
-# Find the NFFT Library
-message( STATUS "-------- NFFT detection -------------")
-find_package(NFFT REQUIRED)
-target_include_directories(triqs_ctint_c SYSTEM PRIVATE ${NFFT_INCLUDE_DIR})
-if(NFFT_OLD_API)
-  target_compile_definitions(triqs_ctint_c PUBLIC NFFT_OLD_API)
-endif(NFFT_OLD_API)
-target_link_libraries(triqs_ctint_c PUBLIC ${NFFT_LIBRARIES})
+target_link_libraries(ctint_c PUBLIC triqs)
+target_link_libraries(ctint_c PRIVATE nfft)
+
+target_compile_options(ctint_c PUBLIC -std=c++17)
+
+target_compile_definitions(ctint_c PUBLIC
+			    CTINT_GIT_HASH=${CTINT_GIT_HASH}
+			    TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
+			    $<$<CONFIG:Debug>:DEBUG_CTINT>
+			    $<$<BOOL:${GTAU_IS_COMPLEX}>:GTAU_IS_COMPLEX>
+			    $<$<BOOL:${INTERACTION_IS_COMPLEX}>:INTERACTION_IS_COMPLEX>
+			  )
 
 # Install
-install(TARGETS triqs_ctint_c DESTINATION lib)
+install(TARGETS ctint_c DESTINATION lib)

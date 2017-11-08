@@ -7,7 +7,7 @@ namespace triqs_ctint::measures {
     average_sign_ = 0.0;
   }
 
-  void average_sign::accumulate(double sign) {
+  void average_sign::accumulate(mc_weight_t sign) {
     average_sign_ += sign;
     ++count;
   }
