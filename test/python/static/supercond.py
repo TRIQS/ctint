@@ -3,48 +3,52 @@ import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
-from numpy import array, zeros, identity, matrix
-
+from pytriqs.utility.h5diff import h5diff
+from triqs_ctint import SolverCore
+from numpy import matrix
 
 test_name = 'supercond'
 
-#superconducting calc: U n_up n_down - mu n = Utilde n_1 n_2 - mutilde (n1+n2)
+# Superconducting calculation in Nambu Basis ( c_1, c_2 ) = ( c_up, cdag_dn )
+# U n_up n_dn - mu ( n_up + n_dn ) - D ( cdag_up cdag_dn + c_dn c_up ) 
+#  = - U n_1 n_2 - n_1 ( mu - U ) - n2 ( -mu ) - D ( cdag_1 c_2 + cdag_2 c_1 )
 
-# set up a few parameters
+######## physical parameters ########
 U = -1.0
-Utilde=-U
-beta = 20.0
-mu = matrix([[1.3-U,0],[0,-1.3]])
-eps = matrix([[0.2,0.1],[0.1,-0.2]])
-delta = 0.35
+mu = U/4.0
+D = 0.1
+beta = 10.0
+mu_mat = matrix([[mu-U,0],[0,-mu]])
+D_mat = matrix([[0.0,-D],[-D,0.0]])
 
-block_names = ['up']
-composite_blocks = [ b[0]+'|'+b[1] for b in product(block_names,block_names)]
+######## simulation parameters ########
+n_cyc = 1000
 
-h_int = Utilde * n(block_names[0],0)*n(block_names[0],1)
+# --------- set up static interactions and the block structure ---------
+block_names = ['single_block']
+gf_struct = dict.fromkeys(block_names, [0,1])
+h_int = -U * n(block_names[0],0)*n(block_names[0],1)
 
-# alpha[block][index,s]
+# --------- Define alpha tensor ---------
+delta = 0.1
 diag = 0.5 + delta
 odiag = 0.5 - delta
-alpha = [ [[diag,odiag],[diag, odiag]] ]
+alpha = [ [[diag,odiag],[diag,odiag]] ] # alpha[block][index,s]
 
-gf_struct = {block_names[0] : [0,1]}
-
-# Construct the segment solver
-from triqs_ctint import SolverCore
+# --------- Construct the ctint solver ----------
 S = SolverCore(beta = beta, 
                gf_struct = gf_struct,
                n_iw = 200,  
-               n_tau = 100001 )
+               n_tau = 100001)
 
-# Initialize the Green's function
+# --------- Initialize the non-interacting Green's function ----------
 for n,g0 in S.G0_iw:
-  g0 << inverse(iOmega_n + mu - inverse(iOmega_n - eps));
+  g0 << inverse(iOmega_n + mu_mat - D_mat);
 
-# Solve!
+# --------- Solve! ----------
 S.solve(h_int=h_int,
         alpha = alpha,
-        n_cycles = 1000,
+        n_cycles = n_cyc,
         length_cycle = 50,
         n_warmup_cycles = 0,
         random_seed = 34788,
@@ -53,12 +57,11 @@ S.solve(h_int=h_int,
         measure_F_tau = True,
         post_process = False )
 
-# Save in archive
+# -------- Save in archive ---------
 A = HDFArchive("%s.out.h5"%test_name,'w')
 A["G0_iw"] = S.G0_iw
 A["M_tau"] = S.M_tau
 A["M_iw_nfft"] = S.M_iw_nfft
-A["F_tau"] = S.F_tau
 
-from pytriqs.utility.h5diff import h5diff
+# -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
