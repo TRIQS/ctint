@@ -85,13 +85,13 @@ namespace triqs_ctint {
     mc.collect_results(world);
 
     // Post Processing
-    if (params.post_process) post_process(params);
+    if (params.post_process) { post_process(params); }
 
-    // Write results to file
-    if (!triqs::mpi::communicator().rank()) {
-      triqs::h5::file h5file("ctqmc_out.h5", 'w');
-      h5_write(h5file, "", *this);
-    }
+    //// Write results to file
+    //if (!triqs::mpi::communicator().rank()) {
+      //triqs::h5::file h5file("ctqmc_out.h5", 'w');
+      //h5_write(h5file, "", *this);
+    //}
   }
 
   // -------------------------------------------------------------------------------
@@ -145,6 +145,8 @@ namespace triqs_ctint {
         }
       }
     }
+
+    for(auto &G: G0_inv){ G.singularity().reset(); }
 
     // Invert and Fourier transform to imaginary times
     G0_shift_iw  = inverse(G0_inv);
