@@ -16,15 +16,17 @@ namespace triqs_ctint {
 
       // Loop over the interaction hamiltonian and insert the corresponding indices/amplitiudes into the lists for the factory
       for (auto const &term : params.h_int) {
-
         amplitudes.push_back(-U_scalar_t(term.coef));
         auto const &m = term.monomial;
         if (m.size() != 4 or !(m[0].dagger and m[1].dagger and !m[2].dagger and !m[3].dagger))
           TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c \n";
-        std::vector<std::pair<int, int>> vec;
-        for (auto op : m) { vec.push_back(get_int_indices(op, params.gf_struct)); }
         // Careful: h_int monomials automatically ordered as c^+_0 c^+_1 c_2 c_3
-        indices.push_back({vec[0].first, vec[0].second, vec[3].first, vec[3].second, vec[1].first, vec[1].second, vec[2].first, vec[2].second});
+        auto [bl_cdag_0, idx_cdag_0] = get_int_indices(m[0], params.gf_struct);
+        auto [bl_cdag_1, idx_cdag_1] = get_int_indices(m[1], params.gf_struct);
+        auto [bl_c_1, idx_c_1]       = get_int_indices(m[2], params.gf_struct);
+        auto [bl_c_0, idx_c_0]       = get_int_indices(m[3], params.gf_struct);
+
+        indices.push_back({bl_cdag_0, idx_cdag_0, bl_c_0, idx_c_0, bl_cdag_1, idx_cdag_1, bl_c_1, idx_c_1});
       }
 
       if (indices.size() > 0) {
@@ -36,7 +38,7 @@ namespace triqs_ctint {
           tau_t t                   = tau_t::get_random(rng);
           int s                     = is_densdens_interact ? rng(n_s) : 0;
           double prop_proba         = 1.0 / (beta * indices.size() * n_s);
-          return vertex_t{indices[n], t, t, t, t, amplitudes[n] / n_s, prop_proba, is_densdens_interact, s};
+          return vertex_t{indices[n], t, t, t, t, amplitudes[n] / n_s, prop_proba, n, s};
         };
 
         vertex_factories.emplace_back(l);
