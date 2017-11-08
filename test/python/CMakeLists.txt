@@ -10,6 +10,7 @@ set(all_tests
   static/solver_h5io
   static/supercond
   static/two_site
+  static/jacobi_test
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens
