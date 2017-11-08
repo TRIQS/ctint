@@ -21,24 +21,11 @@ def mpi_print(arg):
         print(arg)
         np.set_printoptions(**po)
 
-# Flatten a block vector of matrices
-def flatten(Sig_HF):
-    return np.array([Sig_bl.flatten() for bl, Sig_bl in Sig_HF]).flatten()
-
-# Unflatten a block vector of matrices
-def unflatten(Sig_HF_flat, gf_struct):
-    offset = 0
-    Sig_HF = []
-    for bl, bl_size in gf_struct:
-        Sig_HF.append([bl, Sig_HF_flat[list(range(offset, offset + bl_size**2))].reshape((bl_size, bl_size))])
-        offset = offset + bl_size**2
-    return Sig_HF
-
 # === The SolverCore Wrapper
 
 class Solver(SolverCore):
 
-    def __init__(self, beta, gf_struct, n_iw=500, n_tau=5001, use_D=False, use_Jperp=False, n_tau_dynamical_interactions=5001, n_iw_dynamical_interactions=500):
+    def __init__(self, **constr_params):
         """
         Initialise the solver.
 
@@ -64,27 +51,140 @@ class Solver(SolverCore):
         n_iw_dynamical_interactions : int, optional
                Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
-        gf_struct = fix_gf_struct_type(gf_struct)
+        constr_params['gf_struct'] = fix_gf_struct_type(constr_params['gf_struct'])
 
         # Initialise the core solver
-        SolverCore.__init__(self, beta=beta, gf_struct=gf_struct, 
-                            n_iw=n_iw, n_tau=n_tau, use_D=use_D, use_Jperp=use_Jperp,
-                            n_tau_dynamical_interactions=n_tau_dynamical_interactions,
-                            n_iw_dynamical_interactions=n_iw_dynamical_interactions)
+        SolverCore.__init__(self, **constr_params)
 
-        self.gf_struct = gf_struct
-        self.n_iw = n_iw
-        self.n_tau = n_tau
-        self.use_D = use_D
-        self.use_Jperp = use_Jperp
 
-    def solve(self, **params_kw):
+    # Helper Function
+    #
+    # For a given quartic operator
+    #
+    #   U_l * cdag_[bl0,u_0] cdag_[bl1,u_1] c_[bl1,u_1p] c_[bl0,u_0p]
+    #
+    # return the list of indicies
+    #
+    #   [bl0, bl1, u0, u0p, u1, u1p]
+    #
+    def indices_from_quartic_term(self, term, gf_struct):
+        bl0, u0 = term[0][1]
+        bl1, u1 = term[1][1]
+        bl1p, u1p = term[2][1]
+        bl0p, u0p = term[3][1]
+        assert bl0 == bl0p and bl1 == bl1p
+        return [bl0, bl1, u0, u0p, u1, u1p]
+
+    def f(self, x, solve_params):
+
+        # Parameters
+        gf_struct = self.constr_params['gf_struct']
+        h_int = solve_params['h_int']
+        n_terms = len(list(h_int))
+
+        # Update the solve_params with new alpha
+        _alpha = x.reshape(n_terms, 2, 2, 1)
+        _params = solve_params.copy()
+        _params['alpha'] = _alpha
+        _params.update(self.constr_params)
+
+        # Prepare the inverse of G0_iw and the known high-frequency moments
+        km = {}
+        for bl, g_bl in self.G0_iw:
+            self.G0_iw_inv[bl] << inverse(g_bl)
+            km[bl] = make_zero_tail(g_bl, 2)
+            km[bl][1] = np.eye(g_bl.target_shape[0])
+
+        # Update G0_shift_iw with new value of alpha
+        self.prepare_G0_shift_iw(**_params)
+
+        # Precalculate the G0_shift_iw densities
+        _G0_shift_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_shift_iw }
+
+        # Evaluate the violation of the self-consistency condition
+        _res = []
+        for n, (term, coeff) in enumerate(h_int):
+            bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+            _res.append(_G0_shift_dens[bl0][u0p,u0] - _alpha[n,0,0,0])
+            _res.append(_G0_shift_dens[bl0][u1p,u0] * (bl0 == bl1) - _alpha[n,0,1,0])
+            _res.append(_G0_shift_dens[bl0][u0p,u1] * (bl0 == bl1) - _alpha[n,1,0,0])
+            _res.append(_G0_shift_dens[bl1][u1p,u1] - _alpha[n,1,1,0])
+
+        return np.array(_res)
+
+    def convert_alpha_to_ij(self, h_int, gf_struct, n, t):
+        term, coeff = list(h_int)[n]
+        bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+        if t == 0:    # alpha_00
+            return [bl1, u1, u1p, -coeff]
+        elif t == 1:  # alpha_01
+            return [bl1, u1, u0p,  coeff] if bl0 == bl1 else None
+        elif t == 2:  # alpha_10
+            return [bl1, u0, u1p,  coeff] if bl0 == bl1 else None
+        elif t == 3:  # alpha_11
+            return [bl0, u0, u0p, -coeff]
+
+    def jacobi(self, x, solve_params):
+
+        # Parameters
+        gf_struct = self.constr_params['gf_struct']
+        h_int = solve_params['h_int']
+        n_terms = len(list(h_int))
+
+        # Update the solve_params with new alpha
+        _alpha = x.reshape(n_terms, 2, 2, 1)
+        _params = solve_params.copy()
+        _params['alpha'] = _alpha
+        _params.update(self.constr_params)
+
+        # Prepare the inverse of G0_iw
+        for bl, g_bl in self.G0_iw:
+            self.G0_iw_inv[bl] << inverse(g_bl)
+
+        # Update G0_shift_iw with new value of alpha
+        self.prepare_G0_shift_iw(**_params)
+
+        # Set trivial, diagonal derivation:
+        jac = -np.eye(len(x))
+
+        #create List with needed indices
+        bl = gf_struct[0][0]
+        G = self.G0_shift_iw[bl][0,0].copy()
+        L  = []
+        for n, (term, coeff) in enumerate(h_int):
+            bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+            L.append([bl0,u0,u0p,n,0])
+            if bl0 == bl1:
+                L.append([bl0,u1,u0p,n,1]) # WHY, this should be u0, u1p no?
+                L.append([bl1,u1,u0p,n,2])
+            L.append([bl1,u1,u1p,n,3])
+        for K in L:
+            i = K[3]*4+K[4]
+            bl = K[0]
+            l = K[1] # cdag
+            h = K[2] # c
+            for n in range(n_terms):
+                for t in range(4):
+                    c = self.convert_alpha_to_ij(h_int, gf_struct, n, t)
+                    if c == None:
+                        continue;
+                    else:
+                        [blp,z1,z2,U_tilde] = c
+                        j = 4*n+t
+                        G.zero()
+                        if bl == blp:
+                            G = -self.G0_shift_iw[blp][h,z1]*self.G0_shift_iw[blp][z2,l]*U_tilde
+                    jac[i,j] += np.real(G.density())
+        return jac
+
+
+    def solve(self, **solve_params):
         """
         Solve the impurity problem.
 
         Parameters
         ----------
-        params_kw : dict {'param':value} that is passed to the core solver.
+        solve_params : dict {'param':value} that is passed to the core solver.
                      The only two required parameters are
                         * `h_int`: The local interaction Hamiltonian
                         * `n_cycles`: The number of Monte-Carlo cycles
@@ -99,96 +199,90 @@ class Solver(SolverCore):
                      This parameter is only used if alpha is not given explicitly.
         """
 
-        h_int = params_kw['h_int']
-        gf_struct = self.gf_struct
-         
-        if 'alpha' not in params_kw:
+        assert 'n_cycles' in solve_params, "Solve parameter n_cycles required"
+
+        if 'alpha' not in solve_params:
+
+            # Parameters
+            gf_struct = self.constr_params['gf_struct']
+            h_int = solve_params['h_int']
+            delta = solve_params.pop('delta', 0.1)
+            n_s = solve_params.get('n_s', 2)
+            assert n_s in [1, 2], "Solve parameter n_s has to be either 1 or 2 for automatic alpha mode"
+
             # --------- Determine the alpha tensor from SC Hartree Fock ----------
-            mpi_print("Determine alpha-tensor from SC Hartree Fock solution")
+            mpi_print("Determine alpha-tensor")
 
-            # Make sure that n_s parameter is compatible with automatic alpha
-            n_s = params_kw.get('n_s', 2)
-            if(all(any(s in bl for s in ['up', 'dn', 'do']) for bl, idxlst in gf_struct)):
-                assert n_s in [1, 2], "For spinfull systems the automatic alpha determination requires n_s to be either 1 or 2"
+            def sign(a):
+                if a >= 0: return 1
+                if a < 0: return -1
+
+            # Prepare the inverse of G0_iw and the known high-frequency moments
+            km = {}
+            for bl, g_bl in self.G0_iw:
+                self.G0_iw_inv[bl] << inverse(g_bl)
+                km[bl] = make_zero_tail(g_bl, 2)
+                km[bl][1] = np.eye(g_bl.target_shape[0])
+
+            # The numer of terms in h_int determines the leading dimension of alpha
+            n_terms = len(list(h_int))
+
+            # Precalculate the G0_iw densities
+            G0_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_iw }
+
+            # Calculate initial alpha guess from G0_iw.density(km)
+            # We always solve the self-consistency assuming n_s == 1
+            # If n_s > 1 we use this only in the post-processing of alpha
+            solve_params['n_s'] = 1
+            alpha_init = np.zeros((n_terms, 2, 2, 1))
+            for n, (term, coeff) in enumerate(h_int):
+                bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+                alpha_init[n,0,0,0] = G0_dens[bl0][u0p,u0]
+                alpha_init[n,0,1,0] = G0_dens[bl0][u1p,u0] * (bl0 == bl1)
+                alpha_init[n,1,0,0] = G0_dens[bl0][u0p,u1] * (bl0 == bl1)
+                alpha_init[n,1,1,0] = G0_dens[bl1][u1p,u1]
+
+            # mpi_print("Init Alpha: " + str(alpha_init[...,0]))
+            alpha_vec_init = alpha_init.reshape(4 * n_terms)
+            alpha = np.zeros((n_terms, 2, 2, n_s))
+
+            if mpi.is_master_node():
+                # Find alpha on master_node
+                if solve_params.pop('use_jacobi', True):
+                    mpi_print("Using Jacobi-Matrix for root search")
+                    root_finder = root(self.f, alpha_vec_init,args=(solve_params),jac=self.jacobi,method="hybr")
+                else:
+                    root_finder = root(self.f, alpha_vec_init,args=(solve_params),method="hybr")
+
+                # Reshape result, Implement Fallback solution if unsuccessful
+                if root_finder['success']:
+                    alpha_sc = root_finder['x'].reshape(n_terms, 2, 2, 1)
+                else:
+                    mpi_print("Could not determine alpha, falling back to G0_iw.density()")
+                    alpha_sc = alpha_init
+
+                #_ Introduce alpha assymetry
+                for n, (term, coeff) in enumerate(h_int):
+                    for s in range(n_s):
+                        alpha[n,0,0,s] = alpha_sc[n,0,0,0] - sign(coeff) * delta * (1 - 2*s)
+                        alpha[n,1,1,s] = alpha_sc[n,1,1,0] + delta * (1 - 2*s)
+                        alpha[n,0,1,s] = alpha_sc[n,0,1,0] + delta * (1 - 2*s) * (abs(alpha_sc[n,0,1,0]) > 1e-6)
+                        alpha[n,1,0,s] = alpha_sc[n,1,0,0] + sign(coeff) * delta * (1 - 2*s) * (abs(alpha_sc[n,1,0,0]) > 1e-6)
+
+            alpha = mpi.bcast(alpha, root=0)
+
+            # Make sure to set n_s as provided by the user
+            solve_params['n_s'] = n_s
+
+            mpi_print(" --- Alpha Tensor : ")
+            if n_s == 1:
+                mpi_print(str(alpha[...,0]))
             else:
-                assert n_s == 1, "For spinless systems the automatic alpha determination requires n_s to be 1"
+                mpi_print("Alpha Tensor s = 1:")
+                mpi_print(str(alpha[...,0]))
+                mpi_print("Alpha Tensor s = 2:")
+                mpi_print(str(alpha[...,1]))
+            solve_params['alpha'] = alpha
 
-            # Find the root of this function
-            def f(Sig_HF_flat):
-                Sig_HF = dict(unflatten(Sig_HF_flat, gf_struct))
-                G_iw = self.G0_iw.copy()
-                G_dens = {}
-                for bl, G0_bl in self.G0_iw:
-                    G_iw[bl] << inverse( inverse(G0_bl) - Sig_HF[bl] )
-                    G_dens[bl] = G_iw[bl].density().real
-                    Sig_HF[bl][:] = 0
-            
-                for term, coef in h_int:
-                    bl1, u1 = term[0][1]
-                    bl2, u2 = term[3][1]
-                    bl3, u3 = term[1][1]
-                    bl4, u4 = term[2][1]
-
-                    assert(bl1 == bl2 and bl3 == bl4)
-
-                    # Full Hatree Fock Solution
-                    Sig_HF[bl1][u2, u1] += coef * G_dens[bl3][u4, u3]
-                    Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
-
-                    # # Consider cross terms for equal blocks
-                    # if bl1 == bl3:
-                        # Sig_HF[bl1][u4, u1] -= coef * G_dens[bl3][u2, u3]
-                        # Sig_HF[bl3][u2, u3] -= coef * G_dens[bl1][u4, u1]
-            
-                Sig_HF_ordered = [[bl, Sig_HF[bl]] for bl, idx_lst in gf_struct]
-                return Sig_HF_flat - flatten(Sig_HF_ordered)
-            
-            # Invoke the root finder
-            Sig_HF_init = [[bl, np.zeros((bl_size, bl_size))] for bl, bl_size in gf_struct]
-            root_finder = root(f, flatten(Sig_HF_init))
-            
-            # Now calculate alpha from the Hartree Fock solution
-            delta = params_kw.pop('delta', 0.1)
-            alpha = []
-            densities_HF = []
-            if root_finder['success']:
-                Sig_HF = unflatten(root_finder['x'], gf_struct)
-                mpi_print("  -- Found Sigma_HF : ")
-                for bl, Sig_HF_bl in Sig_HF:
-                    mpi_print("        %s : \t"%bl + str(Sig_HF_bl).replace('\n','\n           \t'))
-                G_iw = self.G0_iw.copy()
-                for bl, G0_bl in self.G0_iw:
-                    G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
-                    dens_HF = np.diag(G_iw[bl].density()).real
-                    densities_HF.append((bl, dens_HF, sum(dens_HF)))
-                    if 'up' in bl:
-                        alpha.append( np.array([[n_o + delta] if n_s == 1 else [n_o + delta, n_o - delta] for n_o in dens_HF ]) )
-                    elif 'dn' in bl or 'do' in bl:
-                        alpha.append( np.array([[n_o - delta] if n_s == 1 else [n_o - delta, n_o + delta] for n_o in dens_HF ]) )
-                    else:
-                        alpha.append( np.array([[n_o] for n_o in dens_HF ]) )
-            else:
-                mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
-                bl_size = gf_struct[0][1]
-                for bl, G0_bl in self.G0_iw:
-                    if 'up' in bl:
-                        alpha.append( [[0.5 + delta] if n_s == 1 else [0.5 + delta, 0.5 - delta] for i in range(bl_size) ] )
-                    elif 'dn' in bl or 'do' in bl:
-                        alpha.append( [[0.5 - delta] if n_s == 1 else [0.5 - delta, 0.5 + delta] for i in range(bl_size) ] )
-                    else:
-                        alpha.append( [[0.5] for i in range(bl_size) ] )
-            
-            params_kw['alpha'] = alpha
-            
-            mpi_print("  -- HF Densities : ")
-            for bl, dens, dens_tot in densities_HF:
-                mpi_print("        %s : \t%s    Total: %.4f"%(bl, dens, dens_tot))
-
-            mpi_print("  -- Alpha Tensor : ")
-            for bl, alpha_bl in zip(list(dict(gf_struct).keys()), alpha):
-                mpi_print("        %s : \t"%bl + str(alpha_bl).replace('\n','\n           \t'))
-
-        # Call the core solver's solve routine
-        solve_status = SolverCore.solve(self, **params_kw)
-
+        solve_status = SolverCore.solve(self, **solve_params)
         return solve_status

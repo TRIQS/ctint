@@ -17,6 +17,9 @@ namespace triqs_ctint {
     /// Noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_iw;
 
+    /// The inverse of the noninteracting Green Function
+    g_iw_t G0_iw_inv;
+
     /// Dynamic density-density interaction in Matsubara frequencies
     std::optional<block2_gf<imfreq, matrix_valued>> D0_iw;
 
@@ -52,6 +55,10 @@ namespace triqs_ctint {
     /// The shifted noninteracting Green Function in imaginary time
     g_tau_t G0_shift_tau;
 
+    // Calculate G0_shift_tau given G0_iw
+    CPP2PY_ARG_AS_DICT
+    void prepare_G0_shift_iw(params_t const &params);
+
     // Struct containing the parameters relevant for the solver construction
     constr_params_t constr_params;
 
@@ -61,9 +68,6 @@ namespace triqs_ctint {
     private:
     // Mpi Communicator
     mpi::communicator world;
-
-    // Calculate G0_shift_tau given G0_iw
-    void prepare_G0_shift_tau(params_t const &params);
 
     // Return reference to container_set
     container_set &result_set() { return static_cast<container_set &>(*this); }
@@ -91,6 +95,7 @@ namespace triqs_ctint {
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "last_solve_params", s.last_solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);
+      h5_write(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_write(grp, "D0_iw", s.D0_iw);
@@ -106,6 +111,7 @@ namespace triqs_ctint {
       h5_read(grp, "", s.result_set());
       h5_read(grp, "last_solve_params", s.last_solve_params);
       h5_read(grp, "G0_iw", s.G0_iw);
+      h5::try_read(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_read(grp, "D0_iw", s.D0_iw);

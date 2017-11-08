@@ -56,7 +56,7 @@ S.solve(h_int=h_int,
         measure_chiAB_tau = True,
         chi_A_vec = [n('up',0) + n('dn', 0)],
         chi_B_vec = [n('up',0) + n('dn', 0)],
-        post_process = True )
+        post_process = True)
 
 # -------- Save in archive ---------
 with HDFArchive("%s.out.h5"%test_name,'w') as arch:

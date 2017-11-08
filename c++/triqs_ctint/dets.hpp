@@ -28,8 +28,11 @@ namespace triqs_ctint {
     /// The orbital (or non-block) index
     int u;
 
-    /// Switch for alpha shift along the diagonal of the matrix. Relevant for density-type interactions
-    bool with_alpha_shift = false;
+    /// The label of the vertex (position in h_int)
+    int vertex_label = 0;
+
+    /// The position in the quartic operator (cdag_0 c_0 cdag_1 c_1)
+    int pos = 0;
 
     /// The auxiliary spin
     int s = 0;
@@ -59,10 +62,15 @@ namespace triqs_ctint {
     gf_const_view<imtime, g_tau_t::target_t> G0_shift_tau;
 
     /// The alpha function
-    array<double, 2> alpha;
+    array_const_view<double, 4> alpha;
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
-      if ((c.tau == cdag.tau) and (c.u == cdag.u)) { return G0_shift_tau[0](c.u, cdag.u) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
+      // Contractions between operators of the same vertex get an alpha shift
+      // Use tau-equality to check if cdag and c are from the same vertex
+      if (c.tau == cdag.tau) {
+        auto res = G0_shift_tau[0](c.u, cdag.u) + (c.u == cdag.u ? 1 : 0) - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
+        return res;
+      }
       auto [s, dtau] = cyclic_difference(c.tau, cdag.tau);
       auto res       = G0_shift_tau[closest_mesh_pt(dtau)](c.u, cdag.u);
       // For the equal-time case, consider the order <c cdag>

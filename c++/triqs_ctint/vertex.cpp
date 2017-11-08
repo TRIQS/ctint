@@ -51,6 +51,7 @@ namespace triqs_ctint {
        << "tau4=" << v.tau4 << ", "
        << "amplitude=" << v.amplitude << ", "
        << "proposition_proba=" << v.proposition_proba << ", "
+       << "vertex_label=" << v.vertex_label << ", "
        << "s=" << v.s << "}";
     return os;
   }
