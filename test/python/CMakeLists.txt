@@ -11,6 +11,7 @@ set(all_tests
   static/supercond
   static/two_site
   static/plaquette
+  static/jacobi_test
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens

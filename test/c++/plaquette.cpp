@@ -62,13 +62,13 @@ TEST(CtInt, Plaquette) { // NOLINT
   }
 
   // Define the alpha tensor
-  auto alpha_bl = nda::array<double, 2>(n_orb, 2);
-  auto alpha    = alpha_t{alpha_bl, alpha_bl};
-  double delta   = 0.1;
-  alpha[0](_, 0) = 0.5 + delta;
-  alpha[0](_, 1) = 0.5 - delta;
-  alpha[1](_, 0) = 0.5 - delta;
-  alpha[1](_, 1) = 0.5 + delta;
+  long n_terms = std::distance(h_int.begin(), h_int.end());
+  alpha_t alpha(n_terms, 2, 2, 2);
+  double const delta = 0.1;
+  for (long l = 0; l < n_terms; ++l) {
+    alpha(l, _, _, 0) = nda::matrix{{0.5 - delta, 0.}, {0., 0.5 + delta}};
+    alpha(l, _, _, 1) = nda::matrix{{0.5 + delta, 0.}, {0., 0.5 - delta}};
+  };
 
   // --------- Solve! ----------
 

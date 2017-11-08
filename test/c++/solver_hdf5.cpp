@@ -30,12 +30,14 @@ int main(int argc, char **argv) {
 
   // Parameters for the Run
   solve_params_t sp;
-  sp.h_int           = U * n("up", 0) * n("down", 0);
-  sp.n_s             = 1;
-  sp.alpha           = {{{0.5 + 0.1}}, {{0.5 - 0.1}}};
-  sp.length_cycle    = 50;
-  sp.n_warmup_cycles = 1000;
-  sp.n_cycles        = 1000;
+  sp.h_int             = U * n("up", 0) * n("down", 0);
+  sp.n_s               = 1;
+  sp.alpha             = nda::zeros<double>(1, 2, 2, 1);
+  sp.alpha(0, 0, 0, 0) = 0.5;
+  sp.alpha(0, 1, 1, 0) = 0.5;
+  sp.length_cycle      = 50;
+  sp.n_warmup_cycles   = 1000;
+  sp.n_cycles          = 1000;
 
   // Solve the model
   S.solve(sp);
