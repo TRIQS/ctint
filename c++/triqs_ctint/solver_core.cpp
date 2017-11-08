@@ -15,6 +15,7 @@ namespace triqs_ctint {
 
     // Allocate essential QMC containers
     G0_iw    = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
+    G0_iw_inv = G0_iw;
     G_iw     = G0_iw;
     Sigma_iw = G0_iw;
 
@@ -44,8 +45,31 @@ namespace triqs_ctint {
     // Merge constr_params and solve_params
     params_t params(constr_params, solve_params);
 
+    // Assert hermiticity of the given Weiss field
+    if (!is_gf_hermitian(G0_iw)) TRIQS_RUNTIME_ERROR << "Please make sure that G0_iw fullfills the hermiticity relation G_ij[iw] = G_ji[-iw]*";
+
+    // Calculate the Weiss field inverse
+    G0_iw_inv = inverse(G0_iw);
+
     // Prepare shifted non-interacting Green function for QMC
-    prepare_G0_shift_tau(params);
+    prepare_G0_shift_iw(params);
+
+    // --- Calculate G0_shift_tau from G0_shift_iw
+    // Known high-frequency moments of G0_shift_iw are assumed to be {0,1}
+    auto km = make_zero_tail(G0_shift_iw, 2);
+    for (auto &km_bl : km) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
+    auto tau_mesh = gf_mesh<imtime>{params.beta, Fermion, params.n_tau};
+#ifdef GTAU_IS_COMPLEX
+    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
+    G0_shift_tau     = make_gf_from_fourier(G0_shift_iw, tau_mesh, tail);
+#else
+    if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
+      std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
+      G0_shift_iw = make_real_in_tau(G0_shift_iw);
+    }
+    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
+    G0_shift_tau     = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, tail));
+#endif
 
     // Reset the containers
     container_set::operator=(container_set{});
@@ -100,47 +124,42 @@ namespace triqs_ctint {
 
   // -------------------------------------------------------------------------------
 
-  void solver_core::prepare_G0_shift_tau(params_t const &p) {
+  // Prepare shifted non-interacting Green Function G0_shift_iw for Monte Carlo
+  // with renormalization of the chemical potential due to alpha
+  void solver_core::prepare_G0_shift_iw(params_t const &p) {
 
-    // Assert hermiticity of the given Weiss field FIXME
-    if (!is_gf_hermitian(G0_iw)) TRIQS_RUNTIME_ERROR << "Please make sure that G0_iw fullfills the hermiticity relation G_ij[iw] = G_ji[-iw]*";
+    // Container that will hold the inverse of the shifted Green function
+    g_iw_t G0_shift_iw_inv = G0_iw_inv;
 
-    // Prepare shifted non-interacting Green Function G0_shift_tau for Monte Carlo
-    // with renormalization of the chemical potential due to alpha
-    g_iw_t G0_inv = inverse(G0_iw);
+    // Assert compatibility between alpha tensor and h_int
+    size_t n_terms = std::distance(p.h_int.begin(), p.h_int.end());
+    if (p.alpha.shape() != mini_vector<size_t, 4>(n_terms, 2, 2, p.n_s))
+      TRIQS_RUNTIME_ERROR << "Error: Alpha and h_int are incompatible: Different number of density-density terms \n";
 
-    // Assert compatibility between gf_struct an alpha
-    if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
-    for (auto [bl, alpha_bl] : zip(p.gf_struct, p.alpha))
-      if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s)) TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
+    int n = 0;
 
     // Loop over static density-density interaction terms
     for (auto const &term : p.h_int) {
-
       auto &m = term.monomial;
 
       if (m[0].indices[0] != m[3].indices[0] or m[1].indices[0] != m[2].indices[0])
         TRIQS_RUNTIME_ERROR << "Interaction term with incompatible block structure: cdag_1 cdag_2 c_2 c_1 required";
 
-      if (!is_densdens_interact(m)) continue;
+      auto [bl_0, idx_cdag_0] = get_int_indices(m[0], p.gf_struct);
+      auto [bl_1, idx_cdag_1] = get_int_indices(m[1], p.gf_struct);
+      auto [bl_c_1, idx_c_1]  = get_int_indices(m[2], p.gf_struct);
+      auto [bl_c_0, idx_c_0]  = get_int_indices(m[3], p.gf_struct);
 
-      auto [bl1, idx1] = get_int_indices(m[0], p.gf_struct);
-      auto [bl2, idx2] = get_int_indices(m[1], p.gf_struct);
-
-      // Shift diagonal Green function components according to Eq. (17) of implementation Notes
-      dcomplex shift_1 = 0.0;
-      dcomplex shift_2 = 0.0;
+      // Shift equal-time Green function components according to alpha-tensor
       for (int s : range(p.n_s)) {
-        shift_1 += p.alpha[bl1](idx1, s);
-        shift_2 += p.alpha[bl2](idx2, s);
+        G0_shift_iw_inv[bl_0].data()(range(), idx_cdag_0, idx_c_0) -= p.alpha(n, 1, 1, s) * U_scalar_t(term.coef) / p.n_s;
+        G0_shift_iw_inv[bl_1].data()(range(), idx_cdag_1, idx_c_1) -= p.alpha(n, 0, 0, s) * U_scalar_t(term.coef) / p.n_s;
+        if (bl_0 == bl_1) { // Cross terms are only possible for equal blocks
+          G0_shift_iw_inv[bl_0].data()(range(), idx_cdag_0, idx_c_1) += p.alpha(n, 1, 0, s) * U_scalar_t(term.coef) / p.n_s;
+          G0_shift_iw_inv[bl_1].data()(range(), idx_cdag_1, idx_c_0) += p.alpha(n, 0, 1, s) * U_scalar_t(term.coef) / p.n_s;
+        }
       }
-      shift_1 *= dcomplex(term.coef) / p.n_s;
-      shift_2 *= dcomplex(term.coef) / p.n_s;
-
-      auto g_1 = slice_target_to_scalar(G0_inv[bl1], idx1, idx1);
-      auto g_2 = slice_target_to_scalar(G0_inv[bl2], idx2, idx2);
-      g_1(iw_) << g_1(iw_) - shift_2;
-      g_2(iw_) << g_2(iw_) - shift_1;
+      ++n;
     }
 
     if (D0_iw) {
@@ -153,34 +172,19 @@ namespace triqs_ctint {
         for (int i : range(Rank)) {
 
           // Calculate and subtract term according to notes
-          dcomplex term = 0.0;
-          for (int sigp : range(p.n_blocks()))
-            for (int j : range(Rank))
-              for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha[sigp](j, s); }
-          auto g = slice_target_to_scalar(G0_inv[sig], i, i);
-          g(iw_) << g(iw_) - term / p.n_s;
+          TRIQS_RUNTIME_ERROR << "FIXME";
+          //dcomplex term = 0.0;
+          //for (int sigp : range(p.n_blocks()))
+          //for (int j : range(Rank))
+          //for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha_l[sigp](j, s); }
+          //auto g = slice_target_to_scalar(G0_shift_iw_inv[sig], i, i);
+          //g(iw_) << g(iw_) - term / p.n_s;
         }
       }
     }
 
-    // Invert and Fourier transform to imaginary times
-    G0_shift_iw = inverse(G0_inv);
-
-    // Known high-frequency moments of G0_shift_iw are assumed to be {0,1}
-    auto km = make_zero_tail(G0_shift_iw, 2);
-    for (auto &km_bl : km) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
-    auto tau_mesh = gf_mesh<imtime>{p.beta, Fermion, p.n_tau};
-#ifdef GTAU_IS_COMPLEX
-    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
-    G0_shift_tau     = make_gf_from_fourier(G0_shift_iw, tau_mesh, tail);
-#else
-    if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
-      std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
-      G0_shift_iw = make_real_in_tau(G0_shift_iw);
-    }
-    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
-    G0_shift_tau     = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, tail));
-#endif
+    // Invert
+    G0_shift_iw = inverse(G0_shift_iw_inv);
   }
 
   // -------------------------------------------------------------------------------

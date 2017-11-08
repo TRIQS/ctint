@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
   // Hubbard Atom parameters
   double U    = 1.0;
-  double mu   = U/2.0;
+  double mu   = U / 2.0;
   double beta = 10;
 
   // Create Solver
@@ -32,7 +32,9 @@ int main(int argc, char **argv) {
   // Parameters for the Run
   solve_params_t sp;
   sp.h_int           = U * n("up", 0) * n("down", 0);
-  sp.alpha           = {{{0.5 + 0.1}}, {{0.5 - 0.1}}};
+  sp.alpha           = triqs::arrays::zeros<double>(mini_vector<int,4>{1,2,2,1});
+  sp.alpha(0,0,0,0)  = 0.5;
+  sp.alpha(0,1,1,0)  = 0.5;
   sp.length_cycle    = 50;
   sp.n_warmup_cycles = 1000;
   sp.n_cycles        = 1000;

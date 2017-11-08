@@ -61,7 +61,7 @@ namespace triqs_ctint {
     /// Number of auxiliary spins
     int n_s = 1;
 
-    /// Alpha parameter
+    /// Alpha tensor
     alpha_t alpha;
 
     /// Number of MC cycles
@@ -160,6 +160,7 @@ namespace triqs_ctint {
 
   /// A struct combining both constr_params_t and solve_params_t
   struct params_t : constr_params_t, solve_params_t {
+    params_t() = default;
     params_t(constr_params_t const &constr_params_, solve_params_t const &solve_params_)
        : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
   };
