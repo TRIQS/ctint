@@ -103,9 +103,6 @@ namespace triqs_ctint {
     /// Measure M(iomega) using nfft
     bool measure_M_iw = false;
 
-    /// Measure F(tau)
-    bool measure_F_tau = false;
-
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
     /// Number of positive Matsubara frequencies in M4

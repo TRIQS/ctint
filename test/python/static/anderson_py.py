@@ -47,7 +47,6 @@ S.solve(h_int=h_int,
         random_seed = 34788,
         measure_M_tau = True,
         measure_M_iw = True,
-        measure_F_tau = True,
         post_process = False )
 
 # -------- Save in archive ---------
