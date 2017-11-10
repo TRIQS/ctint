@@ -4,16 +4,15 @@
 #define STRINGIZE(x) STR(x)
 
 #ifdef DEBUG_CTINT
-#define TRIQS_ARRAYS_ENFORCE_BOUNDCHECK
 #define TRIQS_EXCEPTION_SHOW_CPP_TRACE
 #include <iostream>
 #include <string.h>
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << '\n'
+#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << std::endl
 #define BREAK(X)                                                                                                                                     \
-  std::cerr << X << " ... \n";                                                                                                                       \
+  std::cerr << X << " ... " << std::endl;                                                                                                            \
   getchar()
-#define PRINT(X) std::cerr << "\n ========= " << X << " ========= \n"
+#define PRINT(X) std::cerr << "\n ========= " << X << " ========= " << std::endl
 #else
 #define DEBUG(X)
 #define BREAK(X)
@@ -192,28 +191,28 @@ namespace triqs_ctint {
 #ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
 #else
-  using g_tau_t = block_gf<imtime, matrix_real_valued>;
+  using g_tau_t        = block_gf<imtime, matrix_real_valued>;
 #endif
 
   /// Scalar type of g_tau
-  using g_tau_scalar_t = g_tau_t::g_t::scalar_t; 
+  using g_tau_scalar_t = g_tau_t::g_t::scalar_t;
 
 /// Scalar type of all interaction vertices
 #ifdef INTERACTION_IS_COMPLEX
   using U_scalar_t = dcomplex;
 #else
-  using U_scalar_t = double;
+  using U_scalar_t     = double;
 #endif
 
 /// The target_type of the intermediate scattering matrices
 #if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX
-  using M_tau_target_t = matrix_valued; 
+  using M_tau_target_t = matrix_valued;
 #else
-  using M_tau_target_t = matrix_real_valued; 
+  using M_tau_target_t = matrix_real_valued;
 #endif
 
   /// Type of the Monte-Carlo weight. Either double or dcomplex
-  using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{}); 
+  using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{});
 
   /// A const_view to a g_tau_t
   using g_tau_cv_t = g_tau_t::const_view_type;
