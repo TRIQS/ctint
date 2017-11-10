@@ -35,7 +35,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTA
 endif()
 message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
 
-# Macro defined in TRIQS which picks the hash of repo.
 triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
 
 # Common to all targets (ctint, python, tests).
