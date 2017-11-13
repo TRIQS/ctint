@@ -57,7 +57,7 @@ namespace triqs::gfs {
 
   /// The real part of a triqs Green function with an optional check for a vanishing imaginary part
   template <typename Gf> std::enable_if_t<is_gf<Gf>::value, typename Gf::regular_type::real_t> get_real(Gf const &G, bool check_no_imag = false) {
-    if (check_no_imag && !is_gf_real(G)) TRIQS_RUNTIME_ERROR << " Assuming real G, but found Imag(G) > 0 ";
+    if (check_no_imag && !is_gf_real(G)) std::cerr << "WARNING: Assuming real G, but found Imag(G) > 0. Casting to Real.\n";
     return {G.mesh(), real(G.data()), G.memory_layout(), {}, G.indices()}; // FIXME TAIL NOT PROPERLY DONE
   }
 
