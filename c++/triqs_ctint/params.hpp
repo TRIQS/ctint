@@ -112,8 +112,10 @@ namespace triqs_ctint {
     bool measure_M3pp_iw = false;
     /// Measure M3ph(iw)
     bool measure_M3ph_iw = false;
-    /// Number of positive Matsubara frequencies in M3
+    /// Number of positive fermionic Matsubara frequencies in M3
     int n_iw_M3 = 64;
+    /// Number of positive bosonic Matsubara frequencies in M3
+    int n_iW_M3 = 32;
 
     /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;

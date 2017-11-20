@@ -262,7 +262,9 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | measure_M3ph_iw      | bool                                 | false                                          | Measure M3ph(iw)                                                      |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| n_iw_M3              | int                                  | 64                                             | Number of positive Matsubara frequencies in M3                        |
+| n_iw_M3              | int                                  | 64                                             | Number of positive fermionic Matsubara frequencies in M3              |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
+| n_iW_M3              | int                                  | 32                                             | Number of positive bosonic Matsubara frequencies in M3                |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | measure_M3pp_tau     | bool                                 | false                                          | Measure M3pp(tau)                                                     |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
@@ -398,7 +400,12 @@ c.add_member(c_name = "measure_M3ph_iw",
 c.add_member(c_name = "n_iw_M3",
              c_type = "int",
              initializer = """ 64 """,
-             doc = """Number of positive Matsubara frequencies in M3""")
+             doc = """Number of positive fermionic Matsubara frequencies in M3""")
+
+c.add_member(c_name = "n_iW_M3",
+             c_type = "int",
+             initializer = """ 32 """,
+             doc = """Number of positive bosonic Matsubara frequencies in M3""")
 
 c.add_member(c_name = "measure_M3pp_tau",
              c_type = "bool",

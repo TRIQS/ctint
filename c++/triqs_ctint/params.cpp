@@ -65,6 +65,7 @@ namespace triqs_ctint {
     h5_write(grp, "measure_M3pp_iw", sp.measure_M3pp_iw);
     h5_write(grp, "measure_M3ph_iw ", sp.measure_M3ph_iw);
     h5_write(grp, "n_iw_M3", sp.n_iw_M3);
+    h5_write(grp, "n_iW_M3", sp.n_iW_M3);
     h5_write(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_write(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_write(grp, "n_tau_M3", sp.n_tau_M3);
@@ -98,6 +99,7 @@ namespace triqs_ctint {
     h5_read(grp, "measure_M3pp_iw", sp.measure_M3pp_iw);
     h5_read(grp, "measure_M3ph_iw ", sp.measure_M3ph_iw);
     h5_read(grp, "n_iw_M3", sp.n_iw_M3);
+    h5_read(grp, "n_iW_M3", sp.n_iW_M3);
     h5_read(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_read(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_read(grp, "n_tau_M3", sp.n_tau_M3);

@@ -12,7 +12,8 @@ namespace triqs_ctint::measures {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    gf_mesh<cartesian_product<imfreq, imfreq>> M3ph_iw_mesh{iw_mesh, iw_mesh};
+    gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
+    gf_mesh<cartesian_product<imfreq, imfreq>> M3ph_iw_mesh{iw_mesh, iW_mesh};
 
     // Init measurement container and capture view // FIXME c++17 if constexpr
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
@@ -20,9 +21,10 @@ namespace triqs_ctint::measures {
     M3ph_iw_() = 0;
 
     // Initialize intermediate scattering matrix
-    M  = make_block_gf(M3ph_iw_mesh, params.gf_struct);
+    gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
+    M  = make_block_gf(gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh_large, iw_mesh}, params.gf_struct);
     GM = make_block_gf(iw_mesh, params.gf_struct);
-    MG = make_block_gf(iw_mesh, params.gf_struct);
+    MG = make_block_gf(iw_mesh_large, params.gf_struct);
 
     auto init_target_func = [&](int bl) {
       int bl_size = GM[bl].target_shape()[0];
@@ -95,7 +97,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr_MG)
       for (auto &buf : buf_arr) buf.flush();
 
-    auto const &iw_mesh = GM[0].mesh();
+    auto [iw_mesh, iW_mesh] = M3ph_iw_(0,0).mesh(); 
 
     for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
@@ -112,10 +114,13 @@ namespace triqs_ctint::measures {
           for (int j : range(bl1_size))
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
-                for (auto const &iw1 : iw_mesh)
-                  for (auto const &iw2 : iw_mesh)
-                    M3ph_iw[{iw1, iw2}](i, j, k, l) +=
+                for (auto const &iw : iw_mesh)
+                  for (auto const &iW : iW_mesh){
+		    matsubara_freq iw2 = iW + iw; 
+		    matsubara_freq iw1 = iw; 
+                    M3ph_iw[{iw, iW}](i, j, k, l) +=
                        sign * (M1[{iw2, iw1}](j, i) * GMG2(l, k) - kronecker(bl1, bl2) * GM1[iw1](l, i) * MG2[iw2](j, k));
+		  }
       }
   }
 

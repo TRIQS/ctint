@@ -257,6 +257,8 @@ namespace triqs_ctint {
     triqs::clef::placeholder<13> bl_;
     triqs::clef::placeholder<14> bl1_;
     triqs::clef::placeholder<15> bl2_;
+    triqs::clef::placeholder_prime<0> iW_;
+    triqs::clef::placeholder_prime<1> iwp_;
   } // anonymous namespace
 
 } // namespace triqs_ctint
