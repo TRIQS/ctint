@@ -43,9 +43,10 @@ script:
   - make -j8
   - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-5.0/bin/llvm-symbolizer
   - export ASAN_OPTIONS=symbolize=1:detect_leaks=0
-  - cd test/c++ && ctest -V
+  - export CTEST_OUTPUT_ON_FAILURE=1
+  - cd test/c++ && ctest
   - if [ "$CXX" = g++ ]; then export LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/7/libasan.so; elif [ "$CXX" = clang++ ]; then export LD_PRELOAD=/usr/lib/llvm-5.0/lib/clang/5.0.1/lib/linux/libclang_rt.asan-x86_64.so; fi
-  - cd ../python && ctest -V
+  - cd ../python && ctest
   - cd ../../
   - unset LD_PRELOAD
   # ===== Set up CTINT and Test using fsanitize=memory
