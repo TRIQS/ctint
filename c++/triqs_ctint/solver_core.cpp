@@ -37,7 +37,12 @@ namespace triqs_ctint {
 
   void solver_core::solve() {
 
-    if (world.rank() == 0) std::cout << "Welcome to the CT-INT solver" << std::endl << std::endl;
+    // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
+    if (world.rank() == 0)
+      std::cout << "\n"
+                   "╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┌┬┐┬ ┌┐┌┌┬┐\n"
+                   " ║ ╠╦╝║║═╬╗╚═╗  │   │ │ │││ │ \n"
+                   " ╩ ╩╚═╩╚═╝╚╚═╝  └─┘ ┴ ┴ ┘└┘ ┴ \n";
 
     // Merge constr_params and solve_params
     params_t params(constr_params, solve_params);
@@ -83,6 +88,11 @@ namespace triqs_ctint {
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
     mc.collect_results(world);
+
+    if (world.rank() == 0) {
+      if (params.measure_average_sign) std::cout << "Average sign: " << average_sign << "\n";
+      if (params.measure_average_k) std::cout << "Average perturbation order: " << average_k << "\n";
+    }
 
     // Post Processing
     if (params.post_process) { post_process(params); }
@@ -161,7 +171,8 @@ namespace triqs_ctint {
 
   void solver_core::post_process(params_t const &p) {
 
-    std::cout << " Post-processing ... \n";
+    std::cout << "\n"
+                 "Post-processing ... \n";
 
     // Calculate M_iw from M_tau
     if (M_tau) M_iw = make_gf_from_fourier( block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
