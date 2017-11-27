@@ -171,8 +171,9 @@ namespace triqs_ctint {
 
   void solver_core::post_process(params_t const &p) {
 
-    std::cout << "\n"
-                 "Post-processing ... \n";
+    if (world.rank() == 0)
+      std::cout << "\n"
+                   "Post-processing ... \n";
 
     // Calculate M_iw from M_tau
     if (M_tau) M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
