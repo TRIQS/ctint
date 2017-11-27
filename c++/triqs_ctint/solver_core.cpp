@@ -99,8 +99,8 @@ namespace triqs_ctint {
 
     //// Write results to file
     //if (!triqs::mpi::communicator().rank()) {
-      //triqs::h5::file h5file("ctqmc_out.h5", 'w');
-      //h5_write(h5file, "", *this);
+    //triqs::h5::file h5file("ctqmc_out.h5", 'w');
+    //h5_write(h5file, "", *this);
     //}
   }
 
@@ -156,14 +156,14 @@ namespace triqs_ctint {
       }
     }
 
-    for(auto &G: G0_inv){ G.singularity().reset(); }
+    for (auto &G : G0_inv) { G.singularity().reset(); }
 
     // Invert and Fourier transform to imaginary times
-    G0_shift_iw  = inverse(G0_inv);
+    G0_shift_iw = inverse(G0_inv);
 #ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
 #else
-    G0_shift_tau = get_real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau), true); 
+    G0_shift_tau = get_real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau), true);
 #endif
   }
 
@@ -175,7 +175,7 @@ namespace triqs_ctint {
                  "Post-processing ... \n";
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier( block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
+    if (M_tau) M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
@@ -195,7 +195,7 @@ namespace triqs_ctint {
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
     if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
-    if (G2c_iw && G_iw) F_iw  = F_from_G2c(*G2c_iw, *G_iw);
+    if (G2c_iw && G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
     if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
     // Calculate chi2_tau from M2_tau and M_iw
@@ -207,8 +207,8 @@ namespace triqs_ctint {
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_M2);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw && M_iw) chi3pp_iw           = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
-    if (M3ph_iw && M_iw) chi3ph_iw           = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
+    if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
+    if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
     if (M3pp_iw_nfft && M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
     if (M3ph_iw_nfft && M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
   }
