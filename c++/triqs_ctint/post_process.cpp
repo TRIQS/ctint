@@ -59,7 +59,7 @@ namespace triqs_ctint {
             for (int o : range(bl2_size))
               for (int p : range(bl2_size))
                 F_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << F_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-                      + Ginv[bl1](iw2_)(j_, n) * Ginv[bl2](iw1_ + iw2_ - iw3_)(l_, p) * G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
+                      + Ginv[bl1](iw2_)(j_, n) * Ginv[bl2](iw1_ - iw2_ + iw3_)(l_, p) * G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
                          * Ginv[bl1](iw1_)(m, i_) * Ginv[bl2](iw3_)(o, k_);
       }
 
