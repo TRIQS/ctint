@@ -156,8 +156,6 @@ namespace triqs_ctint {
       }
     }
 
-    for (auto &G : G0_inv) { G.singularity().reset(); }
-
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
 #ifdef GTAU_IS_COMPLEX
