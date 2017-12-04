@@ -20,7 +20,6 @@
 ################################################################################
 
 version = "@CTINT_VERSION@"
-release = "@CTINT_RELEASE@"
 triqs_hash = "@TRIQS_GIT_HASH@"
 ctint_hash = "@CTINT_GIT_HASH@"
 

@@ -12,7 +12,6 @@ source_suffix = '.rst'
 project = u'TRIQS Interaction Expansion Solver'
 copyright = u'2017, N. Wentzell, M. Ferrero, O. Parcollet'
 version = '@CTINT_VERSION@'
-release = '@CTINT_RELEASE@'
 
 mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
 templates_path = ['@CMAKE_SOURCE_DIR@/doc/_templates']
