@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17 -DHAS_OPTIONAL_HEADER"
+# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17"
 from cpp2py.wrap_generator import *
 
 # The module

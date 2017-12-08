@@ -32,7 +32,7 @@ add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst.log
 		    ${CMAKE_SOURCE_DIR}/c++/solver_core.hpp 
 		    -N triqs_ctint
 		    --output_directory ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst_generated
-		    --cxxflags "-std=c++17 -DHAS_OPTIONAL_HEADER" 
+		    --cxxflags "-std=c++17" 
 		    -I ${CMAKE_SOURCE_DIR}/c++ 
 		    -I ${TRIQS_ROOT}/include 
 		    2>&1 > cpp2rst.log
