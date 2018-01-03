@@ -6,6 +6,7 @@
 #include "./post_process.hpp"
 #include "./qmc_config.hpp"
 #include "./vertex_factories.hpp"
+#include <triqs/gfs/singularity/fit_tail.hpp>
 
 namespace triqs_ctint {
 
@@ -110,7 +111,7 @@ namespace triqs_ctint {
 
     // Prepare shifted non-interacting Green Function G0_shift_tau for Monte Carlo
     // with renormalization of the chemical potential due to alpha
-
+    // FIXME Symmetrize tails to -10 .. 10 so inverse(inverse) = Identity
     g_iw_t G0_inv = inverse(G0_iw);
 
     // Loop over static density-density interaction terms
@@ -158,6 +159,14 @@ namespace triqs_ctint {
 
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
+
+    for (auto &G : G0_shift_iw) {
+      G.singularity().data()() = 0.0; 
+      int bl_size        = G.target_shape()[0];
+      auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 1 /* lowest order moment */);
+      fit_tail(G, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+    }
+
 #ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
 #else
@@ -174,7 +183,25 @@ namespace triqs_ctint {
                    "Post-processing ... \n";
 
     // Calculate M_iw from M_tau
-    if (M_tau) M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
+    if (M_tau) {
+      M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
+      // We need the high-frequency moments for M_iw. Acquire with fitting
+      // FIXME Implement direct measurement of high-frequency moments
+      for (auto &M : *M_iw) {
+        int bl_size        = M.target_shape()[0];
+        auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 0 /* lowest order moment */);
+        fit_tail(M, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+      }
+    }
+
+    // Fitting the tail of M_iw_nfft
+    if (M_iw_nfft) {
+      for (auto &M : *M_iw_nfft) {
+        int bl_size        = M.target_shape()[0];
+        auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 0 /* lowest order moment */);
+        fit_tail(M, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+      }
+    }
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
