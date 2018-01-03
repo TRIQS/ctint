@@ -77,8 +77,8 @@ namespace triqs_ctint {
   template <template <typename, typename> class Gf, typename M_out, typename M_in, typename T>
   typename Gf<cartesian_product<M_out, M_out>, T>::regular_type
   _make_gf_impl_2d(typename Gf<cartesian_product<M_in, M_in>, T>::const_view_type const &G_in, int n_1, int n_2) {
-    auto domain   = std::get<0>(G_in.mesh()).domain(); // Assume equal domains
-    auto out_mesh = gf_mesh<cartesian_product<M_out, M_out>>{{domain, n_1}, {domain, n_2}};
+    auto [ domain_1, domain_2 ] = (G_in.mesh()).domain().domains;
+    auto out_mesh = gf_mesh<cartesian_product<M_out, M_out>>{{domain_1, n_1}, {domain_2, n_2}};
     auto G_out    = gf<cartesian_product<M_out, M_out>, T>{out_mesh, G_in.target_shape(), G_in.indices()};
     triqs_ctint::_fourier_impl(G_out(), G_in);
     return G_out;
@@ -87,8 +87,8 @@ namespace triqs_ctint {
   template <template <typename, typename> class Gf, typename M_out, typename M_in, typename T>
   typename Gf<cartesian_product<M_out, M_out, M_out>, T>::regular_type
   _make_gf_impl_3d(typename Gf<cartesian_product<M_in, M_in, M_in>, T>::const_view_type const &G_in, int n_1, int n_2, int n_3) {
-    auto domain   = std::get<0>(G_in.mesh()).domain(); // Assume equal domains
-    auto out_mesh = gf_mesh<cartesian_product<M_out, M_out, M_out>>{{domain, n_1}, {domain, n_2}, {domain, n_3}};
+    auto [ domain_1, domain_2, domain_3 ] = (G_in.mesh()).domain().domains;
+    auto out_mesh = gf_mesh<cartesian_product<M_out, M_out, M_out>>{{domain_1, n_1}, {domain_2, n_2}, {domain_3, n_3}};
     auto G_out    = gf<cartesian_product<M_out, M_out, M_out>, T>{out_mesh, G_in.target_shape(), G_in.indices()};
     triqs_ctint::_fourier_impl(G_out(), G_in);
     return G_out;

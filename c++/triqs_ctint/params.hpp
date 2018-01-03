@@ -115,9 +115,9 @@ namespace triqs_ctint {
     /// Number of positive Matsubara frequencies in M3
     int n_iw_M3 = 64;
 
-    /// Measure M3pp(iw)
+    /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;
-    /// Measure M3ph(iw)
+    /// Measure M3ph(tau)
     bool measure_M3ph_tau = false;
     /// Number of imaginary time points in M3
     int n_tau_M3 = 1000;
