@@ -69,8 +69,8 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
-                       + G_tau[bl1](beta - t)(j, i) * G_tau[bl2](beta - t)(l, k)
-                       + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](beta - t)(j, k);
+                       + G_tau[bl1](beta - t)(j, i) * G_tau[bl2](beta - t)(l, k) // Disconnected part
+                       - kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](beta - t)(j, k);
 
         } else if (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -97,7 +97,7 @@ namespace triqs_ctint {
                 for (int l : range(bl2_size))
                   for (auto const &t : tau_mesh)
                     chi2_tau(bl1, bl2)[t](i, j, k, l) = chi2_tau_conn(bl1, bl2)[t](i, j, k, l)
-                       + G_tau[bl1](beta - 1e-10)(j, i) * G_tau[bl2](beta - 1e-10)(l, k)
+                       + G_tau[bl1](beta - 1e-10)(j, i) * G_tau[bl2](beta - 1e-10)(l, k) // Disconnected part
                        + kronecker(bl1, bl2) * G_tau[bl1](beta - t)(l, i) * G_tau[bl2](t)(j, k);
         }
       }
