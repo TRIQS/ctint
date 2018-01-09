@@ -47,10 +47,10 @@ namespace triqs_ctint::measures {
     // Calculate intermediate scattering matrix
     for (int bl : range(params.n_blocks())) {
 
-      auto const &det  = qmc_config.dets[bl];
-      int det_size     = det.size();
+      auto const &det = qmc_config.dets[bl];
+      int det_size    = det.size();
 
-      if(det.size() == 0) continue; 
+      if (det.size() == 0) continue;
 
       auto const &cdag = cdag_vec[bl];
       int bl_size      = G0_tau[bl].target_shape()[0];
@@ -63,29 +63,44 @@ namespace triqs_ctint::measures {
     }
 
     // Calculate M3pp
-    for (int bl1 : range(params.n_blocks()))
+    for (int bl1 : range(params.n_blocks())) {
+
+      int det1_size = qmc_config.dets[bl1].size();
+
+      // Do not consider empty blocks
+      if (det1_size == 0) continue;
+
+      auto const &GM1 = GM_vec[bl1];
+      auto const &c1  = c_vec[bl1];
+      int bl1_size    = G0_tau[bl1].target_shape()[0];
+
+      // Crossing term (equal blocks)
+      auto &M3pp_tau = M3pp_tau_(bl1, bl1);
+      // FIXME for( auto [k,l,i,j] : product_range(bl1_size, bl1_size, det1_size, det1_size) )
+      for (int j : range(bl1_size))
+        for (int l : range(bl1_size))
+          for (int i : range(det1_size))
+            for (int k : range(det1_size)) M3pp_tau[{c1[i].tau_idx, c1[k].tau_idx}](c1[i].u, j, c1[k].u, l) += -sign * GM1(l, i) * GM1(j, k);
+
       for (int bl2 : range(params.n_blocks())) {
 
-        int det1_size   = qmc_config.dets[bl1].size();
-        int det2_size   = qmc_config.dets[bl2].size();
+        int det2_size = qmc_config.dets[bl2].size();
 
-	if(det1_size == 0 || det2_size == 0) continue; 
+        // Do not consider empty blocks
+        if (det2_size == 0) continue;
 
-        auto const &GM1 = GM_vec[bl1];
         auto const &GM2 = GM_vec[bl2];
-        auto const &c1  = c_vec[bl1];
         auto const &c2  = c_vec[bl2];
-        int bl1_size    = G0_tau[bl1].target_shape()[0];
         int bl2_size    = G0_tau[bl2].target_shape()[0];
         auto &M3pp_tau  = M3pp_tau_(bl1, bl2);
 
+        // Direct term
         for (int j : range(bl1_size))
           for (int l : range(bl2_size))
             for (int i : range(det1_size))
-              for (int k : range(det2_size))
-                M3pp_tau[{c1[i].tau_idx, c2[k].tau_idx}](c1[i].u, j, c2[k].u, l) +=
-                   sign * (GM1(j, i) * GM2(l, k) - kronecker(bl1, bl2) * GM1(l, i) * GM2(j, k));
+              for (int k : range(det2_size)) M3pp_tau[{c1[i].tau_idx, c2[k].tau_idx}](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
       }
+    }
   }
 
   void M3pp_tau::collect_results(triqs::mpi::communicator const &comm) {

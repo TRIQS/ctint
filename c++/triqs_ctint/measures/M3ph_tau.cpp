@@ -57,10 +57,10 @@ namespace triqs_ctint::measures {
     // Calculate intermediate scattering matrices
     for (int bl : range(params.n_blocks())) {
 
-      auto const &det  = qmc_config.dets[bl];
-      int det_size     = det.size();
+      auto const &det = qmc_config.dets[bl];
+      int det_size    = det.size();
 
-      if(det.size() == 0) continue; 
+      if (det.size() == 0) continue;
 
       auto const &c    = c_vec_G0[bl];
       auto const &cdag = cdag_vec_G0[bl];
@@ -73,39 +73,60 @@ namespace triqs_ctint::measures {
           G_left(u, i)  = -G0_tau[bl][cdag[i].tau_idx](u, cdag[i].u);
           G_right(i, u) = G0_tau[bl][c[i].tau_idx](c[i].u, u);
         }
-      M_vec[bl] = det.inverse_matrix_internal_order();
-      GM_vec[bl] = G_left * M_vec[bl];
-      MG_vec[bl] = M_vec[bl] * G_right;
+      M_vec[bl]   = det.inverse_matrix_internal_order();
+      GM_vec[bl]  = G_left * M_vec[bl];
+      MG_vec[bl]  = M_vec[bl] * G_right;
       GMG_vec[bl] = GM_vec[bl] * G_right;
     }
 
     // Calculate M3ph
-    for (int bl1 : range(params.n_blocks()))
+    for (int bl1 : range(params.n_blocks())) {
+
+      int det1_size = qmc_config.dets[bl1].size();
+
+      // Do not consider empty blocks
+      if (det1_size == 0) continue;
+
+      auto const &M     = M_vec[bl1];
+      auto const &GM    = GM_vec[bl1];
+      auto const &MG    = MG_vec[bl1];
+      int bl1_size      = G0_tau[bl1].target_shape()[0];
+      auto const &c1    = c_vec_M[bl1];
+      auto const &cdag1 = cdag_vec_M[bl1];
+
+      // Crossing term (equal blocks)
+      auto &M3ph_tau = M3ph_tau_(bl1, bl1);
+      // FIXME for( auto [k,l,i,j] : product_range(bl1_size, bl1_size, det1_size, det1_size) )
+      for (int k : range(bl1_size))
+        for (int l : range(bl1_size))
+          for (int i : range(det1_size))
+            for (int j : range(det1_size))
+              // We have to add an overall minus sign to account for the fourier transform of the right M index
+              // Since the crossing term is negative by itself, we get a positive sign here
+              // FIXME Adjust multidimensional fourier transform to allow for sperarate e^{-iwt} transforms
+              M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * GM(l, i) * MG(j, k);
+
       for (int bl2 : range(params.n_blocks())) {
 
-        int det1_size     = qmc_config.dets[bl1].size();
-        int det2_size     = qmc_config.dets[bl2].size();
+        int det2_size = qmc_config.dets[bl2].size();
 
-	if(det1_size == 0 || det2_size == 0) continue; 
+        // Do not consider empty blocks
+        if (det2_size == 0) continue;
 
-        auto const &M     = M_vec[bl1];
-        auto const &GMG   = GMG_vec[bl2];
-        auto const &GM    = GM_vec[bl1];
-        auto const &MG    = MG_vec[bl2];
-        auto const &c1    = c_vec_M[bl1];
-        auto const &cdag1 = cdag_vec_M[bl1];
-        int bl2_size      = G0_tau[bl2].target_shape()[0];
-        auto &M3ph_tau    = M3ph_tau_(bl1, bl2);
+        auto const &GMG = GMG_vec[bl2];
+        int bl2_size    = G0_tau[bl2].target_shape()[0];
+        auto &M3ph_tau  = M3ph_tau_(bl1, bl2);
 
+        // Direct term
         for (int k : range(bl2_size))
           for (int l : range(bl2_size))
             for (int i : range(det1_size))
               for (int j : range(det1_size))
                 // We have to add an overall minus sign to account for the fourier transform of the right M index
                 // FIXME Adjust multidimensional fourier transform to allow for sperarate e^{-iwt} transforms
-                M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) +=
-                   -sign * (M(j, i) * GMG(l, k) - kronecker(bl1, bl2) * GM(l, i) * MG(j, k));
+                M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * M(j, i) * GMG(l, k);
       }
+    }
   }
 
   void M3ph_tau::collect_results(triqs::mpi::communicator const &comm) {
