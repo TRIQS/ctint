@@ -47,10 +47,13 @@ namespace triqs_ctint::measures {
     // Calculate intermediate scattering matrix
     for (int bl : range(params.n_blocks())) {
 
-      auto const &cdag = cdag_vec[bl];
       auto const &det  = qmc_config.dets[bl];
-      int bl_size      = G0_tau[bl].target_shape()[0];
       int det_size     = det.size();
+
+      if(det.size() == 0) continue; 
+
+      auto const &cdag = cdag_vec[bl];
+      int bl_size      = G0_tau[bl].target_shape()[0];
       auto G           = matrix<dcomplex>(bl_size, det_size);
 
       for (int b_u : range(bl_size))
@@ -63,14 +66,17 @@ namespace triqs_ctint::measures {
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
 
+        int det1_size   = qmc_config.dets[bl1].size();
+        int det2_size   = qmc_config.dets[bl2].size();
+
+	if(det1_size == 0 || det2_size == 0) continue; 
+
         auto const &GM1 = GM_vec[bl1];
         auto const &GM2 = GM_vec[bl2];
         auto const &c1  = c_vec[bl1];
         auto const &c2  = c_vec[bl2];
         int bl1_size    = G0_tau[bl1].target_shape()[0];
         int bl2_size    = G0_tau[bl2].target_shape()[0];
-        int det1_size   = qmc_config.dets[bl1].size();
-        int det2_size   = qmc_config.dets[bl2].size();
         auto &M3pp_tau  = M3pp_tau_(bl1, bl2);
 
         for (int j : range(bl1_size))

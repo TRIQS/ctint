@@ -49,19 +49,22 @@ namespace triqs_ctint::measures {
     }
 
     // The intermediate scattering matrices
-    std::vector<matrix<dcomplex>> M_vec;   // M[bl](j, i) FIXME matrix_view does not work!
-    std::vector<matrix<dcomplex>> GM_vec;  // GM[bl](u, i)
-    std::vector<matrix<dcomplex>> MG_vec;  // MG[bl](j, u)
-    std::vector<matrix<dcomplex>> GMG_vec; // GMG[bl](u, u)
+    std::vector<matrix<dcomplex>> M_vec(params.n_blocks());   // M[bl](j, i) FIXME matrix_view does not work!
+    std::vector<matrix<dcomplex>> GM_vec(params.n_blocks());  // GM[bl](u, i)
+    std::vector<matrix<dcomplex>> MG_vec(params.n_blocks());  // MG[bl](j, u)
+    std::vector<matrix<dcomplex>> GMG_vec(params.n_blocks()); // GMG[bl](u, u)
 
     // Calculate intermediate scattering matrices
     for (int bl : range(params.n_blocks())) {
 
+      auto const &det  = qmc_config.dets[bl];
+      int det_size     = det.size();
+
+      if(det.size() == 0) continue; 
+
       auto const &c    = c_vec_G0[bl];
       auto const &cdag = cdag_vec_G0[bl];
-      auto const &det  = qmc_config.dets[bl];
       int bl_size      = G0_tau[bl].target_shape()[0];
-      int det_size     = det.size();
       auto G_left      = matrix<dcomplex>(bl_size, det_size);
       auto G_right     = matrix<dcomplex>(det_size, bl_size);
 
@@ -70,15 +73,20 @@ namespace triqs_ctint::measures {
           G_left(u, i)  = -G0_tau[bl][cdag[i].tau_idx](u, cdag[i].u);
           G_right(i, u) = G0_tau[bl][c[i].tau_idx](c[i].u, u);
         }
-      M_vec.emplace_back(det.inverse_matrix_internal_order());
-      GM_vec.push_back(G_left * M_vec[bl]);
-      MG_vec.push_back(M_vec[bl] * G_right);
-      GMG_vec.push_back(GM_vec[bl] * G_right);
+      M_vec[bl] = det.inverse_matrix_internal_order();
+      GM_vec[bl] = G_left * M_vec[bl];
+      MG_vec[bl] = M_vec[bl] * G_right;
+      GMG_vec[bl] = GM_vec[bl] * G_right;
     }
 
     // Calculate M3ph
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
+
+        int det1_size     = qmc_config.dets[bl1].size();
+        int det2_size     = qmc_config.dets[bl2].size();
+
+	if(det1_size == 0 || det2_size == 0) continue; 
 
         auto const &M     = M_vec[bl1];
         auto const &GMG   = GMG_vec[bl2];
@@ -86,7 +94,6 @@ namespace triqs_ctint::measures {
         auto const &MG    = MG_vec[bl2];
         auto const &c1    = c_vec_M[bl1];
         auto const &cdag1 = cdag_vec_M[bl1];
-        int det1_size     = qmc_config.dets[bl1].size();
         int bl2_size      = G0_tau[bl2].target_shape()[0];
         auto &M3ph_tau    = M3ph_tau_(bl1, bl2);
 
