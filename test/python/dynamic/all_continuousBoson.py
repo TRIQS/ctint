@@ -33,7 +33,7 @@ alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
 S = SolverCore(beta = beta,
                gf_struct = gf_struct,
                n_iw = 200,
-               n_tau = 100001,
+               n_tau = 10001,
                use_D = True,
                use_Jperp = True,
                n_tau_dynamical_interactions = 1025,
@@ -71,13 +71,20 @@ S.solve(h_int=h_int,
         random_seed = 34788,
         measure_M_tau = True,
         measure_M_iw = True,
-        post_process = False )
+        measure_M3pp_tau = True,
+        measure_M3ph_tau = True,
+        n_iw_M3 = 10,
+        n_iW_M3 = 10,
+        n_tau_M3 = 100,
+        post_process = True )
 
 # -------- Save in archive ---------
 A = HDFArchive("%s.out.h5"%test_name,'w')
 A["G0_iw"] = S.G0_iw
-A["M_tau"] = S.M_tau
+A["G_iw"] = S.G_iw
 A["M_iw_nfft"] = S.M_iw_nfft
+A["chi3pp_iw"] = S.chi3pp_iw
+A["chi3ph_iw"] = S.chi3ph_iw
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
