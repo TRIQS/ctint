@@ -42,7 +42,7 @@ namespace triqs_ctint::measures {
     }
 
     // The intermediate scattering matrix
-    std::vector<matrix<dcomplex>> GM_vec; // GM_vec[bl](u, i)
+    std::vector<matrix<dcomplex>> GM_vec(params.n_blocks()); // GM_vec[bl](u, i)
 
     // Calculate intermediate scattering matrix
     for (int bl : range(params.n_blocks())) {
@@ -59,7 +59,7 @@ namespace triqs_ctint::measures {
       for (int b_u : range(bl_size))
         for (int j : range(det_size)) G(b_u, j) = G0_tau[bl][cdag[j].tau_idx](b_u, cdag[j].u);
 
-      GM_vec.push_back(G * det.inverse_matrix_internal_order());
+      GM_vec[bl] = G * det.inverse_matrix_internal_order();
     }
 
     // Calculate M3pp
@@ -114,10 +114,10 @@ namespace triqs_ctint::measures {
     auto _ = var_t{};
     int n  = params.n_tau_M3 - 1;
     for (auto &M : M3pp_tau_) {
-      M[0,_] *= 2.0;
-      M[_,0] *= 2.0;
-      M[n,_] *= 2.0;
-      M[_,n] *= 2.0;
+      M[0, _] *= 2.0;
+      M[_, 0] *= 2.0;
+      M[n, _] *= 2.0;
+      M[_, n] *= 2.0;
     }
   }
 
