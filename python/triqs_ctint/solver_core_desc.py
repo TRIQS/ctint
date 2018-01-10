@@ -18,6 +18,7 @@ module.add_preamble("""
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/string.hpp>
+#include <cpp2py/converters/variant.hpp>
 #include <cpp2py/converters/vector.hpp>
 #include <triqs/cpp2py_converters/arrays.hpp>
 #include <triqs/cpp2py_converters/gf.hpp>
@@ -263,9 +264,9 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | n_iw_M3              | int                                  | 64                                             | Number of positive Matsubara frequencies in M3                        |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| measure_M3pp_tau     | bool                                 | false                                          | Measure M3pp(iw)                                                      |
+| measure_M3pp_tau     | bool                                 | false                                          | Measure M3pp(tau)                                                     |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| measure_M3ph_tau     | bool                                 | false                                          | Measure M3ph(iw)                                                      |
+| measure_M3ph_tau     | bool                                 | false                                          | Measure M3ph(tau)                                                     |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | n_tau_M3             | int                                  | 1000                                           | Number of imaginary time points in M3                                 |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
@@ -402,12 +403,12 @@ c.add_member(c_name = "n_iw_M3",
 c.add_member(c_name = "measure_M3pp_tau",
              c_type = "bool",
              initializer = """ false """,
-             doc = """Measure M3pp(iw)""")
+             doc = """Measure M3pp(tau)""")
 
 c.add_member(c_name = "measure_M3ph_tau",
              c_type = "bool",
              initializer = """ false """,
-             doc = """Measure M3ph(iw)""")
+             doc = """Measure M3ph(tau)""")
 
 c.add_member(c_name = "n_tau_M3",
              c_type = "int",

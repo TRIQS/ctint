@@ -33,11 +33,11 @@ namespace triqs_ctint {
 
     TRIQS_ASSERT(G_out.target_shape() == G_in.target_shape());
 
-    gf<cartesian_product<M0_out, M1_in, M2_in>, T> G_1{{mesh_out, mesh_in, mesh_in}, G_out.target_shape()};
+    gf<cartesian_product<M0_out, M1_in, M2_in>, T> G_1{{get<0>(mesh_out), get<1>(mesh_in), get<2>(mesh_in)}, G_out.target_shape()};
     for (auto const &i1 : get<1>(mesh_in))
       for (auto const &i2 : get<2>(mesh_in)) _fourier_impl(G_1[_, i1, i2], G_in[_, i1, i2]);
 
-    gf<cartesian_product<M0_out, M1_out, M2_in>, T> G_2{{mesh_out, mesh_out, mesh_in}, G_out.target_shape()};
+    gf<cartesian_product<M0_out, M1_out, M2_in>, T> G_2{{get<0>(mesh_out), get<1>(mesh_out), get<2>(mesh_in)}, G_out.target_shape()};
     for (auto const &o : get<0>(mesh_out))
       for (auto const &i : get<2>(mesh_in)) _fourier_impl(G_2[o, _, i], make_const_view(G_1[o, _, i]));
 
