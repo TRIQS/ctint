@@ -109,6 +109,16 @@ namespace triqs_ctint::measures {
     M3pp_tau_   = mpi_all_reduce(M3pp_tau_, comm);
     double dtau = params.beta / (params.n_tau_M3 - 1);
     M3pp_tau_   = M3pp_tau_ / (Z * dtau * dtau);
+
+    // Account for edge bins beeing smaller
+    auto _ = var_t{};
+    int n  = params.n_tau_M3 - 1;
+    for (auto &M : M3pp_tau_) {
+      M[0,_] *= 2.0;
+      M[_,0] *= 2.0;
+      M[n,_] *= 2.0;
+      M[_,n] *= 2.0;
+    }
   }
 
 } // namespace triqs_ctint::measures
