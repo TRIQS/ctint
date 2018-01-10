@@ -28,9 +28,9 @@ odiag = 0.5 - delta
 alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
 
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta, 
+S = SolverCore(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,  
+               n_iw = 200,
                n_tau = 100001,
                use_D = True,
                use_Jperp = True,
@@ -52,8 +52,8 @@ S.Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
 
 # Dynamic Density-Density Interaction
 D = 0.5
-S.D0_iw['up','dn'][0,0]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))  
- 
+S.D0_iw['up','dn'][0,0]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         alpha = alpha,

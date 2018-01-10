@@ -12,46 +12,46 @@ from triqs_ctint import SolverCore
 ################################################
 # Hamiltonian creator
 def initCubicTBH(Nx, Ny, Nz, eps, t, cyclic=True):
-  H = [[0 for j in range(Nx*Ny*Nz)] for i in range(Nx*Ny*Nz)]  
+  H = [[0 for j in range(Nx*Ny*Nz)] for i in range(Nx*Ny*Nz)]
   for i in range(Nx*Ny*Nz):
-    H[i][i]=eps    
+    H[i][i]=eps
   for i in range(Nx):
     for j in range(Ny):
-      for k in range(Nz): 
+      for k in range(Nz):
         if Nx>1:
           if i+1==Nx:
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + j*Nx ] = t
           else:
             H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + j*Nx + i+1 ] = t
-        
+
           if i==0:
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + j*Nx + Nx-1] = t
           else:
-            H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + j*Nx + i-1] = t  
-            
+            H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + j*Nx + i-1] = t
+
         if Ny>1:
           if j+1==Ny:
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + i ] = t
-          else:  
+          else:
             H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + (j+1)*Nx + i ] = t
-        
+
           if j==0:
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + (Ny-1)*Nx + i ] = t
           else:
             H [ k*Nx*Ny+j*Nx+i ]  [ k*Nx*Ny + (j-1)*Nx + i ] = t
 
         if Nz>1:
-          if (k+1==Nz): 
+          if (k+1==Nz):
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ j*Nx + i ] = t
           else:
-            H [ k*Nx*Ny+j*Nx+i ]  [ (k+1)*Nx*Ny + j*Nx + i ] = t 
-            
+            H [ k*Nx*Ny+j*Nx+i ]  [ (k+1)*Nx*Ny + j*Nx + i ] = t
+
           if k==0:
             if cyclic: H [ k*Nx*Ny+j*Nx+i ]  [ (Nz-1)*Nx*Ny + j*Nx + i ] = t
           else:
             H [ k*Nx*Ny+j*Nx+i ]  [ (k-1)*Nx*Ny + j*Nx + i ] = t
-    
-  return H 
+
+  return H
 
 def delta(i,j):
   if i==j: return 1
@@ -71,7 +71,7 @@ n_cycles = 10000
 ################################################
 
 #------------------------------------------------#
-# PREPARE H_0, H_int 
+# PREPARE H_0, H_int
 
 Nx=Ny=a
 N_states=Nx*Ny
@@ -94,9 +94,9 @@ H = initCubicTBH(Nx, Ny, 1, eps, t, cyclic)
 n_iw = 200
 n_tau = 10001
 
-S = SolverCore( beta = beta, 
+S = SolverCore( beta = beta,
                 gf_struct = gf_struct,
-                n_iw = n_iw,  
+                n_iw = n_iw,
                 n_tau_g0  = n_tau,
                 n_tau_f  = n_tau,
                 n_tau_dynamical_interactions = 3,
@@ -109,7 +109,7 @@ S = SolverCore( beta = beta,
 # Initialize the Green's function
 for b in block_names:
   for i in range(N_states):
-    for j in range(N_states):    
+    for j in range(N_states):
       S.G0_iw[b][i,j] = delta(i,j)*iOmega_n - H[i][j]
   S.G0_iw[b].invert()
 
@@ -132,7 +132,7 @@ S.solve(h_int=h_int,
         n_warmup_cycles = 5000,
         random_seed = 34788,
         only_sign = False,
-        measure_sign = True, 
+        measure_sign = True,
         measure_gw = False,
         measure_ft = False,
         measure_Mt = False,

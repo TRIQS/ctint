@@ -29,9 +29,9 @@ odiag = 0.5 - delta
 alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
 
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta, 
+S = SolverCore(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,  
+               n_iw = 200,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------

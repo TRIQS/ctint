@@ -30,9 +30,9 @@ odiag = 0.5 - delta
 alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
 
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta, 
+S = SolverCore(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,  
+               n_iw = 200,
                n_tau = 100001,
                use_D = True,
                use_Jperp = True,
@@ -56,8 +56,8 @@ Dz_expr_reg = lambda w, g: Dz_expr(w,g) if abs(w)>0.0 else Dz0(g) #Dz for any w
 
 # Dynamic Spin-Spin Interaction
 J = 0.5;
-S.Jperp_iw[0,0] << Function(lambda w : 2.0*Dz_expr_reg(w, J)) 
-   
+S.Jperp_iw[0,0] << Function(lambda w : 2.0*Dz_expr_reg(w, J))
+
 # Dynamic Density-Density Interaction
 D = 0.5
 S.D0_iw['up','dn'][0,0] << Function(lambda w : Dz_expr_reg(w, D))

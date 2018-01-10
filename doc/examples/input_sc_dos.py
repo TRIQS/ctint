@@ -63,12 +63,12 @@ for it in range(N_Loops):
      Sigma['SC']['p','m']  = S.Sigma['1']['p','m']
      Sigma['SC']['m','p']  = S.Sigma['1']['m','p']
      Sigma['SC']['m','m']  = S.Sigma['1']['m','m']
-        
-     def Epsilon_Hat_SC(eps) : 
+
+     def Epsilon_Hat_SC(eps) :
        a = numpy.zeros( (len(eps) if isSequenceType(eps) else 1,2,2) )
        a[:,0,0] = eps; a[:,1,1] = - numpy.array(eps)
        return a
-     
+
      Dc = HT (Sigma['SC'], Field = numpy.array([[-mu ,Field_SC_loc],[Field_SC_loc, -mu]]), Epsilon_Hat= Epsilon_Hat_SC, Res = G['SC'] ).density()
      print "Total density = %f"%((Dc[0,0]-Dc[1,1]+1.0).real)
 
@@ -78,7 +78,7 @@ for it in range(N_Loops):
      S.G['1']['m','p'] = G['SC']['m','p']
      S.G['1']['m','m'] = G['SC']['m','m']
 
-     # Finally get S.G0 
+     # Finally get S.G0
      S.G0 << inverse(S.Sigma + inverse(S.G))
 
      # Run and save

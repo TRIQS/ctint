@@ -28,9 +28,9 @@ odiag = 0.5 - delta
 alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
 
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta, 
+S = SolverCore(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,  
+               n_iw = 200,
                n_tau = 100001,
                use_Jperp = True,
                n_tau_dynamical_interactions = 1025,
@@ -48,7 +48,7 @@ w0=1.0
 # Dynamic Spin-Spin Interaction
 J = 0.5
 S.Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
- 
+
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         alpha = alpha,

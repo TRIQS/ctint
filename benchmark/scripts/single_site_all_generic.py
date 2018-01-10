@@ -21,7 +21,7 @@ l_Doffdiag=a
 sgn_Ddiag=a
 sgn_Doffdiag=a
 l_Jperp=a
-sgn_Jperp=a #screening frequency (discrete bosonic spectrum parameter, determines the sign of J_perp(tau)) 
+sgn_Jperp=a #screening frequency (discrete bosonic spectrum parameter, determines the sign of J_perp(tau))
 
 w0=1.0
 
@@ -65,9 +65,9 @@ gf_struct = {block_names[0] : [0], block_names[1] : [0]}
 
 # Construct the cluster ctint solver
 
-S = SolverCore( beta = beta, 
+S = SolverCore( beta = beta,
                 gf_struct = gf_struct,
-                n_iw = n_iw,  
+                n_iw = n_iw,
                 n_tau_g0  = n_tau_g0,
                 n_tau_f  = n_tau_f,
                 n_tau_dynamical_interactions = n_tau_dynamical_interactions,
@@ -99,7 +99,7 @@ Dz_expr_reg = lambda w, g: Dz_expr(w,g) if abs(w)>0.0 else Dz0(g) #Dz for any w
 for i in range(N_states):
   for j in range(N_states):
     if Jperp_continuous:
-      S.Jperp_iw[i,j] << Function(lambda w : sgn_Jperp*4.0*Dz_expr_reg(w, l_Jperp)) 
+      S.Jperp_iw[i,j] << Function(lambda w : sgn_Jperp*4.0*Dz_expr_reg(w, l_Jperp))
     else:
       S.Jperp_iw[i,j] << sgn_Jperp*l_Jperp**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
 
@@ -118,10 +118,10 @@ else:
       for i in range(N_states):
         for j in range(N_states):
           if i==j and b1==b2:
-            S.D0_iw[b1+"|"+b2][i,j]  << sgn_Ddiag*l_Ddiag**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))  
+            S.D0_iw[b1+"|"+b2][i,j]  << sgn_Ddiag*l_Ddiag**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
           else:
             S.D0_iw[b1+"|"+b2][i,j]  << sgn_Doffdiag*l_Doffdiag**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
- 
+
 if mpi.is_master_node():
   A = HDFArchive("input_quantities.h5",'w')
   A['D_iw'] = S.D0_iw

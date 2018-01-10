@@ -10,7 +10,7 @@ from numpy import matrix
 test_name = 'supercond'
 
 # Superconducting calculation in Nambu Basis ( c_1, c_2 ) = ( c_up, cdag_dn )
-# U n_up n_dn - mu ( n_up + n_dn ) - D ( cdag_up cdag_dn + c_dn c_up ) 
+# U n_up n_dn - mu ( n_up + n_dn ) - D ( cdag_up cdag_dn + c_dn c_up )
 #  = - U n_1 n_2 - n_1 ( mu - U ) - n2 ( -mu ) - D ( cdag_1 c_2 + cdag_2 c_1 )
 
 ######## physical parameters ########
@@ -36,9 +36,9 @@ odiag = 0.5 - delta
 alpha = [ [[diag,odiag],[diag,odiag]] ] # alpha[block][index,s]
 
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta, 
+S = SolverCore(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,  
+               n_iw = 200,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------
