@@ -118,17 +118,10 @@ namespace triqs_ctint {
     chi3_iw_t chi3_iw = M3_iw;
 
     // Temporary quantities
-    auto G0_x_M = G0_iw * M_iw;
-    auto M_x_G0 = M_iw * G0_iw;
+    g_iw_t GM = G0_iw * M_iw;
+    g_iw_t MG = M_iw * G0_iw;
+    g_iw_t GMG = G0_iw * M_iw * G0_iw;
     g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
-
-#ifdef GTAU_IS_COMPLEX
-    auto GMG_tau  = make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000);
-    g_tau_t G_tau = make_gf_from_inverse_fourier(G_iw, 10000);
-#else
-    auto GMG_tau  = get_real(make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000), true);
-    g_tau_t G_tau = get_real(make_gf_from_inverse_fourier(G_iw, 10000), true);
-#endif
 
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
@@ -140,7 +133,7 @@ namespace triqs_ctint {
         if (Chan == Chan_t::PP) { // =====  Particle-particle channel // FIXME c++17 if constexpr
 
           M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_)
-                - G0_x_M[bl1](iw_)(j_, i_) * G0_x_M[bl2](iW_ - iw_)(l_, k_) + kronecker(bl1, bl2) * G0_x_M[bl1](iw_)(l_, i_) * G0_x_M[bl2](iW_ - iw_)(j_, k_);
+                - GM[bl1](iw_)(j_, i_) * GM[bl2](iW_ - iw_)(l_, k_) + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * GM[bl2](iW_ - iw_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl2_size))
@@ -152,14 +145,14 @@ namespace triqs_ctint {
         } else if (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
           M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_)
-                + beta * kronecker(iw_, iW_ + iw_) * M_iw[bl1](iw_)(j_, i_) * GMG_tau[bl2](beta - 1e-10)(l_, k_)
-                + kronecker(bl1, bl2) * G0_x_M[bl1](iw_)(l_, i_) * M_x_G0[bl2](iW_ + iw_)(j_, k_);
+                - beta * kronecker(iw_, iW_ + iw_) * M_iw[bl1](iw_)(j_, i_) * density(GMG[bl2])(l_, k_)
+                + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * MG[bl2](iW_ + iw_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl1_size))
               chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_)
                  << G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, n, k_, l_)
-                    - beta * kronecker(iw_, iW_ + iw_) * G_iw[bl1](iw_)(j_, i_) * G_tau[bl2](beta - 1e-10)(l_, k_) // Disconnected part
+                    + beta * kronecker(iw_, iW_ + iw_) * G_iw[bl1](iw_)(j_, i_) * density(G_iw[bl2])(l_, k_) // Disconnected part
                     - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
         }
       }
