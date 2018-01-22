@@ -31,8 +31,9 @@ namespace triqs_ctint {
     auto GMG_tau  = make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000);
     g_tau_t G_tau = make_gf_from_inverse_fourier(G_iw, 10000);
 #else
-    auto GMG_tau  = get_real(make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000), true);
-    g_tau_t G_tau = get_real(make_gf_from_inverse_fourier(G_iw, 10000), true);
+    auto GMG_tau  = real(make_gf_from_inverse_fourier(g_iw_t{G0_iw * M_iw * G0_iw}, 10000));
+    g_tau_t G_tau = real(make_gf_from_inverse_fourier(G_iw, 10000));
+    if(!is_gf_real_in_tau(G_iw, 1e-8)) std::cerr << "WARNING: Assuming real G_tau, but found Imag(G(tau)) > 1e-8. Casting to Real.\n";
 #endif
 
     auto const &tau_mesh = M2_tau(0, 0).mesh();

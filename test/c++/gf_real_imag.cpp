@@ -7,7 +7,6 @@ const std::complex<double> I(0.0, 1.0);
 using namespace triqs::gfs;
 using namespace triqs::clef;
 
-/********************* EQUIDISTANT TRANSFORM ********************/
 TEST(Gfs, Real_Imag) {
 
   // Parameters
@@ -19,10 +18,14 @@ TEST(Gfs, Real_Imag) {
   auto G = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, make_shape(2,2)}; 
 
   G[iw_] << 1.0 / ( iw_ + 4.0 ); 
+  
+  //auto G_real = real(G); 
+  //auto G_imag = imag(G); 
 
-  //gf<imfreq, matrix_valued> G_Res = get_real(G) + I * get_imag(G);  // FIXME OPERATOR= not implemented
+  // FIXME 
+  //auto G_Res(iw_) <<  I * G_imag(iw_) + G_real(iw_);
 
-  //EXPECT_GF_NEAR(G, G_Res, 1e-15);  // Only small deviation due to truncation/oversampling factor (see Fig.3 Notes Josef)
+  //EXPECT_GF_NEAR(G, G_Res);
 }
 
 MAKE_MAIN;

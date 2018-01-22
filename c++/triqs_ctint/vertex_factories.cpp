@@ -69,8 +69,8 @@ namespace triqs_ctint {
 #ifdef INTERACTION_IS_COMPLEX
                 D0_tau_lst.emplace_back(d);
 #else
-                if (!is_gf_real(d)) TRIQS_RUNTIME_ERROR << " Assuming real interaction values, but Imag(D0(tau)) > 0 ";
-                D0_tau_lst.emplace_back(get_real(d));
+                if (!is_gf_real(d, 1e-8)) std::cerr << "WARNING: Assuming real interaction values, but found Imag(D0(tau)) > 1e-8. Casting to Real.\n";
+                D0_tau_lst.emplace_back(real(d));
 #endif
               }
             }
@@ -115,8 +115,8 @@ namespace triqs_ctint {
 #ifdef INTERACTION_IS_COMPLEX
               Jperp_tau_lst.emplace_back(d);
 #else
-              if (!is_gf_real(d)) TRIQS_RUNTIME_ERROR << " Assuming real interaction values, but Imag(Jperp(tau)) > 0 ";
-              Jperp_tau_lst.emplace_back(get_real(d));
+              if (!is_gf_real(d, 1e-8)) std::cerr << "WARNING: Assuming real interaction values, but found Imag(Jperp(tau)) > 1e-8. Casting to Real.\n";
+              Jperp_tau_lst.emplace_back(real(d));
 #endif
             }
         }

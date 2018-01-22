@@ -170,7 +170,9 @@ namespace triqs_ctint {
 #ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
 #else
-    G0_shift_tau = get_real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau), true);
+    auto G0_shift_tau_cplx = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau); 
+    if(!is_gf_real(G0_shift_tau_cplx, 1e-8)) std::cerr << "WARNING: Assuming real G, but found Imag(G) > 1e-8. Casting to Real.\n";
+    G0_shift_tau = real(G0_shift_tau_cplx);
 #endif
   }
 
