@@ -83,8 +83,8 @@ namespace triqs_ctint {
     if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
     if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");
     if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
-    if (params.measure_M2pp_tau) mc.add_measure(measures::M2_tau<Chan_t::PP>{params, qmc_config, &result_set(), G0_shift_tau}, "M2pp_tau measure");
-    if (params.measure_M2ph_tau) mc.add_measure(measures::M2_tau<Chan_t::PH>{params, qmc_config, &result_set(), G0_shift_tau}, "M2ph_tau measure");
+    if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
+    if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
@@ -161,17 +161,17 @@ namespace triqs_ctint {
     G0_shift_iw = inverse(G0_inv);
 
     for (auto &G : G0_shift_iw) {
-      G.singularity().data()() = 0.0; 
-      int bl_size        = G.target_shape()[0];
-      auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 1 /* lowest order moment */);
+      G.singularity().data()() = 0.0;
+      int bl_size              = G.target_shape()[0];
+      auto known_moments       = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 1 /* lowest order moment */);
       fit_tail(G, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
     }
 
 #ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
 #else
-    auto G0_shift_tau_cplx = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau); 
-    if(!is_gf_real(G0_shift_tau_cplx, 1e-8)) std::cerr << "WARNING: Assuming real G, but found Imag(G) > 1e-8. Casting to Real.\n";
+    auto G0_shift_tau_cplx = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
+    if (!is_gf_real(G0_shift_tau_cplx, 1e-8)) std::cerr << "WARNING: Assuming real G, but found Imag(G) > 1e-8. Casting to Real.\n";
     G0_shift_tau = real(G0_shift_tau_cplx);
 #endif
   }
@@ -211,29 +211,25 @@ namespace triqs_ctint {
       Sigma_iw = inverse(G0_iw) - inverse(*G_iw); // Careful, dont use shifted Gf here
     }
 
-    // Calculate M2_iw from M2_tau
-    if (M2pp_tau) M2pp_iw = make_gf_from_fourier(*M2pp_tau, p.n_iw_M2);
-    if (M2ph_tau) M2ph_iw = make_gf_from_fourier(*M2ph_tau, p.n_iw_M2);
-
     // Calculate M3_iw from M3_tau
     // Signs and times already adjusted such that e^{iwt} transforms are correct.
     // FIXME Adjust fourier transforms to make this choice at this stage
     // Shift for mixed notation
-    if (M3pp_tau){
+    if (M3pp_tau) {
       auto M3pp_ferm_iw = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3 + p.n_iW_M3);
-      auto iw_mesh = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3}; 
-      auto iW_mesh = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3}; 
+      auto iw_mesh      = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
+      auto iW_mesh      = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       auto M3pp_iw_mesh = gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh, iW_mesh};
-      M3pp_iw = make_block2_gf(M3pp_iw_mesh, p.gf_struct); 
-      (*M3pp_iw)(bl1_,bl2_)(iw_, iW_)(i_,j_,k_,l_) << M3pp_ferm_iw(bl1_,bl2_)(iw_, iW_ - iw_)(i_,j_,k_,l_); 
-    } 
-    if (M3ph_tau){
+      M3pp_iw           = make_block2_gf(M3pp_iw_mesh, p.gf_struct);
+      (*M3pp_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
+    }
+    if (M3ph_tau) {
       auto M3ph_ferm_iw = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3 + p.n_iW_M3);
-      auto iw_mesh = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3}; 
-      auto iW_mesh = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3}; 
+      auto iw_mesh      = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
+      auto iW_mesh      = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       auto M3ph_iw_mesh = gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh, iW_mesh};
-      M3ph_iw = make_block2_gf(M3ph_iw_mesh, p.gf_struct); 
-      (*M3ph_iw)(bl1_,bl2_)(iw_, iW_)(i_,j_,k_,l_) << M3ph_ferm_iw(bl1_,bl2_)(iw_, iW_ + iw_)(i_,j_,k_,l_); 
+      M3ph_iw           = make_block2_gf(M3ph_iw_mesh, p.gf_struct);
+      (*M3ph_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
@@ -241,19 +237,19 @@ namespace triqs_ctint {
     if (G2c_iw && G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
     if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
-    // Calculate chi2_tau from M2_tau and M_iw
-    if (M2pp_iw && M_iw) chi2pp_tau = chi2_from_M2<Chan_t::PP>(*M2pp_tau, *M_iw, G0_shift_iw);
-    if (M2ph_iw && M_iw) chi2ph_tau = chi2_from_M2<Chan_t::PH>(*M2ph_tau, *M_iw, G0_shift_iw);
-
     // Calculate chi2_iw from chi2_tau
-    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_M2);
-    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_M2);
+    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
+    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
     if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
     if (M3pp_iw_nfft && M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
     if (M3ph_iw_nfft && M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
+
+    // Measurement of chi2 by operator insertion
+    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
+    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
   }
 
 } // namespace triqs_ctint

@@ -65,10 +65,10 @@ TEST(CtInt, Anderson) {
   //ps.measure_M3ph_tau  = true;
   //ps.n_tau_M3           = 1000;
 
-  //ps.measure_M2pp_tau  = true;
-  //ps.measure_M2ph_tau  = true;
-  //ps.n_tau_M2          = 1000;
-  //ps.n_iw_M2           = 128;
+  //ps.measure_chi2pp_tau  = true;
+  //ps.measure_chi2ph_tau  = true;
+  //ps.n_tau_chi2          = 1000;
+  //ps.n_iw_chi2           = 128;
 
   ps.nfft_buf_size = 50;
 

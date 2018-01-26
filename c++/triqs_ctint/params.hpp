@@ -124,14 +124,14 @@ namespace triqs_ctint {
     /// Number of imaginary time points in M3
     int n_tau_M3 = 1000;
 
-    /// Measure M2pp(tau)
-    bool measure_M2pp_tau = false;
-    /// Measure M2ph(tau)
-    bool measure_M2ph_tau = false;
-    /// Number of imaginary time points in M2
-    int n_tau_M2 = 10000;
-    /// Number of positive Matsubara frequencies in M2
-    int n_iw_M2 = 128;
+    /// Measure of chi2pp by insertion
+    bool measure_chi2pp_tau = false;
+    /// Measure of chi2ph by insertion
+    bool measure_chi2ph_tau = false;
+    /// Number of imaginary time points in chi2
+    int n_tau_chi2 = 10000;
+    /// Number of positive Matsubara frequencies in chi2
+    int n_iw_chi2 = 128;
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 500;

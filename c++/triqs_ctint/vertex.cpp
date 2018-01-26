@@ -7,4 +7,11 @@ namespace triqs_ctint {
   // Note: The subtration of unsigned integers is inherently cyclic
   double cyclic_difference(tau_t const &tau1, tau_t const &tau2) { return double(tau_t{tau1.n - tau2.n}); }
 
+  tau_t make_tau_t(double tau) {
+#ifdef DEBUG_CTINT
+    if (tau < 0.0 || tau_t::beta < tau) TRIQS_RUNTIME_ERROR << " Tau-value outside [0,beta) interval not allowed in make_tau_t\n";
+#endif
+    return tau_t{uint64_t(tau / tau_t::beta * std::numeric_limits<uint64_t>::max())};
+  }
+
 } // namespace triqs_ctint

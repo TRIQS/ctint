@@ -69,10 +69,10 @@ namespace triqs_ctint {
     h5_write(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_write(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_write(grp, "n_tau_M3", sp.n_tau_M3);
-    h5_write(grp, "measure_M2pp_tau", sp.measure_M2pp_tau);
-    h5_write(grp, "measure_M2ph_tau", sp.measure_M2ph_tau);
-    h5_write(grp, "n_tau_M2", sp.n_tau_M2);
-    h5_write(grp, "n_iw_M2", sp.n_iw_M2);
+    h5_write(grp, "measure_chi2pp_tau", sp.measure_chi2pp_tau);
+    h5_write(grp, "measure_chi2ph_tau", sp.measure_chi2ph_tau);
+    h5_write(grp, "n_tau_chi2", sp.n_tau_chi2);
+    h5_write(grp, "n_iw_chi2", sp.n_iw_chi2);
     h5_write(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_write(grp, "post_process", sp.post_process);
   }
@@ -103,10 +103,10 @@ namespace triqs_ctint {
     h5_read(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_read(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_read(grp, "n_tau_M3", sp.n_tau_M3);
-    h5_read(grp, "measure_M2pp_tau", sp.measure_M2pp_tau);
-    h5_read(grp, "measure_M2ph_tau", sp.measure_M2ph_tau);
-    h5_read(grp, "n_tau_M2", sp.n_tau_M2);
-    h5_read(grp, "n_iw_M2", sp.n_iw_M2);
+    h5_read(grp, "measure_chi2pp_tau", sp.measure_chi2pp_tau);
+    h5_read(grp, "measure_chi2ph_tau", sp.measure_chi2ph_tau);
+    h5_read(grp, "n_tau_chi2", sp.n_tau_chi2);
+    h5_read(grp, "n_iw_chi2", sp.n_iw_chi2);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_read(grp, "post_process", sp.post_process);
   }

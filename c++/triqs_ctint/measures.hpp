@@ -7,4 +7,4 @@
 #include "./measures/M3ph_iw.hpp"
 #include "./measures/M3pp_tau.hpp"
 #include "./measures/M3ph_tau.hpp"
-#include "./measures/M2_tau.hpp"
+#include "./measures/chi2_tau.hpp"

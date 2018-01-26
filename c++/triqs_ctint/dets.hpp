@@ -18,10 +18,10 @@ namespace triqs_ctint {
     int u;
 
     /// Switch for alpha shift along the diagonal of the matrix. Relevant for density-type interactions
-    bool with_alpha_shift;
+    bool with_alpha_shift = false;
 
     /// The auxiliary spin
-    int s;
+    int s = 0;
 
     /// Lexicographical sorting of arg_t. This determines the order of row and columns inside the dets.
     bool operator<(arg_t const &x) const { return std::tie(tau, u, s) < std::tie(x.tau, x.u, x.s); }

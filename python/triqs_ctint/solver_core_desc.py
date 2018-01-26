@@ -81,15 +81,15 @@ c.add_member(c_name = "M3ph_tau",
              read_only= True,
              doc = """Building block for the fermion boson vertex (ph channel) in imaginary time""")
 
-c.add_member(c_name = "M2pp_tau",
+c.add_member(c_name = "chi2pp_tau",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
-             doc = """Building block for the susceptibility (pp channel) in imaginary time""")
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in imaginary times as obtained by operator insertion""")
 
-c.add_member(c_name = "M2ph_tau",
+c.add_member(c_name = "chi2ph_tau",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
-             doc = """Building block for the susceptibility (ph channel) in imaginary time""")
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary times as obtained by operator insertion""")
 
 c.add_member(c_name = "M_iw",
              c_type = "std::optional<g_iw_t>",
@@ -140,16 +140,6 @@ c.add_member(c_name = "G2_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = """The two-particle Green function""")
-
-c.add_member(c_name = "chi2pp_tau",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in imaginary times""")
-
-c.add_member(c_name = "chi2ph_tau",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary times""")
 
 c.add_member(c_name = "chi2pp_iw",
              c_type = "std::optional<chi2_iw_t>",
@@ -272,13 +262,13 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | n_tau_M3             | int                                  | 1000                                           | Number of imaginary time points in M3                                 |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| measure_M2pp_tau     | bool                                 | false                                          | Measure M2pp(tau)                                                     |
+| measure_chi2pp_tau   | bool                                 | false                                          | Measure of chi2pp by insertion                                        |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| measure_M2ph_tau     | bool                                 | false                                          | Measure M2ph(tau)                                                     |
+| measure_chi2ph_tau   | bool                                 | false                                          | Measure of chi2ph by insertion                                        |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| n_tau_M2             | int                                  | 10000                                          | Number of imaginary time points in M2                                 |
+| n_tau_chi2           | int                                  | 10000                                          | Number of imaginary time points in chi2                               |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
-| n_iw_M2              | int                                  | 128                                            | Number of positive Matsubara frequencies in M2                        |
+| n_iw_chi2            | int                                  | 128                                            | Number of positive Matsubara frequencies in chi2                      |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | nfft_buf_size        | int                                  | 500                                            | Size of the Nfft buffer                                               |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
@@ -422,25 +412,25 @@ c.add_member(c_name = "n_tau_M3",
              initializer = """ 1000 """,
              doc = """Number of imaginary time points in M3""")
 
-c.add_member(c_name = "measure_M2pp_tau",
+c.add_member(c_name = "measure_chi2pp_tau",
              c_type = "bool",
              initializer = """ false """,
-             doc = """Measure M2pp(tau)""")
+             doc = """Measure of chi2pp by insertion""")
 
-c.add_member(c_name = "measure_M2ph_tau",
+c.add_member(c_name = "measure_chi2ph_tau",
              c_type = "bool",
              initializer = """ false """,
-             doc = """Measure M2ph(tau)""")
+             doc = """Measure of chi2ph by insertion""")
 
-c.add_member(c_name = "n_tau_M2",
+c.add_member(c_name = "n_tau_chi2",
              c_type = "int",
              initializer = """ 10000 """,
-             doc = """Number of imaginary time points in M2""")
+             doc = """Number of imaginary time points in chi2""")
 
-c.add_member(c_name = "n_iw_M2",
+c.add_member(c_name = "n_iw_chi2",
              c_type = "int",
              initializer = """ 128 """,
-             doc = """Number of positive Matsubara frequencies in M2""")
+             doc = """Number of positive Matsubara frequencies in chi2""")
 
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",

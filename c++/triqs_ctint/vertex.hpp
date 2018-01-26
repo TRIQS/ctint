@@ -38,10 +38,31 @@ namespace triqs_ctint {
     friend std::ostream &operator<<(std::ostream &out, tau_t const &tau) {
       return out << double(tau) << " [tau_t : beta = " << tau.beta << " n = " << tau.n << "]";
     }
+
+    /// Return \tau = 0
+    static constexpr tau_t get_zero() { return tau_t{0}; }
+
+    /// Return \tau = 0^{+} = 0 + \delta
+    static constexpr tau_t get_zero_plus() { return tau_t{1}; }
+
+    /// Return \tau = 0^{++} = 0 + 2*\delta
+    static constexpr tau_t get_zero_plus_plus() { return tau_t{2}; }
+
+    /// Return \tau = \beta
+    static constexpr tau_t get_beta() { return tau_t{ std::numeric_limits<uint64_t>::max() }; }
+
+    /// Return \tau = beta^{-} = \beta - \delta
+    static constexpr tau_t get_beta_minus() { return tau_t{ std::numeric_limits<uint64_t>::max() - 1 }; }
+
+    /// Return \tau = beta^{--} = \beta - 2*\delta
+    static constexpr tau_t get_beta_minus_minus() { return tau_t{ std::numeric_limits<uint64_t>::max() - 2 }; }
   };
 
   /// Function returns the result of the difference of two tau points, shifted to the interval [0,\beta]
   double cyclic_difference(tau_t const &tau1, tau_t const &tau2);
+
+  // Generate a tau_t-object from a double
+  tau_t make_tau_t(double tau); 
 
   /**
    * Type representing the set of discrete quantum numbers for the vertices of
