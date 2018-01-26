@@ -52,6 +52,10 @@ S.solve(h_int=h_int,
         n_iw_M3 = 10,
         n_iW_M3 = 10,
         n_tau_M3 = 100,
+        measure_chi2pp_tau = True,
+        measure_chi2ph_tau = True,
+        n_iw_chi2 = 10,
+        n_tau_chi2 = 30,
         post_process = True )
 
 # -------- Save in archive ---------
@@ -61,6 +65,8 @@ A["G_iw"] = S.G_iw
 A["M_iw_nfft"] = S.M_iw_nfft
 A["chi3pp_iw"] = S.chi3pp_iw
 A["chi3ph_iw"] = S.chi3ph_iw
+A["chi2pp_iw"] = S.chi2pp_iw
+A["chi2ph_iw"] = S.chi2ph_iw
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
