@@ -97,12 +97,6 @@ namespace triqs_ctint {
 
     // Post Processing
     if (params.post_process) { post_process(params); }
-
-    //// Write results to file
-    //if (!triqs::mpi::communicator().rank()) {
-    //triqs::h5::file h5file("ctqmc_out.h5", 'w');
-    //h5_write(h5file, "", *this);
-    //}
   }
 
   // -------------------------------------------------------------------------------

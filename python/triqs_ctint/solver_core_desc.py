@@ -186,6 +186,16 @@ c.add_member(c_name = "Jperp_iw",
              read_only= True,
              doc = """Dynamic spin-spin interaction in Matsubara frequencies""")
 
+c.add_member(c_name = "G0_shift_iw",
+             c_type = "triqs_ctint::g_iw_t",
+             read_only= True,
+             doc = """The shifted noninteracting Green Function in Matsubara frequencies""")
+
+c.add_member(c_name = "G0_shift_tau",
+             c_type = "triqs_ctint::g_tau_t",
+             read_only= True,
+             doc = """The shifted noninteracting Green Function in imaginary time""")
+
 c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = """Construct a CTINT solver\n\n :param construct_parameters: Set of parameters specific to the CTINT solver
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | Parameter Name               | Type                              | Default | Documentation                                                  |

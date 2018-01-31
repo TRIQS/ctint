@@ -42,12 +42,13 @@ namespace triqs_ctint {
 
     void solve();
 
-    private:
-    // The shifted noninteracting Green Function in Matsubara frequencies
+    /// The shifted noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_shift_iw;
 
-    // The shifted noninteracting Green Function in imaginary time
+    /// The shifted noninteracting Green Function in imaginary time
     g_tau_t G0_shift_tau;
+
+    private:
 
     // Struct containing the parameters relevant for the solver construction
     constr_params_t constr_params;
