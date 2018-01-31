@@ -154,19 +154,28 @@ namespace triqs_ctint {
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
 
+#ifndef GTAU_IS_COMPLEX
+    if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
+      std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
+      G0_shift_iw = make_real_in_tau(G0_shift_iw);
+    }
+#endif
+
     for (auto &G : G0_shift_iw) {
-      G.singularity().data()() = 0.0;
-      int bl_size              = G.target_shape()[0];
-      auto known_moments       = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 1 /* lowest order moment */);
-      fit_tail(G, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+      auto known_moments = __tail<matrix_valued>(G.target_shape());
+      known_moments.reset(2); // Unknown moments starting from moment 2
+      known_moments(1) = 1.0;
+
+      int n_min = 0.6 * p.n_iw;
+      int n_max = p.n_iw;
+      // Fitting moments 2, 3, 4
+      fit_tail(G, known_moments, 4, -n_max - 1, -n_min - 1, n_min, n_max);
     }
 
 #ifdef GTAU_IS_COMPLEX
     G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
 #else
-    auto G0_shift_tau_cplx = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
-    if (!is_gf_real(G0_shift_tau_cplx, 1e-8)) std::cerr << "WARNING: Assuming real G, but found Imag(G) > 1e-8. Casting to Real.\n";
-    G0_shift_tau = real(G0_shift_tau_cplx);
+    G0_shift_tau = real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau));
 #endif
   }
 
@@ -184,18 +193,24 @@ namespace triqs_ctint {
       // We need the high-frequency moments for M_iw. Acquire with fitting
       // FIXME Implement direct measurement of high-frequency moments
       for (auto &M : *M_iw) {
-        int bl_size        = M.target_shape()[0];
-        auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 0 /* lowest order moment */);
-        fit_tail(M, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+        auto known_moments = __tail<matrix_valued>(M.target_shape());
+        known_moments.reset(0); // Unknown moments starting from moment 0
+        int n_min = 0.6 * p.n_iw;
+        int n_max = p.n_iw;
+        // Fitting moments 0, 1, 2
+        fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
       }
     }
 
     // Fitting the tail of M_iw_nfft
     if (M_iw_nfft) {
       for (auto &M : *M_iw_nfft) {
-        int bl_size        = M.target_shape()[0];
-        auto known_moments = __tail<matrix_valued>(bl_size, bl_size, 0 /* number of known moments */, 0 /* lowest order moment */);
-        fit_tail(M, known_moments, 3, 0.7 * p.n_iw, p.n_iw - 1);
+        auto known_moments = __tail<matrix_valued>(M.target_shape());
+        known_moments.reset(0); // Unknown moments starting from moment 0
+        int n_min = 0.6 * p.n_iw;
+        int n_max = p.n_iw;
+        // Fitting moments 0, 1, 2
+        fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
       }
     }
 
