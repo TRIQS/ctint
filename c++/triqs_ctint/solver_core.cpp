@@ -112,6 +112,12 @@ namespace triqs_ctint {
     for (auto &G_bl : G0_iw)
       if (G_bl.singularity().largest_non_nan() < 2) TRIQS_RUNTIME_ERROR << "Error: G0_iw needs at least a proper 2nd moment in its tail \n";
 
+    // Assert compatibility between gf_struct an alpha
+    if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
+    for (auto[bl, alpha_bl] : zip(p.gf_struct, p.alpha))
+      if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s))
+        TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
+
     // Loop over static density-density interaction terms
     for (auto const &term : p.h_int) {
 
