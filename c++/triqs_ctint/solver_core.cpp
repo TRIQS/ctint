@@ -108,6 +108,10 @@ namespace triqs_ctint {
     // FIXME Symmetrize tails to -10 .. 10 so inverse(inverse) = Identity
     g_iw_t G0_inv = inverse(G0_iw);
 
+    // We require a proper tail in G0_iw
+    for (auto &G_bl : G0_iw)
+      if (G_bl.singularity().largest_non_nan() < 2) TRIQS_RUNTIME_ERROR << "Error: G0_iw needs at least a proper 2nd moment in its tail \n";
+
     // Loop over static density-density interaction terms
     for (auto const &term : p.h_int) {
 
@@ -154,27 +158,13 @@ namespace triqs_ctint {
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
 
-#ifndef GTAU_IS_COMPLEX
+#ifdef GTAU_IS_COMPLEX
+    G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
+#else
     if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
       std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
       G0_shift_iw = make_real_in_tau(G0_shift_iw);
     }
-#endif
-
-    for (auto &G : G0_shift_iw) {
-      auto known_moments = __tail<matrix_valued>(G.target_shape());
-      known_moments.reset(2); // Unknown moments starting from moment 2
-      known_moments(1) = 1.0;
-
-      int n_min = 0.6 * p.n_iw;
-      int n_max = p.n_iw;
-      // Fitting moments 2, 3, 4
-      fit_tail(G, known_moments, 4, -n_max - 1, -n_min - 1, n_min, n_max);
-    }
-
-#ifdef GTAU_IS_COMPLEX
-    G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
-#else
     G0_shift_tau = real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau));
 #endif
   }
