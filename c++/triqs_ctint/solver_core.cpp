@@ -105,7 +105,6 @@ namespace triqs_ctint {
 
     // Prepare shifted non-interacting Green Function G0_shift_tau for Monte Carlo
     // with renormalization of the chemical potential due to alpha
-    // FIXME Symmetrize tails to -10 .. 10 so inverse(inverse) = Identity
     g_iw_t G0_inv = inverse(G0_iw);
 
     // We require a proper tail in G0_iw
@@ -187,7 +186,7 @@ namespace triqs_ctint {
     if (M_tau) {
       M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
       // We need the high-frequency moments for M_iw. Acquire with fitting
-      // FIXME Implement direct measurement of high-frequency moments
+      // FIXME Implement direct measurement of static part and/or other moments
       for (auto &M : *M_iw) {
         auto known_moments = __tail<matrix_valued>(M.target_shape());
         known_moments.reset(0); // Unknown moments starting from moment 0
