@@ -9,14 +9,17 @@ namespace triqs_ctint {
     if (!fs.has_indices(op.indices)) TRIQS_RUNTIME_ERROR << " Index of c/c^+ operator not compatible with Green Function structure ";
 
     // Get block-name with apply visitor, lambda(0) is called to determine return type ...
-    std::string bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
+    std::string op_bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
 
     // Capture positions in block and nonblock list
-    int bl_int_idx    = std::distance(gf_struct.cbegin(), gf_struct.find(bl_name));
-    auto idx_lst      = gf_struct.at(bl_name);
-    int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
-
-    return std::make_pair(bl_int_idx, nonbl_int_idx);
+    for (auto[bl_int_idx, bl] : triqs::utility::enumerate(gf_struct)) {
+      auto const & [ bl_name, idx_lst ] = bl;
+      if (bl_name == op_bl_name) {
+        int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
+        return std::make_pair(bl_int_idx, nonbl_int_idx);
+      }
+    }
+    TRIQS_RUNTIME_ERROR << "Error: Failed to retrieve integer indices for operator";
   }
 
   void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp) {

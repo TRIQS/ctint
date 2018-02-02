@@ -58,6 +58,9 @@ namespace triqs_ctint {
   /// Container type of the alpha function. alpha[block](orbital,aux_spin)
   using alpha_t = std::vector<array<double, 2>>;
 
+  /// The structure of the gf : block_idx -> pair of block_name and index list (int/string)
+  using triqs::hilbert_space::gf_struct_t;
+
   /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
   using g_iw_t = block_gf<imfreq, matrix_valued>;
 
@@ -65,7 +68,7 @@ namespace triqs_ctint {
 #ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
 #else
-  using g_tau_t        = block_gf<imtime, matrix_real_valued>;
+  using g_tau_t = block_gf<imtime, matrix_real_valued>;
 #endif
 
   /// Scalar type of g_tau
@@ -151,12 +154,9 @@ namespace triqs::gfs {
   /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
   template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
 
-  /// The structure of the gf : block_name -> [...]= list of indices (int/string). FIXME Change to pair of vec<str> and vec<int> or vec<pair<str,int>>
-  using triqs::hilbert_space::gf_struct_t;
-
   // Function template for block_gf initialization
   template <typename Var_t, typename Target_t = matrix_valued>
-  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, gf_struct_t const &gf_struct) {
+  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, triqs::hilbert_space::gf_struct_t const &gf_struct) {
 
     std::vector<gf<Var_t, Target_t>> gf_vec;
     std::vector<std::string> block_names;
@@ -175,7 +175,7 @@ namespace triqs::gfs {
   }
 
   template <typename Var_t, typename Target = tensor_valued<4>>
-  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, gf_struct_t const &gf_struct) {
+  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, triqs::hilbert_space::gf_struct_t const &gf_struct) {
 
     std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
     std::vector<std::string> block_names;
@@ -210,7 +210,7 @@ namespace triqs::gfs {
 
 } // namespace triqs::gfs
 
-// Useful macros
+  // Useful macros
 
 #define STR(x) #x
 #define STRINGIZE(x) STR(x)
@@ -219,7 +219,9 @@ namespace triqs::gfs {
 #define TRIQS_EXCEPTION_SHOW_CPP_TRACE
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << std::endl
-#define BREAK(X) std::cerr << X << " ... " << std::endl; getchar()
+#define BREAK(X)                                                                                                                                     \
+  std::cerr << X << " ... " << std::endl;                                                                                                            \
+  getchar()
 #define PRINT(X) std::cerr << "\n ========= " << X << " ========= " << std::endl
 #else
 #define DEBUG(X)
