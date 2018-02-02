@@ -4,6 +4,7 @@
 
 namespace triqs_ctint {
 
+  /// The parameters for the solver construction
   struct constr_params_t {
 
     /// Number of tau points for gf<imtime, matrix_valued>
@@ -47,6 +48,7 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, constr_params_t &cp);
   };
 
+  /// The parameters for the solve function
   struct solve_params_t {
 
     // ----------- System Specific -----------
@@ -146,6 +148,7 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t &sp);
   };
 
+  /// A struct combining both constr_params_t and solve_params_t
   struct params_t : constr_params_t, solve_params_t {
     params_t(constr_params_t constr_params_, solve_params_t solve_params_) : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
   };

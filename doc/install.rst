@@ -1,5 +1,6 @@
-
 .. highlight:: bash
+
+.. _install:
 
 Installation
 ============
@@ -16,15 +17,20 @@ Installation steps
 
 #. Download the sources of the solver from github:: 
  
-     $ git clone https://bitbucket.org/Wentzell/ctint.git ctint.src
+     $ git clone https://github.com/Wentzell/ctint.git ctint.src
  
 #. Create an empty build directory where you will compile the code:: 
  
      $ mkdir ctint.build && cd ctint.build 
  
-#. In the build directory call cmake (take care that triqsvars.sh was sourced)
+#. Make sure that you have added the TRIQS and Cpp2Py installation to your environment variables::
  
-     $ cmake ../src
+     $ source path_to_triqs/share/cpp2pyvarsh.sh
+     $ source path_to_triqs/share/triqsvarsh.sh
+
+#. In the build directory call cmake::
+
+     $ cmake ../ctint.src
  
 #. Compile the code, run the tests and install the application:: 
  
@@ -32,19 +38,31 @@ Installation steps
      $ make test 
      $ make install 
  
-Version compatibility 
---------------------- 
+Version compatibility
+---------------------
  
 Be careful that the version of the TRIQS library and of the solver must be 
 compatible (more information on the :ref:`TRIQS website <triqslibs:versions>`).
-If you want to use a version of 
-the solver that is not the latest one, go into the directory with the sources 
-and look at all available versions:: 
- 
-     $ cd src && git tag 
- 
-Checkout the version of the code that you want:: 
- 
-     $ git co 1.0.0 
- 
-Then follow the steps 2 to 4 described above to compile the code. 
+As the ctint solver is currently still in alpha phase (unstable), it can
+only be compiled against the unstable branch of triqs.
+
+Custom CMake options
+--------------------
+
+Functionality of ``ctint`` can be tweaked using extra compile-time options passed to CMake::
+
+    cmake -DOPTION1=value1 -DOPTION2=value2 ... ../ctint.src
+
++-----------------------------------------------------------------------+-----------------------------------------------+
+| Options                                                               | Syntax                                        |
++=======================================================================+===============================================+
+| Specify an installation path other than path_to_triqs                 | -DCMAKE_INSTALL_PREFIX=path_to_ctint          |
++-----------------------------------------------------------------------+-----------------------------------------------+
+| Allow the non-interacting Green function G0(tau) to be complex        | -DGTAU_IS_COMPLEX=ON                          |
++-----------------------------------------------------------------------+-----------------------------------------------+
+| Allow the interaction term to be complex                              | -DINTERACTION_IS_COMPLEX=ON                   |
++-----------------------------------------------------------------------+-----------------------------------------------+
+| Build the documentation locally                                       | -DBuild_Documentation=ON                      |
++-----------------------------------------------------------------------+-----------------------------------------------+
+| Build the ctint solver in debugging mode (*developers only*)          | -DDEBUG_CTINT=ON                              |
++-----------------------------------------------------------------------+-----------------------------------------------+
