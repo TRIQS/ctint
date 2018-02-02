@@ -1,112 +1,50 @@
+/*******************************************************************************
+ *
+ * TRIQS: a Toolbox for Research in Interacting Quantum Systems
+ *
+ * Copyright (C) 2017, N. Wentzell
+ *
+ * TRIQS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ *
+ * TRIQS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * TRIQS. If not, see <http://www.gnu.org/licenses/>.
+ *
+ ******************************************************************************/
+
 #pragma once
-
-#define STR(x) #x
-#define STRINGIZE(x) STR(x)
-
-#ifdef DEBUG_CTINT
-#define TRIQS_EXCEPTION_SHOW_CPP_TRACE
-#include <iostream>
-#include <string.h>
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << std::endl
-#define BREAK(X)                                                                                                                                     \
-  std::cerr << X << " ... " << std::endl;                                                                                                            \
-  getchar()
-#define PRINT(X) std::cerr << "\n ========= " << X << " ========= " << std::endl
-#else
-#define DEBUG(X)
-#define BREAK(X)
-#define PRINT(X)
-#endif
 
 #include <triqs/gfs.hpp>
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
 #include <triqs/operators/util/extractors.hpp>
 
+#include <iostream>
+#include <string>
+#include <variant>
+
 namespace std {
   inline string to_string(string const &str) { return str; }
+  inline string to_string(variant<int, string> const &var_int_string) {
+    stringstream ss;
+    ss << var_int_string;
+    return ss.str();
+  }
 } // namespace std
-
-namespace triqs::gfs {
-
-  /// The maximum's norm of a triqs array. Takes element-wise absolute values of the data and returns the maximum of that.
-  //FIXME Implement with is_array trait
-  template <typename Value_t, int Rank> double max_norm(array_const_view<Value_t, Rank> const &arr) {
-    auto max_itr = std::max_element(arr.begin(), arr.end(), [](auto a, auto b) { return std::abs(a) < std::abs(b); });
-    return std::abs(*max_itr);
-  }
-  //FIXME array_const_view should be constructable from array_view
-  template <typename Value_t, int Rank> double max_norm(array_view<Value_t, Rank> const &arr) { return max_norm(make_const_view(arr)); }
-
-  /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
-  template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
-
-  /// The structure of the gf : block_name -> [...]= list of indices (int/string). FIXME Change to pair of vec<str> and vec<int> or vec<pair<str,int>>
-  using block_gf_structure_t = std::map<std::string, std::vector<triqs::utility::variant_int_string>>;
-
-  // Function template for block_gf initialization
-  template <typename Var_t, typename Target_t = matrix_valued>
-  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
-
-    std::vector<gf<Var_t, Target_t>> gf_vec;
-    std::vector<std::string> block_names;
-
-    //for (auto const & [ bname, idx_lst ] : gf_struct) { // C++17
-    for (auto const &bl : gf_struct) {
-      auto &bname  = bl.first;
-      auto bl_size = bl.second.size();
-      block_names.push_back(bname);
-      std::vector<std::string> indices;
-      for (auto const &var : bl.second) apply_visitor([&indices](auto &&arg) { indices.push_back(std::to_string(arg)); }, var);
-      gf_vec.emplace_back(m, make_shape(bl_size, bl_size), std::vector<std::vector<std::string>>{indices, indices});
-    }
-
-    return make_block_gf(std::move(block_names), std::move(gf_vec));
-  }
-
-  template <typename Var_t, typename Target = tensor_valued<4>>
-  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
-
-    std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
-    std::vector<std::string> block_names;
-
-    for (auto const &bl1 : gf_struct) {
-      auto &bname  = bl1.first;
-      int bl1_size = bl1.second.size();
-      block_names.push_back(bname);
-      std::vector<std::string> indices1;
-      for (auto const &var : bl1.second) apply_visitor([&indices1](auto &&arg) { indices1.push_back(std::to_string(arg)); }, var);
-
-      std::vector<gf<Var_t, Target>> gf_vec;
-      for (auto const &bl2 : gf_struct) {
-        int bl2_size = bl2.second.size();
-        std::vector<std::string> indices2;
-        for (auto const &var : bl2.second) apply_visitor([&indices2](auto &&arg) { indices2.push_back(std::to_string(arg)); }, var);
-        if constexpr (Target::rank == 4)
-          gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size),
-                              std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
-        else
-          gf_vec.emplace_back(m, make_shape(bl1_size, bl2_size), std::vector<std::vector<std::string>>{indices1, indices2});
-      }
-      gf_vecvec.emplace_back(std::move(gf_vec));
-    }
-
-    return make_block2_gf(block_names, block_names, std::move(gf_vecvec));
-  }
-
-  template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
-    return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
-  }
-
-} // namespace triqs::gfs
 
 namespace triqs_ctint {
 
   using namespace triqs::gfs;
   using namespace triqs::arrays;
   using namespace triqs::operators;
-  using namespace triqs::operators::util;
+  using namespace triqs::operators::utils;
   using namespace triqs::hilbert_space;
   using namespace triqs::utility;
   using namespace triqs::h5;
@@ -195,3 +133,93 @@ namespace triqs_ctint {
   } // anonymous namespace
 
 } // namespace triqs_ctint
+
+namespace triqs::gfs {
+
+  /// The maximum's norm of a triqs array. Takes element-wise absolute values of the data and returns the maximum of that.
+  //FIXME Implement with is_array trait
+  template <typename Value_t, int Rank> double max_norm(array_const_view<Value_t, Rank> const &arr) {
+    auto max_itr = std::max_element(arr.begin(), arr.end(), [](auto a, auto b) { return std::abs(a) < std::abs(b); });
+    return std::abs(*max_itr);
+  }
+  //FIXME array_const_view should be constructable from array_view
+  template <typename Value_t, int Rank> double max_norm(array_view<Value_t, Rank> const &arr) { return max_norm(make_const_view(arr)); }
+
+  /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
+  template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
+
+  /// The structure of the gf : block_name -> [...]= list of indices (int/string). FIXME Change to pair of vec<str> and vec<int> or vec<pair<str,int>>
+  using block_gf_structure_t = std::map<std::string, std::vector<std::variant<int, std::string>>>;
+
+  // Function template for block_gf initialization
+  template <typename Var_t, typename Target_t = matrix_valued>
+  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+
+    std::vector<gf<Var_t, Target_t>> gf_vec;
+    std::vector<std::string> block_names;
+
+    //for (auto const & [ bname, idx_lst ] : gf_struct) { // C++17
+    for (auto const &bl : gf_struct) {
+      auto &bname  = bl.first;
+      auto bl_size = bl.second.size();
+      block_names.push_back(bname);
+      std::vector<std::string> indices;
+      for (auto const &var : bl.second) visit([&indices](auto &&arg) { indices.push_back(std::to_string(arg)); }, var);
+      gf_vec.emplace_back(m, make_shape(bl_size, bl_size), std::vector<std::vector<std::string>>{indices, indices});
+    }
+
+    return make_block_gf(std::move(block_names), std::move(gf_vec));
+  }
+
+  template <typename Var_t, typename Target = tensor_valued<4>>
+  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+
+    std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
+    std::vector<std::string> block_names;
+
+    for (auto const &bl1 : gf_struct) {
+      auto &bname  = bl1.first;
+      int bl1_size = bl1.second.size();
+      block_names.push_back(bname);
+      std::vector<std::string> indices1;
+      for (auto const &var : bl1.second) visit([&indices1](auto &&arg) { indices1.push_back(std::to_string(arg)); }, var);
+
+      std::vector<gf<Var_t, Target>> gf_vec;
+      for (auto const &bl2 : gf_struct) {
+        int bl2_size = bl2.second.size();
+        std::vector<std::string> indices2;
+        for (auto const &var : bl2.second) visit([&indices2](auto &&arg) { indices2.push_back(std::to_string(arg)); }, var);
+        if constexpr (Target::rank == 4)
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size),
+                              std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
+        else
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl2_size), std::vector<std::vector<std::string>>{indices1, indices2});
+      }
+      gf_vecvec.emplace_back(std::move(gf_vec));
+    }
+
+    return make_block2_gf(block_names, block_names, std::move(gf_vecvec));
+  }
+
+  template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
+    return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
+  }
+
+} // namespace triqs::gfs
+
+// Useful macros
+
+#define STR(x) #x
+#define STRINGIZE(x) STR(x)
+
+#ifdef DEBUG_CTINT
+#define TRIQS_EXCEPTION_SHOW_CPP_TRACE
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define DEBUG(X) std::cerr << AS_STRING(X) << " = " << X << "      at " << __FILENAME__ << ':' << __LINE__ << std::endl
+#define BREAK(X) std::cerr << X << " ... " << std::endl; getchar()
+#define PRINT(X) std::cerr << "\n ========= " << X << " ========= " << std::endl
+#else
+#define DEBUG(X)
+#define BREAK(X)
+#define PRINT(X)
+#endif

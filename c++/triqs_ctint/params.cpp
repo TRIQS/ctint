@@ -9,7 +9,7 @@ namespace triqs_ctint {
     if (!fs.has_indices(op.indices)) TRIQS_RUNTIME_ERROR << " Index of c/c^+ operator not compatible with Green Function structure ";
 
     // Get block-name with apply visitor, lambda(0) is called to determine return type ...
-    std::string bl_name = apply_visitor([](auto idx) { return std::to_string(idx); }, op.indices[0]);
+    std::string bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
 
     // Capture positions in block and nonblock list
     int bl_int_idx    = std::distance(gf_struct.cbegin(), gf_struct.find(bl_name));
