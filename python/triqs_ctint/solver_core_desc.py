@@ -14,7 +14,6 @@ module.add_include("../triqs_ctint/solver_core.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
-#include <cpp2py/converters/map.hpp>
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/string.hpp>
@@ -23,7 +22,6 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/arrays.hpp>
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
-#include <triqs/cpp2py_converters/variant.hpp>
 
 using namespace triqs_ctint;
 """)
