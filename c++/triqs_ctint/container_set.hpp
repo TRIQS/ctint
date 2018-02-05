@@ -3,15 +3,19 @@
 
 namespace triqs_ctint {
 
+  /// The set of all (optional) measurement containers in solver_core
   struct container_set {
 
     //============ Containers for measurements
 
     /// Average sign of the CTINT
-    mc_weight_t average_sign = 0.0;
+    mc_weight_t average_sign;
 
     /// Average perturbation order 
-    double average_k = 0.0;
+    double average_k;
+
+    /// Average perturbation order distribution
+    std::vector<double> histogram;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;

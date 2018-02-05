@@ -58,6 +58,8 @@ namespace triqs_ctint {
     h5_write(grp, "max_time", sp.max_time);
     h5_write(grp, "verbosity", sp.verbosity);
     h5_write(grp, "measure_average_sign", sp.measure_average_sign);
+    h5_write(grp, "measure_average_k", sp.measure_average_k);
+    h5_write(grp, "measure_histogram", sp.measure_histogram);
     h5_write(grp, "measure_M_tau", sp.measure_M_tau);
     h5_write(grp, "measure_M_iw", sp.measure_M_iw);
     h5_write(grp, "measure_M4_iw", sp.measure_M4_iw);
@@ -92,6 +94,8 @@ namespace triqs_ctint {
     h5_read(grp, "max_time", sp.max_time);
     h5_read(grp, "verbosity", sp.verbosity);
     h5_read(grp, "measure_average_sign", sp.measure_average_sign);
+    h5_read(grp, "measure_average_k", sp.measure_average_k);
+    h5_read(grp, "measure_histogram", sp.measure_histogram);
     h5_read(grp, "measure_M_tau", sp.measure_M_tau);
     h5_read(grp, "measure_M_iw", sp.measure_M_iw);
     h5_read(grp, "measure_M4_iw", sp.measure_M4_iw);

@@ -4,23 +4,23 @@
 
 namespace triqs_ctint::measures {
 
-  /// Measure of the average perturbation order
-  struct average_k {
+  // Measure the histogram of perturbation order
+  struct histogram {
 
-    average_k(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+    histogram(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
-    /// Accumulate average sign
+    /// Accumulate perturbation order into histogram
     void accumulate(mc_weight_t sign);
 
     /// Reduce and normalize
     void collect_results(triqs::mpi::communicator const &comm);
 
     private:
-    // Reference to double for accumulation
-    double &average_k_;
-
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
+
+    // Reference to accumulation vector
+    std::vector<double> &histogram_;
 
     // Accumulation counter
     int N = 0;

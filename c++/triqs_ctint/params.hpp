@@ -99,6 +99,9 @@ namespace triqs_ctint {
     /// Measure the average perturbation order
     bool measure_average_k = true;
 
+    /// Measure the average perturbation order distribution
+    bool measure_histogram = false;
+
     /// Measure M(tau)
     bool measure_M_tau = false;
 

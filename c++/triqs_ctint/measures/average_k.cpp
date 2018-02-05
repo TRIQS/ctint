@@ -9,13 +9,13 @@ namespace triqs_ctint::measures {
 
   void average_k::accumulate(mc_weight_t sign) {
     average_k_ += qmc_config.vertex_lst.size();
-    ++count;
+    ++N;
   }
 
   void average_k::collect_results(triqs::mpi::communicator const &comm) {
     average_k_ = mpi_all_reduce(average_k_, comm);
-    count      = mpi_all_reduce(count, comm);
-    average_k_ = average_k_ / count;
+    N          = mpi_all_reduce(N, comm);
+    average_k_ = average_k_ / N;
   }
 
 } // namespace triqs_ctint::measures
