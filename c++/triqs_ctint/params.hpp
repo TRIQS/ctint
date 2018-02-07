@@ -16,7 +16,7 @@ namespace triqs_ctint {
     /// Inverse temperature
     double beta;
 
-    ///block structure of the gf
+    /// block structure of the gf
     gf_struct_t gf_struct;
 
     /// Switch for dynamic density-density interaction

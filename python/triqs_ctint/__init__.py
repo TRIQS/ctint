@@ -23,6 +23,7 @@ r"""
 DOC
 
 """
+from pytriqs.utility import mpi
 from solver_core import SolverCore
 
 __all__ = ['SolverCore']

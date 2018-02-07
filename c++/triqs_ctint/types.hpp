@@ -149,11 +149,11 @@ namespace triqs::gfs {
   template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
 
   /// The structure of the gf : block_name -> [...]= list of indices (int/string). FIXME Change to pair of vec<str> and vec<int> or vec<pair<str,int>>
-  using block_gf_structure_t = std::map<std::string, std::vector<std::variant<int, std::string>>>;
+  using triqs::hilbert_space::gf_struct_t;
 
   // Function template for block_gf initialization
   template <typename Var_t, typename Target_t = matrix_valued>
-  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, gf_struct_t const &gf_struct) {
 
     std::vector<gf<Var_t, Target_t>> gf_vec;
     std::vector<std::string> block_names;
@@ -172,7 +172,7 @@ namespace triqs::gfs {
   }
 
   template <typename Var_t, typename Target = tensor_valued<4>>
-  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, block_gf_structure_t const &gf_struct) {
+  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, gf_struct_t const &gf_struct) {
 
     std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
     std::vector<std::string> block_names;

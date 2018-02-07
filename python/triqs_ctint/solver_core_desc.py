@@ -1,9 +1,9 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17"
+# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C pytriqs --cxxflags="-std=c++17"
 from cpp2py.wrap_generator import *
 
 # The module
-module = module_(full_name = "solver_core", doc = "", app_name = "solver_core")
+module = module_(full_name = "solver_core", doc = "", app_name = "triqs_ctint")
 
 # Imports
 import pytriqs.gf
@@ -14,6 +14,7 @@ module.add_include("../triqs_ctint/solver_core.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
+#include <cpp2py/converters/map.hpp>
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/string.hpp>
@@ -32,6 +33,7 @@ c = class_(
         py_type = "SolverCore",  # name of the python class
         c_type = "triqs_ctint::solver_core",   # name of the C++ class
         doc = """The Solver class""",   # doc of the C++ class
+        hdf5 = True,
 )
 
 c.add_member(c_name = "average_sign",
@@ -199,6 +201,16 @@ c.add_member(c_name = "G0_shift_tau",
              read_only= True,
              doc = """The shifted noninteracting Green Function in imaginary time""")
 
+c.add_member(c_name = "constr_params",
+             c_type = "triqs_ctint::constr_params_t",
+             read_only= True,
+             doc = """""")
+
+c.add_member(c_name = "solve_params",
+             c_type = "triqs_ctint::solve_params_t",
+             read_only= True,
+             doc = """""")
+
 c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = """Construct a CTINT solver\n\n :param construct_parameters: Set of parameters specific to the CTINT solver
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | Parameter Name               | Type                              | Default | Documentation                                                  |
@@ -290,9 +302,13 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | post_process         | bool                                 | true                                           | Perform post processing                                               |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+""")
 
-c.add_property(name = "solve",
-               getter = cfunction("void solve ()"),
-               doc = """""")
+c.add_method("""std::string hdf5_scheme ()""",
+             is_static = True,
+             doc = """""")
+
+c.add_method("""triqs_ctint::solver_core h5_read_construct (triqs::h5::group h5group, std::string subgroup_name)""",
+             is_static = True,
+             doc = """""")
 
 module.add_class(c)
 
@@ -300,7 +316,7 @@ module.add_class(c)
 # Converter for solve_params_t
 c = converter_(
         c_type = "triqs_ctint::solve_params_t",
-        doc = """""",
+        doc = """The parameters for the solve function""",
 )
 c.add_member(c_name = "h_int",
              c_type = "triqs::operators::many_body_operator",
@@ -467,7 +483,7 @@ module.add_converter(c)
 # Converter for constr_params_t
 c = converter_(
         c_type = "triqs_ctint::constr_params_t",
-        doc = """""",
+        doc = """The parameters for the solver construction""",
 )
 c.add_member(c_name = "n_tau",
              c_type = "int",

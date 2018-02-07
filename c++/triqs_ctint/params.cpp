@@ -2,7 +2,7 @@
 
 namespace triqs_ctint {
 
-  std::pair<int, int> get_int_indices( canonical_ops_t const &op, gf_struct_t const &gf_struct) {
+  std::pair<int, int> get_int_indices(canonical_ops_t const &op, gf_struct_t const &gf_struct) {
 
     // The Fundamental operator-set allows for easy check of index validity
     triqs::hilbert_space::fundamental_operator_set fs(gf_struct);
@@ -24,7 +24,7 @@ namespace triqs_ctint {
     h5_write(grp, "n_tau", cp.n_tau);
     h5_write(grp, "n_iw", cp.n_iw);
     h5_write(grp, "beta", cp.beta);
-    //h5_write(grp, "gf_struct", cp.gf_struct);
+    h5_write(grp, "gf_struct", cp.gf_struct);
     h5_write(grp, "use_D", cp.use_D);
     h5_write(grp, "use_Jperp", cp.use_Jperp);
     h5_write(grp, "n_tau_dynamical_interactions", cp.n_tau_dynamical_interactions);
@@ -36,7 +36,7 @@ namespace triqs_ctint {
     h5_read(grp, "n_tau", cp.n_tau);
     h5_read(grp, "n_iw", cp.n_iw);
     h5_read(grp, "beta", cp.beta);
-    //h5_read(grp, "gf_struct", cp.gf_struct);
+    h5_read(grp, "gf_struct", cp.gf_struct);
     h5_read(grp, "use_D", cp.use_D);
     h5_read(grp, "use_Jperp", cp.use_Jperp);
     h5_read(grp, "n_tau_dynamical_interactions", cp.n_tau_dynamical_interactions);
@@ -65,7 +65,7 @@ namespace triqs_ctint {
     h5_write(grp, "measure_M4_iw", sp.measure_M4_iw);
     h5_write(grp, "n_iw_M4", sp.n_iw_M4);
     h5_write(grp, "measure_M3pp_iw", sp.measure_M3pp_iw);
-    h5_write(grp, "measure_M3ph_iw ", sp.measure_M3ph_iw);
+    h5_write(grp, "measure_M3ph_iw", sp.measure_M3ph_iw);
     h5_write(grp, "n_iw_M3", sp.n_iw_M3);
     h5_write(grp, "n_iW_M3", sp.n_iW_M3);
     h5_write(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
@@ -101,7 +101,7 @@ namespace triqs_ctint {
     h5_read(grp, "measure_M4_iw", sp.measure_M4_iw);
     h5_read(grp, "n_iw_M4", sp.n_iw_M4);
     h5_read(grp, "measure_M3pp_iw", sp.measure_M3pp_iw);
-    h5_read(grp, "measure_M3ph_iw ", sp.measure_M3ph_iw);
+    h5_read(grp, "measure_M3ph_iw", sp.measure_M3ph_iw);
     h5_read(grp, "n_iw_M3", sp.n_iw_M3);
     h5_read(grp, "n_iW_M3", sp.n_iW_M3);
     h5_read(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);

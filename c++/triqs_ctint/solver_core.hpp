@@ -40,21 +40,22 @@ namespace triqs_ctint {
     CPP2PY_ARG_AS_DICT
     void solve(solve_params_t const &solve_params);
 
-    void solve();
-
     /// The shifted noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_shift_iw;
 
     /// The shifted noninteracting Green Function in imaginary time
     g_tau_t G0_shift_tau;
 
-    private:
-
     // Struct containing the parameters relevant for the solver construction
     constr_params_t constr_params;
 
     // Struct containing the parameters relevant for the solve process
     solve_params_t solve_params;
+
+    private:
+
+    // For internal use only
+    void solve();
 
     // Mpi Communicator
     triqs::mpi::communicator world;
@@ -69,12 +70,17 @@ namespace triqs_ctint {
     container_set &result_set() { return static_cast<container_set &>(*this); }
     container_set const &result_set() const { return static_cast<container_set const &>(*this); }
 
+    public:
+
+    static std::string hdf5_scheme() { return "CTINT_SolverCore"; }
+
     // Function that writes the solver_core to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+      h5_write_attribute(grp, "TRIQS_HDF5_data_scheme", solver_core::hdf5_scheme());
+      h5_write_attribute(grp, "TRIQS_GIT_HASH", std::string(STRINGIZE(TRIQS_GIT_HASH)));
+      h5_write_attribute(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
       h5_write(grp, "", s.result_set());
-      h5_write(grp, "TRIQS_GIT_HASH", std::string(STRINGIZE(TRIQS_GIT_HASH)));
-      h5_write(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "solve_params", s.solve_params);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
@@ -84,16 +90,18 @@ namespace triqs_ctint {
     }
 
     // Function that read all containers to hdf5 file
-    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solver_core &s) {
+    CPP2PY_IGNORE
+    static solver_core h5_read_construct(triqs::h5::group h5group, std::string subgroup_name) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+      auto constr_params = h5_read<constr_params_t>(grp, "constr_params");
+      auto s = solver_core{constr_params};
       h5_read(grp, "", s.result_set());
-      h5_read(grp, "constr_params", s.constr_params);
       h5_read(grp, "solve_params", s.solve_params);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "D0_iw", s.D0_iw);
       h5_read(grp, "Jperp_iw", s.Jperp_iw);
+      return s;
     }
   };
-
 } // namespace triqs_ctint

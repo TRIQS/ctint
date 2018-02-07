@@ -59,14 +59,33 @@ S.solve(h_int=h_int,
         post_process = True )
 
 # -------- Save in archive ---------
-A = HDFArchive("%s.out.h5"%test_name,'w')
-A["G0_iw"] = S.G0_iw
-A["G_iw"] = S.G_iw
-A["M_iw_nfft"] = S.M_iw_nfft
-A["chi3pp_iw"] = S.chi3pp_iw
-A["chi3ph_iw"] = S.chi3ph_iw
-A["chi2pp_iw"] = S.chi2pp_iw
-A["chi2ph_iw"] = S.chi2ph_iw
+with HDFArchive("%s.out.h5"%test_name,'w') as arch:
+    arch["G0_iw"] = S.G0_iw
+    arch["G_iw"] = S.G_iw
+    arch["M_iw_nfft"] = S.M_iw_nfft
+    arch["chi3pp_iw"] = S.chi3pp_iw
+    arch["chi3ph_iw"] = S.chi3ph_iw
+    arch["chi2pp_iw"] = S.chi2pp_iw
+    arch["chi2ph_iw"] = S.chi2ph_iw
+
+# -------- Save Solver and Retrieve and solve
+with HDFArchive("solver.h5",'w') as arch:
+    arch["S"] = S
+
+with HDFArchive("solver.h5",'r') as arch:
+    S = arch["S"]
+    S.solve(**S.solve_params)
+
+# -------- Save 2nd run in archive ---------
+with HDFArchive("%s.out_2nd.h5"%test_name,'w') as arch:
+    arch["G0_iw"] = S.G0_iw
+    arch["G_iw"] = S.G_iw
+    arch["M_iw_nfft"] = S.M_iw_nfft
+    arch["chi3pp_iw"] = S.chi3pp_iw
+    arch["chi3ph_iw"] = S.chi3ph_iw
+    arch["chi2pp_iw"] = S.chi2pp_iw
+    arch["chi2ph_iw"] = S.chi2ph_iw
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
+h5diff("%s.out.h5"%test_name, "%s.out_2nd.h5"%test_name)
