@@ -83,8 +83,9 @@ namespace triqs_ctint {
       h5_write(grp, "", s.result_set());
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "solve_params", s.solve_params);
-      h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_iw", s.G0_iw);
+      h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
+      h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_write(grp, "D0_iw", s.D0_iw);
       h5_write(grp, "Jperp_iw", s.Jperp_iw);
     }
@@ -93,12 +94,13 @@ namespace triqs_ctint {
     CPP2PY_IGNORE
     static solver_core h5_read_construct(triqs::h5::group h5group, std::string subgroup_name) {
       triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
-      auto constr_params = h5_read<constr_params_t>(grp, "constr_params");
-      auto s = solver_core{constr_params};
+      auto constr_params   = h5_read<constr_params_t>(grp, "constr_params");
+      auto s               = solver_core{constr_params};
       h5_read(grp, "", s.result_set());
       h5_read(grp, "solve_params", s.solve_params);
-      h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_iw", s.G0_iw);
+      h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
+      h5_read(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_read(grp, "D0_iw", s.D0_iw);
       h5_read(grp, "Jperp_iw", s.Jperp_iw);
       return s;

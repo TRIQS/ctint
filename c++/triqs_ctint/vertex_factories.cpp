@@ -9,6 +9,7 @@ namespace triqs_ctint {
 
     std::vector<vertex_factory_t> vertex_factories;
 
+    // ------------ Create Vertex Factory for Static Interactions --------------
     {
       std::vector<vertex_idx_t> indices;
       std::vector<U_scalar_t> amplitudes;
