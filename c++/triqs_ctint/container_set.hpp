@@ -54,10 +54,10 @@ namespace triqs_ctint {
     std::optional<g_iw_t> M_iw;
 
     /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
-    std::optional<g_iw_t> G_iw;
+    g_iw_t G_iw;
 
     /// Self-energy in Matsubara frequencies. Dependent on M_iw
-    std::optional<g_iw_t> Sigma_iw;
+    g_iw_t Sigma_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3pp_iw;

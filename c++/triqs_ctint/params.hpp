@@ -100,7 +100,7 @@ namespace triqs_ctint {
     bool measure_histogram = false;
 
     /// Measure M(tau)
-    bool measure_M_tau = false;
+    bool measure_M_tau = true;
 
     /// Measure M(iomega) using nfft
     bool measure_M_iw = false;

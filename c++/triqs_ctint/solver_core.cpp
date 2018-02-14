@@ -17,6 +17,8 @@ namespace triqs_ctint {
 
     // Allocate essential QMC containers
     G0_iw        = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
+    G_iw         = G0_iw;
+    Sigma_iw     = G0_iw;
     G0_shift_tau = block_gf<imtime, g_tau_t::target_t>{{p.beta, Fermion, p.n_tau}, p.gf_struct};
 
     // Allocate containers for dynamical density-density interaction
@@ -216,7 +218,7 @@ namespace triqs_ctint {
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
       G_iw     = G0_shift_iw + G0_shift_iw * (*M_iw) * G0_shift_iw;
-      Sigma_iw = inverse(G0_iw) - inverse(*G_iw); // Careful, dont use shifted Gf here
+      Sigma_iw = inverse(G0_iw) - inverse(G_iw); // Careful, dont use shifted Gf here
     }
 
     // Calculate M3_iw from M3_tau
@@ -242,8 +244,8 @@ namespace triqs_ctint {
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
     if (M4_iw and M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
-    if (G2c_iw and G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
-    if (G2c_iw and G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
+    if (G2c_iw and M_iw) F_iw = F_from_G2c(*G2c_iw, G_iw);
+    if (G2c_iw and M_iw) G2_iw = G2_from_G2c(*G2c_iw, G_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);

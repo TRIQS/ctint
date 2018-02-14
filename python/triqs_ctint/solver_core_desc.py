@@ -109,12 +109,12 @@ c.add_member(c_name = "M_iw",
              doc = """The Fourier-transform of M_tau. Dependent on M_tau""")
 
 c.add_member(c_name = "G_iw",
-             c_type = "std::optional<g_iw_t>",
+             c_type = "triqs_ctint::g_iw_t",
              read_only= True,
              doc = """Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw""")
 
 c.add_member(c_name = "Sigma_iw",
-             c_type = "std::optional<g_iw_t>",
+             c_type = "triqs_ctint::g_iw_t",
              read_only= True,
              doc = """Self-energy in Matsubara frequencies. Dependent on M_iw""")
 
@@ -278,7 +278,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_histogram    | bool                                 | false                                          | Measure the average perturbation order distribution       |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
-| measure_M_tau        | bool                                 | false                                          | Measure M(tau)                                            |
+| measure_M_tau        | bool                                 | true                                           | Measure M(tau)                                            |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_M_iw         | bool                                 | false                                          | Measure M(iomega) using nfft                              |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
@@ -404,7 +404,7 @@ c.add_member(c_name = "measure_histogram",
 
 c.add_member(c_name = "measure_M_tau",
              c_type = "bool",
-             initializer = """ false """,
+             initializer = """ true """,
              doc = """Measure M(tau)""")
 
 c.add_member(c_name = "measure_M_iw",
