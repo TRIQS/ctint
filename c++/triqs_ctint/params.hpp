@@ -160,6 +160,6 @@ namespace triqs_ctint {
   std::pair<int, int> get_int_indices(canonical_ops_t const &op_idx_vec, gf_struct_t const &gf_struct);
 
   /// Check if monomial is density-density interaction
-  inline bool is_densdens_interact(monomial_t m) { return m.size() == 4 && m[0].indices == m[3].indices && m[1].indices == m[2].indices; }
+  inline bool is_densdens_interact(monomial_t m) { return m.size() == 4 and m[0].indices == m[3].indices and m[1].indices == m[2].indices; }
 
 } // namespace triqs_ctint

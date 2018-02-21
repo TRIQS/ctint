@@ -1,5 +1,4 @@
 #include "./M3ph_tau.hpp"
-#include <triqs/utility/itertools.hpp>
 
 namespace triqs_ctint::measures {
 

@@ -1,9 +1,9 @@
 #include "./M4_iw.hpp"
+#include <cmath>
 
 namespace triqs_ctint::measures {
 
-  M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
+  M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M4};

@@ -9,7 +9,7 @@ namespace triqs_ctint {
 
   tau_t make_tau_t(double tau) {
 #ifdef DEBUG_CTINT
-    if (tau < 0.0 || tau_t::beta < tau) TRIQS_RUNTIME_ERROR << " Tau-value outside [0,beta) interval not allowed in make_tau_t\n";
+    if (tau < 0.0 or tau_t::beta < tau) TRIQS_RUNTIME_ERROR << " Tau-value outside [0,beta) interval not allowed in make_tau_t\n";
 #endif
     return tau_t{uint64_t(tau / tau_t::beta * std::numeric_limits<uint64_t>::max())};
   }

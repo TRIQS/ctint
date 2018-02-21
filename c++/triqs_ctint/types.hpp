@@ -25,6 +25,7 @@
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
 #include <triqs/operators/util/extractors.hpp>
+#include <triqs/utility/itertools.hpp>
 
 #include <iostream>
 #include <string>
@@ -41,6 +42,7 @@ namespace std {
 
 namespace triqs_ctint {
 
+  using namespace std::complex_literals; // Complex Unity 1i
   using namespace triqs::gfs;
   using namespace triqs::arrays;
   using namespace triqs::operators;

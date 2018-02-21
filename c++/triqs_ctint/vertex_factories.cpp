@@ -19,7 +19,7 @@ namespace triqs_ctint {
 
         amplitudes.push_back(-U_scalar_t(term.coef)); // n_s not needed here, cancels against prop_proba
         auto const &m = term.monomial;
-        if (m.size() != 4 or !(m[0].dagger && m[1].dagger && !m[2].dagger && !m[3].dagger))
+        if (m.size() != 4 or !(m[0].dagger and m[1].dagger and !m[2].dagger and !m[3].dagger))
           TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c ";
         std::vector<std::pair<int, int>> vec;
         for (auto op : m) { vec.push_back(get_int_indices(op, params.gf_struct)); }
@@ -32,7 +32,7 @@ namespace triqs_ctint {
         auto l = [ beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng ] {
           int n                     = rng(indices.size());
           auto &idx                 = indices[n];
-          bool is_densdens_interact = (idx.b1 == idx.b2) && (idx.b3 == idx.b4) && (idx.u1 == idx.u2) && (idx.u3 == idx.u4);
+          bool is_densdens_interact = (idx.b1 == idx.b2) and (idx.b3 == idx.b4) and (idx.u1 == idx.u2) and (idx.u3 == idx.u4);
           tau_t t                   = tau_t::get_random(rng);
           int s                     = is_densdens_interact ? rng(n_s) : 0;
           double prop_proba         = 1.0 / (beta * indices.size()); // n_s here not needed, cancels against amplitude

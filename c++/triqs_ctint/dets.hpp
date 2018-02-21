@@ -10,7 +10,11 @@ namespace triqs_ctint {
    * Type of row and column argument of the Green function matrix inside the determinant.
    * G(x,y) is evaluated at the time-difference x.tau - y.tau. 
    */
-  template <bool dagger> struct arg_t {
+  template <bool dag> struct arg_t {
+
+    /// C (false) or Cdag (true)
+    static constexpr bool dagger = dag;
+
     /// The imaginary time
     tau_t tau;
 
@@ -36,15 +40,15 @@ namespace triqs_ctint {
    */
   struct G0hat_t {
     /// The (shifted) non-interacting Green function
-    gf_const_view<imtime, g_tau_t::target_t> G0_shift_tau; 
+    gf_const_view<imtime, g_tau_t::target_t> G0_shift_tau;
 
     /// The alpha function
     array<double, 2> alpha;
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
-      if ((c.tau == cdag.tau) && (c.u == cdag.u)) { return G0_shift_tau[0](c.u, cdag.u) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
+      if ((c.tau == cdag.tau) and (c.u == cdag.u)) { return G0_shift_tau[0](c.u, cdag.u) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
       double d_tau = cyclic_difference(c.tau, cdag.tau);
-      auto res   = G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u);
+      auto res     = G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u);
       return (c.tau >= cdag.tau ? res : -res);
     }
   };

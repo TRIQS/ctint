@@ -1,5 +1,4 @@
 #include "./chi2_tau.hpp"
-#include <triqs/utility/itertools.hpp>
 
 using namespace triqs::utility;
 

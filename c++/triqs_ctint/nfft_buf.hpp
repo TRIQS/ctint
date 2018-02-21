@@ -55,8 +55,8 @@ namespace triqs::utility {
     /// Rebind nfft buffer to new accumulation container of same shape
     void rebind(array_view<dcomplex, Rank> new_fiw_arr) {
       flush();
-      TRIQS_ASSERT((get_shape(new_fiw_arr) == get_shape(fiw_arr) || get_shape(fiw_arr) == get_shape(array_view<dcomplex, Rank>{}))
-                   && " Nfft Buffer: Rebind to array of different shape not allowed ");
+      TRIQS_ASSERT((get_shape(new_fiw_arr) == get_shape(fiw_arr) or get_shape(fiw_arr) == get_shape(array_view<dcomplex, Rank>{}))
+                   and " Nfft Buffer: Rebind to array of different shape not allowed ");
       fiw_arr.rebind(new_fiw_arr);
     }
 

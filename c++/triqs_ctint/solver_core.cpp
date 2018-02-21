@@ -122,7 +122,7 @@ namespace triqs_ctint {
 
       auto &m = term.monomial;
 
-      if (m[0].indices[0] != m[3].indices[0] || m[1].indices[0] != m[2].indices[0])
+      if (m[0].indices[0] != m[3].indices[0] or m[1].indices[0] != m[2].indices[0])
         TRIQS_RUNTIME_ERROR << "Interaction term with incompatible block structure: cdag_1 cdag_2 c_2 c_1 required";
 
       if (!is_densdens_interact(m)) continue;
@@ -242,19 +242,19 @@ namespace triqs_ctint {
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw && M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
-    if (G2c_iw && G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
-    if (G2c_iw && G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
+    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
+    if (G2c_iw and G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
+    if (G2c_iw and G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
     // Calculate chi2_iw from chi2_tau
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw && M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
-    if (M3ph_iw && M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
-    if (M3pp_iw_nfft && M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
-    if (M3ph_iw_nfft && M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
+    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
+    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
+    if (M3pp_iw_nfft and M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
+    if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
 
     // Measurement of chi2 by operator insertion
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
