@@ -17,8 +17,8 @@ namespace triqs_ctint::moves {
       // Calculate insertion proposition probability
       double insert_proposition_proba = v.proposition_proba / vertex_factories.size();
 
-      // Return product of vertex amplitude and insertion proposition probability
-      return 1.0 / v.amplitude * insert_proposition_proba;
+      // Return ratio of insertion proposition probability and vertex amplitude
+      return insert_proposition_proba / v.amplitude;
     };
 
     // Choose one of the vertices for removal

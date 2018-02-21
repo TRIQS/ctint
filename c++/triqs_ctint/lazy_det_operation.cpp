@@ -33,8 +33,7 @@ namespace triqs_ctint {
 
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
 
-    // Equal number of creation and annihilation operators required
-    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << " ERROR: Trying to insert unequal number of c and c_dag operators into block! ";
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Trying to insert unequal number of c and c_dag operators into block!";
 
     // Trivial insert
     if (c_count == 0) return 1.0;
@@ -58,7 +57,7 @@ namespace triqs_ctint {
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
       pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
-      if ((pos_c[i] + pos_cdag[i]) % 2 != 0) prefactor *= -1.0;
+      if ((pos_c[i] + pos_cdag[i]) % 2) prefactor *= -1.0;
     }
 
     // Perform single or double insertion
@@ -73,8 +72,7 @@ namespace triqs_ctint {
 
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_remove(det_t *d) {
 
-    // Equal number of creation and annihilation operators required
-    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Internal Error";
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Trying to remove unequal number of c and c_dag operators into block!";
 
     // Trivial removal
     if (c_count == 0) return 1.0;
@@ -98,7 +96,7 @@ namespace triqs_ctint {
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
       pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
-      if ((pos_c[i] + pos_cdag[i]) % 2 != 0) prefactor *= -1.0;
+      if ((pos_c[i] + pos_cdag[i]) % 2) prefactor *= -1.0;
     }
 
     // Perform single or double removal
