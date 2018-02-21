@@ -43,7 +43,7 @@ namespace triqs_ctint::measures {
     array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
-    block_gf<cartesian_product<imfreq,imfreq>, matrix_valued> M;
+    block_gf<cartesian_product<imfreq, imfreq>, matrix_valued> M;
   };
 
 } // namespace triqs_ctint::measures

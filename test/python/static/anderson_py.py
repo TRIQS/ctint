@@ -46,7 +46,9 @@ S.solve(h_int=h_int,
         n_warmup_cycles = 0,
         random_seed = 34788,
         measure_M_tau = True,
-        measure_M_iw = True,
+        measure_M4_iw = True,
+        n_iw_M4 = 5,
+        nfft_buf_size = 50,
         measure_M3pp_tau = True,
         measure_M3ph_tau = True,
         n_iw_M3 = 10,
@@ -62,7 +64,7 @@ S.solve(h_int=h_int,
 with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["G0_iw"] = S.G0_iw
     arch["G_iw"] = S.G_iw
-    arch["M_iw_nfft"] = S.M_iw_nfft
+    arch["G2_iw"] = S.G2_iw
     arch["chi3pp_iw"] = S.chi3pp_iw
     arch["chi3ph_iw"] = S.chi3ph_iw
     arch["chi2pp_iw"] = S.chi2pp_iw
@@ -80,7 +82,7 @@ with HDFArchive("solver.h5",'r') as arch:
 with HDFArchive("%s.out_2nd.h5"%test_name,'w') as arch:
     arch["G0_iw"] = S.G0_iw
     arch["G_iw"] = S.G_iw
-    arch["M_iw_nfft"] = S.M_iw_nfft
+    arch["G2_iw"] = S.G2_iw
     arch["chi3pp_iw"] = S.chi3pp_iw
     arch["chi3ph_iw"] = S.chi3ph_iw
     arch["chi2pp_iw"] = S.chi2pp_iw
