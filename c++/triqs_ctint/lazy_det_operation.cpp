@@ -39,12 +39,22 @@ namespace triqs_ctint {
     // Trivial insert
     if (c_count == 0) return 1.0;
 
+    // Prefactor to account for resorting of operators
+    double prefactor = 1.0;
+
     // Sort, since operators have to be inserted in order
-    std::sort(c_lst.begin(), c_lst.begin() + c_count);
-    std::sort(cdag_lst.begin(), cdag_lst.begin() + c_count);
+    if (c_count == 2) {
+      if (c_lst[1] < c_lst[0]) {
+        std::swap(c_lst[0], c_lst[1]);
+        prefactor *= -1.0;
+      }
+      if (cdag_lst[1] < cdag_lst[0]) {
+        std::swap(cdag_lst[0], cdag_lst[1]);
+        prefactor *= -1.0;
+      }
+    }
 
     // Calculate the insertion positions
-    double prefactor = 1.0; // account for resorting of operators
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
       pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
@@ -69,8 +79,22 @@ namespace triqs_ctint {
     // Trivial removal
     if (c_count == 0) return 1.0;
 
+    // Prefactor to account for resorting of operators
+    double prefactor = 1.0;
+
+    // Sort, since operators have to be inserted in order
+    if (c_count == 2) {
+      if (c_lst[1] < c_lst[0]) {
+        std::swap(c_lst[0], c_lst[1]);
+        prefactor *= -1.0;
+      }
+      if (cdag_lst[1] < cdag_lst[0]) {
+        std::swap(cdag_lst[0], cdag_lst[1]);
+        prefactor *= -1.0;
+      }
+    }
+
     // Calculate the removal positions
-    double prefactor = 1.0; // account for resorting of operators
     for (int i = 0; i < c_count; ++i) {
       pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
       pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
