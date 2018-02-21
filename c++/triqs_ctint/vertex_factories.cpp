@@ -23,7 +23,7 @@ namespace triqs_ctint {
           TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c ";
         std::vector<std::pair<int, int>> vec;
         for (auto op : m) { vec.push_back(get_int_indices(op, params.gf_struct)); }
-        // Careful: h_int monomials automatically ordered as c^+_1 c^+_2 c_3 c_4
+        // Careful: h_int monomials automatically ordered as c^+_0 c^+_1 c_2 c_3
         indices.push_back({vec[0].first, vec[0].second, vec[3].first, vec[3].second, vec[1].first, vec[1].second, vec[2].first, vec[2].second});
       }
 
@@ -70,7 +70,8 @@ namespace triqs_ctint {
 #ifdef INTERACTION_IS_COMPLEX
                 D0_tau_lst.emplace_back(d);
 #else
-                if (!is_gf_real(d, 1e-8)) std::cerr << "WARNING: Assuming real interaction values, but found Imag(D0(tau)) > 1e-8. Casting to Real.\n";
+                if (!is_gf_real(d, 1e-8))
+                  std::cerr << "WARNING: Assuming real interaction values, but found Imag(D0(tau)) > 1e-8. Casting to Real.\n";
                 D0_tau_lst.emplace_back(real(d));
 #endif
               }
@@ -102,7 +103,8 @@ namespace triqs_ctint {
       std::vector<gf<imtime, scalar_real_valued>> Jperp_tau_lst;
 #endif
 
-      // Jperp requires that blocks are of same size and that they represent spins which means there must be exactly two blocks WHAT?
+      if (params.n_blocks() != 2) TRIQS_RUNTIME_ERROR << "Jperp requires exactly two blocks corresponding to the spins";
+
       auto J = make_gf_from_inverse_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
 
       // Loop over non-block indices
@@ -110,16 +112,18 @@ namespace triqs_ctint {
         for (int b = 0; b < J.target_shape()[1]; b++) {
           auto d = slice_target_to_scalar(J, a, b);
 
-          if (max_norm(d) > 1e-10)
-            for (int bl = 0; bl < 2; bl++) {                           // FIXME Ugly ...
-              indices.push_back({1 - bl, a, bl, a, bl, b, 1 - bl, b}); //S^+_a(tau) S^-_b(tau')
+          if (max_norm(d) > 1e-10) {
+            indices.push_back({1, a, 0, a, 0, b, 1, b}); //S^+_a(tau) S^-_b(tau')
+            indices.push_back({0, a, 1, a, 1, b, 0, b}); //S^-_a(tau) S^+_b(tau')
 #ifdef INTERACTION_IS_COMPLEX
-              Jperp_tau_lst.emplace_back(d);
+            Jperp_tau_lst.emplace_back(d);
+            Jperp_tau_lst.emplace_back(d);
 #else
-              if (!is_gf_real(d, 1e-8)) std::cerr << "WARNING: Assuming real interaction values, but found Imag(Jperp(tau)) > 1e-8. Casting to Real.\n";
-              Jperp_tau_lst.emplace_back(real(d));
+            if (!is_gf_real(d, 1e-8)) std::cerr << "WARNING: Assuming real interaction values, but found Imag(Jperp(tau)) > 1e-8. Casting to Real.\n";
+            Jperp_tau_lst.emplace_back(real(d));
+            Jperp_tau_lst.emplace_back(real(d));
 #endif
-            }
+          }
         }
 
       if (indices.size() > 0) {
