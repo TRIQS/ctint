@@ -115,16 +115,20 @@ namespace triqs_ctint {
     // Assert compatibility between gf_struct an alpha
     if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
     for (auto[bl, alpha_bl] : zip(p.gf_struct, p.alpha))
-      if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s))
-        TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
+      if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s)) TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
 
     // Loop over static density-density interaction terms
     for (auto const &term : p.h_int) {
 
-      if (!is_densdens_interact(term.monomial)) continue;
+      auto &m = term.monomial;
 
-      auto[bl1_idx, nonbl1_idx] = get_int_indices(term.monomial[0], p.gf_struct);
-      auto[bl2_idx, nonbl2_idx] = get_int_indices(term.monomial[1], p.gf_struct);
+      if (m[0].indices[0] != m[3].indices[0] || m[1].indices[0] != m[2].indices[0])
+        TRIQS_RUNTIME_ERROR << "Interaction term with incompatible block structure: cdag_1 cdag_2 c_2 c_1 required";
+
+      if (!is_densdens_interact(m)) continue;
+
+      auto[bl1_idx, nonbl1_idx] = get_int_indices(m[0], p.gf_struct);
+      auto[bl2_idx, nonbl2_idx] = get_int_indices(m[1], p.gf_struct);
 
       dcomplex shift_1 = 0.0;
       dcomplex shift_2 = 0.0;
