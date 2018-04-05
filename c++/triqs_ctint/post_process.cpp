@@ -13,6 +13,7 @@ namespace triqs_ctint {
 
     // Calculate connected part of M4
     chi4_iw_t M4_iw_conn = M4_iw;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks))
         M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
@@ -21,6 +22,8 @@ namespace triqs_ctint {
 
     // Calculate disconnected part of the two-particle Green function
     chi4_iw_t G2c_iw = M4_iw_conn; // FIXME Product Ranges with += Lazy Expressions
+    G2c_iw()         = 0.;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -31,8 +34,9 @@ namespace triqs_ctint {
           for (int n : range(bl1_size))
             for (int o : range(bl2_size))
               for (int p : range(bl2_size))
-                G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G0_iw[bl1](iw2_)(j_, n) * G0_iw[bl2](iw1_ + iw3_ - iw2_)(l_, p)
-                      * M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p) * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
+                G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+                      + G0_iw[bl1](iw2_)(j_, n) * G0_iw[bl2](iw1_ - iw2_ + iw3_)(l_, p) * M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
+                         * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
       }
 
     return G2c_iw;
@@ -48,6 +52,7 @@ namespace triqs_ctint {
     // Calculate vertex function F
     chi4_iw_t F_iw = G2c_iw; // FIXME Product Ranges with += Lazy Expressions
     F_iw()         = 0;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -73,6 +78,7 @@ namespace triqs_ctint {
 
     // Calculate G2_iw from G2c_iw and G_iw
     chi4_iw_t G2_iw = G2c_iw;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks))
         G2_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
