@@ -1,4 +1,4 @@
-#include <nfft_buf.hpp>
+#include <triqs_ctint/nfft_buf.hpp>
 #include <random>
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>

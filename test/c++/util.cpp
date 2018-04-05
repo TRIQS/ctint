@@ -1,4 +1,4 @@
-#include "params.hpp"
+#include <triqs_ctint/params.hpp>
 #include <triqs/test_tools/many_body_operator.hpp>
 #include <iostream>
 

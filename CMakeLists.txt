@@ -20,7 +20,7 @@ set(BUILD_SHARED_LIBS ON)
 
 # Load TRIQS and Cpp2Py
 find_package(TRIQS 1.5 EXACT REQUIRED)
-find_package(Cpp2Py REQUIRED)
+find_package(Cpp2Py 1.5 EXACT REQUIRED)
 
 # We will need the FindNNFT of triqs, so we adjust CMake Module Path to find it
 list(APPEND CMAKE_MODULE_PATH ${TRIQS_ROOT}/share/cmake)
@@ -35,27 +35,30 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTA
 endif()
 message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} -------------")
 
-triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
+# Macro defined in TRIQS which picks the hash of repo.
+triqs_get_git_hash_of_source_dir(APP4TRIQS_GIT_HASH)
+message(STATUS "Git hash: ${APP4TRIQS_GIT_HASH}")
 
-# Common to all targets (ctint, python, tests).
-include_directories(c++/triqs_ctint)
+# Common to all targets (c++, python, tests).
+include_directories(c++)
 add_compile_options($<$<CONFIG:Release>:-march=native>
 		    $<$<CONFIG:Debug>:-Og>)
 
-# To be fixed!!
+# Set up the rpath for compiled executable
 triqs_set_rpath_for_all_targets()
 
 add_subdirectory(c++/triqs_ctint)
-add_subdirectory(python/triqs_ctint)
+if(${TRIQS_WITH_PYTHON_SUPPORT})
+ add_subdirectory(python/triqs_ctint)
+endif()
 
 # Tests
 enable_testing()
 add_subdirectory(test)
 
-# Build the documentation
 option(Build_Documentation "Build documentation" OFF)
 if(${Build_Documentation})
-  if (NOT ${TRIQS_WITH_DOCUMENTATION})
+  if(NOT ${TRIQS_WITH_DOCUMENTATION})
     message("Error: TRIQS library has not been compiled with its documentation")
   else()
     add_subdirectory(doc)

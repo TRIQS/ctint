@@ -1,6 +1,6 @@
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>
-#include "types.hpp"
+#include <triqs_ctint/types.hpp>
 
 const std::complex<double> I(0.0, 1.0);
 
