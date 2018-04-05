@@ -196,7 +196,7 @@ namespace triqs_ctint {
         auto known_moments = __tail<matrix_valued>(M.target_shape());
         known_moments.reset(0); // Unknown moments starting from moment 0
         int n_min = 0.6 * p.n_iw;
-        int n_max = p.n_iw;
+        int n_max = p.n_iw - 1;
         // Fitting moments 0, 1, 2
         fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
       }
@@ -208,7 +208,7 @@ namespace triqs_ctint {
         auto known_moments = __tail<matrix_valued>(M.target_shape());
         known_moments.reset(0); // Unknown moments starting from moment 0
         int n_min = 0.6 * p.n_iw;
-        int n_max = p.n_iw;
+        int n_max = p.n_iw - 1;
         // Fitting moments 0, 1, 2
         fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
       }
