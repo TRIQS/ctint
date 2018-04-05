@@ -6,16 +6,16 @@ target_link_libraries(solver_core ctint_c)
 # We need to include the convertes.hxx files
 target_include_directories(solver_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add version and __init__ file
+# Configure the version
 configure_file(version.py.in version.py)
-configure_file(__init__.py __init__.py COPYONLY)
 
-set(PYTHON_SOURCES
- ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
- ${CMAKE_CURRENT_BINARY_DIR}/version.py
- )
+# All Python files. Copy them in the build dir to have a complete package for the tests.
+set(PYTHON_SOURCES __init__.py)
+foreach(f ${PYTHON_SOURCES})
+  configure_file(${f} ${f} COPYONLY)
+endforeach()
 
 # Install python module to proper location
 set(PYTHON_LIB_DEST ${CPP2PY_PYTHON_LIB_DEST_ROOT}/triqs_ctint)
 install(TARGETS solver_core DESTINATION ${PYTHON_LIB_DEST})
-install(FILES ${PYTHON_SOURCES} DESTINATION ${PYTHON_LIB_DEST})
+install(FILES ${PYTHON_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/version.py DESTINATION ${PYTHON_LIB_DEST})
