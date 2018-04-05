@@ -15,7 +15,7 @@ namespace triqs_ctint::measures {
     gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
     gf_mesh<cartesian_product<imfreq, imfreq>> M3ph_iw_mesh{iw_mesh, iW_mesh};
 
-    // Init measurement container and capture view // FIXME c++17 if constexpr
+    // Init measurement container and capture view
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
     M3ph_iw_.rebind(*results->M3ph_iw_nfft);
     M3ph_iw_() = 0;
