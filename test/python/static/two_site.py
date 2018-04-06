@@ -20,8 +20,8 @@ eps = matrix([[0.2,0.1],[0.1,0.2]])
 n_cyc = 1000
 
 # --------- set up static interactions and the block structure ---------
-block_names = ['up','dn']
-gf_struct = dict.fromkeys(block_names, [0,1])
+block_names = ['dn','up']
+gf_struct = [[bl, [0,1]] for bl in block_names]
 h_int =  U * ( n('up',0)*n('dn',0) + n('up',1)*n('dn',1) ) \
        + V * ( n('up',0)*n('up',1) + n('dn',0)*n('dn',1) + \
                n('up',0)*n('dn',1) + n('dn',0)*n('up',1) )
