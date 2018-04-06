@@ -14,7 +14,6 @@ module.add_include("triqs_ctint/solver_core.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
-#include <cpp2py/converters/map.hpp>
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/string.hpp>
@@ -232,7 +231,8 @@ c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = """Construct a C
 | n_tau_dynamical_interactions | int                               | 10001   | Number of tau pts for D0_tau and jperp_tau                     |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | n_iw_dynamical_interactions  | int                               | 200     | Number of matsubara freqs for D0_iw and jperp_iw               |
-+------------------------------+-----------------------------------+---------+----------------------------------------------------------------+""")
++------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
+""")
 
 c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
              doc = """Solve method that performs CTINT calculation\n\n :param solve_params_t: Set of parameters specific to the CTINT run
@@ -302,7 +302,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | nfft_buf_size        | int                                  | 500                                            | Size of the Nfft buffer                                               |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
 | post_process         | bool                                 | true                                           | Perform post processing                                               |
-+----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+""")
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------------------+
+""")
 
 c.add_method("""std::string hdf5_scheme ()""",
              is_static = True,
