@@ -17,6 +17,7 @@ namespace triqs_ctint::measures {
     // M_iw needs to be uncopyable due to nfft_buf_t
     M_iw(M_iw const &) = delete;
     M_iw(M_iw &&)      = default;
+    ~M_iw()            = default;
     M_iw &operator=(M_iw const &) = delete;
     M_iw &operator=(M_iw &&) = default;
 

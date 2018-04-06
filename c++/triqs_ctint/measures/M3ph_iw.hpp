@@ -17,6 +17,7 @@ namespace triqs_ctint::measures {
     // M3ph_iw needs to be uncopyable due to nfft_buf_t
     M3ph_iw(M3ph_iw const &) = delete;
     M3ph_iw(M3ph_iw &&)      = default;
+    ~M3ph_iw()               = default;
     M3ph_iw &operator=(M3ph_iw const &) = delete;
     M3ph_iw &operator=(M3ph_iw &&) = default;
 
@@ -48,10 +49,10 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix in the measurement of M3ph
-    block_gf<cartesian_product<imfreq,imfreq>, matrix_valued> M;
+    block_gf<cartesian_product<imfreq, imfreq>, matrix_valued> M;
     block_gf<imfreq, matrix_valued> GM;
     block_gf<imfreq, matrix_valued> MG;
-    array<array<dcomplex, 2>,1> GMG;
+    array<array<dcomplex, 2>, 1> GMG;
   };
 
 } // namespace triqs_ctint::measures

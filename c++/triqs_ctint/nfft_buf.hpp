@@ -25,7 +25,7 @@ namespace triqs::utility {
 
     /// Constructor
     nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, bool do_checks_ = false)
-       : fiw_arr(fiw_arr_), buf_size(buf_size_), beta(beta_), do_checks(do_checks_) {
+       : fiw_arr(std::move(fiw_arr_)), buf_size(buf_size_), beta(beta_), do_checks(do_checks_) {
 
       // Capture frequency extents from fiw_arr and check that they are even ( i.e. fermionic matsubaras )
       auto freq_extents = triqs::arrays::get_shape(fiw_arr).to_vector();
@@ -70,12 +70,12 @@ namespace triqs::utility {
       double tau_sum = 0.0;
       for (int r = 0; r < Rank; ++r) {
         // Note: Nfft multi-arrays are stored in flattened arrays (c-order)
-        x_arr()[buf_counter * Rank + r] = tau_arr[r] / beta - 0.5; // \in [-0.5, 0.5)
+        x_arr()[buf_counter * Rank + r] = tau_arr[r] / beta - 0.5; // \in [-0.5, 0.5) NOLINT
         tau_sum += tau_arr[r];                                     // Sum all tau values
       }
 
       // Write f(x) to nfft_plan-> The prefactor accounts for the Pi/beta offset in fermionic Matsubaras
-      fx_arr()[buf_counter] = std::exp(1_j * M_PI * tau_sum / beta) * ftau;
+      fx_arr()[buf_counter] = std::exp(1_j * M_PI * tau_sum / beta) * ftau; // NOLINT
 
       ++buf_counter;
 
@@ -97,8 +97,8 @@ namespace triqs::utility {
 
       // Trivial initialization of the remaining points
       for (int i = buf_counter; i < buf_size; ++i) {
-        fx_arr()[i] = 0.0;
-        for (int r = 0; r < Rank; ++r) x_arr()[i * Rank + r] = -0.5 + double(i) / buf_size;
+        fx_arr()[i] = 0.0; // NOLINT
+        for (int r = 0; r < Rank; ++r) x_arr()[i * Rank + r] = -0.5 + double(i) / buf_size; // NOLINT
       }
       do_nfft();
       buf_counter = 0;
@@ -130,10 +130,10 @@ namespace triqs::utility {
     double *x_arr() { return plan_ptr->x; }
 
     // Get pointer to array containing f(x) values for the NFFT transform
-    dcomplex *fx_arr() { return reinterpret_cast<dcomplex *>(plan_ptr->f); }
+    dcomplex *fx_arr() { return reinterpret_cast<dcomplex *>(plan_ptr->f); } // NOLINT
 
     // Get pointer to array containing the NFFT output h(k)
-    const dcomplex *fk_arr() const { return reinterpret_cast<dcomplex *>(plan_ptr->f_hat); }
+    const dcomplex *fk_arr() const { return reinterpret_cast<dcomplex *>(plan_ptr->f_hat); } // NOLINT
 
     // Function to check whether buffer is filled
     bool is_full() const { return buf_counter >= buf_size; }
@@ -152,7 +152,7 @@ namespace triqs::utility {
 #endif
       if (do_checks) { // Check validity of NFFT parameters
         const char *error_str = nfft_check(plan_ptr.get());
-        if (error_str != 0) TRIQS_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
+        if (error_str != nullptr) TRIQS_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
       }
 
       // Execute transform
@@ -162,7 +162,7 @@ namespace triqs::utility {
       int count = 0;
       for (auto fiw_itr = fiw_arr.begin(); fiw_itr != fiw_arr.end(); ++fiw_itr) {
         int factor = common_factor * (sum(fiw_itr.indices()) % 2 ? -1 : 1);
-        *fiw_itr += fk_arr()[count] * factor;
+        *fiw_itr += fk_arr()[count] * factor; // NOLINT
         ++count;
       }
     }

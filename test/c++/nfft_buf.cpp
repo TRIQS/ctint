@@ -3,8 +3,6 @@
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
-const std::complex<double> I(0.0, 1.0);
-
 using namespace triqs::utility;
 
 // Check that int holds at least 4 Bytes
@@ -22,7 +20,7 @@ class Nfft : public ::testing::Test {
   mini_vector<size_t, 2> shape;
   gf<imfreq, matrix_valued> giw_exact;
 
-  virtual void SetUp() {
+  void SetUp() override {
     shape = triqs::arrays::make_shape(1, 1);
 
     // Init exact reference gf
@@ -38,7 +36,7 @@ class Nfft : public ::testing::Test {
 };
 
 /********************* EQUIDISTANT TRANSFORM ********************/
-TEST_F(Nfft, Equid) {
+TEST_F(Nfft, Equid) { // NOLINT
 
   // Parameters
   int n_tau    = 10000;
@@ -105,7 +103,7 @@ TEST_F(Nfft, Equid) {
 }
 
 /*********************  NON-EQUIDISTANT TRANSFORM ********************/
-TEST_F(Nfft, Rng) {
+TEST_F(Nfft, Rng) { // NOLINT
 
   // Parameters
   int n_tau    = 1e+6;
@@ -142,7 +140,7 @@ TEST_F(Nfft, Rng) {
 }
 
 /*********************  2D NFFT TRANSFORM ********************/
-TEST_F(Nfft, 2D) {
+TEST_F(Nfft, 2D) { // NOLINT
 
   // Parameters
   int n_tau    = 500;

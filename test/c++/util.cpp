@@ -5,7 +5,7 @@
 using namespace triqs_ctint;
 
 // Decompose an interaction hamiltonian into density and non-density term
-TEST(util, hint_decomp) {
+TEST(util, hint_decomp) { // NOLINT
 
   double U = 1.0;
   double J = 1.0;
@@ -35,7 +35,7 @@ TEST(util, hint_decomp) {
 }
 
 // Given a gf_struct object, determine the integer indices of a given canonical operator
-TEST(util, get_op_indices) {
+TEST(util, get_op_indices) { // NOLINT
 
   gf_struct_t gf_struct = {{"bl1", {"o1", "o2", "o3"}}, {"bl2", {"o4", "o5"}}};
 
@@ -58,8 +58,8 @@ TEST(util, get_op_indices) {
       std::cout << " Integer indices for " << op << " : " << idx_pair.first << ", " << idx_pair.second << "\n";
     }
 
-  EXPECT_EQ(std::make_pair(1, 1), get_int_indices(canonical_ops_t{false, {"bl2", "o5"}}, gf_struct));
-  EXPECT_EQ(std::make_pair(0, 2), get_int_indices(canonical_ops_t{false, {"bl1", "o3"}}, gf_struct));
+  EXPECT_EQ(std::make_pair(1, 1), get_int_indices(canonical_ops_t{false, {"bl2", "o5"}}, gf_struct)); // NOLINT
+  EXPECT_EQ(std::make_pair(0, 2), get_int_indices(canonical_ops_t{false, {"bl1", "o3"}}, gf_struct)); // NOLINT
 }
 
 MAKE_MAIN;

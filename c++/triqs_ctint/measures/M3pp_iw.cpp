@@ -3,7 +3,7 @@
 namespace triqs_ctint::measures {
 
   M3pp_iw::M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
-     : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_), buf_arrarr(params_.n_blocks()) {
+     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
@@ -47,7 +47,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto [iw_mesh, iW_mesh] = M3pp_iw_(0,0).mesh(); 
+    auto[iw_mesh, iW_mesh] = M3pp_iw_(0, 0).mesh();
 
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
@@ -63,11 +63,9 @@ namespace triqs_ctint::measures {
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
                 for (auto const &iw : iw_mesh)
-                  for (auto const &iW : iW_mesh) {
-                    matsubara_freq iw1 = iw;
-                    matsubara_freq iw3 = iW - iw;
-                    M3pp_iw[{iw, iW}](i, j, k, l) += sign * (GM1[iw1](j, i) * GM2[iw3](l, k) - kronecker(bl1, bl2) * GM1[iw1](l, i) * GM2[iw3](j, k));
-                  }
+                  for (auto const &iW : iW_mesh)
+                    M3pp_iw[iw, iW](i, j, k, l) +=
+                       sign * (GM1[iw](j, i) * GM2[iW - iw](l, k) - kronecker(bl1, bl2) * GM1[iw](l, i) * GM2[iW - iw](j, k));
       }
   }
 

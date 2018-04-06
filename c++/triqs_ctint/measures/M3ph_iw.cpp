@@ -5,10 +5,10 @@ namespace triqs_ctint::measures {
   M3ph_iw::M3ph_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_),
        qmc_config(qmc_config_),
-       G0_tau(G0_tau_),
        buf_arrarr(params_.n_blocks()),
        buf_arrarr_GM(params_.n_blocks()),
-       buf_arrarr_MG(params_.n_blocks()) {
+       buf_arrarr_MG(params_.n_blocks()),
+       G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
@@ -97,7 +97,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr_MG)
       for (auto &buf : buf_arr) buf.flush();
 
-    auto [iw_mesh, iW_mesh] = M3ph_iw_(0,0).mesh(); 
+    auto[iw_mesh, iW_mesh] = M3ph_iw_(0, 0).mesh();
 
     for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
@@ -115,12 +115,9 @@ namespace triqs_ctint::measures {
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
                 for (auto const &iw : iw_mesh)
-                  for (auto const &iW : iW_mesh){
-		    matsubara_freq iw2 = iW + iw; 
-		    matsubara_freq iw1 = iw; 
-                    M3ph_iw[{iw, iW}](i, j, k, l) +=
-                       sign * (M1[{iw2, iw1}](j, i) * GMG2(l, k) - kronecker(bl1, bl2) * GM1[iw1](l, i) * MG2[iw2](j, k));
-		  }
+                  for (auto const &iW : iW_mesh)
+                    M3ph_iw[iw, iW](i, j, k, l) +=
+                       sign * (M1[iW + iw, iw](j, i) * GMG2(l, k) - kronecker(bl1, bl2) * GM1[iw](l, i) * MG2[iW + iw](j, k));
       }
   }
 

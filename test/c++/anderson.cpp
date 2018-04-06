@@ -4,7 +4,7 @@
 
 using namespace triqs_ctint;
 
-TEST(CtInt, Anderson) {
+TEST(CtInt, Anderson) { // NOLINT
   triqs::mpi::communicator world;
 
   // System Parameters

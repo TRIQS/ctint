@@ -7,7 +7,7 @@ const std::complex<double> I(0.0, 1.0);
 using namespace triqs::gfs;
 using namespace triqs::clef;
 
-TEST(Gfs, Real_Imag) {
+TEST(Gfs, Real_Imag) { // NOLINT
 
   // Parameters
   int n_iw    = 100;

@@ -3,7 +3,7 @@
 namespace triqs_ctint::measures {
 
   M3ph_tau::M3ph_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
-     : params(params_), qmc_config(qmc_config_), G0_tau(G0_tau_), tau_mesh{params_.beta, Fermion, params_.n_tau_M3} {
+     : params(params_), qmc_config(qmc_config_), G0_tau(std::move(G0_tau_)), tau_mesh{params_.beta, Fermion, params_.n_tau_M3} {
 
     // Construct Matsubara mesh
     gf_mesh<cartesian_product<imtime, imtime>> M3ph_tau_mesh{tau_mesh, tau_mesh};

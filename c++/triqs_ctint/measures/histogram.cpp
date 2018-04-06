@@ -3,7 +3,7 @@
 namespace triqs_ctint::measures {
 
   histogram::histogram(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
-     : histogram_(results->histogram), qmc_config(qmc_config_) {
+     : qmc_config(qmc_config_), histogram_(results->histogram) {
     results->histogram.resize(1000);
   }
 

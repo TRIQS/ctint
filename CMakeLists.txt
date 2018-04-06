@@ -19,7 +19,7 @@ option(INTERACTION_IS_COMPLEX "If ON, the interaction vertices (dynamic and stat
 set(BUILD_SHARED_LIBS OFF)
 
 # Global options and definitions
-add_definitions(-Wall)
+add_definitions(-Wall -Wno-missing-braces)
 add_compile_options($<$<CONFIG:Release>:-march=native>
 		    $<$<CONFIG:Debug>:-Og>)
 

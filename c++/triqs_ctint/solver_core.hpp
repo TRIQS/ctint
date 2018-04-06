@@ -29,6 +29,7 @@ namespace triqs_ctint {
     // Delete assignement operator because of const members
     solver_core(solver_core const &p) = default;
     solver_core(solver_core &&p)      = default;
+    ~solver_core()                    = default;
     solver_core &operator=(solver_core const &p) = delete;
     solver_core &operator=(solver_core &&p) = default;
 
@@ -53,7 +54,6 @@ namespace triqs_ctint {
     solve_params_t solve_params;
 
     private:
-
     // For internal use only
     void solve();
 
@@ -71,7 +71,6 @@ namespace triqs_ctint {
     container_set const &result_set() const { return static_cast<container_set const &>(*this); }
 
     public:
-
     static std::string hdf5_scheme() { return "CTINT_SolverCore"; }
 
     // Function that writes the solver_core to hdf5 file
