@@ -2,7 +2,6 @@
 #include <triqs/test_tools/gfs.hpp>
 #include <triqs_ctint/types.hpp>
 
-const std::complex<double> I(0.0, 1.0);
 
 using namespace triqs::gfs;
 using namespace triqs::clef;
@@ -23,6 +22,7 @@ TEST(Gfs, Real_Imag) { // NOLINT
   //auto G_imag = imag(G); 
 
   // FIXME 
+  //const std::complex<double> I(0.0, 1.0);
   //auto G_Res(iw_) <<  I * G_imag(iw_) + G_real(iw_);
 
   //EXPECT_GF_NEAR(G, G_Res);
