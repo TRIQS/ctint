@@ -29,14 +29,15 @@ namespace triqs_ctint::moves {
     // Lazy insert and capture the weight for one vertex
     U_scalar_t ratio = single_insert();
 
-    // Perform previous step again in case of double removal
-    if (double_insert) ratio *= single_insert();
+    // Perform previous step again in case of double insertion
+    if (double_insertion) ratio *= single_insert();
 
     // Execute the insertion move
     g_tau_scalar_t det_ratio = lazy_op.execute_try_insert();
 
     // Calculate the removal proposition probability
-    double remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_insert ? qmc_config->perturbation_order() : 1));
+    double remove_proposition_proba =
+       1.0 / (qmc_config->perturbation_order() * (double_insertion ? qmc_config->perturbation_order() : 1));
 
     // Return the overall weight
     return mc_weight_t{det_ratio} * remove_proposition_proba * ratio;
@@ -48,8 +49,8 @@ namespace triqs_ctint::moves {
   }
 
   void insert::reject() {
-    for (int i = 0; i < (double_insert ? 2 : 1); ++i) qmc_config->vertex_lst.pop_back(); // remove the last insertions.
-    for (auto &d : qmc_config->dets) d.reject_last_try();                                // reject the last try in all determinants
+    for (int i = 0; i < (double_insertion ? 2 : 1); ++i) qmc_config->vertex_lst.pop_back(); // remove the last insertions.
+    for (auto &d : qmc_config->dets) d.reject_last_try();                                   // reject the last try in all determinants
   }
 
 } // namespace triqs_ctint::moves

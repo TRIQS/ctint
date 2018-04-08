@@ -19,7 +19,7 @@ namespace triqs_ctint::moves {
     triqs::mc_tools::random_generator &rng;
 
     /// Switch for double vertex insertions
-    bool double_insert;
+    bool double_insertion = false;
 
     /// Object that allows to delay determinant operations, necessary for multi-inserts/removes
     lazy_det_operation_t lazy_op = lazy_det_operation_t{&qmc_config->dets};

@@ -19,7 +19,7 @@ namespace triqs_ctint::moves {
     triqs::mc_tools::random_generator &rng;
 
     /// Switch for double vertex removals
-    double double_remove;
+    bool double_removal = false;
 
     int vpos = 0, vpos2 = 0;
 
