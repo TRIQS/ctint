@@ -51,12 +51,9 @@ namespace triqs_ctint {
     constr_params_t constr_params;
 
     // Struct containing the parameters relevant for the solve process
-    solve_params_t solve_params;
+    std::optional<solve_params_t> last_solve_params;
 
     private:
-    // For internal use only
-    void solve();
-
     // Mpi Communicator
     triqs::mpi::communicator world;
 
@@ -81,7 +78,7 @@ namespace triqs_ctint {
       h5_write_attribute(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
       h5_write(grp, "", s.result_set());
       h5_write(grp, "constr_params", s.constr_params);
-      h5_write(grp, "solve_params", s.solve_params);
+      h5_write(grp, "last_solve_params", s.last_solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
@@ -96,7 +93,7 @@ namespace triqs_ctint {
       auto constr_params   = h5_read<constr_params_t>(grp, "constr_params");
       auto s               = solver_core{constr_params};
       h5_read(grp, "", s.result_set());
-      h5_read(grp, "solve_params", s.solve_params);
+      h5_read(grp, "last_solve_params", s.last_solve_params);
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);

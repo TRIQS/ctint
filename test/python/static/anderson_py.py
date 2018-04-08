@@ -76,7 +76,7 @@ with HDFArchive("solver.h5",'w') as arch:
 
 with HDFArchive("solver.h5",'r') as arch:
     S = arch["S"]
-    S.solve(**S.solve_params)
+    S.solve(**S.last_solve_params)
 
 # -------- Save 2nd run in archive ---------
 with HDFArchive("%s.out_2nd.h5"%test_name,'w') as arch:

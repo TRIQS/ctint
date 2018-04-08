@@ -36,7 +36,6 @@ TEST(CtInt, Anderson) { // NOLINT
   // Solve Parameters
   solve_params_t ps;
   ps.h_int                = U * n("up", 0) * n("down", 0);
-  ps.use_alpha            = true;
   ps.n_s                  = 2;
   ps.alpha                = alpha;
   ps.n_cycles             = 1e+6;

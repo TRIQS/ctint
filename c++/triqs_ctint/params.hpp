@@ -58,9 +58,6 @@ namespace triqs_ctint {
 
     // ----------- QMC Specific -----------
 
-    /// Switch for the use of the alpha function. Compare Sec. 1.3 in Notes.
-    bool use_alpha = false;
-
     /// Number of auxiliary spins
     int n_s = 2;
 

@@ -31,12 +31,9 @@ namespace triqs_ctint {
 
   // -------------------------------------------------------------------------------
 
-  void solver_core::solve(solve_params_t const &_solve_params) {
-    solve_params = _solve_params;
-    solve();
-  }
+  void solver_core::solve(solve_params_t const &solve_params) {
 
-  void solver_core::solve() {
+    last_solve_params = solve_params;
 
     // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
     if (world.rank() == 0)
