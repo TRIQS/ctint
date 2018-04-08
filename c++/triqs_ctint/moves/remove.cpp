@@ -30,7 +30,10 @@ namespace triqs_ctint::moves {
     // In case of double remove we pick up another vertex
     if (double_removal) {
       vpos2 = rng(qmc_config->perturbation_order());
-      if (vpos == vpos2) return 0;
+      if (vpos == vpos2) {
+        lazy_op.reset();
+        return 0;
+      }
       ratio *= single_remove(vpos2);
     }
 
