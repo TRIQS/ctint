@@ -72,7 +72,7 @@ namespace triqs_ctint {
 
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_remove(det_t *d) {
 
-    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Trying to remove unequal number of c and c_dag operators into block!";
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Trying to remove unequal number of c and c_dag operators from block!";
 
     // Trivial removal
     if (c_count == 0) return 1.0;
@@ -80,7 +80,7 @@ namespace triqs_ctint {
     // Prefactor to account for resorting of operators
     double prefactor = 1.0;
 
-    // Sort, since operators have to be inserted in order
+    // Sort, since operators have to be removed in order
     if (c_count == 2) {
       if (c_lst[1] < c_lst[0]) {
         std::swap(c_lst[0], c_lst[1]);
