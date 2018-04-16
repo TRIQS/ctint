@@ -5,7 +5,7 @@ namespace triqs_ctint::measures {
   M_iw::M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
     // Init measurement container and capture view
-    results->M_iw_nfft = make_block_gf(gf_mesh<imfreq>{params.beta, Fermion, params.n_iw}, params.gf_struct);
+    results->M_iw_nfft = block_gf<imfreq>{{params.beta, Fermion, params.n_iw}, params.gf_struct};
     M_iw_.rebind(*results->M_iw_nfft);
     M_iw_() = 0;
 

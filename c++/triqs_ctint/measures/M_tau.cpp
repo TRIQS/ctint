@@ -5,7 +5,7 @@ namespace triqs_ctint::measures {
   M_tau::M_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
     // Init measurement container and capture view
-    results->M_tau = make_block_gf<imtime, M_tau_target_t>(gf_mesh<imtime>{params.beta, Fermion, params.n_tau}, params.gf_struct);
+    results->M_tau = block_gf<imtime, M_tau_target_t>{{params.beta, Fermion, params.n_tau}, params.gf_struct};
     M_tau_.rebind(*results->M_tau);
     M_tau_() = 0;
   }

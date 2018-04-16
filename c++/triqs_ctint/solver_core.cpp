@@ -16,8 +16,8 @@ namespace triqs_ctint {
     tau_t::beta = p.beta;
 
     // Allocate essential QMC containers
-    G0_iw        = make_block_gf(gf_mesh<imfreq>{p.beta, Fermion, p.n_iw}, p.gf_struct);
-    G0_shift_tau = make_block_gf<imtime, g_tau_t::target_t>(gf_mesh<imtime>{p.beta, Fermion, p.n_tau}, p.gf_struct);
+    G0_iw        = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
+    G0_shift_tau = block_gf<imtime, g_tau_t::target_t>{{p.beta, Fermion, p.n_tau}, p.gf_struct};
 
     // Allocate containers for dynamical density-density interaction
     if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);

@@ -22,9 +22,9 @@ namespace triqs_ctint::measures {
 
     // Initialize intermediate scattering matrix
     gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
-    M  = make_block_gf(gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh_large, iw_mesh}, params.gf_struct);
-    GM = make_block_gf(iw_mesh, params.gf_struct);
-    MG = make_block_gf(iw_mesh_large, params.gf_struct);
+    M  = block_gf{gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh_large, iw_mesh}, params.gf_struct};
+    GM = block_gf{iw_mesh, params.gf_struct};
+    MG = block_gf{iw_mesh_large, params.gf_struct};
 
     auto init_target_func = [&](int bl) {
       int bl_size = GM[bl].target_shape()[0];

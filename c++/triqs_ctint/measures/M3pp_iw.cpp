@@ -17,7 +17,7 @@ namespace triqs_ctint::measures {
 
     // Initialize intermediate scattering matrix
     gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
-    GM = make_block_gf(iw_mesh_large, params.gf_struct);
+    GM = block_gf{iw_mesh_large, params.gf_struct};
 
     // Create nfft buffers
     for (int b : range(params.n_blocks())) {

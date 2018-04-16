@@ -32,15 +32,6 @@
 #include <utility>
 #include <variant>
 
-namespace std {
-  inline string to_string(string const &str) { return str; }
-  inline string to_string(variant<int, string> const &var_int_string) {
-    stringstream ss;
-    ss << var_int_string;
-    return ss.str();
-  }
-} // namespace std
-
 namespace triqs_ctint {
 
   using namespace std::complex_literals; // Complex Unity 1i
@@ -153,26 +144,6 @@ namespace triqs::gfs {
 
   /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
   template <typename Gf> std::enable_if_t<is_gf<Gf>::value, double> max_norm(Gf const &G) { return max_norm(G.data()); }
-
-  // Function template for block_gf initialization
-  template <typename Var_t, typename Target_t = matrix_valued>
-  block_gf<Var_t, Target_t> make_block_gf(gf_mesh<Var_t> const &m, triqs::hilbert_space::gf_struct_t const &gf_struct) {
-
-    std::vector<gf<Var_t, Target_t>> gf_vec;
-    std::vector<std::string> block_names;
-
-    //for (auto const & [ bname, idx_lst ] : gf_struct) { // C++17
-    for (auto const &bl : gf_struct) {
-      auto &bname  = bl.first;
-      auto bl_size = bl.second.size();
-      block_names.push_back(bname);
-      std::vector<std::string> indices;
-      for (auto const &var : bl.second) visit([&indices](auto &&arg) { indices.push_back(std::to_string(arg)); }, var);
-      gf_vec.emplace_back(m, make_shape(bl_size, bl_size), std::vector<std::vector<std::string>>{indices, indices});
-    }
-
-    return make_block_gf(std::move(block_names), std::move(gf_vec));
-  }
 
   template <typename Var_t, typename Target = tensor_valued<4>>
   block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, triqs::hilbert_space::gf_struct_t const &gf_struct) {

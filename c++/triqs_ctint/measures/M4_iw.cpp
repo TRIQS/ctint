@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
     gf_mesh<cartesian_product<imfreq, imfreq>> M_mesh{iw_mesh_large, iw_mesh};
 
     // Initialize intermediate scattering matrix
-    M = make_block_gf(M_mesh, params.gf_struct);
+    M = block_gf{M_mesh, params.gf_struct};
 
     // Create nfft buffers
     for (int bl : range(params.n_blocks())) {
