@@ -83,6 +83,8 @@ namespace triqs_ctint {
     if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
     if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
     if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
+    if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
+
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
@@ -246,6 +248,9 @@ namespace triqs_ctint {
     // Calculate chi2_iw from chi2_tau
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
+
+    // Calculate chiAB_iw from chiAB_tau
+    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(*chiAB_tau, p.n_iw_chi2);
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);

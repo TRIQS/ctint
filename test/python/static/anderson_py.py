@@ -35,7 +35,7 @@ S = SolverCore(beta = beta,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------
-for n,g0 in S.G0_iw:
+for bl,g0 in S.G0_iw:
   g0 << inverse(iOmega_n + mu - inverse(iOmega_n - eps));
 
 # --------- Solve! ----------

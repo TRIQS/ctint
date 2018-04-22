@@ -14,6 +14,7 @@ module.add_include("triqs_ctint/solver_core.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
+#include <cpp2py/converters/complex.hpp>
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/string.hpp>
@@ -97,6 +98,11 @@ c.add_member(c_name = "chi2ph_tau",
              read_only= True,
              doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary times as obtained by operator insertion""")
 
+c.add_member(c_name = "chiAB_tau",
+             c_type = "std::optional<gf<imtime> >",
+             read_only= True,
+             doc = """The correlation function :math:`\\chi_AB` in imaginary times""")
+
 c.add_member(c_name = "M_iw",
              c_type = "std::optional<g_iw_t>",
              read_only= True,
@@ -156,6 +162,11 @@ c.add_member(c_name = "chi2ph_iw",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in Matsubara frequencies""")
+
+c.add_member(c_name = "chiAB_iw",
+             c_type = "std::optional<gf<imfreq> >",
+             read_only= True,
+             doc = """The correlation function :math:`\\chi_AB` in imaginary frequencies""")
 
 c.add_member(c_name = "chi3pp_iw",
              c_type = "std::optional<chi3_iw_t>",
@@ -296,6 +307,12 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | n_tau_chi2           | int                                  | 10000                                          | Number of imaginary time points in chi2                   |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | n_iw_chi2            | int                                  | 128                                            | Number of positive Matsubara frequencies in chi2          |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
+| measure_chiAB_tau    | bool                                 | false                                          | Measure of chiAB by insertion                             |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
+| chi_A_vec            | std::vector<many_body_operator>      | {}                                             | The list of all operators A                               |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
+| chi_B_vec            | std::vector<many_body_operator>      | {}                                             | The list of all operators B                               |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | nfft_buf_size        | int                                  | 500                                            | Size of the Nfft buffer                                   |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
@@ -459,6 +476,21 @@ c.add_member(c_name = "n_iw_chi2",
              c_type = "int",
              initializer = """ 128 """,
              doc = """Number of positive Matsubara frequencies in chi2""")
+
+c.add_member(c_name = "measure_chiAB_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure of chiAB by insertion""")
+
+c.add_member(c_name = "chi_A_vec",
+             c_type = "std::vector<many_body_operator>",
+             initializer = """ {} """,
+             doc = """The list of all operators A""")
+
+c.add_member(c_name = "chi_B_vec",
+             c_type = "std::vector<many_body_operator>",
+             initializer = """ {} """,
+             doc = """The list of all operators B""")
 
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",

@@ -77,6 +77,9 @@ namespace triqs_ctint {
     h5_write(grp, "measure_chi2ph_tau", sp.measure_chi2ph_tau);
     h5_write(grp, "n_tau_chi2", sp.n_tau_chi2);
     h5_write(grp, "n_iw_chi2", sp.n_iw_chi2);
+    h5_write(grp, "measure_chiAB_tau", sp.measure_chiAB_tau);
+    h5_write(grp, "chi_A_vec", sp.chi_A_vec);
+    h5_write(grp, "chi_B_vec", sp.chi_B_vec);
     h5_write(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_write(grp, "post_process", sp.post_process);
   }
@@ -112,6 +115,9 @@ namespace triqs_ctint {
     h5_read(grp, "measure_chi2ph_tau", sp.measure_chi2ph_tau);
     h5_read(grp, "n_tau_chi2", sp.n_tau_chi2);
     h5_read(grp, "n_iw_chi2", sp.n_iw_chi2);
+    h5_read(grp, "measure_chiAB_tau", sp.measure_chiAB_tau);
+    h5_read(grp, "chi_A_vec", sp.chi_A_vec);
+    h5_read(grp, "chi_B_vec", sp.chi_B_vec);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_read(grp, "post_process", sp.post_process);
   }

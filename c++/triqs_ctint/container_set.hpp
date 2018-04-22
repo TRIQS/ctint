@@ -1,4 +1,5 @@
 #pragma once
+#include "./types.hpp"
 #include <optional>
 
 namespace triqs_ctint {
@@ -44,6 +45,9 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained by operator insertion
     std::optional<chi2_tau_t> chi2ph_tau;
 
+    /// The correlation function $\chi_AB$ in imaginary times
+    std::optional<gf<imtime>> chiAB_tau;
+
     //============ Containers dependent on measured quantities
 
     /// The Fourier-transform of M_tau. Dependent on M_tau
@@ -82,6 +86,9 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_2$ in the particle-hole channel in Matsubara frequencies
     std::optional<chi2_iw_t> chi2ph_iw;
 
+    /// The correlation function $\chi_AB$ in imaginary frequencies
+    std::optional<gf<imfreq>> chiAB_iw;
+
     /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;
 
@@ -105,6 +112,7 @@ namespace triqs_ctint {
       h5_write(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_write(grp, "chi2pp_tau", c.chi2pp_tau);
       h5_write(grp, "chi2ph_tau", c.chi2ph_tau);
+      h5_write(grp, "chiAB_tau", c.chiAB_tau);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
@@ -117,6 +125,7 @@ namespace triqs_ctint {
       h5_write(grp, "G2c_iw", c.G2c_iw);
       h5_write(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_write(grp, "chi2ph_iw", c.chi2ph_iw);
+      h5_write(grp, "chiAB_iw", c.chiAB_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_write(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
@@ -134,6 +143,7 @@ namespace triqs_ctint {
       h5_read(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_read(grp, "chi2pp_tau", c.chi2pp_tau);
       h5_read(grp, "chi2ph_tau", c.chi2ph_tau);
+      h5_read(grp, "chiAB_tau", c.chiAB_tau);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
@@ -146,6 +156,7 @@ namespace triqs_ctint {
       h5_read(grp, "G2c_iw", c.G2c_iw);
       h5_read(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
+      h5_read(grp, "chiAB_iw", c.chiAB_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_read(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);

@@ -135,6 +135,13 @@ namespace triqs_ctint {
     /// Number of positive Matsubara frequencies in chi2
     int n_iw_chi2 = 128;
 
+    /// Measure of chiAB by insertion
+    bool measure_chiAB_tau = false;
+    /// The list of all operators A
+    std::vector<many_body_operator> chi_A_vec = {};
+    /// The list of all operators B
+    std::vector<many_body_operator> chi_B_vec = {};
+
     /// Size of the Nfft buffer
     int nfft_buf_size = 500;
 
@@ -150,7 +157,8 @@ namespace triqs_ctint {
 
   /// A struct combining both constr_params_t and solve_params_t
   struct params_t : constr_params_t, solve_params_t {
-    params_t(constr_params_t constr_params_, solve_params_t solve_params_) : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
+    params_t(constr_params_t const &constr_params_, solve_params_t const &solve_params_)
+       : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
   };
 
   /// Function that returns a pair of integer indices (block, non_block), given the index of a c/c^dag operator

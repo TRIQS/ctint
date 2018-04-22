@@ -20,7 +20,7 @@ namespace triqs_ctint {
         amplitudes.push_back(-U_scalar_t(term.coef));
         auto const &m = term.monomial;
         if (m.size() != 4 or !(m[0].dagger and m[1].dagger and !m[2].dagger and !m[3].dagger))
-          TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c ";
+          TRIQS_RUNTIME_ERROR << " Monimial in h_int is not of the form c^+ c^+ c c \n";
         std::vector<std::pair<int, int>> vec;
         for (auto op : m) { vec.push_back(get_int_indices(op, params.gf_struct)); }
         // Careful: h_int monomials automatically ordered as c^+_0 c^+_1 c_2 c_3
