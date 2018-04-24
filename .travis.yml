@@ -41,6 +41,7 @@ script:
   - cmake .. -DCMAKE_BUILD_TYPE=Debug -DASAN=ON -DUBSAN=ON -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DGTAU_IS_COMPLEX=ON -DINTERACTION_IS_COMPLEX=ON
   - export UBSAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
   - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
+  - export UBSAN_OPTIONS=symbolize=1:print_stacktrace=1
   - export ASAN_OPTIONS=symbolize=1:detect_leaks=0
   - export CTEST_OUTPUT_ON_FAILURE=1
   - make -j8 && make test

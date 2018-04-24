@@ -40,7 +40,7 @@ macro(generate_docs header_file)
     TARGET docs_cpp2rst
     COMMAND c++2rst
     ${header_file}
-    -N app4triqs
+    -N triqs_ctint
     --output_directory ${CMAKE_CURRENT_BINARY_DIR}/cpp2rst_generated
     ${CPP2RST_INCLUDE_COMMAND}
     --cxxflags="-std=c++17"
