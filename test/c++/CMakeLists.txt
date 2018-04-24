@@ -13,6 +13,7 @@ foreach(t ${all_tests})
     set_target_properties(${t} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
   endif()
   # Run cppcheck if found
+
   if(CPPCHECK_EXECUTABLE)
     add_custom_command(
       TARGET ${t}
@@ -26,3 +27,9 @@ foreach(t ${all_tests})
     )
   endif()
 endforeach()
+
+# Set UBSan Options for all tests
+set_property(TEST ${all_tests} PROPERTY
+  ENVIRONMENT
+    UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1:$ENV{UBSAN_OPTIONS}
+)

@@ -48,8 +48,11 @@ if(${TRIQS_WITH_PYTHON_SUPPORT})
 endif()
 
 # Tests
-enable_testing()
-add_subdirectory(test)
+option(Build_Tests "Build tests" ON)
+if(${Build_Tests})
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 # Additional configuration files
 add_subdirectory(share)
