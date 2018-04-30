@@ -26,7 +26,7 @@ n_cyc = 1000
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['single_block']
-gf_struct = [[bl, [0,1]] for bl in block_names]
+gf_struct = [(bl, [0,1]) for bl in block_names]
 h_int = -U * n(block_names[0],0)*n(block_names[0],1)
 
 # --------- Define alpha tensor ---------

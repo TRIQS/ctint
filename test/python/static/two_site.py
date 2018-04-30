@@ -21,7 +21,7 @@ n_cyc = 1000
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['dn','up']
-gf_struct = [[bl, [0,1]] for bl in block_names]
+gf_struct = [(bl, [0,1]) for bl in block_names]
 h_int =  U * ( n('up',0)*n('dn',0) + n('up',1)*n('dn',1) ) \
        + V * ( n('up',0)*n('up',1) + n('dn',0)*n('dn',1) + \
                n('up',0)*n('dn',1) + n('dn',0)*n('up',1) )
