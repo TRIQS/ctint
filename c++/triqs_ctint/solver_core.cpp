@@ -126,22 +126,23 @@ namespace triqs_ctint {
 
       if (!is_densdens_interact(m)) continue;
 
-      auto[bl1_idx, nonbl1_idx] = get_int_indices(m[0], p.gf_struct);
-      auto[bl2_idx, nonbl2_idx] = get_int_indices(m[1], p.gf_struct);
+      auto[bl1, idx1] = get_int_indices(m[0], p.gf_struct);
+      auto[bl2, idx2] = get_int_indices(m[1], p.gf_struct);
 
+      // Shift diagonal Green function components according to Eq. (17) of implementation Notes
       dcomplex shift_1 = 0.0;
       dcomplex shift_2 = 0.0;
       for (int s : range(p.n_s)) {
-        shift_1 += p.alpha[bl1_idx](nonbl1_idx, s);
-        shift_2 += p.alpha[bl2_idx](nonbl2_idx, s);
+        shift_1 += p.alpha[bl1](idx1, s);
+        shift_2 += p.alpha[bl2](idx2, s);
       }
       shift_1 *= dcomplex(term.coef) / p.n_s;
       shift_2 *= dcomplex(term.coef) / p.n_s;
 
-      auto g_1 = slice_target_to_scalar(G0_inv[bl1_idx], nonbl1_idx, nonbl1_idx);
-      auto g_2 = slice_target_to_scalar(G0_inv[bl2_idx], nonbl2_idx, nonbl2_idx);
-      g_1(iw_) << g_1(iw_) - shift_1;
-      g_2(iw_) << g_2(iw_) - shift_2;
+      auto g_1 = slice_target_to_scalar(G0_inv[bl1], idx1, idx1);
+      auto g_2 = slice_target_to_scalar(G0_inv[bl2], idx2, idx2);
+      g_1(iw_) << g_1(iw_) - shift_2;
+      g_2(iw_) << g_2(iw_) - shift_1;
     }
 
     if (D0_iw) {
