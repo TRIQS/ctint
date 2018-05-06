@@ -41,6 +41,7 @@ for bl,g0 in S.G0_iw:
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         alpha = alpha,
+        n_s=2,
         n_cycles = n_cyc,
         length_cycle = 50,
         n_warmup_cycles = 0,

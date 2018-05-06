@@ -57,6 +57,7 @@ S.D0_iw['up','dn'][0,0]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         alpha = alpha,
+        n_s=2,
         n_cycles = n_cyc,
         length_cycle = 50,
         n_warmup_cycles = 0,

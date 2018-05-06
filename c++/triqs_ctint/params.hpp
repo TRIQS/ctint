@@ -59,7 +59,7 @@ namespace triqs_ctint {
     // ----------- QMC Specific -----------
 
     /// Number of auxiliary spins
-    int n_s = 2;
+    int n_s = 1;
 
     /// Alpha parameter
     alpha_t alpha;
