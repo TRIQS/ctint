@@ -85,7 +85,6 @@ namespace triqs_ctint {
     if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
     if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
 
-
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
     mc.collect_results(world);
@@ -113,7 +112,7 @@ namespace triqs_ctint {
 
     // Assert compatibility between gf_struct an alpha
     if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
-    for (auto[bl, alpha_bl] : zip(p.gf_struct, p.alpha))
+    for (auto [bl, alpha_bl] : zip(p.gf_struct, p.alpha))
       if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s)) TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
 
     // Loop over static density-density interaction terms
@@ -126,8 +125,8 @@ namespace triqs_ctint {
 
       if (!is_densdens_interact(m)) continue;
 
-      auto[bl1, idx1] = get_int_indices(m[0], p.gf_struct);
-      auto[bl2, idx2] = get_int_indices(m[1], p.gf_struct);
+      auto [bl1, idx1] = get_int_indices(m[0], p.gf_struct);
+      auto [bl2, idx2] = get_int_indices(m[1], p.gf_struct);
 
       // Shift diagonal Green function components according to Eq. (17) of implementation Notes
       dcomplex shift_1 = 0.0;
@@ -246,22 +245,18 @@ namespace triqs_ctint {
     if (G2c_iw and G_iw) F_iw = F_from_G2c(*G2c_iw, *G_iw);
     if (G2c_iw and G_iw) G2_iw = G2_from_G2c(*G2c_iw, *G_iw);
 
-    // Calculate chi2_iw from chi2_tau
-    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
-    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
-
-    // Calculate chiAB_iw from chiAB_tau
-    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(*chiAB_tau, p.n_iw_chi2);
-
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
     if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
     if (M3pp_iw_nfft and M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
     if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
 
-    // Measurement of chi2 by operator insertion
+    // Calculate chi2_iw from chi2_tau
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2);
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
+
+    // Calculate chiAB_iw from chiAB_tau
+    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(*chiAB_tau, p.n_iw_chi2);
   }
 
 } // namespace triqs_ctint

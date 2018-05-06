@@ -17,7 +17,7 @@ TEST(CtInt, Anderson) { // NOLINT
   std::vector<double> hopp  = {0.45, 0.34, 0.34, 0.45};
 
   // The alpha function
-  typedef std::vector<array<double, 2>> alpha_t;
+  using alpha_t = std::vector<array<double, 2>>;
   alpha_t alpha(2);
   double diag  = 0.5 + delta;
   double odiag = 0.5 - delta;
