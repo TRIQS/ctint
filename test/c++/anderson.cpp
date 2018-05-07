@@ -1,4 +1,5 @@
-#include "solver_core.hpp"
+#include <triqs_ctint/solver_core.hpp>
+
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
@@ -38,7 +39,7 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.h_int                = U * n("up", 0) * n("down", 0);
   ps.n_s                  = 2;
   ps.alpha                = alpha;
-  ps.n_cycles             = 1e+6;
+  ps.n_cycles             = 1000;
   ps.length_cycle         = 50;
   ps.n_warmup_cycles      = 5000;
   ps.use_double_insertion = false;
@@ -48,7 +49,7 @@ TEST(CtInt, Anderson) { // NOLINT
   //ps.random_seed          = 34788 + mpi..;
   //ps.random_name          = "";
 
-  ps.measure_average_sign = true;
+  ps.measure_histogram = true;
 
   ps.measure_M_tau = false;
   ps.measure_M_iw  = false;
