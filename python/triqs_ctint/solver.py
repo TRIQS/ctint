@@ -78,65 +78,75 @@ class Solver(SolverCore):
                         * `h_int`: The local interaction Hamiltonian
                         * `n_cycles`: The number of Monte-Carlo cycles
                      For the other optional parameters see documentation.
-                     Note that this Python Wrapper explicitly constructs the
-                     alpha-tensor from the SC Hartree Fock solution
+                     Note that in this Python Wrapper the alpha-tensor is optional.
+                     If not given, it will be constructed from the density matrix of
+                     the SC Hartree Fock solution.
         """
 
-        # --------- Determine the alpha tensor from Hartree Fock ----------
-        mpi_print("Determine alpha-tensor from SC Hartree Fock solution")
-        
         h_int = params_kw['h_int']
         gf_struct = self.gf_struct
-        
-        # --- Determine the self-consistent Hartree Fock solution via root finding
-        
-        # Find the root of this function
-        def f(Sig_HF_flat):
-            Sig_HF = dict(unflatten(Sig_HF_flat, gf_struct))
-            G_iw = self.G0_iw.copy()
-            G_dens = {}
-            for bl, G0_bl in self.G0_iw:
-                G_iw[bl] << inverse( inverse(G0_bl) - Sig_HF[bl] )
-                G_dens[bl] = G_iw[bl].density().real
-                Sig_HF[bl][:] = 0
-        
-            for term, coef in h_int:
-                bl1, u1 = term[0][1]
-                bl2, u2 = term[3][1]
-                bl3, u3 = term[1][1]
-                bl4, u4 = term[2][1]
-        
-                # Full Hatree Fock Solution
-                Sig_HF[bl1][u2, u1] += coef * G_dens[bl3][u4, u3]
-                Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
-        
-            return Sig_HF_flat - flatten(list(Sig_HF.iteritems()))
-        
-        # Invoke the root finder
-        Sig_HF_init = [[bl, np.zeros((len(idx_lst), len(idx_lst)))] for bl, idx_lst in gf_struct]
-        root_finder = root(f, flatten(Sig_HF_init))
-        
-        # --- Determine alpha from the Hartree Fock solution
-        delta = 0.2
-        if root_finder['success']:
-            Sig_HF = unflatten(root_finder['x'], gf_struct)
-            mpi_print("  -- Found Sigma_HF : ")
-            for bl, Sig_HF_bl in Sig_HF: mpi_print("    " + str(bl) + " " + str(Sig_HF_bl).replace('\n',','))
-            G_iw = self.G0_iw.copy()
+         
+        if 'alpha' not in params_kw:
+            # --------- Determine the alpha tensor from SC Hartree Fock ----------
+            mpi_print("Determine alpha-tensor from SC Hartree Fock solution")
+
+            # Find the root of this function
+            def f(Sig_HF_flat):
+                Sig_HF = dict(unflatten(Sig_HF_flat, gf_struct))
+                G_iw = self.G0_iw.copy()
+                G_dens = {}
+                for bl, G0_bl in self.G0_iw:
+                    G_iw[bl] << inverse( inverse(G0_bl) - Sig_HF[bl] )
+                    G_dens[bl] = G_iw[bl].density().real
+                    Sig_HF[bl][:] = 0
+            
+                for term, coef in h_int:
+                    bl1, u1 = term[0][1]
+                    bl2, u2 = term[3][1]
+                    bl3, u3 = term[1][1]
+                    bl4, u4 = term[2][1]
+            
+                    # Full Hatree Fock Solution
+                    Sig_HF[bl1][u2, u1] += coef * G_dens[bl3][u4, u3]
+                    Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
+            
+                return Sig_HF_flat - flatten(list(Sig_HF.iteritems()))
+            
+            # Invoke the root finder
+            Sig_HF_init = [[bl, np.zeros((len(idx_lst), len(idx_lst)))] for bl, idx_lst in gf_struct]
+            root_finder = root(f, flatten(Sig_HF_init))
+            
+            # Now calculate alpha from the Hartree Fock solution
+            delta = 0.1
             alpha = []
-            for bl, G0_bl in self.G0_iw:
-                G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
-                s = 1 if (bl == 'up') else -1
-                alpha.append( [[val.real + s * delta] for val in np.diag(G_iw[bl].density()) ] )
-        else:
-            mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
-            indices = gf_struct[0][1]
-            alpha = [ [[0.5 + delta] for i in indices ], [[0.5 - delta] for i in indices ] ]
-        
-        params_kw['alpha'] = alpha
-        params_kw['n_s'] = 1
-        
-        mpi_print("  -- Alpha Tensor : " + str(alpha))
+            if root_finder['success']:
+                Sig_HF = unflatten(root_finder['x'], gf_struct)
+                mpi_print("  -- Found Sigma_HF : ")
+                for bl, Sig_HF_bl in Sig_HF: mpi_print("    " + str(bl) + " " + str(Sig_HF_bl).replace('\n',','))
+                G_iw = self.G0_iw.copy()
+                for bl, G0_bl in self.G0_iw:
+                    G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
+                    if bl == 'up':
+                        alpha.append( [[val.real + delta] for val in np.diag(G_iw[bl].density()) ] )
+                    elif bl == 'dn' or bl == 'down' or bl == 'do':
+                        alpha.append( [[val.real - delta] for val in np.diag(G_iw[bl].density()) ] )
+                    else:
+                        alpha.append( [[val.real] for val in np.diag(G_iw[bl].density()) ] )
+            else:
+                mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
+                indices = gf_struct[0][1]
+                for bl, G0_bl in self.G0_iw:
+                    if bl == 'up':
+                        alpha.append( [[0.5 + delta] for i in indices ] )
+                    elif bl == 'dn' or bl == 'down' or bl == 'do':
+                        alpha.append( [[0.5 - delta] for i in indices ] )
+                    else:
+                        alpha.append( [[0.5] for i in indices ] )
+            
+            params_kw['alpha'] = alpha
+            params_kw['n_s'] = 1
+            
+            mpi_print("  -- Alpha Tensor : " + str(alpha))
 
         # Call the core solver's solve routine
         solve_status = SolverCore.solve(self, **params_kw)
