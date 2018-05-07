@@ -105,10 +105,17 @@ class Solver(SolverCore):
                     bl2, u2 = term[3][1]
                     bl3, u3 = term[1][1]
                     bl4, u4 = term[2][1]
+
+                    assert(bl1 == bl2 and bl3 == bl4)
+
+                    idx_u1 = dict(gf_struct)[bl1].index(u1)
+                    idx_u2 = dict(gf_struct)[bl2].index(u2)
+                    idx_u3 = dict(gf_struct)[bl3].index(u3)
+                    idx_u4 = dict(gf_struct)[bl4].index(u4)
             
                     # Full Hatree Fock Solution
-                    Sig_HF[bl1][u2, u1] += coef * G_dens[bl3][u4, u3]
-                    Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
+                    Sig_HF[bl1][idx_u2, idx_u1] += coef * G_dens[bl3][u4, u3]
+                    Sig_HF[bl3][idx_u4, idx_u3] += coef * G_dens[bl1][u2, u1]
             
                 return Sig_HF_flat - flatten(list(Sig_HF.iteritems()))
             
