@@ -30,7 +30,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include <variant>
+#include <triqs/utility/variant.hpp>
 
 namespace triqs_ctint {
 
