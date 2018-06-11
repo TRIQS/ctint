@@ -1,7 +1,6 @@
 #pragma once
 #include "./qmc_config.hpp"
 #include "./params.hpp"
-#include "./fourier.hpp"
 
 namespace triqs_ctint {
 

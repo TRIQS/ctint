@@ -1,12 +1,10 @@
 #include "./solver_core.hpp"
-#include "./fourier.hpp"
 #include "./measures.hpp"
 #include "./moves/insert.hpp"
 #include "./moves/remove.hpp"
 #include "./post_process.hpp"
 #include "./qmc_config.hpp"
 #include "./vertex_factories.hpp"
-#include <triqs/gfs/singularity/fit_tail.hpp>
 
 namespace triqs_ctint {
 
@@ -108,10 +106,6 @@ namespace triqs_ctint {
     // with renormalization of the chemical potential due to alpha
     g_iw_t G0_inv = inverse(G0_iw);
 
-    // We require a proper tail in G0_iw
-    for (auto &G_bl : G0_iw)
-      if (G_bl.singularity().largest_non_nan() < 2) TRIQS_RUNTIME_ERROR << "Error: G0_iw needs at least a proper 2nd moment in its tail \n";
-
     // Assert compatibility between gf_struct an alpha
     if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
     for (auto [bl, alpha_bl] : zip(p.gf_struct, p.alpha))
@@ -170,13 +164,13 @@ namespace triqs_ctint {
     G0_shift_iw = inverse(G0_inv);
 
 #ifdef GTAU_IS_COMPLEX
-    G0_shift_tau = make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau);
+    G0_shift_tau = make_gf_from_fourier(G0_shift_iw, p.n_tau);
 #else
     if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
       std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
       G0_shift_iw = make_real_in_tau(G0_shift_iw);
     }
-    G0_shift_tau = real(make_gf_from_inverse_fourier(G0_shift_iw, p.n_tau));
+    G0_shift_tau = real(make_gf_from_fourier(G0_shift_iw, p.n_tau));
 #endif
   }
 
@@ -189,31 +183,7 @@ namespace triqs_ctint {
                    "Post-processing ... \n";
 
     // Calculate M_iw from M_tau
-    if (M_tau) {
-      M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, p.n_iw);
-      // We need the high-frequency moments for M_iw. Acquire with fitting
-      // FIXME Implement direct measurement of static part and/or other moments
-      for (auto &M : *M_iw) {
-        auto known_moments = __tail<matrix_valued>(M.target_shape());
-        known_moments.reset(0); // Unknown moments starting from moment 0
-        int n_min = 0.6 * p.n_iw;
-        int n_max = p.n_iw - 1;
-        // Fitting moments 0, 1, 2
-        fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
-      }
-    }
-
-    // Fitting the tail of M_iw_nfft
-    if (M_iw_nfft) {
-      for (auto &M : *M_iw_nfft) {
-        auto known_moments = __tail<matrix_valued>(M.target_shape());
-        known_moments.reset(0); // Unknown moments starting from moment 0
-        int n_min = 0.6 * p.n_iw;
-        int n_max = p.n_iw - 1;
-        // Fitting moments 0, 1, 2
-        fit_tail(M, known_moments, 2, -n_max - 1, -n_min - 1, n_min, n_max);
-      }
-    }
+    if (M_tau) M_iw = make_gf_from_fourier(block_gf_const_view<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw[0]));
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
@@ -226,19 +196,21 @@ namespace triqs_ctint {
     // FIXME Adjust fourier transforms to make this choice at this stage
     // Shift for mixed notation
     if (M3pp_tau) {
-      auto M3pp_ferm_iw = make_gf_from_fourier(*M3pp_tau, p.n_iw_M3, p.n_iw_M3 + p.n_iW_M3);
-      auto iw_mesh      = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
-      auto iW_mesh      = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
-      auto M3pp_iw_mesh = gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh, iW_mesh};
-      M3pp_iw           = make_block2_gf(M3pp_iw_mesh, p.gf_struct);
+      auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
+      auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
+      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3pp_tau, iw_mesh);
+      auto M3pp_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large);
+      auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+      M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
       (*M3pp_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
     }
     if (M3ph_tau) {
-      auto M3ph_ferm_iw = make_gf_from_fourier(*M3ph_tau, p.n_iw_M3, p.n_iw_M3 + p.n_iW_M3);
-      auto iw_mesh      = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
-      auto iW_mesh      = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
-      auto M3ph_iw_mesh = gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh, iW_mesh};
-      M3ph_iw           = make_block2_gf(M3ph_iw_mesh, p.gf_struct);
+      auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
+      auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
+      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3ph_tau, iw_mesh);
+      auto M3ph_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large);
+      auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+      M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
       (*M3ph_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
     }
 

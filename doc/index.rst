@@ -3,6 +3,11 @@
 The interaction-expansion solver
 ==================================
 
+.. sidebar:: CTINT 0.8
+
+   This is the homepage CTINT Version 0.8
+   For the changes in 0.8, Cf :ref:`changelog page <changelog>`
+
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver
 allows to solve the generic problem of a quantum impurity embedded in a
 conduction bath for an arbitrary local interaction vertex.  The "impurity" can

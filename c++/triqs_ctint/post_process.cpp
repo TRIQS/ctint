@@ -1,8 +1,5 @@
 #include "post_process.hpp"
 #include <triqs/gfs.hpp>
-#include <triqs/gfs/singularity/fit_tail.hpp>
-
-//#define TRIQS_ARRAYS_ENFORCE_BOUNDCHECK
 
 namespace triqs_ctint {
 

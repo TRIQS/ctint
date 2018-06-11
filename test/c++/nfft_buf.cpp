@@ -26,9 +26,7 @@ class Nfft : public ::testing::Test {
     // Init exact reference gf
     triqs::clef::placeholder<0> iw_;
     giw_exact    = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
-    auto no_tail = giw_exact.singularity();
     giw_exact(iw_) << 1.0 / (iw_ - 1.0);
-    giw_exact.singularity() = no_tail; // Reset tail
   }
 
   // function to be transformed

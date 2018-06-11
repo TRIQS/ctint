@@ -136,7 +136,7 @@ namespace triqs_ctint::measures {
     M3ph_tau_   = M3ph_tau_ / (Z * dtau * dtau);
 
     // Account for edge bins beeing smaller
-    auto _ = var_t{};
+    auto _ = all_t{};
     int n  = params.n_tau_M3 - 1;
     for (auto &M : M3ph_tau_) {
       M[0, _] *= 2.0;

@@ -57,7 +57,7 @@ namespace triqs_ctint {
       for (int bl1 : range((*D0_iw).size1()))
         for (int bl2 : range((*D0_iw).size1())) {
 
-          auto D = make_gf_from_inverse_fourier((*D0_iw)(bl1, bl2), params.n_tau_dynamical_interactions);
+          auto D = make_gf_from_fourier((*D0_iw)(bl1, bl2), params.n_tau_dynamical_interactions);
 
           // Loop over non-block indices
           for (int a = 0; a < D.target_shape()[0]; a++)
@@ -105,7 +105,7 @@ namespace triqs_ctint {
 
       if (params.n_blocks() != 2) TRIQS_RUNTIME_ERROR << "Jperp requires exactly two blocks corresponding to the spins";
 
-      auto J = make_gf_from_inverse_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
+      auto J = make_gf_from_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
 
       // Loop over non-block indices
       for (int a = 0; a < J.target_shape()[0]; a++)
