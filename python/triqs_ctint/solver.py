@@ -30,7 +30,7 @@ def unflatten(Sig_HF_flat, gf_struct):
 
 class Solver(SolverCore):
 
-    def __init__(self, beta, gf_struct, n_iw=1025, n_tau=10001, use_D=False, use_Jperp=False):
+    def __init__(self, beta, gf_struct, n_iw=1025, n_tau=10001, use_D=False, use_Jperp=False, n_tau_dynamical_interactions=10001, n_iw_dynamical_interactions=200):
         """
         Initialise the solver.
 
@@ -52,6 +52,10 @@ class Solver(SolverCore):
                Use dynamic density-density interaction given via S.D0_iw[bl1, bl2][i,j]
         use_Jperp : bool, optional
                Use dynamic spin-spin interaction given via S.Jperp[i,j]
+        n_tau_dynamical_interactions : int, optional
+               Number of tau pts for D0_tau and jperp_tau (Default 10001)
+        n_iw_dynamical_interactions : int, optional
+               Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
         if isinstance(gf_struct,dict):
             print "WARNING: gf_struct should be a list of pairs [ [str,[int,...]], ...], not a dict"
@@ -59,7 +63,9 @@ class Solver(SolverCore):
 
         # Initialise the core solver
         SolverCore.__init__(self, beta=beta, gf_struct=gf_struct, 
-                            n_iw=n_iw, n_tau=n_tau, use_D=use_D, use_Jperp=use_Jperp)
+                            n_iw=n_iw, n_tau=n_tau, use_D=use_D, use_Jperp=use_Jperp,
+                            n_tau_dynamical_interactions=n_tau_dynamical_interactions,
+                            n_iw_dynamical_interactions=n_iw_dynamical_interactions)
 
         self.gf_struct = gf_struct
         self.n_iw = n_iw
