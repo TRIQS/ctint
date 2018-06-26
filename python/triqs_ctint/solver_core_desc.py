@@ -3,7 +3,7 @@
 from cpp2py.wrap_generator import *
 
 # The module
-module = module_(full_name = "solver_core", doc = "", app_name = "triqs_ctint")
+module = module_(full_name = "solver_core", doc = "The TRIQS ctint solver", app_name = "triqs_ctint")
 
 # Imports
 import pytriqs.gf
