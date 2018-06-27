@@ -7,6 +7,11 @@ compiler:
   - gcc
   - clang
 
+branches:
+  only:
+    - master
+    - unstable
+
 before_install:
   - sudo add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main' -y
   - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -

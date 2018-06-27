@@ -16,9 +16,8 @@ option(INTERACTION_IS_COMPLEX "If ON, the interaction vertices (dynamic and stat
 set(BUILD_SHARED_LIBS OFF)
 
 # Global options and definitions
-add_compile_options(-Wall -Wno-missing-braces
-  		$<$<CONFIG:Release>:-march=native>
-		$<$<CONFIG:Debug>:-Og>)
+add_compile_options( $<$<CONFIG:Release>:-march=native>
+		     $<$<CONFIG:Debug>:-Og>)
 
 # Load Dependencies
 find_package(TRIQS 2.0 REQUIRED)
