@@ -4,7 +4,7 @@ from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
-from triqs_ctint import SolverCore
+from triqs_ctint import Solver
 
 test_name = "anderson_py"
 
@@ -22,14 +22,8 @@ block_names = ['dn','up']
 gf_struct = [(bl, [0]) for bl in block_names]
 h_int = U * n(block_names[0],0)*n(block_names[1],0)
 
-# --------- Define alpha tensor ---------
-delta = 0.1
-diag = 0.5 + delta
-odiag = 0.5 - delta
-alpha = [ [[diag,odiag]], [[odiag,diag]] ] # alpha[block][index,s]
-
 # --------- Construct the ctint solver ----------
-S = SolverCore(beta = beta,
+S = Solver(beta = beta,
                gf_struct = gf_struct,
                n_iw = 200,
                n_tau = 100001)
@@ -40,13 +34,11 @@ for bl,g0 in S.G0_iw:
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
-        alpha = alpha,
-        n_s=2,
         n_cycles = n_cyc,
         length_cycle = 50,
-        n_warmup_cycles = 0,
+        n_warmup_cycles = 100,
         random_seed = 34788,
-        measure_M_tau = True,
+        measure_histogram = True,
         measure_M4_iw = True,
         n_iw_M4 = 5,
         nfft_buf_size = 50,
@@ -59,6 +51,9 @@ S.solve(h_int=h_int,
         measure_chi2ph_tau = True,
         n_iw_chi2 = 10,
         n_tau_chi2 = 30,
+        measure_chiAB_tau = True,
+        chi_A_vec = [n('up',0) + n('dn', 0)],
+        chi_B_vec = [n('up',0) + n('dn', 0)],
         post_process = True )
 
 # -------- Save in archive ---------
@@ -70,6 +65,7 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chi3ph_iw"] = S.chi3ph_iw
     arch["chi2pp_iw"] = S.chi2pp_iw
     arch["chi2ph_iw"] = S.chi2ph_iw
+    arch["chiAB_iw"] = S.chiAB_iw
 
 # -------- Save Solver and Retrieve and solve
 with HDFArchive("solver.h5",'w') as arch:
@@ -88,6 +84,7 @@ with HDFArchive("%s.out_2nd.h5"%test_name,'w') as arch:
     arch["chi3ph_iw"] = S.chi3ph_iw
     arch["chi2pp_iw"] = S.chi2pp_iw
     arch["chi2ph_iw"] = S.chi2ph_iw
+    arch["chiAB_iw"] = S.chiAB_iw
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
