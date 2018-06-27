@@ -7,15 +7,16 @@ The main class is **solver_core**. It constructs Monte-Carlo solver which owns a
 .. toctree::
    :maxdepth: 2
 
-   reference/triqs/applications/impurity_solvers/ctint/solver_core
-   moves
-   measures
-   reference/triqs/applications/impurity_solvers/ctint/qmc_config
+   reference/constr_parameters
+   reference/solve_parameters
+   reference/triqs_ctint/solver_core
+   reference/triqs_ctint/qmc_config
+   reference/moves
+   reference/measures
 
 
 Python interface
 ~~~~~~~~~~~~~~~~~
-
 
 .. autoclass:: ctint.SolverCore
   :members:
