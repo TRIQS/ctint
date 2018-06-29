@@ -34,7 +34,7 @@ S = Solver(beta = beta,
 # --------- Initialize the non-interacting Green's function ----------
 semicirc = S.G0_iw[block_names[0]].copy()
 semicirc << SemiCircular(1.0)
-for n,g in S.G0_iw: g << inverse(iOmega_n + mu - 1.0 * semicirc)
+for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu - 1.0 * semicirc)
 
 # --------- Set up time-dependent interactions ----------
 # Boson Frequency

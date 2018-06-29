@@ -36,8 +36,8 @@ S = Solver(beta = beta,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------
-for n,g0 in S.G0_iw:
-  g0 << inverse(iOmega_n + mu_mat - D_mat);
+for bl, g_bl in S.G0_iw:
+  g_bl << inverse(iOmega_n + mu_mat - D_mat);
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
