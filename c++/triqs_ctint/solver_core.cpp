@@ -163,16 +163,14 @@ namespace triqs_ctint {
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
 
-    auto tau_mesh = make_adjoint_mesh(G0_shift_iw[0].mesh());
-    auto known_moments = make_zero_tail(G0_shift_iw, 1);
 #ifdef GTAU_IS_COMPLEX
-    G0_shift_tau = make_gf_from_fourier(G0_shift_iw, tau_mesh, known_moments);
+    G0_shift_tau = make_gf_from_fourier(G0_shift_iw);
 #else
     if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
       std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
       G0_shift_iw = make_real_in_tau(G0_shift_iw);
     }
-    G0_shift_tau = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, known_moments));
+    G0_shift_tau = real(make_gf_from_fourier(G0_shift_iw));
 #endif
   }
 
@@ -185,6 +183,8 @@ namespace triqs_ctint {
                    "Post-processing ... \n";
 
     // Calculate M_iw from M_tau (Cast from matrix_real_valued to matrix_valued)
+    // FIXME We should treat the static part of M (i.e. delta peak in M_tau) explicitly
+    // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
     if (M_tau) M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw[0]));
 
     // Calculate G_iw and Sigma_iw from M_iw
