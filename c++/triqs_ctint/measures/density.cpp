@@ -32,7 +32,7 @@ namespace triqs_ctint::measures {
           cdag_t cdag_a{tau_t::get_zero_plus(), a};
           c_t c_b{tau_t::get_zero(), b};
 
-          density(a, b) += sign * det.try_insert(0, 1, c_b, cdag_a);
+          density(a, b) += sign * det.try_insert(0, 0, c_b, cdag_a);
           det.reject_last_try();
         }
     }
