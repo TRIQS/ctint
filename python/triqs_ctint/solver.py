@@ -130,7 +130,7 @@ class Solver(SolverCore):
             root_finder = root(f, flatten(Sig_HF_init))
             
             # Now calculate alpha from the Hartree Fock solution
-            delta = 0.1
+            delta = params_kw.pop('delta', 0.1)
             alpha = []
             if root_finder['success']:
                 Sig_HF = unflatten(root_finder['x'], gf_struct)
