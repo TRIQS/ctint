@@ -53,6 +53,11 @@ c.add_member(c_name = "histogram",
              read_only= True,
              doc = """Average perturbation order distribution""")
 
+c.add_member(c_name = "density",
+             c_type = "std::optional<std::vector<matrix<dcomplex> > >",
+             read_only= True,
+             doc = """The density matrix (measured by operator insertion)""")
+
 c.add_member(c_name = "M_tau",
              c_type = "std::optional<block_gf<imtime, M_tau_target_t> >",
              read_only= True,
@@ -278,6 +283,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_histogram    | bool                                 | false                                          | Measure the average perturbation order distribution       |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
+| measure_density      | bool                                 | false                                          | Measure the density matrix by operator insertion          |
++----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_M_tau        | bool                                 | true                                           | Measure M(tau)                                            |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_M_iw         | bool                                 | false                                          | Measure M(iomega) using nfft                              |
@@ -401,6 +408,11 @@ c.add_member(c_name = "measure_histogram",
              c_type = "bool",
              initializer = """ false """,
              doc = """Measure the average perturbation order distribution""")
+
+c.add_member(c_name = "measure_density",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = """Measure the density matrix by operator insertion""")
 
 c.add_member(c_name = "measure_M_tau",
              c_type = "bool",

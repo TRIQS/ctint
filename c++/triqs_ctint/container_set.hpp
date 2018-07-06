@@ -18,6 +18,9 @@ namespace triqs_ctint {
     /// Average perturbation order distribution
     std::vector<double> histogram;
 
+    /// The density matrix (measured by operator insertion)
+    std::optional<std::vector<matrix<dcomplex>>> density;
+
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
