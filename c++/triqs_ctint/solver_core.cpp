@@ -103,6 +103,9 @@ namespace triqs_ctint {
 
   void solver_core::prepare_G0_shift_tau(params_t const &p) {
 
+    // Assert hermiticity of the given Weiss field FIXME
+    if (!is_gf_hermitian(G0_iw)) TRIQS_RUNTIME_ERROR << "Please make sure that G0_iw fullfills the hermiticity relation G_ij[iw] = G_ji[-iw]*";
+
     // Prepare shifted non-interacting Green Function G0_shift_tau for Monte Carlo
     // with renormalization of the chemical potential due to alpha
     g_iw_t G0_inv = inverse(G0_iw);
@@ -186,7 +189,10 @@ namespace triqs_ctint {
     // Calculate M_iw from M_tau (Cast from matrix_real_valued to matrix_valued)
     // FIXME We should treat the static part of M (i.e. delta peak in M_tau) explicitly
     // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
-    if (M_tau) M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw[0])); // FIXME Block Tail Version?
+    if (M_tau) {
+      M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw[0])); // FIXME Block Tail Version?
+      M_iw = make_hermitian(*M_iw);
+    }
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
