@@ -33,8 +33,7 @@ S = Solver(beta = beta,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------
-for bl, g_bl in S.G0_iw:
-  g_bl << inverse(iOmega_n + mu - inverse(iOmega_n - eps));
+for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu - inverse(iOmega_n - eps));
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
@@ -42,6 +41,8 @@ S.solve(h_int=h_int,
         length_cycle = 50,
         n_warmup_cycles = 100,
         random_seed = 34788,
+        measure_histogram = True,
+        measure_density = True,
         measure_M4_iw = True,
         n_iw_M4 = 5,
         nfft_buf_size = 50,

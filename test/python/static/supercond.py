@@ -36,8 +36,7 @@ S = Solver(beta = beta,
                n_tau = 100001)
 
 # --------- Initialize the non-interacting Green's function ----------
-for bl, g_bl in S.G0_iw:
-  g_bl << inverse(iOmega_n + mu_mat - D_mat);
+for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu_mat - D_mat);
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
@@ -45,6 +44,8 @@ S.solve(h_int=h_int,
         length_cycle = 50,
         n_warmup_cycles = 100,
         random_seed = 34788,
+        measure_histogram = True,
+        measure_density = True,
         measure_M4_iw = True,
         n_iw_M4 = 5,
         nfft_buf_size = 50,
@@ -58,8 +59,8 @@ S.solve(h_int=h_int,
         n_iw_chi2 = 10,
         n_tau_chi2 = 30,
         measure_chiAB_tau = True,
-        chi_A_vec = [n('up',0) + n('dn', 0)],
-        chi_B_vec = [n('up',0) + n('dn', 0)],
+        chi_A_vec = [n('single_block',0) - n('single_block', 1)],
+        chi_B_vec = [n('single_block',0) + n('single_block', 1)],
         post_process = True )
 
 # -------- Save in archive ---------
