@@ -100,7 +100,7 @@ try {
         git(url: "ssh://git@github.com/TRIQS/TRIQS.github.io.git", branch: "master", credentialsId: "ssh", changelog: false)
         sh "rm -rf ${subdir}"
         docker.image("flatironinstitute/${projectName}:${env.BRANCH_NAME}-${documentationPlatform}").inside() {
-          sh "cp -rp \$INSTALL/share/doc/${projectName} ${subdir}"
+          sh "cp -rp \$INSTALL/share/doc/triqs_${projectName} ${subdir}"
         }
         sh "git add -A ${subdir}"
         sh """
