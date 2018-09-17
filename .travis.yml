@@ -13,7 +13,7 @@ branches:
     - unstable
 
 before_install:
-  - sudo add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main' -y
+  - sudo add-apt-repository 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main' -y
   - wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update
