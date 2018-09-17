@@ -3,10 +3,10 @@ def projectName = "ctint" /* set to app/repo name */
 /* which platform to build documentation on */
 def documentationPlatform = "ubuntu-clang"
 /* depend on triqs upstream branch/project */
-def triqsBranch = env.CHANGE_TARGET ?: env.BRANCH_NAME
+def triqsBranch = 'unstable'
 def triqsProject = '/TRIQS/triqs/' + triqsBranch.replaceAll('/', '%2F')
 /* whether to publish the results (disabled for template project) */
-def publish = !env.BRANCH_NAME.startsWith("PR-") && projectName != "ctint"
+def publish = !env.BRANCH_NAME.startsWith("PR-")
 
 properties([
   disableConcurrentBuilds(),
@@ -109,19 +109,6 @@ try {
         // note: credentials used above don't work (need JENKINS-28335)
         sh "git push origin gh-pages"
       }
-      /* Update docker repo submodule */
-      dir("$workDir/docker") { try {
-        git(url: "ssh://git@github.com/TRIQS/docker.git", branch: env.BRANCH_NAME, credentialsId: "ssh", changelog: false)
-        sh "echo '160000 commit ${commit}\t${projectName}' | git update-index --index-info"
-        sh """
-          git commit --author='Flatiron Jenkins <jenkins@flatironinstitute.org>' -m 'Autoupdate ${projectName}' -m '${env.BUILD_TAG}'
-        """
-        // note: credentials used above don't work (need JENKINS-28335)
-        sh "git push origin ${env.BRANCH_NAME}"
-      } catch (err) {
-	/* Ignore, non-critical -- might not exist on this branch */
-        echo "Failed to update docker repo"
-      } }
     } }
   } }
 } catch (err) {
