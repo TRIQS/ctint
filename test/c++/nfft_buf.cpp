@@ -25,7 +25,7 @@ class Nfft : public ::testing::Test {
 
     // Init exact reference gf
     triqs::clef::placeholder<0> iw_;
-    giw_exact    = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
+    giw_exact = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
     giw_exact(iw_) << 1.0 / (iw_ - 1.0);
   }
 
@@ -58,9 +58,10 @@ TEST_F(Nfft, Equid) { // NOLINT
   giw_nfft_equid *= beta / (n_tau - 1);
 
   // Generate Gf with fftw
-  auto gtau                               = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
+  auto gtau    = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
+  auto iw_mesh = make_adjoint_mesh(gtau.mesh(), n_iw);
   for (auto &tau : gtau.mesh()) gtau[tau] = f_tau(tau);
-  auto giw_fftw                           = make_gf_from_fourier(gtau, n_iw);
+  auto giw_fftw = make_gf_from_fourier(gtau, iw_mesh, make_zero_tail(gtau));
 
   // Compare to exact and fftw
   EXPECT_GF_NEAR(giw_nfft_equid, giw_exact, 1e-4); // Same order of fftw discretization error
@@ -180,9 +181,10 @@ TEST_F(Nfft, 2D) { // NOLINT
 
   // === Generate 2d Gf with fftw
   // Create 1d giw from fftw
-  auto gtau2                                = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
+  auto gtau2 = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
+  auto iw_mesh = make_adjoint_mesh(gtau2.mesh(), n_iw);
   for (auto &tau : gtau2.mesh()) gtau2[tau] = f_tau(tau);
-  auto giw_fftw                             = make_gf_from_fourier(gtau2, n_iw);
+  auto giw_fftw = make_gf_from_fourier(gtau2, iw_mesh, make_zero_tail(gtau2));
   // Create giw_fftw_2d from product of giw_fftw
   auto giw_fftw_2d = gf<cartesian_product<imfreq, imfreq>>{{{beta, Fermion, n_iw}, {beta, Fermion, n_iw}}, shape};
   for (auto &iw1 : giw_fftw.mesh())
