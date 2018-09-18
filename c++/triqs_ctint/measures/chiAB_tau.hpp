@@ -29,7 +29,7 @@ namespace triqs_ctint::measures {
     gf_view<imtime> chiAB_tau_;
 
     // The bosonic operator vectors
-    using op_term_t = std::tuple<int, dcomplex, std::pair<cdag_t, c_t>>;
+    using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<cdag_t, c_t>>;
     std::vector<std::vector<op_term_t>> A_vec;
     std::vector<std::vector<op_term_t>> B_vec;
 
