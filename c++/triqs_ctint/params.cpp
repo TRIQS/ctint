@@ -86,17 +86,16 @@ namespace triqs_ctint {
 
   void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t &sp) {
     triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+    // Take care! Do not read random_seed and verbosity as they should be different based on mpi rank
     h5_read(grp, "h_int", sp.h_int);
     h5_read(grp, "n_s", sp.n_s);
     h5_read(grp, "alpha", sp.alpha);
     h5_read(grp, "n_cycles", sp.n_cycles);
     h5_read(grp, "length_cycle", sp.length_cycle);
     h5_read(grp, "n_warmup_cycles", sp.n_warmup_cycles);
-    h5_read(grp, "random_seed", sp.random_seed);
     h5_read(grp, "random_name", sp.random_name);
     h5_read(grp, "use_double_insertion", sp.use_double_insertion);
     h5_read(grp, "max_time", sp.max_time);
-    h5_read(grp, "verbosity", sp.verbosity);
     h5_read(grp, "measure_average_sign", sp.measure_average_sign);
     h5_read(grp, "measure_average_k", sp.measure_average_k);
     h5_read(grp, "measure_histogram", sp.measure_histogram);
