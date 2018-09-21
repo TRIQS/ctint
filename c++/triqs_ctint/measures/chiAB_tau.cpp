@@ -30,18 +30,6 @@ namespace triqs_ctint::measures {
     for (auto A : params.chi_A_vec) A_vec.emplace_back(get_terms(A));
     for (auto B : params.chi_B_vec) B_vec.emplace_back(get_terms(B));
 
-    // Check that all operator combinations are compatible with the block structure
-    for (auto &A : A_vec)
-      for (auto &[coef_A, bl_pair_A, op_pair_A] : A)
-        for (auto &B : B_vec)
-          for (auto &[coef_B, bl_pair_B, op_pair_B] : B) {
-            auto [bl_cdag_A, bl_c_A] = bl_pair_A;
-            auto [bl_cdag_B, bl_c_B] = bl_pair_B;
-            bool is_AABB             = (bl_cdag_A == bl_c_A && bl_cdag_B == bl_c_B);
-            bool is_ABAB             = (bl_cdag_A == bl_c_B && bl_cdag_B == bl_c_A);
-            if (!is_AABB and !is_ABAB) TRIQS_RUNTIME_ERROR << " Operator combination AB in chiAB measurement not compatible with block structure";
-          }
-
     // Init measurement container and capture view
     results->chiAB_tau = gf<imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
     chiAB_tau_.rebind(*results->chiAB_tau);
@@ -89,12 +77,14 @@ namespace triqs_ctint::measures {
               cdag_A.tau = tau_point;
               c_A.tau    = taup_point;
 
+	      // TODO Extend for measurement of pairing response functions
               if (is_AAAA)
                 chiAB_tau_[tau](i, j) += coef_A * coef_B * sign * det_1.try_insert2(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
               else if (is_AABB)
                 chiAB_tau_[tau](i, j) += coef_A * coef_B * sign * det_1.try_insert(0, 0, c_A, cdag_A) * det_2.try_insert(0, 0, c_B, cdag_B);
               else if (is_ABAB) // In this case we have to swap c_A and c_B, which leads to a minus sign
                 chiAB_tau_[tau](i, j) -= coef_A * coef_B * sign * det_1.try_insert(0, 0, c_B, cdag_A) * det_2.try_insert(0, 0, c_A, cdag_B);
+	      // Note: All other block combinations vanish
 
               det_1.reject_last_try();
               det_2.reject_last_try();
