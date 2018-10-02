@@ -15,6 +15,6 @@ namespace triqs_ctint {
   /// Function that returns a list vertex factories, one for each interaction type
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
                                                       std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
-                                                      std::optional<gf_const_view<imfreq, matrix_valued>> Jperp_iw);
+                                                      std::optional<gf_const_view<imtime, matrix_valued>> Jperp_tau);
 
 } // namespace triqs_ctint

@@ -42,8 +42,11 @@ for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu - 1.0 * semicirc)
 w0=1.0
 
 # Dynamic Spin-Spin Interaction
-J = 0.5;
-S.Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+J = 0.5
+tau_mesh = MeshImFreq(beta, 'Boson', n_max = 200)
+Jperp_iw = Gf(mesh = tau_mesh, target_shape = (1,1))
+Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+S.Jperp_tau << Fourier(Jperp_iw)
 
 # Dynamic Density-Density Interaction
 D = 0.5

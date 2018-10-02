@@ -51,8 +51,11 @@ Dz0 = lambda g : (-1.)*(.5*g**2)*(s+1.)/s/w0 #Dz at zero (Dz_expr ill-defined at
 Dz_expr_reg = lambda w, g: Dz_expr(w,g) if abs(w)>0.0 else Dz0(g) #Dz for any w
 
 # Dynamic Spin-Spin Interaction
-J = 0.5;
-S.Jperp_iw[0,0] << Function(lambda w : 2.0*Dz_expr_reg(w, J))
+J = 0.5
+tau_mesh = MeshImFreq(beta, 'Boson', n_max = 200)
+Jperp_iw = Gf(mesh = tau_mesh, target_shape = (1,1))
+Jperp_iw[0,0] << Function(lambda w : 2.0*Dz_expr_reg(w, J))
+S.Jperp_tau << Fourier(Jperp_iw)
 
 # Dynamic Density-Density Interaction
 D = 0.5

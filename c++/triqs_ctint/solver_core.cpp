@@ -24,7 +24,7 @@ namespace triqs_ctint {
     // Allocate containers for dynamical spin-spin interaction
     if (p.use_Jperp) {
       auto [bl, bl_size] = p.gf_struct[0];
-      Jperp_iw           = gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl_size, bl_size)};
+      Jperp_tau          = gf<imtime>{{p.beta, Boson, p.n_tau_dynamical_interactions}, make_shape(bl_size, bl_size)};
     }
   }
 
@@ -60,7 +60,7 @@ namespace triqs_ctint {
     qmc_config_t qmc_config(params, G0_shift_tau);
 
     // Build vertex factories
-    const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_iw);
+    const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_tau);
 
     mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false}, "insertion");
     mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false}, "removal");

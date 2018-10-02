@@ -16,7 +16,7 @@ namespace triqs_ctint {
     std::optional<block2_gf<imfreq, matrix_valued>> D0_iw;
 
     /// Dynamic spin-spin interaction in Matsubara frequencies
-    std::optional<gf<imfreq, matrix_valued>> Jperp_iw;
+    std::optional<gf<imtime, matrix_valued>> Jperp_tau;
 
     /**
      * Construct a CTINT solver
@@ -89,7 +89,7 @@ namespace triqs_ctint {
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_write(grp, "D0_iw", s.D0_iw);
-      h5_write(grp, "Jperp_iw", s.Jperp_iw);
+      h5_write(grp, "Jperp_tau", s.Jperp_tau);
     }
 
     // Function that read all containers to hdf5 file
@@ -104,7 +104,7 @@ namespace triqs_ctint {
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);
       h5_read(grp, "D0_iw", s.D0_iw);
-      h5_read(grp, "Jperp_iw", s.Jperp_iw);
+      h5_read(grp, "Jperp_tau", s.Jperp_tau);
       return s;
     }
   };

@@ -5,7 +5,7 @@ namespace triqs_ctint {
 
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
                                                       std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
-                                                      std::optional<gf_const_view<imfreq, matrix_valued>> Jperp_iw) {
+                                                      std::optional<gf_const_view<imtime, matrix_valued>> Jperp_tau) {
 
     std::vector<vertex_factory_t> vertex_factories;
 
@@ -95,7 +95,7 @@ namespace triqs_ctint {
     }
 
     // ------------ Create Vertex Factory for Dynamic Spin-Spin Interactions --------------
-    if (Jperp_iw) {
+    if (Jperp_tau) {
 
       std::vector<vertex_idx_t> indices;
 #ifdef INTERACTION_IS_COMPLEX
@@ -110,9 +110,9 @@ namespace triqs_ctint {
       auto Jperp_tau = make_gf_from_fourier(*Jperp_iw, tau_mesh, make_zero_tail(*Jperp_iw, 2));
 
       // Loop over non-block indices
-      for (int a = 0; a < Jperp_tau.target_shape()[0]; a++)
-        for (int b = 0; b < Jperp_tau.target_shape()[1]; b++) {
-          auto d = slice_target_to_scalar(Jperp_tau, a, b);
+      for (int a = 0; a < Jperp_tau->target_shape()[0]; a++)
+        for (int b = 0; b < Jperp_tau->target_shape()[1]; b++) {
+          auto d = slice_target_to_scalar(*Jperp_tau, a, b);
 
           if (max_norm(d) > 1e-10) {
             indices.push_back({1, a, 0, a, 0, b, 1, b}); //S^+_a(tau) S^-_b(tau')

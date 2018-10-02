@@ -42,7 +42,10 @@ w0=1.0
 
 # Dynamic Spin-Spin Interaction
 J = 0.5
-S.Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+tau_mesh = MeshImFreq(beta, 'Boson', n_max = 200)
+Jperp_iw = Gf(mesh = tau_mesh, target_shape = (1,1))
+Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+S.Jperp_tau << Fourier(Jperp_iw)
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,

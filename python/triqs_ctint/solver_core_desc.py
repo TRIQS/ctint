@@ -316,8 +316,8 @@ c.add_member(c_name = "D0_iw",
              read_only= True,
              doc = r"""Dynamic density-density interaction in Matsubara frequencies""")
 
-c.add_member(c_name = "Jperp_iw",
-             c_type = "std::optional<gf<imfreq, matrix_valued>>",
+c.add_member(c_name = "Jperp_tau",
+             c_type = "std::optional<gf<imtime, matrix_valued> >",
              read_only= True,
              doc = r"""Dynamic spin-spin interaction in Matsubara frequencies""")
 
