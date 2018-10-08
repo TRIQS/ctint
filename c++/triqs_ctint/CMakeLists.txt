@@ -3,7 +3,6 @@ add_library(ctint_c ${sources})
 
 # Link against triqs and use headers with SYSTEM flag for better warning messages
 target_link_libraries(ctint_c PUBLIC triqs)
-target_include_directories(ctint_c SYSTEM PUBLIC ${TRIQS_ROOT}/include)
 
 target_link_libraries(ctint_c PRIVATE nfft)
 
