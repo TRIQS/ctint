@@ -15,8 +15,12 @@ option(INTERACTION_IS_COMPLEX "If ON, the interaction vertices (dynamic and stat
 # Build static libraries
 set(BUILD_SHARED_LIBS OFF)
 
+
 # Global options and definitions
-add_compile_options($<$<CONFIG:Debug>:-Og>)
+add_compile_options(-Wall
+		     $<$<CONFIG:Debug>:-Og>
+		     $<$<CONFIG:Debug>:-ggdb3>
+		     )
 # Load Dependencies
 find_package(TRIQS 2.0 REQUIRED)
 find_package(Cpp2Py 1.5 REQUIRED)
