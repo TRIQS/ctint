@@ -190,7 +190,7 @@ namespace triqs_ctint {
     // FIXME We should treat the static part of M (i.e. delta peak in M_tau) explicitly
     // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
     if (M_tau) {
-      M_iw = make_gf_from_fourier(make_const_view(block_gf<imtime, matrix_valued>{*M_tau}), G0_iw[0].mesh(), make_zero_tail(G0_iw));
+      M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw));
       M_iw = make_hermitian(*M_iw);
     }
 
@@ -207,8 +207,8 @@ namespace triqs_ctint {
     if (M3pp_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
       auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
-      auto M3_iw_tau     = make_gf_from_fourier<0>(make_const_view(*M3pp_tau), iw_mesh, make_zero_tail<0>(*M3pp_tau));
-      auto M3pp_ferm_iw  = make_gf_from_fourier<1>(make_const_view(M3_iw_tau), iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
+      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3pp_tau, iw_mesh, make_zero_tail<0>(*M3pp_tau));
+      auto M3pp_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
       (*M3pp_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
@@ -216,8 +216,8 @@ namespace triqs_ctint {
     if (M3ph_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
       auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
-      auto M3_iw_tau     = make_gf_from_fourier<0>(make_const_view(*M3ph_tau), iw_mesh, make_zero_tail<0>(*M3ph_tau));
-      auto M3ph_ferm_iw  = make_gf_from_fourier<1>(make_const_view(M3_iw_tau), iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
+      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3ph_tau, iw_mesh, make_zero_tail<0>(*M3ph_tau));
+      auto M3ph_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
       (*M3ph_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
