@@ -72,7 +72,7 @@ namespace triqs_ctint {
 
     // Function that writes the solver_core to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solver_core const &s) {
-      triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+      auto grp = h5group.create_group(subgroup_name);
       h5_write_attribute(grp, "TRIQS_HDF5_data_scheme", solver_core::hdf5_scheme());
       h5_write_attribute(grp, "TRIQS_GIT_HASH", std::string(STRINGIZE(TRIQS_GIT_HASH)));
       h5_write_attribute(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
@@ -89,7 +89,7 @@ namespace triqs_ctint {
     // Function that read all containers to hdf5 file
     CPP2PY_IGNORE
     static solver_core h5_read_construct(triqs::h5::group h5group, std::string subgroup_name) {
-      triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+      auto grp = h5group.open_group(subgroup_name);
       auto constr_params   = h5_read<constr_params_t>(grp, "constr_params");
       auto s               = solver_core{constr_params};
       h5_read(grp, "", s.result_set());

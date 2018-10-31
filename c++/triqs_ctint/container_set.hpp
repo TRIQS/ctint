@@ -106,7 +106,7 @@ namespace triqs_ctint {
 
     /// Function that writes all containers to hdf5 file
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
-      triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+      auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
       h5_write(grp, "M_tau", c.M_tau);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
@@ -137,9 +137,9 @@ namespace triqs_ctint {
       h5_write(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
     }
 
-    /// Function that read all containers to hdf5 file
+    /// Function that reads all containers from hdf5 file
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
-      triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+      auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);

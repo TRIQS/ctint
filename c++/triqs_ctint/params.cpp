@@ -23,7 +23,7 @@ namespace triqs_ctint {
   }
 
   void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+    auto grp = h5group.create_group(subgroup_name);
     h5_write(grp, "n_tau", cp.n_tau);
     h5_write(grp, "n_iw", cp.n_iw);
     h5_write(grp, "beta", cp.beta);
@@ -35,7 +35,7 @@ namespace triqs_ctint {
   }
 
   void h5_read(triqs::h5::group h5group, std::string subgroup_name, constr_params_t &cp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+    auto grp = h5group.open_group(subgroup_name);
     h5_read(grp, "n_tau", cp.n_tau);
     h5_read(grp, "n_iw", cp.n_iw);
     h5_read(grp, "beta", cp.beta);
@@ -47,7 +47,7 @@ namespace triqs_ctint {
   }
 
   void h5_write(triqs::h5::group h5group, std::string subgroup_name, solve_params_t const &sp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.create_group(subgroup_name);
+    auto grp = h5group.create_group(subgroup_name);
     h5_write(grp, "h_int", sp.h_int);
     h5_write(grp, "n_s", sp.n_s);
     h5_write(grp, "alpha", sp.alpha);
@@ -85,7 +85,7 @@ namespace triqs_ctint {
   }
 
   void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t &sp) {
-    triqs::h5::group grp = subgroup_name.empty() ? h5group : h5group.open_group(subgroup_name);
+    auto grp = h5group.open_group(subgroup_name);
     // Take care! Do not read random_seed and verbosity as they should be different based on mpi rank
     h5_read(grp, "h_int", sp.h_int);
     h5_read(grp, "n_s", sp.n_s);
