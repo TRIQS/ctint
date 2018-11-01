@@ -4,27 +4,34 @@ from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
+from pytriqs.operators.util.hamiltonians import h_int_kanamori
 from triqs_ctint import Solver
-from numpy import matrix
+from numpy import matrix, array
 
 test_name = 'two_site'
 
 ######## physical parameters ########
-U = 1.0
-V = 0.3
+U = 1.                          # Density-density interaction for opposite spins
+Up = 1.                         # Density-density interaction for equal spins
+J = 0.2                         # Hunds coupling
 mu = U/4.0
 beta = 10.0
-eps = matrix([[0.2,0.1],[0.1,0.2]])
+eps = matrix([  [0.2,0.1],
+                [0.1,0.2]])
 
 ######## simulation parameters ########
 n_cyc = 1000
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['dn','up']
-gf_struct = [(bl, [0,1]) for bl in block_names]
-h_int =  U * ( n('up',0)*n('dn',0) + n('up',1)*n('dn',1) ) \
-       + V * ( n('up',0)*n('up',1) + n('dn',0)*n('dn',1) + \
-               n('up',0)*n('dn',1) + n('dn',0)*n('up',1) )
+orb_names = [0,1]
+gf_struct = [(bl, orb_names) for bl in block_names]
+h_int = h_int_kanamori(block_names, orb_names,
+                        array([[0,      Up-3*J ],
+                               [Up-3*J, 0      ]]), # Interaction for equal spins
+                        array([[U,      U-2*J  ],
+                               [U-2*J,  U      ]]),   # Interaction for opposite spins
+                        J,True)
 
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
