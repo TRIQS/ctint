@@ -6,19 +6,19 @@ namespace triqs_ctint {
 
   /**
    * A point in imaginary time, i.e. $\tau \in [0,\beta]$, but defined on a very fine grid.
-   * The position in the segment is given by an uint64_t, i.e. a very long integer. 
+   * The position in the segment is given by an uint32_t, i.e. a very long integer.
    * This allows exact comparisons, which notoriously dangerous on floating point number.
    */
   struct tau_t {
 
-    /// Maximum value that can be stored inside a uint64_t
-    static constexpr uint64_t n_max = std::numeric_limits<uint64_t>::max();
+    /// Maximum value that can be stored inside a uint32_t
+    static constexpr uint32_t n_max = std::numeric_limits<uint32_t>::max();
 
     /// Inverse temperature associated with all $\tau$ points
     static double beta;
 
     /// $\tau$ value, represented as an integer on a very fine grid
-    uint64_t n = 0;
+    uint32_t n = 0;
 
     /// Get a random point in $[0,\beta[$
     template <typename RNG> static tau_t get_random(RNG &rng) { return tau_t{rng(n_max)}; }
@@ -49,20 +49,20 @@ namespace triqs_ctint {
     static constexpr tau_t get_zero_plus_plus() { return tau_t{2}; }
 
     /// Return \tau = \beta
-    static constexpr tau_t get_beta() { return tau_t{ std::numeric_limits<uint64_t>::max() }; }
+    static constexpr tau_t get_beta() { return tau_t{n_max}; }
 
     /// Return \tau = beta^{-} = \beta - \delta
-    static constexpr tau_t get_beta_minus() { return tau_t{ std::numeric_limits<uint64_t>::max() - 1 }; }
+    static constexpr tau_t get_beta_minus() { return tau_t{n_max - 1}; }
 
     /// Return \tau = beta^{--} = \beta - 2*\delta
-    static constexpr tau_t get_beta_minus_minus() { return tau_t{ std::numeric_limits<uint64_t>::max() - 2 }; }
+    static constexpr tau_t get_beta_minus_minus() { return tau_t{n_max - 2}; }
   };
 
   /// Function returns the result of the difference of two tau points, shifted to the interval [0,\beta]
   double cyclic_difference(tau_t const &tau1, tau_t const &tau2);
 
   // Generate a tau_t-object from a double
-  tau_t make_tau_t(double tau); 
+  tau_t make_tau_t(double tau);
 
   /**
    * Type representing the set of discrete quantum numbers for the vertices of
