@@ -108,6 +108,9 @@ namespace triqs_ctint {
     friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
       auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
+      h5_write(grp, "average_k", c.average_k);
+      h5_write(grp, "histogram", c.histogram);
+      h5_write(grp, "density", c.density);
       h5_write(grp, "M_tau", c.M_tau);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "M4_iw", c.M4_iw);
@@ -141,6 +144,9 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
+      h5_read(grp, "average_k", c.average_k);
+      h5_read(grp, "histogram", c.histogram);
+      h5_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);
