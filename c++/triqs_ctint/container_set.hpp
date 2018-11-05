@@ -12,7 +12,7 @@ namespace triqs_ctint {
     /// Average sign of the CTINT
     mc_weight_t average_sign;
 
-    /// Average perturbation order 
+    /// Average perturbation order
     double average_k;
 
     /// Average perturbation order distribution
@@ -144,9 +144,9 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
-      h5_read(grp, "average_k", c.average_k);
-      h5_read(grp, "histogram", c.histogram);
-      h5_read(grp, "density", c.density);
+      if(grp.has_key("average_k")) h5_read(grp, "average_k", c.average_k);
+      if(grp.has_key("histogram")) h5_read(grp, "histogram", c.histogram);
+      if(grp.has_key("density")) h5_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);
