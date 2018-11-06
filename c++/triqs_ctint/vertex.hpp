@@ -58,8 +58,10 @@ namespace triqs_ctint {
     static constexpr tau_t get_beta_minus_minus() { return tau_t{n_max - 2}; }
   };
 
-  /// Function returns the result of the difference of two tau points, shifted to the interval [0,\beta]
-  double cyclic_difference(tau_t const &tau1, tau_t const &tau2);
+  /// Calculate the time-difference of two tau points shifted to the interval [0,\beta] as well
+  /// as the sign change resulting from the shift in a fermionic function
+  std::pair<double, double> cyclic_difference(tau_t const &tau1, tau_t const &tau2);
+  std::pair<double, double> cyclic_difference(double tau1, double tau2);
 
   // Generate a tau_t-object from a double
   tau_t make_tau_t(double tau);

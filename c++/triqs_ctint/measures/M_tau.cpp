@@ -22,13 +22,10 @@ namespace triqs_ctint::measures {
       foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
 
         // Absolut time-difference tau of the index pair
-        double tau = cyclic_difference(cdag_j.tau, c_i.tau);
-
-        // Care for sign-change in case of tau-shift
-        mc_weight_t factor = (cdag_j.tau < c_i.tau) ? -sign : sign;
+        auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
 
         // Project tau to closest point on the binning grid
-        M_tau_[b][closest_mesh_pt(tau)](cdag_j.u, c_i.u) += Ginv * factor;
+        M_tau_[b][closest_mesh_pt(dtau)](cdag_j.u, c_i.u) += Ginv * s * sign;
       })
         ;
     }

@@ -30,14 +30,11 @@ namespace triqs_ctint::measures {
       foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
 
         // Absolut time-difference tau of the index pair
-        double tau = cyclic_difference(cdag_j.tau, c_i.tau);
-
-        // Care for sign-change in case of tau-shift
-        mc_weight_t factor = (c_i.tau > cdag_j.tau) ? -sign : sign;
+        auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
 
         // Push {tau, f(tau)} pair into nfft buffer
         auto &buf = buf_vec[b](cdag_j.u, c_i.u);
-        buf.push_back({tau}, Ginv * factor);
+        buf.push_back({dtau}, Ginv * s * sign);
       })
         ;
     }

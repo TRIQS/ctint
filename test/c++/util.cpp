@@ -1,4 +1,5 @@
 #include <triqs_ctint/params.hpp>
+#include <triqs_ctint/vertex.hpp>
 #include <triqs/test_tools/many_body_operator.hpp>
 #include <iostream>
 
@@ -60,6 +61,25 @@ TEST(util, get_op_indices) { // NOLINT
 
   EXPECT_EQ(std::make_pair(1, 1), get_int_indices(canonical_ops_t{false, {"bl2", "o5"}}, gf_struct)); // NOLINT
   EXPECT_EQ(std::make_pair(0, 2), get_int_indices(canonical_ops_t{false, {"bl1", "o3"}}, gf_struct)); // NOLINT
+}
+
+// Test cyclic_difference functionality
+TEST(util, cyclic_difference) { // NOLINT
+
+  double beta = 10.0;
+  tau_t::beta = 10.0;
+
+  double t1 = 5.0;
+  EXPECT_EQ(std::make_pair(1.0, 0.0), cyclic_difference(t1, t1));
+  EXPECT_EQ(std::make_pair(-1.0, 0.0), cyclic_difference(t1, t1 + beta));
+  EXPECT_EQ(std::make_pair(-1.0, 0.0), cyclic_difference(t1 + beta, t1));
+  EXPECT_EQ(std::make_pair(1.0, 0.0), cyclic_difference(t1 + beta, t1 + beta));
+
+  double t2 = 7.0;
+  EXPECT_EQ(std::make_pair(-1.0, 8.0), cyclic_difference(t1, t2));
+  EXPECT_EQ(std::make_pair(1.0, 8.0), cyclic_difference(t1, t2 + beta));
+  EXPECT_EQ(std::make_pair(-1.0, 2.0), cyclic_difference(t2, t1 + beta));
+
 }
 
 MAKE_MAIN;

@@ -47,10 +47,10 @@ namespace triqs_ctint {
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
       if ((c.tau == cdag.tau) and (c.u == cdag.u)) { return G0_shift_tau[0](c.u, cdag.u) + (c.with_alpha_shift ? 1.0 - alpha(c.u, c.s) : 1.0); }
-      double d_tau = cyclic_difference(c.tau, cdag.tau);
-      auto res     = G0_shift_tau[closest_mesh_pt(d_tau)](c.u, cdag.u);
+      auto [s, dtau] = cyclic_difference(c.tau, cdag.tau);
+      auto res       = G0_shift_tau[closest_mesh_pt(dtau)](c.u, cdag.u);
       // For the equal-time case, consider the order <c cdag>
-      return (c.tau >= cdag.tau ? res : -res);
+      return s * res;
     }
   };
 
