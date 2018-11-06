@@ -191,12 +191,12 @@ namespace triqs_ctint {
     // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
     if (M_tau) {
       M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw));
-      M_iw = make_hermitian(*M_iw);
+      M_iw = make_hermitian(M_iw.value());
     }
 
     // Calculate G_iw and Sigma_iw from M_iw
     if (M_iw) {
-      G_iw     = G0_shift_iw + G0_shift_iw * (*M_iw) * G0_shift_iw;
+      G_iw     = G0_shift_iw + G0_shift_iw * M_iw.value() * G0_shift_iw;
       Sigma_iw = inverse(G0_iw) - inverse(G_iw); // Careful, dont use shifted Gf here
     }
 
@@ -207,39 +207,39 @@ namespace triqs_ctint {
     if (M3pp_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
       auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
-      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3pp_tau, iw_mesh, make_zero_tail<0>(*M3pp_tau));
+      auto M3_iw_tau     = make_gf_from_fourier<0>(M3pp_tau.value(), iw_mesh, make_zero_tail<0>(M3pp_tau.value()));
       auto M3pp_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
-      (*M3pp_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
+      M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
     }
     if (M3ph_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
       auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
-      auto M3_iw_tau     = make_gf_from_fourier<0>(*M3ph_tau, iw_mesh, make_zero_tail<0>(*M3ph_tau));
+      auto M3_iw_tau     = make_gf_from_fourier<0>(M3ph_tau.value(), iw_mesh, make_zero_tail<0>(M3ph_tau.value()));
       auto M3ph_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
-      (*M3ph_iw)(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
+      M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(*M4_iw, *M_iw, G0_shift_iw);
-    if (G2c_iw and M_iw) F_iw = F_from_G2c(*G2c_iw, G_iw);
-    if (G2c_iw and M_iw) G2_iw = G2_from_G2c(*G2c_iw, G_iw);
+    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
+    if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
+    if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(*M3pp_iw, *M_iw, G0_shift_iw);
-    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(*M3ph_iw, *M_iw, G0_shift_iw);
-    if (M3pp_iw_nfft and M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(*M3pp_iw_nfft, *M_iw, G0_shift_iw);
-    if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(*M3ph_iw_nfft, *M_iw, G0_shift_iw);
+    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M3pp_iw_nfft and M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw.value(), G0_shift_iw);
+    if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw);
 
     // Calculate chi2_iw from chi2_tau
-    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(*chi2pp_tau, p.n_iw_chi2); // FIXME Disable Derivative Fitting by default?
-    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(*chi2ph_tau, p.n_iw_chi2);
+    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), p.n_iw_chi2); // FIXME Disable Derivative Fitting by default?
+    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), p.n_iw_chi2);
 
     // Calculate chiAB_iw from chiAB_tau
-    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(*chiAB_tau, p.n_iw_chi2);
+    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(chiAB_tau.value(), p.n_iw_chi2);
   }
 
 } // namespace triqs_ctint
