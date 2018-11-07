@@ -5,6 +5,8 @@ from pytriqs.utility import mpi
 import numpy as np
 from scipy.optimize import root
 
+np.set_printoptions(precision=4)
+
 # === Some utility functions
 
 # print on master node
@@ -132,19 +134,22 @@ class Solver(SolverCore):
             # Now calculate alpha from the Hartree Fock solution
             delta = params_kw.pop('delta', 0.1)
             alpha = []
+            densities_HF = []
             if root_finder['success']:
                 Sig_HF = unflatten(root_finder['x'], gf_struct)
                 mpi_print("  -- Found Sigma_HF : ")
-                for bl, Sig_HF_bl in Sig_HF: mpi_print("    " + str(bl) + " " + str(Sig_HF_bl).replace('\n',','))
+                for bl, Sig_HF_bl in Sig_HF: mpi_print("        %s : \t"%bl + str(Sig_HF_bl).replace('\n','\n           \t'))
                 G_iw = self.G0_iw.copy()
                 for bl, G0_bl in self.G0_iw:
                     G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
+                    dens_HF = np.diag(G_iw[bl].density()).real
+                    densities_HF.append((bl, dens_HF, sum(dens_HF)))
                     if bl == 'up':
-                        alpha.append( [[val.real + delta] for val in np.diag(G_iw[bl].density()) ] )
+                        alpha.append( [[n_o + delta] for n_o in dens_HF ] )
                     elif bl == 'dn' or bl == 'down' or bl == 'do':
-                        alpha.append( [[val.real - delta] for val in np.diag(G_iw[bl].density()) ] )
+                        alpha.append( [[n_o - delta] for n_o in dens_HF ] )
                     else:
-                        alpha.append( [[val.real] for val in np.diag(G_iw[bl].density()) ] )
+                        alpha.append( [[n_o] for n_o in dens_HF ] )
             else:
                 mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
                 indices = gf_struct[0][1]
@@ -159,7 +164,13 @@ class Solver(SolverCore):
             params_kw['alpha'] = alpha
             params_kw['n_s'] = 1
             
-            mpi_print("  -- Alpha Tensor : " + str(alpha))
+            mpi_print("  -- HF Densities : ")
+            for bl, dens, dens_tot in densities_HF:
+                mpi_print("        %s : \t%s    Total: %.4f"%(bl, dens, dens_tot))
+
+            mpi_print("  -- Alpha Tensor : ")
+            for alpha_bl in alpha:
+                mpi_print("        " + str(alpha_bl))
 
         # Call the core solver's solve routine
         solve_status = SolverCore.solve(self, **params_kw)
