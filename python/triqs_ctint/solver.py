@@ -138,18 +138,19 @@ class Solver(SolverCore):
             if root_finder['success']:
                 Sig_HF = unflatten(root_finder['x'], gf_struct)
                 mpi_print("  -- Found Sigma_HF : ")
-                for bl, Sig_HF_bl in Sig_HF: mpi_print("        %s : \t"%bl + str(Sig_HF_bl).replace('\n','\n           \t'))
+                for bl, Sig_HF_bl in Sig_HF:
+                    mpi_print("        %s : \t"%bl + str(Sig_HF_bl).replace('\n','\n           \t'))
                 G_iw = self.G0_iw.copy()
                 for bl, G0_bl in self.G0_iw:
                     G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
                     dens_HF = np.diag(G_iw[bl].density()).real
                     densities_HF.append((bl, dens_HF, sum(dens_HF)))
                     if bl == 'up':
-                        alpha.append( [[n_o + delta] for n_o in dens_HF ] )
+                        alpha.append( np.array([[n_o + delta] for n_o in dens_HF ]) )
                     elif bl == 'dn' or bl == 'down' or bl == 'do':
-                        alpha.append( [[n_o - delta] for n_o in dens_HF ] )
+                        alpha.append( np.array([[n_o - delta] for n_o in dens_HF ]) )
                     else:
-                        alpha.append( [[n_o] for n_o in dens_HF ] )
+                        alpha.append( np.array([[n_o] for n_o in dens_HF ]) )
             else:
                 mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
                 indices = gf_struct[0][1]
@@ -169,8 +170,8 @@ class Solver(SolverCore):
                 mpi_print("        %s : \t%s    Total: %.4f"%(bl, dens, dens_tot))
 
             mpi_print("  -- Alpha Tensor : ")
-            for alpha_bl in alpha:
-                mpi_print("        " + str(alpha_bl))
+            for bl, alpha_bl in zip(dict(gf_struct).keys(), alpha):
+                mpi_print("        %s : \t"%bl + str(alpha_bl).replace('\n','\n           \t'))
 
         # Call the core solver's solve routine
         solve_status = SolverCore.solve(self, **params_kw)
