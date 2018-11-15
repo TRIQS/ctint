@@ -20,7 +20,7 @@ namespace triqs_ctint::measures {
     mc_weight_t &average_sign_;
 
     // Accumulation counter
-    int count = 0;
+    long count = 0;
   };
 
 } // namespace triqs_ctint::measures
