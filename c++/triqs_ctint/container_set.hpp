@@ -24,6 +24,9 @@ namespace triqs_ctint {
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
+    /// Hartree-term of M_tau
+    std::optional<std::vector<matrix<M_tau_scalar_t>>> M_hartree;
+
     /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<g_iw_t> M_iw_nfft;
 
@@ -112,6 +115,7 @@ namespace triqs_ctint {
       h5_write(grp, "histogram", c.histogram);
       h5_write(grp, "density", c.density);
       h5_write(grp, "M_tau", c.M_tau);
+      h5_write(grp, "M_hartree", c.M_hartree);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M3pp_tau", c.M3pp_tau);
@@ -153,6 +157,7 @@ namespace triqs_ctint {
       h5_read(grp, "histogram", c.histogram);
       h5_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
+      h5_read(grp, "M_hartree", c.M_hartree);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_tau", c.M3pp_tau);
