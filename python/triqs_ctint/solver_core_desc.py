@@ -63,6 +63,11 @@ c.add_member(c_name = "M_tau",
              read_only= True,
              doc = """Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 
+c.add_member(c_name = "M_hartree",
+             c_type = "std::optional<std::vector<matrix<M_tau_scalar_t> > >",
+             read_only= True,
+             doc = """Hartree-term of M_tau""")
+
 c.add_member(c_name = "M_iw_nfft",
              c_type = "std::optional<g_iw_t>",
              read_only= True,

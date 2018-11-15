@@ -8,6 +8,9 @@ namespace triqs_ctint::measures {
     results->M_tau = block_gf<imtime, M_tau_target_t>{{params.beta, Fermion, params.n_tau}, params.gf_struct};
     M_tau_.rebind(results->M_tau.value());
     M_tau_() = 0;
+
+    results->M_hartree = make_block_vector<M_tau_scalar_t>(params.gf_struct);
+    for (auto &m : results->M_hartree.value()) M_hartree_.push_back(m);
   }
 
   void M_tau::accumulate(mc_weight_t sign) {
@@ -20,12 +23,17 @@ namespace triqs_ctint::measures {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
+        // Check for the equal-time case
+        if (c_i.tau == cdag_j.tau) {
+          M_hartree_[b](cdag_j.u, c_i.u) += Ginv * sign;
+        } else {
 
-        // Absolut time-difference tau of the index pair
-        auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
+          // Absolut time-difference tau of the index pair
+          auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
 
-        // Project tau to closest point on the binning grid
-        M_tau_[b][closest_mesh_pt(dtau)](cdag_j.u, c_i.u) += Ginv * s * sign;
+          // Project tau to closest point on the binning grid
+          M_tau_[b][closest_mesh_pt(dtau)](cdag_j.u, c_i.u) += Ginv * s * sign;
+        }
       })
         ;
     }
@@ -37,6 +45,10 @@ namespace triqs_ctint::measures {
     M_tau_      = mpi_all_reduce(M_tau_, comm);
     double dtau = M_tau_[0].mesh().delta();
     M_tau_      = M_tau_ / (-Z * dtau * params.beta);
+    for (auto &m : M_hartree_) {
+      m = mpi_all_reduce(m, comm);
+      m = m / (-Z * params.beta);
+    }
 
     // Multiply first and last bin by two
     for (auto &M : M_tau_) {

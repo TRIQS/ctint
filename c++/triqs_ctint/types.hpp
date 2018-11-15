@@ -22,6 +22,7 @@
 #pragma once
 
 #include <triqs/gfs.hpp>
+#include <triqs/arrays/block_matrix.hpp>
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
 #include <triqs/operators/util/extractors.hpp>
@@ -56,7 +57,7 @@ namespace triqs_ctint {
 #ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
 #else
-  using g_tau_t = block_gf<imtime, matrix_real_valued>;
+  using g_tau_t        = block_gf<imtime, matrix_real_valued>;
 #endif
 
   /// A const_view to a g_tau_t
@@ -83,6 +84,7 @@ namespace triqs_ctint {
 #else
   using M_tau_target_t = matrix_real_valued;
 #endif
+  using M_tau_scalar_t = M_tau_target_t::scalar_t;
 
   /// Scalar type of all interaction vertices
 #ifdef INTERACTION_IS_COMPLEX
@@ -185,9 +187,19 @@ namespace triqs::gfs {
     return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
   }
 
+  template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(triqs::hilbert_space::gf_struct_t const &gf_struct) {
+
+    std::vector<matrix<Scalar_t>> res;
+    for (auto const &bl : gf_struct) {
+      int bl_size = bl.second.size();
+      res.emplace_back(zeros<Scalar_t>(make_shape(bl_size, bl_size)));
+    }
+    return res;
+  }
+
 } // namespace triqs::gfs
 
-  // Useful macros
+// Useful macros
 
 #define STR(x) #x
 #define STRINGIZE(x) STR(x)

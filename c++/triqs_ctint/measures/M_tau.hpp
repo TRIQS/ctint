@@ -26,8 +26,11 @@ namespace triqs_ctint::measures {
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
 
-    // Container for the accumulation
+    // Gf view for the M_tau accumulation
     block_gf_view<imtime, M_tau_target_t> M_tau_;
+
+    // Matrix views for the hartree term accumulation
+    std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;
 
     // The average sign
     mc_weight_t Z = 0.0;
