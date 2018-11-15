@@ -12,7 +12,7 @@ namespace triqs_ctint::measures {
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
-    M3pp_iw_.rebind(*results->M3pp_iw_nfft);
+    M3pp_iw_.rebind(results->M3pp_iw_nfft.value());
     M3pp_iw_() = 0;
 
     // Initialize intermediate scattering matrix

@@ -11,10 +11,10 @@ namespace triqs_ctint::measures {
     // Init measurement container and capture view
     if (Chan == Chan_t::PP) {
       results->chi2pp_tau = make_block2_gf(tau_mesh, params.gf_struct);
-      chi2_tau_.rebind(*results->chi2pp_tau);
+      chi2_tau_.rebind(results->chi2pp_tau.value());
     } else if (Chan == Chan_t::PH) {
       results->chi2ph_tau = make_block2_gf(tau_mesh, params.gf_struct);
-      chi2_tau_.rebind(*results->chi2ph_tau);
+      chi2_tau_.rebind(results->chi2ph_tau.value());
     }
     chi2_tau_() = 0;
   }

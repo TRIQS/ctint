@@ -10,7 +10,7 @@ namespace triqs_ctint::measures {
 
     // Init measurement container and capture view
     results->M3ph_tau = make_block2_gf(M3ph_tau_mesh, params.gf_struct);
-    M3ph_tau_.rebind(*results->M3ph_tau);
+    M3ph_tau_.rebind(results->M3ph_tau.value());
     M3ph_tau_() = 0;
   }
 

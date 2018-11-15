@@ -32,7 +32,7 @@ namespace triqs_ctint::measures {
 
     // Init measurement container and capture view
     results->chiAB_tau = gf<imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
-    chiAB_tau_.rebind(*results->chiAB_tau);
+    chiAB_tau_.rebind(results->chiAB_tau.value());
     chiAB_tau_() = 0;
   }
 

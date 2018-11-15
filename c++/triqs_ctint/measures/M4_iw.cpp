@@ -11,7 +11,7 @@ namespace triqs_ctint::measures {
 
     // Init measurement container and capture view
     results->M4_iw = make_block2_gf(M4_iw_mesh, params.gf_struct);
-    M4_iw_.rebind(*results->M4_iw);
+    M4_iw_.rebind(results->M4_iw.value());
     M4_iw_() = 0;
 
     // Construct Matsubara mesh for temporary Matrix
