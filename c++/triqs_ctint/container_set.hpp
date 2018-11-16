@@ -16,7 +16,7 @@ namespace triqs_ctint {
     double average_k;
 
     /// Average perturbation order distribution
-    std::vector<double> histogram;
+    std::optional<std::vector<double>> histogram;
 
     /// The density matrix (measured by operator insertion)
     std::optional<std::vector<matrix<dcomplex>>> density;
@@ -143,14 +143,15 @@ namespace triqs_ctint {
     /// Function that reads all containers from hdf5 file
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
+      // Useful to keep backward compatibility for older solvers
       auto h5_try_read = [](triqs::h5::group grp, std::string key_name, auto &obj){
 	if(grp.has_key(key_name)) h5_read(grp, key_name, obj);
 	std::cout << "WARNING: Could not find key " << key_name << " during h5_read!\n";
       };
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);
-      h5_try_read(grp, "histogram", c.histogram);
-      h5_try_read(grp, "density", c.density);
+      h5_read(grp, "histogram", c.histogram);
+      h5_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);

@@ -49,7 +49,7 @@ c.add_member(c_name = "average_k",
              doc = """Average perturbation order""")
 
 c.add_member(c_name = "histogram",
-             c_type = "std::vector<double>",
+             c_type = "std::optional<std::vector<double> >",
              read_only= True,
              doc = """Average perturbation order distribution""")
 

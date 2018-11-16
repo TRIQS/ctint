@@ -20,10 +20,10 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Reference to accumulation vector
-    std::vector<double> &histogram_;
+    std::optional<std::vector<double>> &histogram_;
 
     // Accumulation counter
-    int N = 0;
+    long N = 0;
   };
 
 } // namespace triqs_ctint::measures
