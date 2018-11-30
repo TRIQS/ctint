@@ -34,10 +34,7 @@ namespace triqs_ctint::measures {
         return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u};
       };
 
-      // Careful: the unbarred (x) index of M has to be transformed with a negative time in the Fourier transform later -> shift
-      auto x_to_M_mesh = [ beta = params.beta, &M_tau_mesh ](c_t const &c_i) {
-        return idx_t{bin_to_mesh(beta - double(c_i.tau), M_tau_mesh), c_i.u};
-      };
+      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u}; };
       auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) { return idx_t{bin_to_mesh(double(cdag_j.tau), M_tau_mesh), cdag_j.u}; };
 
       // Careful: x and y vectors have to be used in internal storage order
@@ -100,10 +97,8 @@ namespace triqs_ctint::measures {
         for (int l : range(bl1_size))
           for (int i : range(det1_size))
             for (int j : range(det1_size))
-              // We have to add an overall minus sign to account for the fourier transform of the right M index
-              // Since the crossing term is negative by itself, we get a positive sign here
-              // FIXME Adjust multidimensional fourier transform to allow for sperarate e^{-iwt} transforms
-              M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * GM(l, i) * MG(j, k);
+              // Since the crossing term is negative by itself, we get a negative sign here
+              M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
 
       for (int bl2 : range(params.n_blocks())) {
 
@@ -120,10 +115,7 @@ namespace triqs_ctint::measures {
         for (int k : range(bl2_size))
           for (int l : range(bl2_size))
             for (int i : range(det1_size))
-              for (int j : range(det1_size))
-                // We have to add an overall minus sign to account for the fourier transform of the right M index
-                // FIXME Adjust multidimensional fourier transform to allow for sperarate e^{-iwt} transforms
-                M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * M(j, i) * GMG(l, k);
+              for (int j : range(det1_size)) M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
       }
     }
   }

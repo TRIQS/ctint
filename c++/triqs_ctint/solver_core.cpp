@@ -201,8 +201,6 @@ namespace triqs_ctint {
     }
 
     // Calculate M3_iw from M3_tau
-    // Signs and times already adjusted such that e^{iwt} transforms are correct.
-    // FIXME Adjust fourier transforms to make this choice at this stage
     // Shift for mixed notation
     if (M3pp_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
@@ -220,7 +218,9 @@ namespace triqs_ctint {
       auto M3ph_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
-      M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(iw_, iW_ + iw_)(i_, j_, k_, l_);
+      // CAUTION! Second first time should be fourier transformed with e^{-iwt}
+      // We correct this with an overall minus sign for the first frequency
+      M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_);
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
