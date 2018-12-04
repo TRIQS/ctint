@@ -3,10 +3,10 @@ def projectName = "ctint" /* set to app/repo name */
 /* which platform to build documentation on */
 def documentationPlatform = "ubuntu-clang"
 /* depend on triqs upstream branch/project */
-def triqsBranch = 'unstable'
+def triqsBranch = env.CHANGE_TARGET ?: env.BRANCH_NAME
 def triqsProject = '/TRIQS/triqs/' + triqsBranch.replaceAll('/', '%2F')
 /* whether to publish the results (disabled for template project) */
-def publish = !env.BRANCH_NAME.startsWith("PR-")
+def publish = !env.BRANCH_NAME.startsWith("PR-") && projectName != "app4triqs"
 
 properties([
   disableConcurrentBuilds(),
@@ -30,13 +30,13 @@ for (int i = 0; i < dockerPlatforms.size(); i++) {
   def platform = dockerPlatforms[i]
   platforms[platform] = { -> node('docker') {
     stage(platform) { timeout(time: 1, unit: 'HOURS') {
-        checkout scm
-        /* construct a Dockerfile for this base */
-        sh """
-        ( echo "FROM flatironinstitute/triqs:${triqsBranch}-${env.STAGE_NAME}" ; sed '0,/^FROM /d' Dockerfile ) > Dockerfile.jenkins
-          mv -f Dockerfile.jenkins Dockerfile
-        """
-        /* build and tag */
+      checkout scm
+      /* construct a Dockerfile for this base */
+      sh """
+      ( echo "FROM flatironinstitute/triqs:${triqsBranch}-${env.STAGE_NAME}" ; sed '0,/^FROM /d' Dockerfile ) > Dockerfile.jenkins
+        mv -f Dockerfile.jenkins Dockerfile
+      """
+      /* build and tag */
       def img = docker.build("flatironinstitute/${projectName}:${env.BRANCH_NAME}-${env.STAGE_NAME}", "--build-arg APPNAME=${projectName} --build-arg BUILD_DOC=${platform==documentationPlatform} .")
       if (!publish || platform != documentationPlatform) {
         /* but we don't need the tag so clean it up (except for documentation) */
@@ -72,8 +72,8 @@ for (int i = 0; i < osxPlatforms.size(); i++) {
         "LIBRARY_PATH=$triqsDir/lib:${env.BREW}/lib",
         "CMAKE_PREFIX_PATH=$triqsDir/share/cmake"]) {
         deleteDir()
-      sh "cmake $srcDir -DCMAKE_INSTALL_PREFIX=$installDir -DTRIQS_ROOT=$triqsDir"
-      sh "make -j3"
+        sh "cmake $srcDir -DCMAKE_INSTALL_PREFIX=$installDir -DTRIQS_ROOT=$triqsDir"
+        sh "make -j3"
         try {
           sh "make test CTEST_OUTPUT_ON_FAILURE=1"
         } catch (exc) {
