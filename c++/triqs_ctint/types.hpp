@@ -52,41 +52,47 @@ namespace triqs_ctint {
   /// The structure of the gf : block_idx -> pair of block_name and index list (int/string)
   using triqs::hilbert_space::gf_struct_t;
 
-  /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
-  using g_iw_t = block_gf<imfreq, matrix_valued>;
-
-/// Container type of two-particle Green and Vertex functions in imaginary time
+  /// Container type of one-particle Green and Vertex functions in imaginary times
 #ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
 #else
   using g_tau_t = block_gf<imtime, matrix_real_valued>;
 #endif
 
+  /// A const_view to a g_tau_t
+  using g_tau_cv_t = g_tau_t::const_view_type;
+
+  /// A view to a g_tau_t
+  using g_tau_v_t = g_tau_t::view_type;
+
   /// Scalar type of g_tau
   using g_tau_scalar_t = g_tau_t::g_t::scalar_t;
 
-/// Scalar type of all interaction vertices
-#ifdef INTERACTION_IS_COMPLEX
-  using U_scalar_t = dcomplex;
-#else
-  using U_scalar_t     = double;
-#endif
+  /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
+  using g_iw_t = block_gf<imfreq, matrix_valued>;
 
-/// The target_type of the intermediate scattering matrices
+  /// A const_view to a g_iw_t
+  using g_iw_cv_t = g_iw_t::const_view_type;
+
+  /// A view to a g_iw_t
+  using g_iw_v_t = g_iw_t::view_type;
+
+  /// The target_type of the intermediate scattering matrices
 #if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX
   using M_tau_target_t = matrix_valued;
 #else
   using M_tau_target_t = matrix_real_valued;
 #endif
 
+  /// Scalar type of all interaction vertices
+#ifdef INTERACTION_IS_COMPLEX
+  using U_scalar_t = dcomplex;
+#else
+  using U_scalar_t     = double;
+#endif
+
   /// Type of the Monte-Carlo weight. Either double or dcomplex
   using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{});
-
-  /// A const_view to a g_tau_t
-  using g_tau_cv_t = g_tau_t::const_view_type;
-
-  /// A view to a g_tau_t
-  using g_tau_v_t = g_tau_t::view_type;
 
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;

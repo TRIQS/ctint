@@ -77,10 +77,10 @@ namespace triqs_ctint {
   }
 
   // For wrapping purposes
-  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
     return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw);
   }
-  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
     return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw);
   }
 

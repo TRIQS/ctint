@@ -19,15 +19,15 @@ using namespace triqs_ctint;
 """)
 
 
-module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2c_from_M4 (chi4_iw_t::view_type M4_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """Calculate the connected part of the two-particle Green function from M4_iw and M_iw""")
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2c_from_M4 (chi4_iw_t::view_type M4_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """Calculate the connected part of the two-particle Green function from M4_iw and M_iw""")
 
-module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw)", doc = """Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
 
-module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the two-particle Green function from G2c_iw and G_iw""")
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw)", doc = """Calculate the two-particle Green function from G2c_iw and G_iw""")
 
-module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_t::view_type M3_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """""")
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_t::view_type M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 
-module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_t::view_type M3_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """""")
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_t::view_type M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 
 
 
