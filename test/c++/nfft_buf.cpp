@@ -142,7 +142,7 @@ TEST_F(Nfft, Rng) { // NOLINT
 TEST_F(Nfft, 2D) { // NOLINT
 
   // Parameters
-  int n_tau    = 500;
+  int n_tau    = 6 * n_iw + 1;
   int buf_size = n_tau * n_tau;
 
   // Create container for Gf from nfft

@@ -1,10 +1,11 @@
+from triqs_ctint import Solver
+
 from itertools import product
 import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
 from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
-from triqs_ctint import Solver
 
 test_name = "densdens"
 
@@ -27,7 +28,7 @@ S = Solver(beta = beta,
                n_iw = 200,
                n_tau = 100001,
                use_D = True,
-               n_tau_dynamical_interactions = 1025,
+               n_tau_dynamical_interactions = 2000,
                n_iw_dynamical_interactions = 200)
 
 # --------- Initialize the non-interacting Green's function ----------
@@ -58,11 +59,11 @@ S.solve(h_int=h_int,
         measure_M3ph_tau = True,
         n_iw_M3 = 10,
         n_iW_M3 = 10,
-        n_tau_M3 = 100,
+        n_tau_M3 = 121,
         measure_chi2pp_tau = True,
         measure_chi2ph_tau = True,
         n_iw_chi2 = 10,
-        n_tau_chi2 = 30,
+        n_tau_chi2 = 100,
         measure_chiAB_tau = True,
         chi_A_vec = [n('up',0) + n('dn', 0)],
         chi_B_vec = [n('up',0) + n('dn', 0)],

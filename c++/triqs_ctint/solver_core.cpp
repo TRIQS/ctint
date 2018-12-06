@@ -235,11 +235,12 @@ namespace triqs_ctint {
     if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw);
 
     // Calculate chi2_iw from chi2_tau
-    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), p.n_iw_chi2); // FIXME Disable Derivative Fitting by default?
-    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), p.n_iw_chi2);
+    auto iw_mesh = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), iw_mesh, make_zero_tail(chi2pp_tau.value()));
+    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), iw_mesh, make_zero_tail(chi2ph_tau.value()));
 
     // Calculate chiAB_iw from chiAB_tau
-    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(chiAB_tau.value(), p.n_iw_chi2);
+    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(chiAB_tau.value(), iw_mesh, make_zero_tail(chiAB_tau.value()));
   }
 
 } // namespace triqs_ctint
