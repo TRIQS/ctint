@@ -138,16 +138,6 @@ c.add_member(c_name = "M3ph_iw",
              read_only= True,
              doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies""")
 
-c.add_member(c_name = "M2pp_iw",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = """Building block for the susceptibility (pp channel) in Matsubara frequencies""")
-
-c.add_member(c_name = "M2ph_iw",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = """Building block for the susceptibility (ph channel) in Matsubara frequencies""")
-
 c.add_member(c_name = "F_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
@@ -172,6 +162,36 @@ c.add_member(c_name = "chi2ph_iw",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in Matsubara frequencies""")
+
+c.add_member(c_name = "M2pp_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """M2pp""")
+
+c.add_member(c_name = "M2ph_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """M2ph""")
+
+c.add_member(c_name = "chi2pp_new_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in imaginary times as obtained from M3pp_tau""")
+
+c.add_member(c_name = "chi2ph_new_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary times as obtained from M3ph_tau""")
+
+c.add_member(c_name = "chi2pp_new_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-particle channel in imaginary frequencies as obtained from M3pp_tau""")
+
+c.add_member(c_name = "chi2ph_new_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau""")
 
 c.add_member(c_name = "chiAB_iw",
              c_type = "std::optional<gf<imfreq> >",

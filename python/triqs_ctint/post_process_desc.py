@@ -29,6 +29,8 @@ module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_
 
 module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_t::view_type M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 
+module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_from_M2_PP (chi2_tau_t::view_type M2_tau, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 
+module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_from_M2_PH (chi2_tau_t::view_type M2_tau, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 
 module.generate_code()
