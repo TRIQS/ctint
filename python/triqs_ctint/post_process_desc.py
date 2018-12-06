@@ -1,0 +1,34 @@
+# Generated automatically using the command :
+# c++2py ../../c++/triqs_ctint/post_process.hpp -p --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C pytriqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17"
+from cpp2py.wrap_generator import *
+
+# The module
+module = module_(full_name = "post_process", doc = "The TRIQS ctint postprocess functionality", app_name = "triqs_ctint")
+
+# Imports
+import pytriqs.gf
+
+# Add here all includes
+module.add_include("triqs_ctint/post_process.hpp")
+
+# Add here anything to add in the C++ code at the start, e.g. namespace using
+module.add_preamble("""
+#include <triqs/cpp2py_converters/gf.hpp>
+
+using namespace triqs_ctint;
+""")
+
+
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2c_from_M4 (chi4_iw_t::view_type M4_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """Calculate the connected part of the two-particle Green function from M4_iw and M_iw""")
+
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
+
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the two-particle Green function from G2c_iw and G_iw""")
+
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_t::view_type M3_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """""")
+
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_t::view_type M3_iw, g_iw_t::view_type M_iw, g_iw_t::view_type G0_iw)", doc = """""")
+
+
+
+module.generate_code()

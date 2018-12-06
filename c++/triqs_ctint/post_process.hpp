@@ -55,7 +55,7 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-	  auto known_moments = make_zero_tail(GMG[bl2], 2);
+          auto known_moments = make_zero_tail(GMG[bl2], 2);
           M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_)
                 - beta * kronecker(iW_) * M_iw[bl1](iw_)(j_, i_) * density(GMG[bl2], known_moments)(l_, k_)
                 + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * MG[bl2](iW_ + iw_)(j_, k_);
@@ -66,7 +66,7 @@ namespace triqs_ctint {
                     + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, n, k_, l_);
 
           // Disconnected part
-	  matrix_view<dcomplex>{known_moments(1,ellipsis())} = 1.0;
+          matrix_view<dcomplex>{known_moments(1, ellipsis())} = 1.0;
           chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_)
                 + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * density(G_iw[bl2], known_moments)(l_, k_)
                 - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
@@ -74,6 +74,14 @@ namespace triqs_ctint {
       }
 
     return chi3_iw;
+  }
+
+  // For wrapping purposes
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+    return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw);
+  }
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+    return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw);
   }
 
 } // namespace triqs_ctint

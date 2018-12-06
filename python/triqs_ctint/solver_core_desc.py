@@ -331,6 +331,9 @@ c.add_method("""std::string hdf5_scheme ()""",
              is_static = True,
              doc = """""")
 
+c.add_method("""void post_process ()""",
+             doc = """""")
+
 module.add_class(c)
 
 
