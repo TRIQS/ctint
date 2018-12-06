@@ -183,6 +183,23 @@ namespace triqs::gfs {
     return make_block2_gf(block_names, block_names, std::move(gf_vecvec));
   }
 
+  template <typename Var1_t, typename Var2_t, typename Target = tensor_valued<4>>
+  block2_gf<Var1_t, Target> make_block2_gf(gf_mesh<Var1_t> const &m, block2_gf_const_view<Var2_t, Target> g_in) {
+
+    std::vector<std::vector<gf<Var1_t, Target>>> gf_vecvec;
+
+    int n_blocks0 = g_in.block_names()[0].size();
+    int n_blocks1 = g_in.block_names()[1].size();
+
+    for (int i : range(n_blocks0)) {
+      std::vector<gf<Var1_t, Target>> gf_vec;
+      for (int j : range(n_blocks1)) { gf_vec.emplace_back(m, g_in(i, j).target_shape(), g_in(i, j).indices()); }
+      gf_vecvec.emplace_back(std::move(gf_vec));
+    }
+
+    return make_block2_gf(g_in.block_names()[0], g_in.block_names()[1], std::move(gf_vecvec));
+  }
+
   template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
     return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
   }

@@ -215,6 +215,15 @@ namespace triqs_ctint {
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
       M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
       M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
+
+      if (M_iw) {
+        M3pp_tau_conn = M3_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
+        M2pp_tau = M2_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(), G0_shift_tau, p.n_tau_chi2);
+        chi2pp_new_tau = chi2_from_M2<Chan_t::PP>(M2pp_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());
+        iw_mesh        = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+        auto km        = make_zero_tail(chi2pp_new_tau.value());
+        chi2pp_new_iw  = make_gf_from_fourier(chi2pp_new_tau.value(), iw_mesh, km);
+      }
     }
     if (M3ph_tau) {
       auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
@@ -226,6 +235,15 @@ namespace triqs_ctint {
       // CAUTION! Second first time should be fourier transformed with e^{-iwt}
       // We correct this with an overall minus sign for the first frequency
       M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_);
+
+      if (M_iw) {
+        M3ph_tau_conn = M3_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
+        M2ph_tau = M2_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(), G0_shift_tau, p.n_tau_chi2);
+        chi2ph_new_tau = chi2_from_M2<Chan_t::PH>(M2ph_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());
+        iw_mesh        = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+        auto km        = make_zero_tail(chi2ph_new_tau.value());
+        chi2ph_new_iw  = make_gf_from_fourier(chi2ph_new_tau.value(), iw_mesh, km);
+      }
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
