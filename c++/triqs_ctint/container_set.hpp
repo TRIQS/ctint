@@ -146,7 +146,7 @@ namespace triqs_ctint {
       // Useful to keep backward compatibility for older solvers
       auto h5_try_read = [](triqs::h5::group grp, std::string key_name, auto &obj){
 	if(grp.has_key(key_name)) h5_read(grp, key_name, obj);
-	std::cout << "WARNING: Could not find key " << key_name << " during h5_read!\n";
+	else std::cout << "WARNING: Could not find key " << key_name << " during h5_read!\n";
       };
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);
