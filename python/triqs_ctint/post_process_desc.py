@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/post_process.hpp -p --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C pytriqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17"
+# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C pytriqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17"
 from cpp2py.wrap_generator import *
 
 # The module

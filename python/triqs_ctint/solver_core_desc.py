@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp -p --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C pytriqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17"
+# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C pytriqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17"
 from cpp2py.wrap_generator import *
 
 # The module
@@ -327,11 +327,11 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 """)
 
-c.add_method("""std::string hdf5_scheme ()""",
-             is_static = True,
+c.add_method("""void post_process ()""",
              doc = """""")
 
-c.add_method("""void post_process ()""",
+c.add_method("""std::string hdf5_scheme ()""",
+             is_static = True,
              doc = """""")
 
 module.add_class(c)
