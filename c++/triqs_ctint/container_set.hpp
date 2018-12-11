@@ -107,6 +107,12 @@ namespace triqs_ctint {
     /// The correlation function $\chi_AB$ in imaginary frequencies
     std::optional<gf<imfreq>> chiAB_iw;
 
+    /// The connected part of M3pp_tau
+    std::optional<chi3_tau_t> M3pp_tau_conn;
+
+    /// The connected part of M3ph_tau
+    std::optional<chi3_tau_t> M3ph_tau_conn;
+
     /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;
 
@@ -150,6 +156,8 @@ namespace triqs_ctint {
       h5_write(grp, "chi2pp_new_tau", c.chi2pp_new_tau);
       h5_write(grp, "chi2ph_new_tau", c.chi2ph_new_tau);
       h5_write(grp, "chiAB_iw", c.chiAB_iw);
+      h5_write(grp, "M3pp_tau_conn", c.M3pp_tau_conn);
+      h5_write(grp, "M3ph_tau_conn", c.M3ph_tau_conn);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_write(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
@@ -192,6 +200,8 @@ namespace triqs_ctint {
       h5_read(grp, "chi2pp_new_tau", c.chi2pp_new_tau);
       h5_read(grp, "chi2ph_new_tau", c.chi2ph_new_tau);
       h5_read(grp, "chiAB_iw", c.chiAB_iw);
+      h5_read(grp, "M3pp_tau_conn", c.M3pp_tau_conn);
+      h5_read(grp, "M3ph_tau_conn", c.M3ph_tau_conn);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_read(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
