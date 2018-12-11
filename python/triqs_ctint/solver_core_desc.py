@@ -71,17 +71,18 @@ c.add_member(c_name = "M_iw_nfft",
 c.add_member(c_name = "M4_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
-             doc = """Same as M4_tau, but measured directly in Matsubara frequencies using NFFT""")
+             doc = """Building block for the full vertex function measured directly in Matsubara frequencies using NFFT""")
 
 c.add_member(c_name = "M3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
-             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies""")
+             doc = """Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT""")
 
 c.add_member(c_name = "M3ph_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
-             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies""")
+             doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT""")
+
 
 c.add_member(c_name = "M3pp_tau",
              c_type = "std::optional<chi3_tau_t>",

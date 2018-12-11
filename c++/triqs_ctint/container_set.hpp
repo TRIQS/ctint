@@ -27,13 +27,13 @@ namespace triqs_ctint {
     /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<g_iw_t> M_iw_nfft;
 
-    /// Same as M4_tau, but measured directly in Matsubara frequencies using NFFT
+    /// Building block for the full vertex function measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4_iw;
 
-    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT
     std::optional<chi3_iw_t> M3pp_iw_nfft;
 
-    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT
     std::optional<chi3_iw_t> M3ph_iw_nfft;
 
     /// Building block for the fermion boson vertex (pp channel) in imaginary time
