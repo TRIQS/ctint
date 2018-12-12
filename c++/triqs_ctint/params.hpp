@@ -8,7 +8,7 @@ namespace triqs_ctint {
   struct constr_params_t {
 
     /// Number of tau points for gf<imtime, matrix_valued>
-    int n_tau = 10000;
+    int n_tau = 5001;
 
     /// Number of Matsubara frequencies for gf<imfreq, matrix_valued>
     int n_iw = 500;
@@ -26,10 +26,10 @@ namespace triqs_ctint {
     bool use_Jperp = false;
 
     /// Number of tau pts for D0_tau and jperp_tau
-    int n_tau_dynamical_interactions = 10001;
+    int n_tau_dynamical_interactions = n_tau;
 
     /// Number of matsubara freqs for D0_iw and jperp_iw
-    int n_iw_dynamical_interactions = 200;
+    int n_iw_dynamical_interactions = n_iw;
 
     /// Number of block indeces for the Green function
     int n_blocks() const { return gf_struct.size(); }

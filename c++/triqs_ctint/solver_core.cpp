@@ -14,10 +14,9 @@ namespace triqs_ctint {
     tau_t::beta = p.beta;
 
     // Allocate essential QMC containers
-    G0_iw        = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
-    G_iw         = G0_iw;
-    Sigma_iw     = G0_iw;
-    G0_shift_tau = block_gf<imtime, g_tau_t::target_t>{{p.beta, Fermion, p.n_tau}, p.gf_struct};
+    G0_iw    = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
+    G_iw     = G0_iw;
+    Sigma_iw = G0_iw;
 
     // Allocate containers for dynamical density-density interaction
     if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);
@@ -167,14 +166,20 @@ namespace triqs_ctint {
     // Invert and Fourier transform to imaginary times
     G0_shift_iw = inverse(G0_inv);
 
+    // Known high-frequency moments of G0_shift_iw are assumed to be {0,1}
+    auto km = make_zero_tail(G0_shift_iw, 2);
+    for (auto &km_bl : km) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
+    auto tau_mesh = gf_mesh<imtime>{p.beta, Fermion, p.n_tau};
 #ifdef GTAU_IS_COMPLEX
-    G0_shift_tau = make_gf_from_fourier(G0_shift_iw);
+    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
+    G0_shift_tau     = make_gf_from_fourier(G0_shift_iw, tau_mesh, tail);
 #else
     if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
       std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
       G0_shift_iw = make_real_in_tau(G0_shift_iw);
     }
-    G0_shift_tau = real(make_gf_from_fourier(G0_shift_iw));
+    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
+    G0_shift_tau     = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, tail));
 #endif
   }
 
