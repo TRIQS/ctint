@@ -77,7 +77,8 @@ namespace triqs_ctint {
   }
 
   // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
-  template <Chan_t Chan> chi2_tau_t chi2_from_M2(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
+  template <Chan_t Chan>
+  chi2_tau_t chi2_from_M2(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
 
     double beta  = M_iw[0].domain().beta;
     int n_blocks = M_iw.size();
@@ -90,22 +91,26 @@ namespace triqs_ctint {
     g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
     g_iw_t G_iw   = G0_iw + GMG_iw;
 
-    auto tau_mesh = make_adjoint_mesh(G_iw(0).mesh());
+    auto tau_mesh = make_adjoint_mesh(G_iw[0].mesh());
 
-    // TODO
-    //auto tail_GMG = make_zero_tail(GMG_iw, 3);
-    //for(auto [bl, M_hf_bl]) bl[2] = M_hf_bl;
+    auto km = make_zero_tail(GMG_iw, 3);
+    for (auto [km_bl, M_hartree_bl] : zip(km, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+    auto tail = fit_hermitian_tail(GMG_iw, km).first;
+
+    auto km_G = make_zero_tail(G_iw, 2);
+    for (auto &km_bl : km_G) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
+    auto tail_G = fit_hermitian_tail(G_iw, km_G).first;
 
 #ifdef GTAU_IS_COMPLEX
-    auto GMG_tau  = make_gf_from_fourier(GMG_iw, tau_mesh, make_zero_tail(GMG_iw, 2));
-    g_tau_t G_tau = make_gf_from_fourier(G_iw);
+    auto GMG_tau  = make_gf_from_fourier(GMG_iw, tau_mesh, tail);
+    g_tau_t G_tau = make_gf_from_fourier(G_iw, tau_mesh, tail_G);
 #else
-    auto GMG_tau  = real(make_gf_from_fourier(GMG_iw, tau_mesh, make_zero_tail(GMG_iw, 2)));
-    g_tau_t G_tau = real(make_gf_from_fourier(G_iw));
+    auto GMG_tau  = real(make_gf_from_fourier(GMG_iw, tau_mesh, tail));
+    g_tau_t G_tau = real(make_gf_from_fourier(G_iw, tau_mesh, tail_G));
     if (!is_gf_real_in_tau(G_iw, 1e-8)) std::cerr << "WARNING: Assuming real G_tau, but found Imag(G(tau)) > 1e-8. Casting to Real.\n";
 #endif
 
-    auto dens_GMG = density(GMG_iw, make_zero_tail(GMG_iw, 2));
+    auto dens_GMG = density(GMG_iw, tail);
 
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
@@ -145,18 +150,31 @@ namespace triqs_ctint {
 
     auto const &tau_mesh_M3 = M3_tau(0, 0).mesh();
     double dtau_M3          = std::get<0>(tau_mesh_M3).delta();
+    int n_tau_M3            = std::get<0>(tau_mesh_M3).size();
 
     // Temporary quantities
     g_iw_t GM_iw  = G0_iw * M_iw;
     g_iw_t MG_iw  = M_iw * G0_iw;
     g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
 
-    auto GM = make_gf_from_fourier(GM_iw);
-    auto MG = make_gf_from_fourier(MG_iw);
+    auto tau_mesh = make_adjoint_mesh(M_iw[0].mesh());
+
+    auto km_GM = make_zero_tail(GM_iw, 2);
+    for (auto [km_bl, M_hartree_bl] : zip(km_GM, M_hartree)) km_bl(1, ellipsis()) = M_hartree_bl;
+    //for (auto &GM_bl : GM_iw) GM_bl.mesh().set_tail_fit_parameters(0.2, 30, 7);
+    //for (auto &MG_bl : MG_iw) MG_bl.mesh().set_tail_fit_parameters(0.2, 30, 7);
+    auto tail_GM = fit_hermitian_tail(GM_iw, km_GM).first;
+    auto tail_MG = fit_hermitian_tail(MG_iw, km_GM).first; // known moments identical to GM
+    auto GM      = make_gf_from_fourier(GM_iw, tau_mesh, tail_GM);
+    auto MG      = make_gf_from_fourier(MG_iw, tau_mesh, tail_MG);
+
+    auto km_GMG = make_zero_tail(GMG_iw, 3);
+    for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+    auto tail_GMG = fit_hermitian_tail(GMG_iw, km_GMG).first;
+    auto dens_GMG = density(GMG_iw, tail_GMG);
 
     // Connected part of M3
     chi3_tau_t M3_tau_conn = M3_tau;
-    auto dens_GMG          = density(GMG_iw, make_zero_tail(GMG_iw, 2));
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -199,6 +217,15 @@ namespace triqs_ctint {
 
     chi3_tau_t M3_tau_conn = M3_conn_from_M3<Chan>(M3_tau, M_iw, G0_iw, M_tau, M_hartree);
     //chi3_tau_t M3_tau_conn = M3_tau;
+
+    // Temporary quantities
+    g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
+
+    auto km = make_zero_tail(GMG_iw, 3);
+    for (auto [km_bl, M_hartree_bl] : zip(km, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+    for (auto &GMG_bl : GMG_iw) GMG_bl.mesh().set_tail_fit_parameters(0.2, 30, 7);
+    auto tail_GMG = fit_hermitian_tail(GMG_iw, km).first;
+    auto dens_GMG = density(GMG_iw, tail_GMG);
 
     ////Account for M3 edge bins beeing smaller // FIXME Why not necessary?
     //auto _ = all_t{};
@@ -253,19 +280,21 @@ namespace triqs_ctint {
   inline chi3_iw_t chi3_from_M3_PH(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
     return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw);
   }
-  inline chi2_tau_t chi2_from_M2_PP(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
-    return chi2_from_M2<Chan_t::PP>(M2_tau, M_iw, G0_iw);
+  inline chi2_tau_t chi2_from_M2_PP(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw,
+                                    std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+    return chi2_from_M2<Chan_t::PP>(M2_tau, M_iw, G0_iw, M_hartree);
   }
-  inline chi2_tau_t chi2_from_M2_PH(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
-    return chi2_from_M2<Chan_t::PH>(M2_tau, M_iw, G0_iw);
+  inline chi2_tau_t chi2_from_M2_PH(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw,
+                                    std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+    return chi2_from_M2<Chan_t::PH>(M2_tau, M_iw, G0_iw, M_hartree);
   }
-  inline chi3_tau_t M3_conn_from_M3_PP(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                       std::vector<matrix<M_tau_scalar_t>> M_hartree) {
-    return M3_conn_from_M3<Chan_t::PP>(M3_tau, M_iw, G0_iw, M_tau, M_hartree);
+  inline chi3_tau_t M3_conn_from_M3_PP(chi3_tau_t M3pp_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                                       std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+    return M3_conn_from_M3<Chan_t::PP>(M3pp_tau, M_iw, G0_iw, M_tau, M_hartree);
   }
-  inline chi3_tau_t M3_conn_from_M3_PH(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                       std::vector<matrix<M_tau_scalar_t>> M_hartree) {
-    return M3_conn_from_M3<Chan_t::PH>(M3_tau, M_iw, G0_iw, M_tau, M_hartree);
+  inline chi3_tau_t M3_conn_from_M3_PH(chi3_tau_t M3ph_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                                       std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+    return M3_conn_from_M3<Chan_t::PH>(M3ph_tau, M_iw, G0_iw, M_tau, M_hartree);
   }
   inline chi2_tau_t M2_from_M3_PP(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree,
                                   g_tau_cv_t G0_tau, int n_tau_M2) {
