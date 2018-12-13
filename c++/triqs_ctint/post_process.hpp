@@ -182,13 +182,11 @@ namespace triqs_ctint {
 
   /// Calculate M3_conn from M3
   template <Chan_t Chan>
-  chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree) {
+  chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                             std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
 
     double beta  = M_tau[0].domain().beta;
     int n_blocks = M_tau.size();
-
-    auto const &tau_mesh_M3 = M3_tau(0, 0).mesh();
-    double dtau_M3          = std::get<0>(tau_mesh_M3).delta();
 
     // Temporary quantities
     g_iw_t GM_iw  = G0_iw * M_iw;
@@ -223,7 +221,7 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-          for (auto [t1, t2] : tau_mesh_M3) {
+          for (auto [t1, t2] : M3_tau(0, 0).mesh()) {
 
             double s, d_t2_t1;
             if (t2 >= t1) {
@@ -235,7 +233,7 @@ namespace triqs_ctint {
             }
 
             M3_tau_conn(bl1, bl2)[t1, t2](i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1, t2](i_, j_, k_, l_)
-                  - (s * M_tau[bl1](d_t2_t1)(j_, i_) + kronecker(t1.index(), t2.index()) / dtau_M3 * M_hartree[bl1](j_, i_)) * dens_GMG[bl2](l_, k_)
+                  - s * M_tau[bl1](d_t2_t1)(j_, i_) * dens_GMG[bl2](l_, k_)
                   - kronecker(bl1, bl2) * GM[bl1](beta - t1)(l_, i_) * MG[bl2](t2)(j_, k_); // Sign change from GM shift
           }
         }
@@ -246,8 +244,8 @@ namespace triqs_ctint {
 
   /// Calculate the chi2_tau from M3_tau and M_iw
   template <Chan_t Chan>
-  chi2_tau_t M2_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree,
-                        g_tau_cv_t G0_tau, int n_tau_M2) {
+  chi2_tau_t M2_from_M3(chi3_tau_t M3_tau, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                        std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
 
     double beta  = G0_tau[0].domain().beta;
     int n_blocks = G0_tau.size();
@@ -290,6 +288,14 @@ namespace triqs_ctint {
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
+        // We have to subtract the remaining disconnected component from M_delta
+        if (Chan == Chan_t::PH)
+          M3_delta(bl1, bl2)(t_)(i_, j_, k_, l_) << M3_delta(bl1, bl2)[t_](i_, j_, k_, l_) - M_hartree[bl1](j_, i_) * dens_GMG[bl2](l_, k_);
+
+        //Account for M3_delta edge bins beeing smaller
+        M3_delta(bl1, bl2)[0] *= 0.5;
+        M3_delta(bl1, bl2)[n] *= 0.5;
+
         // Capture block-sizes
         int bl1_size = M3_tau_conn(bl1, bl2).target_shape()[0];
         int bl2_size = M3_tau_conn(bl1, bl2).target_shape()[2];
@@ -302,7 +308,9 @@ namespace triqs_ctint {
           auto M2 = M2_tau(bl1, bl2)[t];
 
           for (auto [t1, t2] : tau_mesh_M3) {
-            auto M3 = M3_tau_conn(bl1, bl2)[t1, t2];
+
+            // We add the (non-connected) delta-contribution by hand
+            auto M3 = M3_tau_conn(bl1, bl2)[t1, t2] + kronecker(t1.index(), t2.index()) / dtau_M3 * M3_delta(bl1, bl2)[t1];
 
             auto [s1, d_t1_t] = cyclic_difference(t1, t);
             auto [s2, d_t2_t] = cyclic_difference(t2, t);
@@ -371,13 +379,13 @@ namespace triqs_ctint {
                                        std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
     return M3_conn_from_M3<Chan_t::PH>(M3ph_tau, M_iw, G0_iw, M_tau, M_hartree);
   }
-  inline chi2_tau_t M2_from_M3_PP(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree,
-                                  g_tau_cv_t G0_tau, int n_tau_M2) {
-    return M2_from_M3<Chan_t::PP>(M3_tau, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
+  inline chi2_tau_t M2_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
+    return M2_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
   }
-  inline chi2_tau_t M2_from_M3_PH(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree,
-                                  g_tau_cv_t G0_tau, int n_tau_M2) {
-    return M2_from_M3<Chan_t::PH>(M3_tau, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
+  inline chi2_tau_t M2_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
+    return M2_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
   }
 
 } // namespace triqs_ctint

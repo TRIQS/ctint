@@ -8,10 +8,15 @@ namespace triqs_ctint::measures {
     // Construct Matsubara mesh
     gf_mesh<cartesian_product<imtime, imtime>> M3ph_tau_mesh{tau_mesh, tau_mesh};
 
-    // Init measurement container and capture view
+    // Init measurement container for M3ph and capture view
     results->M3ph_tau = make_block2_gf(M3ph_tau_mesh, params.gf_struct);
     M3ph_tau_.rebind(results->M3ph_tau.value());
     M3ph_tau_() = 0;
+
+    // Init measurement container for equal-time component of M3ph
+    results->M3ph_delta = make_block2_gf(tau_mesh, params.gf_struct);
+    M3ph_delta_.rebind(*results->M3ph_delta);
+    M3ph_delta_() = 0;
   }
 
   void M3ph_tau::accumulate(mc_weight_t sign) {
@@ -29,13 +34,13 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points for different meshes
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), G0_tau_mesh), c_i.u}; };
-      auto y_to_G0_mesh = [ beta = params.beta, &G0_tau_mesh ](cdag_t const &cdag_j) {
-        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u};
+      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), G0_tau_mesh), c_i.u, c_i.tau}; };
+      auto y_to_G0_mesh = [beta = params.beta, &G0_tau_mesh](cdag_t const &cdag_j) {
+        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u, cdag_j.tau};
       };
 
-      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u}; };
-      auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) { return idx_t{bin_to_mesh(double(cdag_j.tau), M_tau_mesh), cdag_j.u}; };
+      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u, c_i.tau}; };
+      auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) { return idx_t{bin_to_mesh(double(cdag_j.tau), M_tau_mesh), cdag_j.u, cdag_j.tau}; };
 
       // Careful: x and y vectors have to be used in internal storage order
       c_vec_G0.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_G0_mesh)));
@@ -91,14 +96,18 @@ namespace triqs_ctint::measures {
       auto const &cdag1 = cdag_vec_M[bl1];
 
       // Crossing term (equal blocks)
-      auto &M3ph_tau = M3ph_tau_(bl1, bl1);
-      // FIXME for( auto [k,l,i,j] : product_range(bl1_size, bl1_size, det1_size, det1_size) )
-      for (int k : range(bl1_size))
-        for (int l : range(bl1_size))
-          for (int i : range(det1_size))
-            for (int j : range(det1_size))
-              // Since the crossing term is negative by itself, we get a negative sign here
-              M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+      auto &M3ph_tau   = M3ph_tau_(bl1, bl1);
+      auto &M3ph_delta = M3ph_delta_(bl1, bl1);
+
+      for (auto [k, l, i, j] : product_range(bl1_size, bl1_size, det1_size, det1_size)) {
+        // Take care of equal-time peak separately
+        if (c1[i].tau_pt == cdag1[j].tau_pt) {
+          M3ph_delta[c1[i].tau_idx](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+        } else {
+          // Since the crossing term is negative by itself, we get a negative sign here
+          M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+        }
+      }
 
       for (int bl2 : range(params.n_blocks())) {
 
@@ -107,34 +116,45 @@ namespace triqs_ctint::measures {
         // Do not consider empty blocks
         if (det2_size == 0) continue;
 
-        auto const &GMG = GMG_vec[bl2];
-        int bl2_size    = G0_tau[bl2].target_shape()[0];
-        auto &M3ph_tau  = M3ph_tau_(bl1, bl2);
+        auto const &GMG  = GMG_vec[bl2];
+        int bl2_size     = G0_tau[bl2].target_shape()[0];
+        auto &M3ph_tau   = M3ph_tau_(bl1, bl2);
+        auto &M3ph_delta = M3ph_delta_(bl1, bl2);
 
         // Direct term
-        for (int k : range(bl2_size))
-          for (int l : range(bl2_size))
-            for (int i : range(det1_size))
-              for (int j : range(det1_size)) M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+        for (auto [k, l, i, j] : product_range(bl2_size, bl2_size, det1_size, det1_size)) {
+          // Take care of equal-time peak separately
+          if (c1[i].tau_pt == cdag1[j].tau_pt) {
+            M3ph_delta[c1[i].tau_idx](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+          } else {
+            M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+          }
+        }
       }
     }
   }
 
   void M3ph_tau::collect_results(triqs::mpi::communicator const &comm) {
-    // Collect results and normalize
+    // Collect results
     Z           = mpi_all_reduce(Z, comm);
     M3ph_tau_   = mpi_all_reduce(M3ph_tau_, comm);
+    M3ph_delta_ = mpi_all_reduce(M3ph_delta_, comm);
+
+    // Normalize
     double dtau = params.beta / (params.n_tau_M3 - 1);
     M3ph_tau_   = M3ph_tau_ / (Z * dtau * dtau);
+    M3ph_delta_ = M3ph_delta_ / (Z * dtau);
 
     // Account for edge bins beeing smaller
     auto _ = all_t{};
     int n  = params.n_tau_M3 - 1;
-    for (auto &M : M3ph_tau_) {
+    for (auto [M, M_delta] : zip(M3ph_tau_, M3ph_delta_)) {
       M[0, _] *= 2.0;
       M[_, 0] *= 2.0;
       M[n, _] *= 2.0;
       M[_, n] *= 2.0;
+      M_delta[0] *= 2.0;
+      M_delta[n] *= 2.0;
     }
   }
 

@@ -27,8 +27,11 @@ namespace triqs_ctint::measures {
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
 
-    // Container for the accumulation
+    // Gf view for the accumulation of M3pp_tau
     block2_gf_view<cartesian_product<imtime, imtime>, tensor_valued<4>> M3pp_tau_;
+
+    // Gf view for the accumulation of M3pp_delta
+    block2_gf_view<imtime, tensor_valued<4>> M3pp_delta_;
 
     // The average sign
     mc_weight_t Z = 0.0;
@@ -43,6 +46,7 @@ namespace triqs_ctint::measures {
     struct idx_t {
       int tau_idx;
       int u;
+      tau_t tau_pt;
     };
   };
 
