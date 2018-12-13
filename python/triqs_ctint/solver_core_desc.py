@@ -97,6 +97,16 @@ c.add_member(c_name = "M3ph_tau",
              read_only= True,
              doc = """Building block for the fermion boson vertex (ph channel) in imaginary time""")
 
+c.add_member(c_name = "M3pp_delta",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """Equal-time peak in M3pp_tau""")
+
+c.add_member(c_name = "M3ph_delta",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = """Equal-time peak in M3ph_tau""")
+
 c.add_member(c_name = "chi2pp_tau",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,

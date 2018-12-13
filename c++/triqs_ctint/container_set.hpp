@@ -45,6 +45,12 @@ namespace triqs_ctint {
     /// Building block for the fermion boson vertex (ph channel) in imaginary time
     std::optional<chi3_tau_t> M3ph_tau;
 
+    /// Equal-time peak in M3pp_tau
+    std::optional<chi2_tau_t> M3pp_delta;
+
+    /// Equal-time peak in M3ph_tau
+    std::optional<chi2_tau_t> M3ph_delta;
+
     /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary times as obtained by operator insertion
     std::optional<chi2_tau_t> chi2pp_tau;
 
@@ -138,6 +144,8 @@ namespace triqs_ctint {
       h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M3pp_tau", c.M3pp_tau);
       h5_write(grp, "M3ph_tau", c.M3ph_tau);
+      h5_write(grp, "M3pp_delta", c.M3pp_delta);
+      h5_write(grp, "M3ph_delta", c.M3ph_delta);
       h5_write(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
       h5_write(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_write(grp, "chi2pp_tau", c.chi2pp_tau);
@@ -184,6 +192,8 @@ namespace triqs_ctint {
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_tau", c.M3pp_tau);
       h5_read(grp, "M3ph_tau", c.M3ph_tau);
+      h5_read(grp, "M3pp_delta", c.M3pp_delta);
+      h5_read(grp, "M3ph_delta", c.M3ph_delta);
       h5_read(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
       h5_read(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_read(grp, "chi2pp_tau", c.chi2pp_tau);

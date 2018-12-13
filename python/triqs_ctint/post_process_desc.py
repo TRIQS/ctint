@@ -51,9 +51,9 @@ module.add_function ("triqs_ctint::chi3_tau_t triqs_ctint::M3_conn_from_M3_PP (t
 
 module.add_function ("triqs_ctint::chi3_tau_t triqs_ctint::M3_conn_from_M3_PH (triqs_ctint::chi3_tau_t M3ph_tau, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree)", doc = """""")
 
-module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::M2_from_M3_PP (triqs_ctint::chi3_tau_t M3_tau, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree, triqs_ctint::g_tau_cv_t G0_tau, int n_tau_M2)", doc = """""")
+module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::M2_from_M3_PP (triqs_ctint::chi3_tau_t M3pp_tau, triqs_ctint::chi2_tau_t M3pp_delta, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree, triqs_ctint::g_tau_cv_t G0_tau, int n_tau_M2)", doc = """""")
 
-module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::M2_from_M3_PH (triqs_ctint::chi3_tau_t M3_tau, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree, triqs_ctint::g_tau_cv_t G0_tau, int n_tau_M2)", doc = """""")
+module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::M2_from_M3_PH (triqs_ctint::chi3_tau_t M3ph_tau, triqs_ctint::chi2_tau_t M3ph_delta, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree, triqs_ctint::g_tau_cv_t G0_tau, int n_tau_M2)", doc = """""")
 
 
 

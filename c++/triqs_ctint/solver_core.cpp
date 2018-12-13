@@ -213,12 +213,14 @@ namespace triqs_ctint {
       auto M3_iw_tau     = make_gf_from_fourier<0>(M3pp_tau.value(), iw_mesh, make_zero_tail<0>(M3pp_tau.value()));
       auto M3pp_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+      auto M3pp_del_iW   = make_gf_from_fourier(M3pp_delta.value(), iW_mesh, make_zero_tail(M3pp_delta.value()));
       M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
-      M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_);
+      M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
 
       if (M_iw) {
-        M3pp_tau_conn = M3_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
-        M2pp_tau = M2_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(), G0_shift_tau, p.n_tau_chi2);
+        M3pp_tau_conn  = M3_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
+        M2pp_tau       = M2_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(),
+                                          G0_shift_tau, p.n_tau_chi2);
         chi2pp_new_tau = chi2_from_M2<Chan_t::PP>(M2pp_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());
         iw_mesh        = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
         auto km        = make_zero_tail(chi2pp_new_tau.value());
@@ -231,14 +233,16 @@ namespace triqs_ctint {
       auto M3_iw_tau     = make_gf_from_fourier<0>(M3ph_tau.value(), iw_mesh, make_zero_tail<0>(M3ph_tau.value()));
       auto M3ph_ferm_iw  = make_gf_from_fourier<1>(M3_iw_tau, iw_mesh_large, make_zero_tail<1>(M3_iw_tau));
       auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+      auto M3ph_del_iW   = make_gf_from_fourier(M3ph_delta.value(), iW_mesh, make_zero_tail(M3ph_delta.value()));
       M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
-      // CAUTION! Second first time should be fourier transformed with e^{-iwt}
+      // CAUTION! The first time should be fourier transformed with e^{-iwt}
       // We correct this with an overall minus sign for the first frequency
-      M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_);
+      M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
 
       if (M_iw) {
-        M3ph_tau_conn = M3_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
-        M2ph_tau = M2_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(), G0_shift_tau, p.n_tau_chi2);
+        M3ph_tau_conn  = M3_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
+        M2ph_tau       = M2_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(),
+                                          G0_shift_tau, p.n_tau_chi2);
         chi2ph_new_tau = chi2_from_M2<Chan_t::PH>(M2ph_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());
         iw_mesh        = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
         auto km        = make_zero_tail(chi2ph_new_tau.value());
