@@ -1,4 +1,5 @@
 #include "./chiAB_tau.hpp"
+#include "./../types.hpp"
 
 using namespace triqs::utility;
 
@@ -10,25 +11,8 @@ namespace triqs_ctint::measures {
     if (params.chi_A_vec.size() == 0 or params.chi_B_vec.size() == 0)
       TRIQS_RUNTIME_ERROR << " Empty operator vector detected in chiAB measurement \n";
 
-    // Function that takes a bosonic operator Op = Sum_i a_i c^+(bi, ui) c(bi, vi)
-    // and returns a vector<tuple> with v[i] = (b_i, a_i, (c^+(bi, ui), c(bi, vi)))
-    auto get_terms = [&params_](many_body_operator &A) {
-      std::vector<op_term_t> terms;
-      for (auto const &term : A) {
-        auto const &m = term.monomial;
-        if (m.size() != 2 or !m[0].dagger or m[1].dagger)
-          TRIQS_RUNTIME_ERROR << " Monomial in bosonic operator of chiAB measurement not of the proper form c^+ c \n";
-        auto [bl1, i] = get_int_indices(m[0], params_.gf_struct);
-        auto [bl2, j] = get_int_indices(m[1], params_.gf_struct);
-        auto bl_pair  = std::make_pair(bl1, bl2);
-        auto op_pair  = std::make_pair(cdag_t{tau_t::get_zero_plus(), i}, c_t{tau_t::get_zero(), j});
-        terms.emplace_back(term.coef, bl_pair, op_pair);
-      }
-      return terms;
-    };
-
-    for (auto A : params.chi_A_vec) A_vec.emplace_back(get_terms(A));
-    for (auto B : params.chi_B_vec) B_vec.emplace_back(get_terms(B));
+    for (auto A : params.chi_A_vec) A_vec.emplace_back(get_terms(A, params.gf_struct));
+    for (auto B : params.chi_B_vec) B_vec.emplace_back(get_terms(B, params.gf_struct));
 
     // Init measurement container and capture view
     results->chiAB_tau = gf<imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
@@ -41,16 +25,20 @@ namespace triqs_ctint::measures {
     Z += sign;
 
     for (auto [j, B] : enumerate(B_vec))
-      for (auto &[coef_B, bl_pair_B, op_pair_B] : B) {
+      for (auto &[coef_B, bl_pair_B, idx_pair_B] : B) {
 
-        auto [cdag_B, c_B]       = op_pair_B;
-        auto [bl_cdag_B, bl_c_B] = bl_pair_B;
+        auto [idx_cdag_B, idx_c_B] = idx_pair_B;
+        auto cdag_B                = cdag_t{tau_t::get_zero_plus(), idx_cdag_B};
+        auto c_B                   = c_t{tau_t::get_zero(), idx_c_B};
+        auto [bl_cdag_B, bl_c_B]   = bl_pair_B;
 
         for (auto [i, A] : enumerate(A_vec))
-          for (auto &[coef_A, bl_pair_A, op_pair_A] : A) {
+          for (auto &[coef_A, bl_pair_A, idx_pair_A] : A) {
 
-            auto [cdag_A, c_A]       = op_pair_A;
-            auto [bl_cdag_A, bl_c_A] = bl_pair_A;
+            auto [idx_cdag_A, idx_c_A] = idx_pair_A;
+            auto cdag_A                = cdag_t{tau_t::get_zero_plus(), idx_cdag_A};
+            auto c_A                   = c_t{tau_t::get_zero(), idx_c_A};
+            auto [bl_cdag_A, bl_c_A]   = bl_pair_A;
 
             // Determine the block order in the quartet of operators
             bool is_AABB = (bl_cdag_A == bl_c_A && bl_cdag_B == bl_c_B);
@@ -77,14 +65,14 @@ namespace triqs_ctint::measures {
               cdag_A.tau = tau_point;
               c_A.tau    = taup_point;
 
-	      // TODO Extend for measurement of pairing response functions
+              // TODO Extend for measurement of pairing response functions
               if (is_AAAA)
                 chiAB_tau_[tau](i, j) += coef_A * coef_B * sign * det_1.try_insert2(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
               else if (is_AABB)
                 chiAB_tau_[tau](i, j) += coef_A * coef_B * sign * det_1.try_insert(0, 0, c_A, cdag_A) * det_2.try_insert(0, 0, c_B, cdag_B);
               else if (is_ABAB) // In this case we have to swap c_A and c_B, which leads to a minus sign
                 chiAB_tau_[tau](i, j) -= coef_A * coef_B * sign * det_1.try_insert(0, 0, c_B, cdag_A) * det_2.try_insert(0, 0, c_A, cdag_B);
-	      // Note: All other block combinations vanish
+              // Note: All other block combinations vanish
 
               det_1.reject_last_try();
               det_2.reject_last_try();

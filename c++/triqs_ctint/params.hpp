@@ -164,10 +164,4 @@ namespace triqs_ctint {
        : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
   };
 
-  /// Function that returns a pair of integer indices (block, non_block), given the index of a c/c^dag operator
-  std::pair<int, int> get_int_indices(canonical_ops_t const &op_idx_vec, gf_struct_t const &gf_struct);
-
-  /// Check if monomial is density-density interaction
-  inline bool is_densdens_interact(monomial_t m) { return m.size() == 4 and m[0].indices == m[3].indices and m[1].indices == m[2].indices; }
-
 } // namespace triqs_ctint

@@ -187,7 +187,7 @@ namespace triqs::gfs {
     return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
   }
 
-  template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(triqs::hilbert_space::gf_struct_t const &gf_struct) {
+  template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(hilbert_space::gf_struct_t const &gf_struct) {
 
     std::vector<matrix<Scalar_t>> res;
     for (auto const &bl : gf_struct) {
@@ -196,8 +196,51 @@ namespace triqs::gfs {
     }
     return res;
   }
-
 } // namespace triqs::gfs
+
+namespace triqs::operators {
+  /// Check if monomial is density-density interaction
+  inline bool is_densdens_interact(monomial_t m) { return m.size() == 4 and m[0].indices == m[3].indices and m[1].indices == m[2].indices; }
+
+  /// Function that returns a pair of integer indices (block, non_block), given the index of a c/c^dag operator
+  inline std::pair<int, int> get_int_indices(canonical_ops_t const &op, hilbert_space::gf_struct_t const &gf_struct) {
+
+    // The Fundamental operator-set allows for easy check of index validity
+    hilbert_space::fundamental_operator_set fs(gf_struct);
+    if (!fs.has_indices(op.indices)) TRIQS_RUNTIME_ERROR << " Index of c/c^+ operator not compatible with Green Function structure ";
+
+    // Get block-name with apply visitor, lambda(0) is called to determine return type ...
+    std::string op_bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
+
+    // Capture positions in block and nonblock list
+    for (auto [bl_int_idx, bl] : utility::enumerate(gf_struct)) {
+      auto const &[bl_name, idx_lst] = bl;
+      if (bl_name == op_bl_name) {
+        int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
+        return std::make_pair(bl_int_idx, nonbl_int_idx);
+      }
+    }
+    TRIQS_RUNTIME_ERROR << "Error: Failed to retrieve integer indices for operator";
+  }
+
+  // Function that takes a bosonic operator Op = Sum_i a_i c^+(bi, ui) c(bi, vi)
+  // and returns a vector<tuple> with v[i] = (b_i, a_i, (c^+(bi, ui), c(bi, vi)))
+  inline auto get_terms(many_body_operator const &A, hilbert_space::gf_struct_t const &gf_struct) {
+    std::vector<std::tuple<std::complex<double>, std::pair<int, int>, std::pair<int, int>>> terms;
+    for (auto const &term : A) {
+      auto const &m = term.monomial;
+      if (m.size() != 2 or !m[0].dagger or m[1].dagger)
+        TRIQS_RUNTIME_ERROR << " Monomial in bosonic operator of chiAB measurement not of the proper form c^+ c \n";
+      auto [bl1, i] = get_int_indices(m[0], gf_struct);
+      auto [bl2, j] = get_int_indices(m[1], gf_struct);
+      auto bl_pair  = std::make_pair(bl1, bl2);
+      auto idx_pair = std::make_pair(i, j);
+      terms.emplace_back(term.coef, bl_pair, idx_pair);
+    }
+    return terms;
+  }
+
+} // namespace triqs::operators
 
 // Useful macros
 
