@@ -2,26 +2,6 @@
 
 namespace triqs_ctint {
 
-  std::pair<int, int> get_int_indices(canonical_ops_t const &op, gf_struct_t const &gf_struct) {
-
-    // The Fundamental operator-set allows for easy check of index validity
-    triqs::hilbert_space::fundamental_operator_set fs(gf_struct);
-    if (!fs.has_indices(op.indices)) TRIQS_RUNTIME_ERROR << " Index of c/c^+ operator not compatible with Green Function structure ";
-
-    // Get block-name with apply visitor, lambda(0) is called to determine return type ...
-    std::string op_bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
-
-    // Capture positions in block and nonblock list
-    for (auto[bl_int_idx, bl] : triqs::utility::enumerate(gf_struct)) {
-      auto const & [ bl_name, idx_lst ] = bl;
-      if (bl_name == op_bl_name) {
-        int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
-        return std::make_pair(bl_int_idx, nonbl_int_idx);
-      }
-    }
-    TRIQS_RUNTIME_ERROR << "Error: Failed to retrieve integer indices for operator";
-  }
-
   void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp) {
     auto grp = h5group.create_group(subgroup_name);
     h5_write(grp, "n_tau", cp.n_tau);
