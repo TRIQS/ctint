@@ -141,6 +141,45 @@ namespace triqs_ctint {
     return chi2_tau;
   }
 
+  // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
+  template <Chan_t Chan>
+  gf<imtime, matrix_valued> chiAB_from_chi2(chi2_tau_t::const_view_type chi2_tau, gf_struct_t const &gf_struct,
+                                            std::vector<many_body_operator> const &A_op_vec, std::vector<many_body_operator> const &B_op_vec) {
+
+    using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
+    std::vector<std::vector<op_term_t>> A_vec;
+    std::vector<std::vector<op_term_t>> B_vec;
+
+    for (auto A : A_op_vec) A_vec.emplace_back(get_terms(A, gf_struct));
+    for (auto B : B_op_vec) B_vec.emplace_back(get_terms(B, gf_struct));
+
+    auto chiAB_tau = gf<imtime, matrix_valued>{chi2_tau(0, 0).mesh(), make_shape(A_vec.size(), B_vec.size())};
+
+    for (auto [j, B] : enumerate(B_vec))
+      for (auto &[coef_B, bl_pair_B, idx_pair_B] : B) {
+
+        auto [idx_cdag_B, idx_c_B] = idx_pair_B;
+        auto [bl_cdag_B, bl_c_B]   = bl_pair_B;
+
+        for (auto [i, A] : enumerate(A_vec))
+          for (auto &[coef_A, bl_pair_A, idx_pair_A] : A) {
+
+            auto [idx_cdag_A, idx_c_A] = idx_pair_A;
+            auto [bl_cdag_A, bl_c_A]   = bl_pair_A;
+
+            if ((bl_cdag_A != bl_c_A) || (bl_cdag_B != bl_c_B)) {
+              TRIQS_RUNTIME_ERROR << "Monomials with unequal blocks not implemented for chiAB_from_chi2";
+            }
+
+            auto chiAB_tau_ij       = slice_target_to_scalar(chiAB_tau, i, j);
+            auto chi2_tau_AABB_ijkl = slice_target_to_scalar(chi2_tau(bl_c_A, bl_c_B), idx_cdag_A, idx_c_A, idx_cdag_B, idx_c_B);
+            chiAB_tau_ij() += coef_A * coef_B * chi2_tau_AABB_ijkl;
+          }
+      }
+
+    return chiAB_tau;
+  }
+
   /// Calculate M3_conn from M3
   template <Chan_t Chan>
   chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, std::vector<matrix<M_tau_scalar_t>> M_hartree) {
@@ -287,6 +326,16 @@ namespace triqs_ctint {
   inline chi2_tau_t chi2_from_M2_PH(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw,
                                     std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
     return chi2_from_M2<Chan_t::PH>(M2_tau, M_iw, G0_iw, M_hartree);
+  }
+  inline gf<imtime, matrix_valued> chiAB_from_chi2_PP(chi2_tau_t::const_view_type chi2pp_tau, gf_struct_t const &gf_struct,
+                                                      std::vector<many_body_operator> const &A_op_vec,
+                                                      std::vector<many_body_operator> const &B_op_vec) {
+    return chiAB_from_chi2<Chan_t::PP>(chi2pp_tau, gf_struct, A_op_vec, B_op_vec);
+  }
+  inline gf<imtime, matrix_valued> chiAB_from_chi2_PH(chi2_tau_t::const_view_type chi2ph_tau, gf_struct_t const &gf_struct,
+                                                      std::vector<many_body_operator> const &A_op_vec,
+                                                      std::vector<many_body_operator> const &B_op_vec) {
+    return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
   inline chi3_tau_t M3_conn_from_M3_PP(chi3_tau_t M3pp_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                        std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
