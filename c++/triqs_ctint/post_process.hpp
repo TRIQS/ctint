@@ -117,9 +117,9 @@ namespace triqs_ctint {
 
         if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
-	  //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)[t_](i_, j_, k_, l_)
-	  //- GMG_tau[bl1](beta - t_)(j_, i_) * GMG_tau[bl2](beta - t_)(l_, k_)
-	  //+ kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](beta - t_)(j_, k_);
+          //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)[t_](i_, j_, k_, l_)
+          //- GMG_tau[bl1](beta - t_)(j_, i_) * GMG_tau[bl2](beta - t_)(l_, k_)
+          //+ kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](beta - t_)(j_, k_);
 
           // Add Disconnected part
           chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_)
@@ -128,8 +128,8 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-	  //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)[t_](i_, j_, k_, l_) - dens_GMG[bl1](j_, i_) * dens_GMG[bl2](l_, k_)
-	  //- kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](t_)(j_, k_);
+          //chi2_tau_conn(bl1, bl2)(t_)(i_, j_, k_, l_) << M2_tau(bl1, bl2)[t_](i_, j_, k_, l_) - dens_GMG[bl1](j_, i_) * dens_GMG[bl2](l_, k_)
+          //- kronecker(bl1, bl2) * GMG_tau[bl1](beta - t_)(l_, i_) * GMG_tau[bl2](t_)(j_, k_);
 
           // Add Disconnected part, FIXME used measured density?
           chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_)
@@ -189,23 +189,21 @@ namespace triqs_ctint {
 
     auto const &tau_mesh_M3 = M3_tau(0, 0).mesh();
     double dtau_M3          = std::get<0>(tau_mesh_M3).delta();
-    int n_tau_M3            = std::get<0>(tau_mesh_M3).size();
 
     // Temporary quantities
     g_iw_t GM_iw  = G0_iw * M_iw;
     g_iw_t MG_iw  = M_iw * G0_iw;
     g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
 
-    auto tau_mesh = make_adjoint_mesh(M_iw[0].mesh());
-
     auto km_GM = make_zero_tail(GM_iw, 2);
     for (auto [km_bl, M_hartree_bl] : zip(km_GM, M_hartree)) km_bl(1, ellipsis()) = M_hartree_bl;
     //for (auto &GM_bl : GM_iw) GM_bl.mesh().set_tail_fit_parameters(0.2, 30, 7);
     //for (auto &MG_bl : MG_iw) MG_bl.mesh().set_tail_fit_parameters(0.2, 30, 7);
-    auto tail_GM = fit_hermitian_tail(GM_iw, km_GM).first;
-    auto tail_MG = fit_hermitian_tail(MG_iw, km_GM).first; // known moments identical to GM
-    auto GM      = make_gf_from_fourier(GM_iw, tau_mesh, tail_GM);
-    auto MG      = make_gf_from_fourier(MG_iw, tau_mesh, tail_MG);
+    auto tail_GM  = fit_hermitian_tail(GM_iw, km_GM).first;
+    auto tail_MG  = fit_hermitian_tail(MG_iw, km_GM).first; // known moments identical to GM
+    auto tau_mesh = make_adjoint_mesh(M_iw[0].mesh());
+    auto GM       = make_gf_from_fourier(GM_iw, tau_mesh, tail_GM);
+    auto MG       = make_gf_from_fourier(MG_iw, tau_mesh, tail_MG);
 
     auto km_GMG = make_zero_tail(GMG_iw, 3);
     for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
@@ -226,7 +224,15 @@ namespace triqs_ctint {
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
           for (auto [t1, t2] : tau_mesh_M3) {
-            auto [s, d_t2_t1] = cyclic_difference(t2, t1);
+
+            double s, d_t2_t1;
+            if (t2 >= t1) {
+              s       = 1.0;
+              d_t2_t1 = t2 - t1;
+            } else {
+              s       = -1.0;
+              d_t2_t1 = t2 - t1 + beta;
+            }
 
             M3_tau_conn(bl1, bl2)[t1, t2](i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1, t2](i_, j_, k_, l_)
                   - (s * M_tau[bl1](d_t2_t1)(j_, i_) + kronecker(t1.index(), t2.index()) / dtau_M3 * M_hartree[bl1](j_, i_)) * dens_GMG[bl2](l_, k_)
@@ -255,7 +261,6 @@ namespace triqs_ctint {
     M2_tau()         = 0.0;
 
     chi3_tau_t M3_tau_conn = M3_conn_from_M3<Chan>(M3_tau, M_iw, G0_iw, M_tau, M_hartree);
-    //chi3_tau_t M3_tau_conn = M3_tau;
 
     // Temporary quantities
     g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
@@ -266,15 +271,15 @@ namespace triqs_ctint {
     auto tail_GMG = fit_hermitian_tail(GMG_iw, km).first;
     auto dens_GMG = density(GMG_iw, tail_GMG);
 
-    ////Account for M3 edge bins beeing smaller // FIXME Why not necessary?
-    //auto _ = all_t{};
-    //int n  = n_tau_M3 - 1;
-    //for (auto &M : M3_tau_conn) {
-    //M[0, _] *= 0.5;
-    //M[_, 0] *= 0.5;
-    //M[n, _] *= 0.5;
-    //M[_, n] *= 0.5;
-    //}
+    //Account for M3 edge bins beeing smaller
+    auto _ = all_t{};
+    int n  = n_tau_M3 - 1;
+    for (auto &M : M3_tau_conn) {
+      M[0, _] *= 0.5;
+      M[_, 0] *= 0.5;
+      M[n, _] *= 0.5;
+      M[_, n] *= 0.5;
+    }
 
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
@@ -284,6 +289,7 @@ namespace triqs_ctint {
         int bl2_size = M3_tau_conn(bl1, bl2).target_shape()[2];
 
         for (auto &t : tau_mesh_M2) {
+
           auto M2 = M2_tau(bl1, bl2)[t];
 
           for (auto [t1, t2] : tau_mesh_M3) {
@@ -300,6 +306,16 @@ namespace triqs_ctint {
                   M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3(m, j_, n, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s2 * G0_tau[bl2](d_t2_t)(n, k_);
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
+
+              if (t1.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
+                s1     = -1.0;
+                d_t1_t = beta - 1e-14;
+              }
+              if (t2.index() == 0 && t.index() == 0) {
+                s3     = -1.0;
+                d_t_t2 = beta - 1e-14;
+              }
+
               for (int m : range(bl1_size))
                 for (int n : range(bl1_size))
                   M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3(m, n, k_, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t2)(j_, n);
