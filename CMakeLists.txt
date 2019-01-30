@@ -25,6 +25,7 @@ add_compile_options(-Wall
 find_package(TRIQS 2.0 REQUIRED)
 find_package(Cpp2Py 1.5 REQUIRED)
 find_package(NFFT REQUIRED)
+install(TARGETS nfft EXPORT ctint-targets)
 
 # Default Install directory to TRIQS_ROOT if not given or invalid.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
