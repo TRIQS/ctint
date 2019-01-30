@@ -22,7 +22,7 @@ add_compile_options(-Wall
 		     $<$<CONFIG:Debug>:-ggdb3>
 		     )
 # Load Dependencies
-find_package(TRIQS 2.0 REQUIRED)
+find_package(TRIQS 2.2 REQUIRED)
 find_package(Cpp2Py 1.5 REQUIRED)
 find_package(NFFT REQUIRED)
 install(TARGETS nfft EXPORT ctint-targets)
