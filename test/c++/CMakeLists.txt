@@ -6,7 +6,7 @@ set(all_tests util gf_real_imag nfft_buf)
 
 foreach(t ${all_tests})
   add_executable(${t} ${CMAKE_CURRENT_SOURCE_DIR}/${t}.cpp)
-  target_link_libraries(${t} ctint_c gtest nfft)
+  target_link_libraries(${t} ctint_c nfft triqs::gtest)
   add_test(${t} ${CMAKE_CURRENT_BINARY_DIR}/${t})
   # Run clang-tidy if found
   if(CLANG_TIDY_EXECUTABLE)
