@@ -83,7 +83,6 @@ c.add_member(c_name = "M3ph_iw_nfft",
              read_only= True,
              doc = """Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT""")
 
-
 c.add_member(c_name = "M3pp_tau",
              c_type = "std::optional<chi3_tau_t>",
              read_only= True,
@@ -233,7 +232,7 @@ c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = """Construct a C
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | Parameter Name               | Type                              | Default | Documentation                                                  |
 +==============================+===================================+=========+================================================================+
-| n_tau                        | int                               | 10000   | Number of tau points for gf<imtime, matrix_valued>             |
+| n_tau                        | int                               | 5001    | Number of tau points for gf<imtime, matrix_valued>             |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | n_iw                         | int                               | 500     | Number of Matsubara frequencies for gf<imfreq, matrix_valued>  |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
@@ -245,9 +244,9 @@ c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = """Construct a C
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 | use_Jperp                    | bool                              | false   | Switch for dynamic spin-spin interaction                       |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
-| n_tau_dynamical_interactions | int                               | 10001   | Number of tau pts for D0_tau and jperp_tau                     |
+| n_tau_dynamical_interactions | int                               | n_tau   | Number of tau pts for D0_tau and jperp_tau                     |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
-| n_iw_dynamical_interactions  | int                               | 200     | Number of matsubara freqs for D0_iw and jperp_iw               |
+| n_iw_dynamical_interactions  | int                               | n_iw    | Number of matsubara freqs for D0_iw and jperp_iw               |
 +------------------------------+-----------------------------------+---------+----------------------------------------------------------------+
 """)
 
@@ -527,7 +526,7 @@ c = converter_(
 )
 c.add_member(c_name = "n_tau",
              c_type = "int",
-             initializer = """ 10000 """,
+             initializer = """ 5001 """,
              doc = """Number of tau points for gf<imtime, matrix_valued>""")
 
 c.add_member(c_name = "n_iw",
@@ -557,12 +556,12 @@ c.add_member(c_name = "use_Jperp",
 
 c.add_member(c_name = "n_tau_dynamical_interactions",
              c_type = "int",
-             initializer = """ 10001 """,
+             initializer = """ res.n_tau """,
              doc = """Number of tau pts for D0_tau and jperp_tau""")
 
 c.add_member(c_name = "n_iw_dynamical_interactions",
              c_type = "int",
-             initializer = """ 200 """,
+             initializer = """ res.n_iw """,
              doc = """Number of matsubara freqs for D0_iw and jperp_iw""")
 
 module.add_converter(c)

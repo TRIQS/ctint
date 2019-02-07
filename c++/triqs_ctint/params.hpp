@@ -26,10 +26,10 @@ namespace triqs_ctint {
     bool use_Jperp = false;
 
     /// Number of tau pts for D0_tau and jperp_tau
-    int n_tau_dynamical_interactions = n_tau;
+    int n_tau_dynamical_interactions = this->n_tau;
 
     /// Number of matsubara freqs for D0_iw and jperp_iw
-    int n_iw_dynamical_interactions = n_iw;
+    int n_iw_dynamical_interactions = this->n_iw;
 
     /// Number of block indeces for the Green function
     int n_blocks() const { return gf_struct.size(); }
