@@ -281,6 +281,12 @@ namespace triqs_ctint {
       M[_, n] *= 0.5;
     }
 
+    auto comm = triqs::mpi::communicator();
+    const int mpi_rank = comm.rank();
+    const int mpi_size = comm.size();
+
+    M2_tau() = 0.;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -289,6 +295,9 @@ namespace triqs_ctint {
         int bl2_size = M3_tau_conn(bl1, bl2).target_shape()[2];
 
         for (auto &t : tau_mesh_M2) {
+
+	  // FIXME Poor man's mpi parallization
+	  if(t.linear_index() % mpi_size != mpi_rank) continue;
 
           auto M2 = M2_tau(bl1, bl2)[t];
 
@@ -324,6 +333,7 @@ namespace triqs_ctint {
         }
       }
 
+    mpi_all_reduce(M2_tau, comm);
     M2_tau() = M2_tau * dtau_M3 * dtau_M3;
     return M2_tau;
   }
