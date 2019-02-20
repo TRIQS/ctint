@@ -23,7 +23,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Accumulation counter
-    int N = 0;
+    long long N = 0;
   };
 
 } // namespace triqs_ctint::measures
