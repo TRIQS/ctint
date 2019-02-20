@@ -1,5 +1,6 @@
 #include <triqs_ctint/solver_core.hpp>
 
+#include <triqs/h5.hpp>
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
@@ -72,7 +73,7 @@ TEST(CtInt, Anderson) { // NOLINT
 
   ps.nfft_buf_size = 50;
 
-  solver_core ctqmc(pc);
+  solver_core S(pc);
 
   // set up hybridization delta(i\omega_n)
   auto delta_w = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
@@ -84,11 +85,14 @@ TEST(CtInt, Anderson) { // NOLINT
   }
 
   // set up non-interacting Green function g0(i\omega_n)
-  ctqmc.G0_iw()[0](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
-  ctqmc.G0_iw()[1](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
+  S.G0_iw()[0](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
+  S.G0_iw()[1](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
 
   // Solve!
-  ctqmc.solve(ps);
+  S.solve(ps);
+
+  auto archive = triqs::h5::file("anderson.out.h5", 'w');
+  h5_write(archive, "S", S);
 }
 
 MAKE_MAIN;

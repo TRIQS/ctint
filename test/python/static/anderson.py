@@ -7,7 +7,7 @@ from pytriqs.archive import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
 
-test_name = "anderson_py"
+test_name = "anderson"
 
 ######## physical parameters ########
 U = 1.0
@@ -68,25 +68,5 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chi2ph_iw"] = S.chi2ph_iw
     arch["chiAB_iw"] = S.chiAB_iw
 
-# -------- Save Solver and Retrieve and solve
-with HDFArchive("solver.h5",'w') as arch:
-    arch["S"] = S
-
-with HDFArchive("solver.h5",'r') as arch:
-    S = arch["S"]
-    S.solve(**S.last_solve_params)
-
-# -------- Save 2nd run in archive ---------
-with HDFArchive("%s.out_2nd.h5"%test_name,'w') as arch:
-    arch["G0_iw"] = S.G0_iw
-    arch["G_iw"] = S.G_iw
-    arch["G2_iw"] = S.G2_iw
-    arch["chi3pp_iw"] = S.chi3pp_iw
-    arch["chi3ph_iw"] = S.chi3ph_iw
-    arch["chi2pp_iw"] = S.chi2pp_iw
-    arch["chi2ph_iw"] = S.chi2ph_iw
-    arch["chiAB_iw"] = S.chiAB_iw
-
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
-h5diff("%s.out.h5"%test_name, "%s.out_2nd.h5"%test_name)

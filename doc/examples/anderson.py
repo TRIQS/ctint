@@ -41,5 +41,5 @@ S.solve(U = Umat,
         measure_hist = True)
 
 # Save in archive
-A = HDFArchive("anderson_py.output.h5",'w')
+A = HDFArchive("anderson.out.h5",'w')
 A["G"] = S.G_iw
