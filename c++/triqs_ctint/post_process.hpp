@@ -185,7 +185,7 @@ namespace triqs_ctint {
 
   /// Calculate the chi2_tau from M3_tau and M_iw
   template <Chan_t Chan>
-  chi2_tau_t M2_from_M3(chi3_tau_v_t M3_tau, chi2_tau_v_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+  chi2_tau_t M2_from_M3(chi3_tau_cv_t M3_tau, chi2_tau_cv_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                         std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
 
     double beta  = G0_tau[0].domain().beta;
@@ -202,23 +202,6 @@ namespace triqs_ctint {
     auto tau_mesh_M2 = gf_mesh<imtime>{beta, Boson, n_tau_M2};
     auto M2_tau      = make_block2_gf(tau_mesh_M2, make_const_view(M3_tau));
     M2_tau()         = 0.0;
-
-    //Account for M3 edge bins beeing smaller
-    auto _    = all_t{};
-    int n     = n_tau_M3 - 1;
-    int n_del = n_tau_M3_del - 1;
-    for (auto [M, M_del] : zip(M3_tau, M3_delta)) {
-      M[0, _] *= 0.5;
-      M[_, 0] *= 0.5;
-      M[n, _] *= 0.5;
-      M[_, n] *= 0.5;
-      M_del[0] *= 0.5;
-      M_del[n_del] *= 0.5;
-    }
-
-    // Scale the M3 containers by the proper integration weights
-    M3_tau()   = M3_tau * dtau_M3 * dtau_M3;
-    M3_delta() = M3_delta * dtau_M3_del;
 
     // Set up MPI Parellelization
     // The following operation is memory bound,
@@ -253,11 +236,19 @@ namespace triqs_ctint {
             auto [s2, d_t2_t] = cyclic_difference(t2, t);
             auto [s3, d_t_t2] = cyclic_difference(t, t2);
 
+            // The weight for the integration
+            double weight = dtau_M3 * dtau_M3;
+
+            //Account for M3 edge bins beeing smaller
+            if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3 - 1) weight *= 0.5;
+            if (t2.linear_index() == 0 or t2.linear_index() == n_tau_M3 - 1) weight *= 0.5;
+
             if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
               for (int m : range(bl1_size))
                 for (int n : range(bl2_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3(m, j_, n, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s2 * G0_tau[bl2](d_t2_t)(n, k_);
+                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
+                        + M3(m, j_, n, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s2 * G0_tau[bl2](d_t2_t)(n, k_);
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -271,8 +262,10 @@ namespace triqs_ctint {
               }
 
               for (int m : range(bl1_size))
-                for (int n : range(bl1_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3(m, n, k_, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t2)(j_, n);
+                for (int n : range(bl1_size)) {
+                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
+                        + M3(m, n, k_, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t2)(j_, n);
+                }
             }
           }
 
@@ -284,11 +277,17 @@ namespace triqs_ctint {
             auto [s1, d_t1_t] = cyclic_difference(t1, t);
             auto [s3, d_t_t1] = cyclic_difference(t, t1);
 
+            // Incorporate weights for the integration
+            double weight = dtau_M3_del;
+
+            //Account for M3 edge bins beeing smaller
+            if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3_del) weight *= 0.5;
+
             if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
               for (int m : range(bl1_size))
                 for (int n : range(bl2_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3_del(m, j_, n, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s1 * G0_tau[bl2](d_t1_t)(n, k_);
+                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3_del(m, j_, n, l_) * weight * G0_tau[bl1](d_t1_t)(m, i_) * G0_tau[bl2](d_t1_t)(n, k_);
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -302,8 +301,10 @@ namespace triqs_ctint {
               }
 
               for (int m : range(bl1_size))
-                for (int n : range(bl1_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3_del(m, n, k_, l_) * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t1)(j_, n);
+                for (int n : range(bl1_size)) {
+                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
+                        + M3_del(m, n, k_, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t1)(j_, n);
+                }
             }
           }
         }
