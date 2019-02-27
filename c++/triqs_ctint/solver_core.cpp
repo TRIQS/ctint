@@ -218,7 +218,6 @@ namespace triqs_ctint {
       M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
 
       if (M_iw) {
-        M3pp_tau_conn  = M3_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
         M2pp_tau       = M2_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(),
                                           G0_shift_tau, p.n_tau_chi2);
         chi2pp_new_tau = chi2_from_M2<Chan_t::PP>(M2pp_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());
@@ -240,7 +239,6 @@ namespace triqs_ctint {
       M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
 
       if (M_iw) {
-        M3ph_tau_conn  = M3_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value());
         M2ph_tau       = M2_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(), M_hartree.value(),
                                           G0_shift_tau, p.n_tau_chi2);
         chi2ph_new_tau = chi2_from_M2<Chan_t::PH>(M2ph_tau.value(), M_iw.value(), G0_shift_iw, M_hartree.value());

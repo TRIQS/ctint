@@ -207,16 +207,6 @@ c.add_member(c_name = "chiAB_iw",
              read_only= True,
              doc = """The correlation function :math:`\\chi_AB` in imaginary frequencies""")
 
-c.add_member(c_name = "M3pp_tau_conn",
-             c_type = "std::optional<chi3_tau_t>",
-             read_only= True,
-             doc = """The connected part of M3pp_tau""")
-
-c.add_member(c_name = "M3ph_tau_conn",
-             c_type = "std::optional<chi3_tau_t>",
-             read_only= True,
-             doc = """The connected part of M3ph_tau""")
-
 c.add_member(c_name = "chi3pp_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
