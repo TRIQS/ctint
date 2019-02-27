@@ -220,6 +220,15 @@ namespace triqs_ctint {
     M3_tau()   = M3_tau * dtau_M3 * dtau_M3;
     M3_delta() = M3_delta * dtau_M3_del;
 
+    // Set up MPI Parellelization
+    // The following operation is memory bound,
+    // so we perform the computation only on every n-th thread
+    const int n_skip    = 2;
+    auto comm           = triqs::mpi::communicator();
+    const int mpi_rank  = comm.rank();
+    const int thread_id = mpi_rank / n_skip;
+    const int n_threads = 1 + (comm.size() - 1) / n_skip;
+
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
 
@@ -228,6 +237,11 @@ namespace triqs_ctint {
         int bl2_size = M3_tau(bl1, bl2).target_shape()[2];
 
         for (auto &t : tau_mesh_M2) {
+
+          // The actual MPI Parellelization
+          if (mpi_rank % n_skip != 0) continue;
+          int job_id = t.linear_index() * n_blocks * n_blocks + bl1 * n_blocks + bl2;
+          if (job_id % n_threads != thread_id) continue;
 
           auto M2 = M2_tau(bl1, bl2)[t];
 
@@ -295,6 +309,7 @@ namespace triqs_ctint {
         }
       }
 
+    M2_tau() = mpi_all_reduce(M2_tau, comm);
     return M2_tau;
   }
 
