@@ -102,11 +102,29 @@ namespace triqs_ctint {
   /// Container type of $\chi_3$ in imaginary time
   using chi2_tau_t = block2_gf<imtime, tensor_valued<4>>;
 
+  /// A view to a chi2_tau_t
+  using chi2_tau_v_t = chi2_tau_t::view_type;
+
+  /// A const_view to a chi2_tau_t
+  using chi2_tau_cv_t = chi2_tau_t::const_view_type;
+
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi3_iw_t = block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>;
 
+  /// A view to a chi3_iw_t
+  using chi3_iw_v_t = chi3_iw_t::view_type;
+
+  /// A const_view to a chi3_iw_t
+  using chi3_iw_cv_t = chi3_iw_t::const_view_type;
+
   /// Container type of $\chi_3$ in imaginary time
   using chi3_tau_t = block2_gf<cartesian_product<imtime, imtime>, tensor_valued<4>>;
+
+  /// A view to a chi3_tau_t
+  using chi3_tau_v_t = chi3_tau_t::view_type;
+
+  /// A const_view to a chi3_tau_t
+  using chi3_tau_cv_t = chi3_tau_t::const_view_type;
 
   /// Container type of two-particle Green and Vertex functions in Matsubara frequencies
   using chi4_iw_t = block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>;

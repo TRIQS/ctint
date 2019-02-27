@@ -17,7 +17,7 @@ namespace triqs_ctint {
   chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct);
 
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
-  template <Chan_t Chan> chi3_iw_t chi3_from_M3(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
+  template <Chan_t Chan> chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
 
     double beta  = M_iw[0].domain().beta;
     int n_blocks = M_iw.size();
@@ -81,7 +81,7 @@ namespace triqs_ctint {
 
   // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
   template <Chan_t Chan>
-  chi2_tau_t chi2_from_M2(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+  chi2_tau_t chi2_from_M2(chi2_tau_cv_t M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
 
     double beta  = M_iw[0].domain().beta;
     int n_blocks = M_iw.size();
@@ -146,8 +146,8 @@ namespace triqs_ctint {
 
   // Calculate the $\chi_2$ function from the building blocks M2_tau and M_iw
   template <Chan_t Chan>
-  gf<imtime, matrix_valued> chiAB_from_chi2(chi2_tau_t::const_view_type chi2_tau, gf_struct_t const &gf_struct,
-                                            std::vector<many_body_operator> const &A_op_vec, std::vector<many_body_operator> const &B_op_vec) {
+  gf<imtime, matrix_valued> chiAB_from_chi2(chi2_tau_cv_t chi2_tau, gf_struct_t const &gf_struct, std::vector<many_body_operator> const &A_op_vec,
+                                            std::vector<many_body_operator> const &B_op_vec) {
 
     using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
     std::vector<std::vector<op_term_t>> A_vec;
@@ -185,7 +185,7 @@ namespace triqs_ctint {
 
   /// Calculate the chi2_tau from M3_tau and M_iw
   template <Chan_t Chan>
-  chi2_tau_t M2_from_M3(chi3_tau_t M3_tau, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+  chi2_tau_t M2_from_M3(chi3_tau_v_t M3_tau, chi2_tau_v_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                         std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
 
     double beta  = G0_tau[0].domain().beta;
@@ -314,26 +314,20 @@ namespace triqs_ctint {
   }
 
   // For wrapping purposes
-  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
-    return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw);
-  }
-  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_t::const_view_type M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) {
-    return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw);
-  }
-  inline chi2_tau_t chi2_from_M2_PP(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw,
-                                    std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) { return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw); }
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw) { return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw); }
+  inline chi2_tau_t chi2_from_M2_PP(chi2_tau_cv_t M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
     return chi2_from_M2<Chan_t::PP>(M2_tau, M_iw, G0_iw, M_hartree);
   }
-  inline chi2_tau_t chi2_from_M2_PH(chi2_tau_t::const_view_type M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw,
-                                    std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
+  inline chi2_tau_t chi2_from_M2_PH(chi2_tau_cv_t M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, std::vector<matrix<M_tau_scalar_t>> const &M_hartree) {
     return chi2_from_M2<Chan_t::PH>(M2_tau, M_iw, G0_iw, M_hartree);
   }
-  inline gf<imtime, matrix_valued> chiAB_from_chi2_PP(chi2_tau_t::const_view_type chi2pp_tau, gf_struct_t const &gf_struct,
+  inline gf<imtime, matrix_valued> chiAB_from_chi2_PP(chi2_tau_cv_t chi2pp_tau, gf_struct_t const &gf_struct,
                                                       std::vector<many_body_operator> const &A_op_vec,
                                                       std::vector<many_body_operator> const &B_op_vec) {
     return chiAB_from_chi2<Chan_t::PP>(chi2pp_tau, gf_struct, A_op_vec, B_op_vec);
   }
-  inline gf<imtime, matrix_valued> chiAB_from_chi2_PH(chi2_tau_t::const_view_type chi2ph_tau, gf_struct_t const &gf_struct,
+  inline gf<imtime, matrix_valued> chiAB_from_chi2_PH(chi2_tau_cv_t chi2ph_tau, gf_struct_t const &gf_struct,
                                                       std::vector<many_body_operator> const &A_op_vec,
                                                       std::vector<many_body_operator> const &B_op_vec) {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
