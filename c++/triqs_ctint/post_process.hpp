@@ -437,53 +437,54 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-          auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl1_size, bl1_size, n_tau_M3_del);
-          for (auto [m, i, j, n] : product_range(bl1_size, bl1_size, bl1_size, bl1_size)) {
-            arr_GG(m, i, j, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl1](j, n, range::all);
+          auto arr_GG = array<dcomplex, 4>(bl1_size, bl1_size, bl1_size, n_tau_M3_del);
+          for (auto [m, i, n] : product_range(bl1_size, bl1_size, bl1_size)) {
+            arr_GG(m, i, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl1](i, n, range::all);
           }
 
           auto M3_perm = nda::array<dcomplex, 6>{permuted_indices_view<encode(std::array{4, 5, 0, 1, 2, 3})>(M3_conn(bl1, bl2).data())};
           auto M3_del  = nda::array<dcomplex, 5>{permuted_indices_view<encode(std::array{4, 0, 1, 2, 3})>(M3_delta(bl1, bl2).data())};
 
-          for (auto [m, n, k, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
+          for (auto [m, n, k] : product_range(bl1_size, bl1_size, bl2_size)) {
 
-            auto M3_mnkl = matrix_view<dcomplex>{M3_perm(m, n, k, l, _, _)};
-            for (auto [i, j] : product_range(bl1_size, bl1_size)) {
+            auto M3_mnkk = matrix_view<dcomplex>{M3_perm(m, n, k, k, _, _)};
+            for (int i : range(bl1_size)) {
               auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
-              auto G2_jn = vector_view<dcomplex>(G0_d_t_ti[bl1](j, n, range::all));
-              chi2c(i, j, k, l) += nda::blas::dot(G1_mi, M3_mnkl * G2_jn);
+              auto G2_in = vector_view<dcomplex>(G0_d_t_ti[bl1](i, n, range::all));
+              chi2c(i, i, k, k) += nda::blas::dot(G1_mi, M3_mnkk * G2_in);
             }
 
             // We treat the delta-contribution seperately
-            auto M3_del_mnkl = vector_view<dcomplex>{M3_del(m, n, k, l, _)};
-            for (auto [i, j] : product_range(bl1_size, bl1_size)) {
-              chi2c(i, j, k, l) += nda::blas::dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range::all)));
+            auto M3_del_mnkk = vector_view<dcomplex>{M3_del(m, n, k, k, _)};
+            for (int i : range(bl1_size)) {
+              chi2c(i, i, k, k) += nda::blas::dot(M3_del_mnkk, vector_view<dcomplex>(arr_GG(m, i, n, range::all)));
             }
           }
 
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
-          auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
-          for (auto [m, i, l, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
-            arr_GG(m, i, l, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl2](l, n, range::all);
+          auto arr_GG = array<dcomplex, 4>(bl1_size, bl1_size, bl2_size, n_tau_M3_del);
+          for (auto [m, i, n] : product_range(bl1_size, bl1_size, bl2_size)) {
+            arr_GG(m, i, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl2](i, n, range::all);
           }
 
           auto M3_perm = nda::array<dcomplex, 6>{permuted_indices_view<encode(std::array{4, 5, 0, 1, 2, 3})>(M3_conn(bl1, bl2).data())};
           auto M3_del  = nda::array<dcomplex, 5>{permuted_indices_view<encode(std::array{4, 0, 1, 2, 3})>(M3_delta(bl1, bl2).data())};
 
-          for (auto [m, j, k, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
+          for (auto [m, j, n] : product_range(bl1_size, bl1_size, bl2_size)) {
 
-            auto M3_mjkn = matrix_view<dcomplex>{M3_perm(m, j, k, n, _, _)};
-            for (auto [i, l] : product_range(bl1_size, bl2_size)) {
+            // We have to make a copy so that M3 is contiguous in memory
+            auto M3_mjjn = matrix_view<dcomplex>{M3_perm(m, j, j, n, _, _)};
+            for (int i : range(bl1_size)) {
               auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
-              auto G2_ln = vector_view<dcomplex>(G0_d_t_ti[bl2](l, n, range::all));
-              chi2c(i, j, k, l) += nda::blas::dot(G1_mi, M3_mjkn * G2_ln);
+              auto G2_in = vector_view<dcomplex>(G0_d_t_ti[bl2](i, n, range::all));
+              chi2c(i, j, j, i) += nda::blas::dot(G1_mi, M3_mjjn * G2_in);
             }
 
             // We treat the delta-contribution seperately
-            auto M3_del_mjkn = vector_view<dcomplex>{M3_del(m, j, k, n, _)};
-            for (auto [i, l] : product_range(bl1_size, bl2_size)) {
-              chi2c(i, j, k, l) += nda::blas::dot(M3_del_mjkn, vector_view<dcomplex>(arr_GG(m, i, l, n, range::all)));
+            auto M3_del_mjjn = vector_view<dcomplex>{M3_del(m, j, j, n, _)};
+            for (int i : range(bl1_size)) {
+              chi2c(i, j, j, i) += nda::blas::dot(M3_del_mjjn, vector_view<dcomplex>(arr_GG(m, i, n, range::all)));
             }
           }
         }
