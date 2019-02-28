@@ -148,14 +148,14 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-          chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_) + dens_G[bl1](j_, i_) * dens_G[bl2](l_, k_)
+          chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_) // + dens_G[bl1](j_, i_) * dens_G[bl2](l_, k_)
                 + kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](t_)(j_, k_); // Sign-change from G_tau shift
 
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_)
-                - G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](t_)(l_, k_) // Sign-change from G_tau shift
-                - kronecker(bl1, bl2) * dens_G[bl1](l_, i_) * dens_G[bl2](j_, k_);
+                - G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](t_)(l_, k_);  // Sign-change from G_tau shift
+                // - kronecker(bl1, bl2) * dens_G[bl1](l_, i_) * dens_G[bl2](j_, k_);
         }
       }
 
