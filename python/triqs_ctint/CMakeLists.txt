@@ -5,10 +5,6 @@ add_cpp2py_module(post_process)
 target_link_libraries(solver_core ctint_c)
 target_link_libraries(post_process ctint_c)
 
-# We need to include the convertes.hxx files
-target_include_directories(solver_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(post_process PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-
 # Configure the version
 configure_file(version.py.in version.py)
 
