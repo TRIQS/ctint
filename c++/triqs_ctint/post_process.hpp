@@ -186,7 +186,7 @@ namespace triqs_ctint {
   /// Calculate the chi2_tau from M3_tau and M_iw
   template <Chan_t Chan>
   chi2_tau_t M2_from_M3(chi3_tau_cv_t M3_tau, chi2_tau_cv_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                        std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
+                        std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2, gf_struct_t const &gf_struct) {
 
     double beta  = G0_tau[0].domain().beta;
     int n_blocks = G0_tau.size();
@@ -212,109 +212,144 @@ namespace triqs_ctint {
     const int thread_id = mpi_rank / n_skip;
     const int n_threads = 1 + (comm.size() - 1) / n_skip;
 
-    for (int bl1 : range(n_blocks))
-      for (int bl2 : range(n_blocks)) {
+    // Some Helper variables
+    double weight_del = sqrt(dtau_M3_del);
+    double sqrt_2     = sqrt(0.5);
+
+    for (auto &t : tau_mesh_M2) {
+
+      // MPI Parellelization
+      if (mpi_rank % n_skip != 0) continue;
+      int job_id = t.linear_index();
+      if (job_id % n_threads != thread_id) continue;
+
+      // ==== Precalculate all relevant G0_tau interpolation points
+
+      // Preallocate the G0 vectors
+      auto G0_ti_minus_t     = std::vector<array<dcomplex, 3>>{};
+      auto G0_t_minus_ti     = std::vector<array<dcomplex, 3>>{};
+      auto G0_ti_minus_t_del = std::vector<array<dcomplex, 3>>{};
+      auto G0_t_minus_ti_del = std::vector<array<dcomplex, 3>>{};
+
+      for (int bl : range(n_blocks)) {
+
+        auto mat_shape = G0_tau[bl].target_shape();
+        G0_ti_minus_t.emplace_back(mat_shape[0], mat_shape[1], n_tau_M3);
+        G0_t_minus_ti.emplace_back(mat_shape[0], mat_shape[1], n_tau_M3);
+        G0_ti_minus_t_del.emplace_back(mat_shape[0], mat_shape[1], n_tau_M3_del);
+        G0_t_minus_ti_del.emplace_back(mat_shape[0], mat_shape[1], n_tau_M3_del);
+
+        for (auto const &ti : std::get<0>(tau_mesh_M3)) {
+
+          auto [s1, d_ti_t] = cyclic_difference(ti, t);
+          auto [s2, d_t_ti] = cyclic_difference(t, ti);
+
+          // Treat certain equal-time cases seperately
+          if (ti.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
+            s1     = -1.0;
+            d_ti_t = beta - 1e-14;
+          }
+          if (ti.index() == 0 && t.index() == 0) {
+            s2     = -1.0;
+            d_t_ti = beta - 1e-14;
+          }
+
+          //Account for M3 edge bins beeing smaller
+          if (ti.linear_index() == 0 or ti.linear_index() == n_tau_M3 - 1) {
+            s1 *= 0.5;
+            s2 *= 0.5;
+          }
+
+          G0_ti_minus_t[bl](range(), range(), ti.linear_index()) = dtau_M3 * s1 * G0_tau[bl](d_ti_t);
+          G0_t_minus_ti[bl](range(), range(), ti.linear_index()) = dtau_M3 * s2 * G0_tau[bl](d_t_ti);
+        }
+
+        // Now for the Mesh of M3_del
+        for (auto const &ti : tau_mesh_M3_del) {
+
+          auto [s1, d_ti_t] = cyclic_difference(ti, t);
+          auto [s2, d_t_ti] = cyclic_difference(t, ti);
+
+          // Carefully treat certain equal-time cases
+          if (ti.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
+            s1     = -1.0;
+            d_ti_t = beta - 1e-14;
+          }
+          if (ti.index() == 0 && t.index() == 0) {
+            s2     = -1.0;
+            d_t_ti = beta - 1e-14;
+          }
+
+          // Account for M3 delta edge bins beeing smaller
+          if (ti.linear_index() == 0 or ti.linear_index() == n_tau_M3_del) {
+            s1 *= sqrt_2;
+            s2 *= sqrt_2;
+          }
+
+          G0_ti_minus_t_del[bl](range(), range(), ti.linear_index()) = weight_del * s1 * G0_tau[bl](d_ti_t);
+          G0_t_minus_ti_del[bl](range(), range(), ti.linear_index()) = weight_del * s2 * G0_tau[bl](d_t_ti);
+        }
+      }
+      // ==== End Precalculation
+
+      for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
 
         // Capture block-sizes
         int bl1_size = M3_tau(bl1, bl2).target_shape()[0];
         int bl2_size = M3_tau(bl1, bl2).target_shape()[2];
 
-        for (auto &t : tau_mesh_M2) {
+        auto M2 = M2_tau(bl1, bl2)[t];
 
-          // The actual MPI Parellelization
-          if (mpi_rank % n_skip != 0) continue;
-          int job_id = t.linear_index() * n_blocks * n_blocks + bl1 * n_blocks + bl2;
-          if (job_id % n_threads != thread_id) continue;
+        if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
-          auto M2 = M2_tau(bl1, bl2)[t];
+          auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
+          for (auto [m, i, n, k] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
+            arr_GG(m, i, n, k, range()) = G0_ti_minus_t_del[bl1](m, i, range()) * G0_ti_minus_t_del[bl2](n, k, range());
+          }
 
-          for (auto [t1, t2] : tau_mesh_M3) {
+          for (auto [m, j, n, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
 
-            auto M3 = M3_tau(bl1, bl2)[t1, t2];
-
-            auto [s1, d_t1_t] = cyclic_difference(t1, t);
-            auto [s2, d_t2_t] = cyclic_difference(t2, t);
-            auto [s3, d_t_t2] = cyclic_difference(t, t2);
-
-            // The weight for the integration
-            double weight = dtau_M3 * dtau_M3;
-
-            // Account for M3 edge bins beeing smaller
-            if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3 - 1) weight *= 0.5;
-            if (t2.linear_index() == 0 or t2.linear_index() == n_tau_M3 - 1) weight *= 0.5;
-
-	    // Carefully treat certain equal-time cases
-            if (t1.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
-              s1     = -1.0;
-              d_t1_t = beta - 1e-14;
-            }
-            if (t2.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
-              s2     = -1.0;
-              d_t2_t = beta - 1e-14;
-            }
-            if (t2.index() == 0 && t.index() == 0) {
-              s3     = -1.0;
-              d_t_t2 = beta - 1e-14;
+            // We have to make a copy so that M3 is contiguous in memory
+            auto M3_mjnl = matrix<dcomplex>{slice_target_to_scalar(M3_tau(bl1, bl2), m, j, n, l).data()};
+            for (auto [i, k] : product_range(bl1_size, bl2_size)) {
+              auto G1_mi = vector_view<dcomplex>(G0_ti_minus_t[bl1](m, i, range()));
+              auto G2_nk = vector_view<dcomplex>(G0_ti_minus_t[bl2](n, k, range()));
+              M2(i, j, k, l) += dot(G1_mi, M3_mjnl * G2_nk);
             }
 
-            if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
-
-              for (int m : range(bl1_size))
-                for (int n : range(bl2_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
-                        + M3(m, j_, n, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s2 * G0_tau[bl2](d_t2_t)(n, k_);
-
-            } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
-
-              for (int m : range(bl1_size))
-                for (int n : range(bl1_size)) {
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
-                        + M3(m, n, k_, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t2)(j_, n);
-                }
+            // We treat the delta-contribution seperately
+            auto M3_del_mjnl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, n, l).data());
+            for (auto [i, k] : product_range(bl1_size, bl2_size)) {
+              M2(i, j, k, l) += dot(M3_del_mjnl, vector_view<dcomplex>(arr_GG(m, i, n, k, range())));
             }
           }
 
-          // We treat the delta-contribution seperately
-          for (auto const &t1 : tau_mesh_M3_del) {
+        } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-            auto M3_del = M3_delta(bl1, bl2)[t1];
+          auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl1_size, bl1_size, n_tau_M3_del);
+          for (auto [m, i, j, n] : product_range(bl1_size, bl1_size, bl1_size, bl1_size)) {
+            arr_GG(m, i, j, n, range()) = G0_ti_minus_t_del[bl1](m, i, range()) * G0_t_minus_ti_del[bl1](j, n, range());
+          }
 
-            auto [s1, d_t1_t] = cyclic_difference(t1, t);
-            auto [s3, d_t_t1] = cyclic_difference(t, t1);
+          for (auto [m, n, k, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
 
-            // Incorporate weights for the integration
-            double weight = dtau_M3_del;
-
-            // Account for M3 edge bins beeing smaller
-            if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3_del) weight *= 0.5;
-
-	    // Carefully treat certain equal-time cases
-            if (t1.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
-              s1     = -1.0;
-              d_t1_t = beta - 1e-14;
-            }
-            if (t1.index() == 0 && t.index() == 0) {
-              s3     = -1.0;
-              d_t_t1 = beta - 1e-14;
+            // We have to make a copy so that M3 is contiguous in memory
+            auto M3_mnkl = matrix<dcomplex>{slice_target_to_scalar(M3_tau(bl1, bl2), m, n, k, l).data()};
+            for (auto [i, j] : product_range(bl1_size, bl1_size)) {
+              auto G1_mi = vector_view<dcomplex>(G0_ti_minus_t[bl1](m, i, range()));
+              auto G2_jn = vector_view<dcomplex>(G0_t_minus_ti[bl1](j, n, range()));
+              M2(i, j, k, l) += dot(G1_mi, M3_mnkl * G2_jn);
             }
 
-            if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
-
-              for (int m : range(bl1_size))
-                for (int n : range(bl2_size))
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3_del(m, j_, n, l_) * weight * G0_tau[bl1](d_t1_t)(m, i_) * G0_tau[bl2](d_t1_t)(n, k_);
-
-            } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
-
-              for (int m : range(bl1_size))
-                for (int n : range(bl1_size)) {
-                  M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_)
-                        + M3_del(m, n, k_, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s3 * G0_tau[bl1](d_t_t1)(j_, n);
-                }
+            // We treat the delta-contribution seperately
+            auto M3_del_mnkl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, n, k, l).data());
+            for (auto [i, j] : product_range(bl1_size, bl1_size)) {
+              M2(i, j, k, l) += dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range())));
             }
           }
         }
       }
+    }
 
     M2_tau() = mpi_all_reduce(M2_tau, comm);
     return M2_tau;
@@ -340,12 +375,14 @@ namespace triqs_ctint {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
   inline chi2_tau_t M2_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
-    return M2_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
+                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2,
+                                  gf_struct_t const &gf_struct) {
+    return M2_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2, gf_struct);
   }
   inline chi2_tau_t M2_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2) {
-    return M2_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2);
+                                  std::vector<matrix<M_tau_scalar_t>> const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2,
+                                  gf_struct_t const &gf_struct) {
+    return M2_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2, gf_struct);
   }
 
 } // namespace triqs_ctint
