@@ -239,9 +239,23 @@ namespace triqs_ctint {
             // The weight for the integration
             double weight = dtau_M3 * dtau_M3;
 
-            //Account for M3 edge bins beeing smaller
+            // Account for M3 edge bins beeing smaller
             if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3 - 1) weight *= 0.5;
             if (t2.linear_index() == 0 or t2.linear_index() == n_tau_M3 - 1) weight *= 0.5;
+
+	    // Carefully treat certain equal-time cases
+            if (t1.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
+              s1     = -1.0;
+              d_t1_t = beta - 1e-14;
+            }
+            if (t2.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
+              s2     = -1.0;
+              d_t2_t = beta - 1e-14;
+            }
+            if (t2.index() == 0 && t.index() == 0) {
+              s3     = -1.0;
+              d_t_t2 = beta - 1e-14;
+            }
 
             if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
@@ -251,15 +265,6 @@ namespace triqs_ctint {
                         + M3(m, j_, n, l_) * weight * s1 * G0_tau[bl1](d_t1_t)(m, i_) * s2 * G0_tau[bl2](d_t2_t)(n, k_);
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
-
-              if (t1.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
-                s1     = -1.0;
-                d_t1_t = beta - 1e-14;
-              }
-              if (t2.index() == 0 && t.index() == 0) {
-                s3     = -1.0;
-                d_t_t2 = beta - 1e-14;
-              }
 
               for (int m : range(bl1_size))
                 for (int n : range(bl1_size)) {
@@ -280,8 +285,18 @@ namespace triqs_ctint {
             // Incorporate weights for the integration
             double weight = dtau_M3_del;
 
-            //Account for M3 edge bins beeing smaller
+            // Account for M3 edge bins beeing smaller
             if (t1.linear_index() == 0 or t1.linear_index() == n_tau_M3_del) weight *= 0.5;
+
+	    // Carefully treat certain equal-time cases
+            if (t1.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
+              s1     = -1.0;
+              d_t1_t = beta - 1e-14;
+            }
+            if (t1.index() == 0 && t.index() == 0) {
+              s3     = -1.0;
+              d_t_t1 = beta - 1e-14;
+            }
 
             if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
@@ -290,15 +305,6 @@ namespace triqs_ctint {
                   M2(i_, j_, k_, l_) << M2(i_, j_, k_, l_) + M3_del(m, j_, n, l_) * weight * G0_tau[bl1](d_t1_t)(m, i_) * G0_tau[bl2](d_t1_t)(n, k_);
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
-
-              if (t1.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
-                s1     = -1.0;
-                d_t1_t = beta - 1e-14;
-              }
-              if (t1.index() == 0 && t.index() == 0) {
-                s3     = -1.0;
-                d_t_t1 = beta - 1e-14;
-              }
 
               for (int m : range(bl1_size))
                 for (int n : range(bl1_size)) {
