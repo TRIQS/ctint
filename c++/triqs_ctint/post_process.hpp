@@ -291,7 +291,7 @@ namespace triqs_ctint {
 
             } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-              if (t1.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
+              if (t1.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
                 s1     = -1.0;
                 d_t1_t = beta - 1e-14;
               }
