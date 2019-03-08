@@ -127,16 +127,16 @@ namespace triqs_ctint {
     /// Measure M3ph(tau)
     bool measure_M3ph_tau = false;
     /// Number of imaginary time points in M3
-    int n_tau_M3 = 1000;
+    int n_tau_M3 = 201;
 
     /// Measure of chi2pp by insertion
     bool measure_chi2pp_tau = false;
     /// Measure of chi2ph by insertion
     bool measure_chi2ph_tau = false;
     /// Number of imaginary time points in chi2
-    int n_tau_chi2 = 10000;
+    int n_tau_chi2 = 201;
     /// Number of positive Matsubara frequencies in chi2
-    int n_iw_chi2 = 128;
+    int n_iw_chi2 = 32;
 
     /// Measure of chiAB by insertion
     bool measure_chiAB_tau = false;
