@@ -2,15 +2,25 @@
 #
 # TRIQS documentation build configuration file
 
+import sys
+sys.path.insert(0, "@TRIQS_SPHINXEXT_PATH@/autorun")
+sys.path.insert(0, "@TRIQS_SPHINXEXT_PATH@/numpydoc")
+
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.intersphinx',
-              'matplotlib.sphinxext.plot_directive']
+              'sphinx.ext.doctest',
+              'sphinx.ext.todo',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.autosummary',
+              'plot_directive',
+              'numpydoc',
+              'autorun']
 
 source_suffix = '.rst'
 
 project = u'TRIQS Interaction Expansion Solver'
-copyright = u'2017, N. Wentzell, M. Ferrero, O. Parcollet'
+copyright = u'2016-2018, N. Wentzell, M. Ferrero, O. Parcollet'
 version = '@CTINT_VERSION@'
 
 mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
@@ -20,7 +30,7 @@ html_theme = 'triqs'
 html_theme_path = ['@TRIQS_THEMES_PATH@']
 html_show_sphinx = False
 html_context = {'header_title': 'ctint',
-                'header_subtitle': 'a quantum impurity solver based on the <a class="triqs" style="font-size: 12px" href="http://ipht.cea.fr/triqs">TRIQS</a> library',
+                'header_subtitle': 'a generic quantum impurity solver based on the <a class="triqs" style="font-size: 12px" href="http://ipht.cea.fr/triqs">TRIQS</a> library',
                 'header_links': [['Install', 'install'],
                                  ['Documentation', 'documentation'],
                                  ['Issues', 'issues'],
@@ -28,9 +38,6 @@ html_context = {'header_title': 'ctint',
 html_static_path = ['@CMAKE_SOURCE_DIR@/doc/_static']
 html_sidebars = {'index': ['sideb.html', 'searchbox.html']}
 
-htmlhelp_basename = 'TRIQSIntdoc'
+htmlhelp_basename = 'TRIQSCTINTdoc'
 
-#intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('http://ipht.cea.fr/triqs', None)}
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('@TRIQS_SPHINX_INVENTORY_DIR@', None)}
-
-
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('https://triqs.github.io/triqs/master', None)}

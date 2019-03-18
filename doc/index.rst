@@ -1,15 +1,15 @@
 .. _welcome:
 
 The interaction-expansion solver
-==================================
+================================
 
-.. sidebar:: CTINT 0.8
+.. sidebar:: ctint 2.2
 
-   This is the homepage CTINT Version 0.8
-   For the changes in 0.8, Cf :ref:`changelog page <changelog>`
+   This is the homepage ctint Version 2.2
+   For changes see, Cf :ref:`changelog page <changelog>`
 
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver
-allows to solve the generic problem of a quantum impurity embedded in a
+allows to solve the generic problem of a **quantum impurity** embedded in a
 conduction bath for an arbitrary local interaction vertex.  The "impurity" can
 be any set of orbitals, on one or several atoms. To be more specific, the
 Hamiltonian of the problem has the form

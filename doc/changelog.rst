@@ -3,6 +3,6 @@
 Changelog
 =========
 
-This document describes the main changes in CTINT.
+This document describes the main changes in APP4TRIQS.
 
 .. include:: ChangeLog.md

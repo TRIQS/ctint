@@ -21,11 +21,12 @@ set(BUILD_SHARED_LIBS OFF)
 # Export the list of compile-commands into compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Global options and definitions
+# Enable compiler warnings for the whole project
 add_compile_options(-Wall
 		     $<$<CONFIG:Debug>:-Og>
 		     $<$<CONFIG:Debug>:-ggdb3>
 		     )
+
 # Load Dependencies
 find_package(TRIQS 2.2 REQUIRED)
 find_package(Cpp2Py 1.6 REQUIRED)
@@ -34,12 +35,12 @@ install(TARGETS nfft EXPORT ctint-targets)
 
 # Default Install directory to TRIQS_ROOT if not given or invalid.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
-  message(STATUS "No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+  message(STATUS " No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
   set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
 endif()
-message(STATUS "-------- INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
+message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 
-# Define the CTINT version numbers and get the git hash
+# Define the ctint version numbers and get the git hash
 set(CTINT_VERSION_MAJOR 0)
 set(CTINT_VERSION_MINOR 9)
 set(CTINT_VERSION_PATCH 0)
@@ -51,11 +52,6 @@ message(STATUS "Git hash: ${CTINT_GIT_HASH}")
 # Build and install the ctint library
 add_subdirectory(c++/triqs_ctint)
 
-# Build and install the ctint python module
-if(${TRIQS_WITH_PYTHON_SUPPORT})
- add_subdirectory(python/triqs_ctint)
-endif()
-
 # Tests
 option(Build_Tests "Build tests" ON)
 if(Build_Tests)
@@ -63,19 +59,28 @@ if(Build_Tests)
   add_subdirectory(test)
 endif()
 
+if(TRIQS_WITH_PYTHON_SUPPORT)
+  # Python interface
+  add_subdirectory(python/triqs_ctint)
+
+  # Build the documentation
+  option(Build_Documentation "Build documentation" OFF)
+  if(Build_Documentation)
+    if(NOT TRIQS_WITH_DOCUMENTATION)
+      message(WARNING "TRIQS library has not been compiled with its documentation! Cannot build documentation.")
+    else()
+      message(STATUS "Documentation Build enabled")
+      add_subdirectory(doc)
+    endif()
+  endif()
+else()
+  message(WARNING "TRIQS library has been installed without Python support. Cannot build the Python Interface and Documentation.")
+endif()
+
 # Additional configuration files
 add_subdirectory(share)
 
-option(Build_Documentation "Build documentation" OFF)
-if(Build_Documentation)
-  if(NOT TRIQS_WITH_DOCUMENTATION)
-    message(WARNING "TRIQS library has not been compiled with its documentation! Cannot build documentation.")
-  else()
-    message(STATUS "Documentation Build enabled")
-    add_subdirectory(doc)
-  endif()
-endif()
-
+# Debian Package
 option(BUILD_DEBIAN_PACKAGE "Build a deb package" OFF)
 if(BUILD_DEBIAN_PACKAGE)
   if(NOT CMAKE_INSTALL_PREFIX STREQUAL "/usr")

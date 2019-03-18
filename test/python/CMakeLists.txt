@@ -1,7 +1,25 @@
-# If ASAN=ON use minimal runtime of UBSAN if it exists
-if(${ASAN} AND UBSAN_MINIMAL_RT_LIBRARY)
-  set(UBSAN_RT_LIBRARY ${UBSAN_MINIMAL_RT_LIBRARY})
-endif()
+# Copy h5 files to binary dir
+file(GLOB_RECURSE all_h5_ref_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.ref.h5)
+foreach(file ${all_h5_ref_files})
+  configure_file(${file} ${file} COPYONLY)
+endforeach()
 
-add_subdirectory(static)
-add_subdirectory(dynamic)
+# List of all tests
+set(all_tests
+  static/anderson
+  static/rerun
+  static/solver_h5io
+  static/supercond
+  static/two_site
+  dynamic/all_continuousBoson
+  dynamic/all
+  dynamic/densdens
+  dynamic/jperp
+)
+
+foreach(test ${all_tests})
+  get_filename_component(test_name ${test} NAME_WE)
+  get_filename_component(test_dir ${test} DIRECTORY)
+  add_test(NAME ${test_name} COMMAND ${TRIQS_PYTHON_INTERPRETER} ${CMAKE_CURRENT_SOURCE_DIR}/${test_dir}/${test_name}.py WORKING_DIRECTORY test/python/${test_dir})
+  set_property(TEST ${test_name} APPEND PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH} ${SANITIZER_RT_PRELOAD})
+endforeach()

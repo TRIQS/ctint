@@ -4,7 +4,7 @@ install(
   FILES
     ${CMAKE_CURRENT_BINARY_DIR}/triqs_ctint-config.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/triqs_ctint-config-version.cmake
-  DESTINATION share/cmake
+  DESTINATION lib/cmake/triqs_ctint
 )
 
-install(EXPORT ctint-targets DESTINATION share/cmake)
+install(EXPORT ctint-targets DESTINATION lib/cmake/triqs_ctint)

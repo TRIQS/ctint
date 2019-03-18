@@ -1,31 +1,31 @@
 file(GLOB_RECURSE sources *.cpp)
 add_library(ctint_c ${sources})
 
-# Link against triqs and use headers with SYSTEM flag for better warning messages
-target_link_libraries(ctint_c PUBLIC triqs)
+# Link against dependencies
+target_link_libraries(ctint_c PUBLIC triqs PRIVATE nfft)
 
-target_link_libraries(ctint_c PRIVATE nfft)
-
+# Configure compilation 
 target_compile_options(ctint_c PUBLIC -std=c++17 -fPIC)
 target_include_directories(ctint_c PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/c++>)
 target_compile_definitions(ctint_c PUBLIC
-			    CTINT_GIT_HASH=${CTINT_GIT_HASH}
-			    TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
-			    $<$<CONFIG:Debug>:DEBUG_CTINT>
-			    $<$<CONFIG:Debug>:TRIQS_DEBUG>
-			    $<$<CONFIG:Debug>:TRIQS_ARRAYS_ENFORCE_BOUNDCHECK>
-			    $<$<BOOL:${GTAU_IS_COMPLEX}>:GTAU_IS_COMPLEX>
-			    $<$<BOOL:${INTERACTION_IS_COMPLEX}>:INTERACTION_IS_COMPLEX>
+				CTINT_GIT_HASH=${CTINT_GIT_HASH}
+				TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
+				$<$<CONFIG:Debug>:CTINT_DEBUG>
+				$<$<CONFIG:Debug>:TRIQS_DEBUG>
+				$<$<CONFIG:Debug>:TRIQS_ARRAYS_ENFORCE_BOUNDCHECK>
+				$<$<BOOL:${GTAU_IS_COMPLEX}>:GTAU_IS_COMPLEX>
+				$<$<BOOL:${INTERACTION_IS_COMPLEX}>:INTERACTION_IS_COMPLEX>
 			  )
 
 # Install library and headers
 install(TARGETS ctint_c EXPORT ctint-targets DESTINATION lib)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 
+
 # ========= Static Analyzer Checks ==========
 
-option(ANALYZE_SOURCE OFF "Run static analyzer checks if found (clang-tidy, cppcheck)")
-if(ANALYZE_SOURCE)
+option(ANALYZE_SOURCES OFF "Run static analyzer checks if found (clang-tidy, cppcheck)")
+if(ANALYZE_SOURCES)
 
   # Locate static analyzer tools
   find_program(CPPCHECK_EXECUTABLE NAMES "cppcheck" PATHS ENV PATH)
@@ -43,14 +43,14 @@ if(ANALYZE_SOURCE)
   if(CPPCHECK_EXECUTABLE)
     message(STATUS "cppcheck found: ${CPPCHECK_EXECUTABLE}")
     add_custom_command(
-      TARGET ctint_c
-      COMMAND ${CPPCHECK_EXECUTABLE}
-	--enable=warning,style,performance,portability
-	--std=c++14
-	--template=gcc
-	--verbose
-	--quiet
-	${sources}
+	TARGET ctint_c
+	COMMAND ${CPPCHECK_EXECUTABLE}
+	  --enable=warning,style,performance,portability
+	  --std=c++14
+	  --template=gcc
+	  --verbose
+	  --quiet
+          ${sources}
     )
   else()
     message(STATUS "cppcheck not found in $PATH. Please consider installing cppcheck for additional checks!")
@@ -61,20 +61,32 @@ endif()
 
 # ========= Dynamic Analyzer Checks ==========
 
+set(sanitizers "")
 # Address Sanitizer
 option(ASAN OFF "Compile library and executables with LLVM Address Sanitizer")
 if(ASAN)
-  list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/share/cmake)
-  find_package(libasan_rt REQUIRED)
-  target_compile_options(ctint_c PUBLIC -fsanitize=address -fno-omit-frame-pointer)
-  target_link_libraries(ctint_c INTERFACE "-fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold")
+  list(APPEND sanitizers asan)
+  target_compile_options(ctint_c PRIVATE -fsanitize=address -fno-omit-frame-pointer -ggdb3)
+  target_link_libraries(ctint_c INTERFACE "-fsanitize=address -fno-omit-frame-pointer")
+  if(NOT DEFINED ENV{ASAN_OPTIONS})
+    message(WARNING "ASAN_OPTIONS is not set. Consider setting ASAN_OPTIONS=symbolize=1:detect_leaks=0 when running tests")
+  endif()
 endif()
 
 # Undefined Behavior Sanitizer
 option(UBSAN OFF "Compile library and executables with LLVM Undefined Behavior Sanitizer")
 if(UBSAN)
-  list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/share/cmake)
-  find_package(libubsan_rt REQUIRED)
-  target_compile_options(ctint_c PUBLIC -fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize=vptr)
-  target_link_libraries(ctint_c INTERFACE "-fsanitize=undefined -fno-omit-frame-pointer -fuse-ld=gold")
+  list(APPEND sanitizers ubsan)
+  target_compile_options(ctint_c PUBLIC -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-omit-frame-pointer -ggdb3)
+  target_link_libraries(ctint_c INTERFACE "-fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-omit-frame-pointer")
+  if(NOT DEFINED ENV{UBSAN_OPTIONS})
+    message(WARNING "UBSAN_OPTIONS is not set. Consider setting UBSAN_OPTIONS=symbolize=1:print_stacktrace=1:halt_on_error=1 when running tests")
+  endif()
+endif()
+
+if(sanitizers)
+  find_package(sanitizer REQUIRED ${sanitizers})
+  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    target_link_libraries(ctint_c INTERFACE "-fuse-ld=gold")
+  endif()
 endif()

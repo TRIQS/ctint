@@ -70,7 +70,7 @@ for (int i = 0; i < osxPlatforms.size(); i++) {
         "PATH=$triqsDir/bin:${env.BREW}/bin:/usr/bin:/bin:/usr/sbin",
         "CPLUS_INCLUDE_PATH=$triqsDir/include:${env.BREW}/include",
         "LIBRARY_PATH=$triqsDir/lib:${env.BREW}/lib",
-        "CMAKE_PREFIX_PATH=$triqsDir/share/cmake"]) {
+        "CMAKE_PREFIX_PATH=$triqsDir/lib/cmake/triqs"]) {
         deleteDir()
         sh "cmake $srcDir -DCMAKE_INSTALL_PREFIX=$installDir -DTRIQS_ROOT=$triqsDir"
         sh "make -j3"
@@ -93,6 +93,7 @@ try {
     /* Publish results */
     stage("publish") { timeout(time: 1, unit: 'HOURS') {
       def commit = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+      def release = sh(returnStdout: true, script: "git describe --exact-match HEAD || true").trim()
       def workDir = pwd()
       /* Update documention on gh-pages branch */
       dir("$workDir/gh-pages") {
