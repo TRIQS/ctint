@@ -198,11 +198,11 @@ namespace triqs_ctint {
 
     auto km_GM = make_zero_tail(GM_iw, 2);
     for (auto [km_bl, M_hartree_bl] : zip(km_GM, M_hartree)) km_bl(1, ellipsis()) = M_hartree_bl;
-    auto tail_GM = fit_hermitian_tail(GM_iw, km_GM).first;
-    auto tail_MG = fit_hermitian_tail(MG_iw, km_GM).first; // known moments identical to GM
+    auto tail_GM  = fit_hermitian_tail(GM_iw, km_GM).first;
+    auto tail_MG  = fit_hermitian_tail(MG_iw, km_GM).first; // known moments identical to GM
     auto tau_mesh = make_adjoint_mesh(M_iw[0].mesh());
-    auto GM      = make_gf_from_fourier(GM_iw, tau_mesh, tail_GM);
-    auto MG      = make_gf_from_fourier(MG_iw, tau_mesh, tail_MG);
+    auto GM       = make_gf_from_fourier(GM_iw, tau_mesh, tail_GM);
+    auto MG       = make_gf_from_fourier(MG_iw, tau_mesh, tail_MG);
 
     auto km_GMG = make_zero_tail(GMG_iw, 3);
     for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
@@ -224,11 +224,19 @@ namespace triqs_ctint {
 
           for (auto [t1, t2] : M3_tau(0, 0).mesh()) {
 
+            // Treat the equal-time case explicitly
+            if (t1 == t2) { // We need to account for both M_tau(0+) and M_tau(0-)
+              M3_tau_conn(bl1, bl2)[t1, t2](i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1, t2](i_, j_, k_, l_)
+                    - (0.5 * M_tau[bl1](0.0)(j_, i_) - 0.5 * M_tau[bl1](beta)(j_, i_)) * dens_GMG[bl2](l_, k_)
+                    - kronecker(bl1, bl2) * GM[bl1](beta - t1)(l_, i_) * MG[bl2](t2)(j_, k_); // Sign change from GM shift
+              continue;
+            }
+
             double s, d_t2_t1;
-            if (t2 >= t1) {
+            if (t2 > t1) {
               s       = 1.0;
               d_t2_t1 = t2 - t1;
-            } else {
+            } else { // t2 < t1
               s       = -1.0;
               d_t2_t1 = t2 - t1 + beta;
             }
