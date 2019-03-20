@@ -329,14 +329,20 @@ namespace triqs_ctint {
           auto [s1, d_ti_t] = cyclic_difference(ti, t);
           auto [s2, d_t_ti] = cyclic_difference(t, ti);
 
-          // Treat certain equal-time cases seperately
-          if (ti.index() == n_tau_M3 - 1 && t.index() == n_tau_M2 - 1) {
-            s1     = -1.0;
-            d_ti_t = beta - 1e-14;
-          }
-          if (ti.index() == 0 && t.index() == 0) {
+          // Treat t=0 and t=beta cases separately
+          if (t.linear_index() == 0) {
+            s1     = 1.0;
+            d_ti_t = ti;
+
             s2     = -1.0;
-            d_t_ti = beta - 1e-14;
+            d_t_ti = beta - ti;
+          }
+          if (t.linear_index() == n_tau_M2 - 1) {
+            s1     = -1.0;
+            d_ti_t = ti;
+
+            s2     = 1.0;
+            d_t_ti = beta - ti;
           }
 
           //Account for M3 edge bins beeing smaller
@@ -355,14 +361,20 @@ namespace triqs_ctint {
           auto [s1, d_ti_t] = cyclic_difference(ti, t);
           auto [s2, d_t_ti] = cyclic_difference(t, ti);
 
-          // Carefully treat certain equal-time cases
-          if (ti.index() == n_tau_M3_del - 1 && t.index() == n_tau_M2 - 1) {
-            s1     = -1.0;
-            d_ti_t = beta - 1e-14;
-          }
-          if (ti.index() == 0 && t.index() == 0) {
+          // Treat t=0 and t=beta cases separately
+          if (t.linear_index() == 0) {
+            s1     = 1.0;
+            d_ti_t = ti;
+
             s2     = -1.0;
-            d_t_ti = beta - 1e-14;
+            d_t_ti = beta - ti;
+          }
+          if (t.linear_index() == n_tau_M2 - 1) {
+            s1     = -1.0;
+            d_ti_t = ti;
+
+            s2     = 1.0;
+            d_t_ti = beta - ti;
           }
 
           // Account for M3 delta edge bins beeing smaller
