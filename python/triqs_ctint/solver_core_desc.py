@@ -53,7 +53,7 @@ c.add_member(c_name = "histogram",
              doc = """Average perturbation order distribution""")
 
 c.add_member(c_name = "density",
-             c_type = "std::optional<std::vector<matrix<dcomplex> > >",
+             c_type = "std::optional<block_matrix_t>",
              read_only= True,
              doc = """The density matrix (measured by operator insertion)""")
 
@@ -63,7 +63,7 @@ c.add_member(c_name = "M_tau",
              doc = """Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 
 c.add_member(c_name = "M_hartree",
-             c_type = "std::optional<std::vector<matrix<M_tau_scalar_t> > >",
+             c_type = "std::optional<block_matrix_t>",
              read_only= True,
              doc = """Hartree-term of M_tau""")
 
@@ -317,7 +317,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_histogram    | bool                                 | false                                          | Measure the average perturbation order distribution       |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
-| measure_density      | bool                                 | false                                          | Measure the density matrix by operator insertion          |
+| measure_density      | bool                                 | true                                           | Measure the density matrix by operator insertion          |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_M_tau        | bool                                 | true                                           | Measure M(tau)                                            |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
@@ -339,15 +339,15 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_M3ph_tau     | bool                                 | false                                          | Measure M3ph(tau)                                         |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
-| n_tau_M3             | int                                  | 1000                                           | Number of imaginary time points in M3                     |
+| n_tau_M3             | int                                  | 201                                            | Number of imaginary time points in M3                     |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_chi2pp_tau   | bool                                 | false                                          | Measure of chi2pp by insertion                            |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_chi2ph_tau   | bool                                 | false                                          | Measure of chi2ph by insertion                            |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
-| n_tau_chi2           | int                                  | 10000                                          | Number of imaginary time points in chi2                   |
+| n_tau_chi2           | int                                  | 201                                            | Number of imaginary time points in chi2                   |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
-| n_iw_chi2            | int                                  | 128                                            | Number of positive Matsubara frequencies in chi2          |
+| n_iw_chi2            | int                                  | 32                                             | Number of positive Matsubara frequencies in chi2          |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
 | measure_chiAB_tau    | bool                                 | false                                          | Measure of chiAB by insertion                             |
 +----------------------+--------------------------------------+------------------------------------------------+-----------------------------------------------------------+
@@ -448,7 +448,7 @@ c.add_member(c_name = "measure_histogram",
 
 c.add_member(c_name = "measure_density",
              c_type = "bool",
-             initializer = """ false """,
+             initializer = """ true """,
              doc = """Measure the density matrix by operator insertion""")
 
 c.add_member(c_name = "measure_M_tau",
@@ -503,7 +503,7 @@ c.add_member(c_name = "measure_M3ph_tau",
 
 c.add_member(c_name = "n_tau_M3",
              c_type = "int",
-             initializer = """ 1000 """,
+             initializer = """ 201 """,
              doc = """Number of imaginary time points in M3""")
 
 c.add_member(c_name = "measure_chi2pp_tau",
@@ -518,12 +518,12 @@ c.add_member(c_name = "measure_chi2ph_tau",
 
 c.add_member(c_name = "n_tau_chi2",
              c_type = "int",
-             initializer = """ 10000 """,
+             initializer = """ 201 """,
              doc = """Number of imaginary time points in chi2""")
 
 c.add_member(c_name = "n_iw_chi2",
              c_type = "int",
-             initializer = """ 128 """,
+             initializer = """ 32 """,
              doc = """Number of positive Matsubara frequencies in chi2""")
 
 c.add_member(c_name = "measure_chiAB_tau",

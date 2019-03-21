@@ -96,6 +96,12 @@ namespace triqs_ctint {
   /// Type of the Monte-Carlo weight. Either double or dcomplex
   using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{});
 
+  /// The type of a block_matrix (e.g. density)
+  using block_matrix_t = std::vector<matrix<M_tau_scalar_t>>;
+
+  /// A view to a block_matrix_t
+  using block_matrix_v_t = std::vector<matrix_view<M_tau_scalar_t>>;
+
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;
 

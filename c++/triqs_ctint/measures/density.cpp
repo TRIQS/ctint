@@ -6,11 +6,11 @@ namespace triqs_ctint::measures {
 
   density::density(params_t const &params_, qmc_config_t &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
-    results->density = std::vector<matrix<dcomplex>>{};
+    results->density = block_matrix_t{};
 
     // Init measurement container and capture view
     for (auto &[bl, idx_lst] : params.gf_struct) {
-      results->density->push_back(zeros<dcomplex>(make_shape(idx_lst.size(), idx_lst.size())));
+      results->density->push_back(zeros<M_tau_scalar_t>(make_shape(idx_lst.size(), idx_lst.size())));
       density_.push_back(results->density->back());
     }
   }

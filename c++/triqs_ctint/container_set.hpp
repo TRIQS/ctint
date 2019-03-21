@@ -19,13 +19,13 @@ namespace triqs_ctint {
     std::optional<std::vector<double>> histogram;
 
     /// The density matrix (measured by operator insertion)
-    std::optional<std::vector<matrix<dcomplex>>> density;
+    std::optional<block_matrix_t> density;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
     /// Hartree-term of M_tau
-    std::optional<std::vector<matrix<M_tau_scalar_t>>> M_hartree;
+    std::optional<block_matrix_t> M_hartree;
 
     /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
     std::optional<g_iw_t> M_iw_nfft;

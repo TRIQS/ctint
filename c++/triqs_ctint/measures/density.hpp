@@ -25,7 +25,7 @@ namespace triqs_ctint::measures {
     qmc_config_t &qmc_config;
 
     // Container for the accumulation
-    std::vector<matrix_view<dcomplex>> density_;
+    block_matrix_v_t density_;
 
     // The average sign
     mc_weight_t Z = 0.0;
