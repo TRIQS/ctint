@@ -250,7 +250,7 @@ namespace triqs_ctint {
   /// Calculate the chi2_tau from M3_tau and M_iw
   template <Chan_t Chan>
   chi2_tau_t M2_from_M3(chi3_tau_cv_t M3_tau, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t const &M_hartree,
-                        g_tau_cv_t G0_tau, int n_tau_M2, gf_struct_t const &gf_struct) {
+                        g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
 
     double beta  = G0_tau[0].domain().beta;
     int n_blocks = G0_tau.size();
@@ -263,6 +263,9 @@ namespace triqs_ctint {
     double dtau_M3_del          = tau_mesh_M3_del.delta();
     double n_tau_M3_del         = tau_mesh_M3_del.size();
 
+    // We infer the number of tau points from M3
+    // We can calculate M2 accurately only inbetween two tau-points of M3
+    int n_tau_M2     = n_tau_M3 * 2 - 1;
     auto tau_mesh_M2 = gf_mesh<imtime>{beta, Boson, n_tau_M2};
     auto M2_tau      = make_block2_gf(tau_mesh_M2, make_const_view(M3_tau));
     M2_tau()         = 0.0;
@@ -297,11 +300,14 @@ namespace triqs_ctint {
     double weight_del = sqrt(dtau_M3_del);
     double sqrt_2     = sqrt(0.5);
 
+    // FIXME for (auto &t : mpi_scatter(tau_mesh_M2(1,_,2)), 2)
     for (auto &t : tau_mesh_M2) {
 
       // MPI Parellelization
+      // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
+      if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_M2 - 1) continue;
+      int job_id = (t.linear_index() + 1) / 2;
       if (mpi_rank % n_skip != 0) continue;
-      int job_id = t.linear_index();
       if (job_id % n_threads != thread_id) continue;
 
       // ==== Precalculate all relevant G0_tau interpolation points
@@ -445,12 +451,28 @@ namespace triqs_ctint {
     }
 
     M2_tau() = mpi_all_reduce(M2_tau, comm);
+
+    // FIXME for (auto &t : mpi_scatter(drop_last(tau_mesh_M2)(2,_,2)),2)
+    for (auto &t : tau_mesh_M2) {
+      // MPI Parellelization
+      // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
+      if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_M2 - 1) {
+        for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
+          M2_tau(bl1, bl2)[t] = 0.5 * (M2_tau(bl1, bl2)[t.linear_index() - 1] + M2_tau(bl1, bl2)[t.linear_index() + 1]);
+        }
+      }
+    }
+
     return M2_tau;
   }
 
   // For wrapping purposes
-  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) { return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G); }
-  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) { return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G); }
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
+    return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G);
+  }
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
+    return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G);
+  }
   inline chi2_tau_t chi2_from_M2_PP(chi2_tau_cv_t M2_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
     return chi2_from_M2<Chan_t::PP>(M2_tau, M_iw, G0_iw, dens_G);
   }
@@ -468,14 +490,12 @@ namespace triqs_ctint {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
   inline chi2_tau_t M2_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                  block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2,
-                                  gf_struct_t const &gf_struct) {
-    return M2_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2, gf_struct);
+                                  block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
+    return M2_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, gf_struct);
   }
   inline chi2_tau_t M2_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                  block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, int n_tau_M2,
-                                  gf_struct_t const &gf_struct) {
-    return M2_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, n_tau_M2, gf_struct);
+                                  block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
+    return M2_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, gf_struct);
   }
 
 } // namespace triqs_ctint
