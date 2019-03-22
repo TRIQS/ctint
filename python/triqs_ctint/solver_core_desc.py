@@ -172,12 +172,12 @@ c.add_member(c_name = "chi2ph_iw",
              read_only= True,
              doc = """The equal time correlator :math:`\\chi_2` in the particle-hole channel in Matsubara frequencies""")
 
-c.add_member(c_name = "M2pp_tau",
+c.add_member(c_name = "chi2pp_conn_tau",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = """M2 in the particle-particle channel in imaginary time as obtained from M3""")
 
-c.add_member(c_name = "M2ph_tau",
+c.add_member(c_name = "chi2ph_conn_tau",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = """M2 in the particle-hole channel in imaginary time as obtained from M3""")
