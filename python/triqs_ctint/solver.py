@@ -32,7 +32,7 @@ def unflatten(Sig_HF_flat, gf_struct):
 
 class Solver(SolverCore):
 
-    def __init__(self, beta, gf_struct, n_iw=1025, n_tau=10001, use_D=False, use_Jperp=False, n_tau_dynamical_interactions=10001, n_iw_dynamical_interactions=200):
+    def __init__(self, beta, gf_struct, n_iw=500, n_tau=5001, use_D=False, use_Jperp=False, n_tau_dynamical_interactions=5001, n_iw_dynamical_interactions=500):
         """
         Initialise the solver.
 
