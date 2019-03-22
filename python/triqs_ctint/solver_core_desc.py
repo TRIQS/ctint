@@ -311,15 +311,15 @@ c.add_member(c_name = "G0_iw",
              read_only= True,
              doc = r"""Noninteracting Green Function in Matsubara frequencies""")
 
-c.add_member(c_name = "D0_iw",
-             c_type = "std::optional<block2_gf<imfreq, matrix_valued>>",
+c.add_member(c_name = "D0_tau",
+             c_type = "std::optional<block2_gf<imtime, matrix_valued> >",
              read_only= True,
-             doc = r"""Dynamic density-density interaction in Matsubara frequencies""")
+             doc = r"""Dynamic density-density interaction in imaginary time""")
 
 c.add_member(c_name = "Jperp_tau",
              c_type = "std::optional<gf<imtime, matrix_valued> >",
              read_only= True,
-             doc = r"""Dynamic spin-spin interaction in Matsubara frequencies""")
+             doc = r"""Dynamic spin-spin interaction in imaginary time""")
 
 c.add_member(c_name = "G0_shift_iw",
              c_type = "triqs_ctint::g_iw_t",

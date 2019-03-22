@@ -29,6 +29,8 @@
 #include <triqs/operators/util/extractors.hpp>
 
 #include <itertools/itertools.hpp>
+
+#include <h5/h5.hpp>
 #include <mpi/mpi.hpp>
 
 #include <iostream>

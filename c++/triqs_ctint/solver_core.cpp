@@ -19,7 +19,7 @@ namespace triqs_ctint {
     Sigma_iw = G0_iw;
 
     // Allocate containers for dynamical density-density interaction
-    if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);
+    if (p.use_D) D0_tau = make_block2_gf<imtime, matrix_valued>({p.beta, Boson, p.n_tau_dynamical_interactions}, p.gf_struct);
 
     // Allocate containers for dynamical spin-spin interaction
     if (p.use_Jperp) {
@@ -60,7 +60,7 @@ namespace triqs_ctint {
     qmc_config_t qmc_config(params, G0_shift_tau);
 
     // Build vertex factories
-    const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_tau);
+    const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_tau, Jperp_tau);
 
     mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false}, "insertion");
     mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false}, "removal");
@@ -148,7 +148,9 @@ namespace triqs_ctint {
       g_2(iw_) << g_2(iw_) - shift_1;
     }
 
-    if (D0_iw) {
+    if (D0_tau) {
+
+      auto D0_iw = make_gf_from_fourier(*D0_tau, gf_mesh<imfreq>{p.beta, Boson, 1}, make_zero_tail(*D0_tau));
 
       // External loop over blocks
       for (int sig : range(p.n_blocks())) {
@@ -161,7 +163,7 @@ namespace triqs_ctint {
           dcomplex term = 0.0;
           for (int sigp : range(p.n_blocks()))
             for (int j : range(Rank))
-              for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha[sigp](j, s); }
+              for (int s : range(p.n_s)) { term += (D0_iw(sig, sigp)[0](i, j) + D0_iw(sigp, sig)[0](j, i)) * p.alpha[sigp](j, s); }
           auto g = slice_target_to_scalar(G0_inv[sig], i, i);
           g(iw_) << g(iw_) - term / p.n_s;
         }

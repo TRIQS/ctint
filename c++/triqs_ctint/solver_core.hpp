@@ -12,10 +12,10 @@ namespace triqs_ctint {
     /// Noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_iw;
 
-    /// Dynamic density-density interaction in Matsubara frequencies
-    std::optional<block2_gf<imfreq, matrix_valued>> D0_iw;
+    /// Dynamic density-density interaction in imaginary time
+    std::optional<block2_gf<imtime, matrix_valued>> D0_tau;
 
-    /// Dynamic spin-spin interaction in Matsubara frequencies
+    /// Dynamic spin-spin interaction in imaginary time
     std::optional<gf<imtime, matrix_valued>> Jperp_tau;
 
     /**
@@ -88,7 +88,7 @@ namespace triqs_ctint {
       h5_write(grp, "G0_iw", s.G0_iw);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
-      h5_write(grp, "D0_iw", s.D0_iw);
+      h5_write(grp, "D0_tau", s.D0_tau);
       h5_write(grp, "Jperp_tau", s.Jperp_tau);
     }
 
@@ -103,7 +103,7 @@ namespace triqs_ctint {
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);
-      h5_read(grp, "D0_iw", s.D0_iw);
+      h5_read(grp, "D0_tau", s.D0_tau);
       h5_read(grp, "Jperp_tau", s.Jperp_tau);
       return s;
     }

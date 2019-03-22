@@ -4,7 +4,7 @@
 namespace triqs_ctint {
 
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
-                                                      std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
+                                                      std::optional<block2_gf_const_view<imtime, matrix_valued>> D0_tau,
                                                       std::optional<gf_const_view<imtime, matrix_valued>> Jperp_tau) {
 
     std::vector<vertex_factory_t> vertex_factories;
@@ -44,7 +44,7 @@ namespace triqs_ctint {
     } // clean temporaries
 
     // ------------ Create Vertex Factory for Dynamic Density-Density Interactions --------------
-    if (D0_iw) {
+    if (D0_tau) {
 
       std::vector<vertex_idx_t> indices;
 #ifdef INTERACTION_IS_COMPLEX
@@ -57,13 +57,13 @@ namespace triqs_ctint {
       auto D0_tau   = make_gf_from_fourier(*D0_iw, tau_mesh, make_zero_tail(*D0_iw, 2));
 
       // Loop over block indices
-      for (int bl1 : range((*D0_iw).size1()))
-        for (int bl2 : range((*D0_iw).size1())) {
+      for (int bl1 : range((*D0_tau).size1()))
+        for (int bl2 : range((*D0_tau).size2())) {
 
           // Loop over non-block indices
-          for (int a = 0; a < D0_tau(bl1, bl2).target_shape()[0]; a++)
-            for (int b = 0; b < D0_tau(bl1, bl2).target_shape()[1]; b++) {
-              auto d = slice_target_to_scalar(D0_tau(bl1, bl2), a, b);
+          for (int a = 0; a < (*D0_tau)(bl1, bl2).target_shape()[0]; a++)
+            for (int b = 0; b < (*D0_tau)(bl1, bl2).target_shape()[1]; b++) {
+              auto d = slice_target_to_scalar((*D0_tau)(bl1, bl2), a, b);
 
               // Add Vertex generator only if d is non-zero
               if (max_norm(d) > 1e-10) {
