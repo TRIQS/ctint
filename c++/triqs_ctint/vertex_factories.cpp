@@ -53,16 +53,17 @@ namespace triqs_ctint {
       std::vector<gf<imtime, scalar_real_valued>> D0_tau_lst;
 #endif
 
+      auto tau_mesh = gf_mesh<imtime>{params.beta, Boson, params.n_tau_dynamical_interactions};
+      auto D0_tau = make_gf_from_fourier(*D0_iw, tau_mesh, make_zero_tail(*D0_iw, 2));
+
       // Loop over block indices
       for (int bl1 : range((*D0_iw).size1()))
         for (int bl2 : range((*D0_iw).size1())) {
 
-          auto D = make_gf_from_fourier((*D0_iw)(bl1, bl2), params.n_tau_dynamical_interactions);
-
           // Loop over non-block indices
-          for (int a = 0; a < D.target_shape()[0]; a++)
-            for (int b = 0; b < D.target_shape()[1]; b++) {
-              auto d = slice_target_to_scalar(D, a, b);
+          for (int a = 0; a < D0_tau(bl1, bl2).target_shape()[0]; a++)
+            for (int b = 0; b < D0_tau(bl1, bl2).target_shape()[1]; b++) {
+              auto d = slice_target_to_scalar(D0_tau(bl1, bl2), a, b);
 
               // Add Vertex generator only if d is non-zero
               if (max_norm(d) > 1e-10) {
@@ -105,12 +106,13 @@ namespace triqs_ctint {
 
       if (params.n_blocks() != 2) TRIQS_RUNTIME_ERROR << "Jperp requires exactly two blocks corresponding to the spins";
 
-      auto J = make_gf_from_fourier(*Jperp_iw, params.n_tau_dynamical_interactions);
+      auto tau_mesh = gf_mesh<imtime>{params.beta, Boson, params.n_tau_dynamical_interactions};
+      auto Jperp_tau = make_gf_from_fourier(*Jperp_iw, tau_mesh, make_zero_tail(*Jperp_iw, 2));
 
       // Loop over non-block indices
-      for (int a = 0; a < J.target_shape()[0]; a++)
-        for (int b = 0; b < J.target_shape()[1]; b++) {
-          auto d = slice_target_to_scalar(J, a, b);
+      for (int a = 0; a < Jperp_tau.target_shape()[0]; a++)
+        for (int b = 0; b < Jperp_tau.target_shape()[1]; b++) {
+          auto d = slice_target_to_scalar(Jperp_tau, a, b);
 
           if (max_norm(d) > 1e-10) {
             indices.push_back({1, a, 0, a, 0, b, 1, b}); //S^+_a(tau) S^-_b(tau')
