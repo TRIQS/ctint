@@ -279,24 +279,11 @@ namespace triqs_ctint {
       M_del[n_tau_M3_del - 1] *= 0.5;
     }
 
-    // Set up MPI Parellelization
-    // The following operation is memory bound,
-    // so we perform the computation only on every n-th thread
-    const int n_skip    = 2;
-    auto comm           = triqs::mpi::communicator();
-    const int mpi_rank  = comm.rank();
-    const int thread_id = mpi_rank / n_skip;
-    const int n_threads = 1 + (comm.size() - 1) / n_skip;
+    auto comm = triqs::mpi::communicator{};
+    for (auto &t : mpi_slice(tau_mesh_chi2, comm)) {
 
-    // FIXME for (auto &t : mpi_scatter(tau_mesh_chi2(1,_,2)), 2)
-    for (auto &t : tau_mesh_chi2) {
-
-      // MPI Parellelization
       // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
       if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_chi2 - 1) continue;
-      int job_id = (t.linear_index() + 1) / 2;
-      if (mpi_rank % n_skip != 0) continue;
-      if (job_id % n_threads != thread_id) continue;
 
       // ==== Precalculate all relevant G0_tau interpolation points
 
