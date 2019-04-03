@@ -13,6 +13,10 @@ module.add_include("triqs_ctint/post_process.hpp")
 
 # Add here anything to add in the C++ code at the start, e.g. namespace using
 module.add_preamble("""
+#include <cpp2py/converters/pair.hpp>
+#include <cpp2py/converters/string.hpp>
+#include <cpp2py/converters/variant.hpp>
+#include <cpp2py/converters/vector.hpp>
 #include <triqs/cpp2py_converters/gf.hpp>
 
 using namespace triqs_ctint;
@@ -24,6 +28,8 @@ module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2c_from_M4 (chi4_iw_t
 module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
 
 module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_t::view_type G_iw)", doc = """Calculate the two-particle Green function from G2c_iw and G_iw""")
+
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw, triqs::hilbert_space::gf_struct_t gf_struct)", doc = """Calculate the generalized ph susceptibility from G2c_iw and G_iw""")
 
 module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_t::view_type M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw)", doc = """""")
 

@@ -85,4 +85,28 @@ namespace triqs_ctint {
     return G2_iw;
   }
 
+  chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct) {
+
+    int n_blocks = G_iw.size();
+    double beta  = G_iw[0].domain().beta;
+
+    // Choose ranges such that
+    int n_iw_G2      = G2c_iw(0, 0).data().shape()[0] / 2;
+    int n_iw         = n_iw_G2 / 2;
+    int n_iW         = n_iw_G2 / 2;
+    auto imfreq_ferm = gf_mesh<imfreq>{beta, Fermion, n_iw};
+    auto imfreq_bos  = gf_mesh<imfreq>{beta, Boson, n_iW};
+    auto mesh        = gf_mesh{imfreq_ferm, imfreq_ferm, imfreq_bos};
+
+    chi4_iw_t chi_tilde_ph = make_block2_gf(mesh, gf_struct);
+
+    // Calculate generalized susceptibility in the ph channel from G2c_iw and G_iw
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks))
+        chi_tilde_ph(bl1, bl2)(iw_, iwp_, iW_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw_, iw_ + iW_, iwp_ + iW_)(i_, j_, k_, l_)
+              - beta * kronecker(bl1, bl2) * kronecker(iw_, iwp_) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iwp_ + iW_)(j_, k_);
+
+    return chi_tilde_ph;
+  }
+
 } // namespace triqs_ctint

@@ -13,6 +13,9 @@ namespace triqs_ctint {
   /// Calculate the two-particle Green function from G2c_iw and G_iw
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw);
 
+  /// Calculate the generalized ph susceptibility from G2c_iw and G_iw
+  chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct);
+
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
   template <Chan_t Chan> chi3_iw_t chi3_from_M3(chi3_iw_t::const_view_type M3_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
 
