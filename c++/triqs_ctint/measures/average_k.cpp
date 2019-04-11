@@ -12,9 +12,9 @@ namespace triqs_ctint::measures {
     ++N;
   }
 
-  void average_k::collect_results(triqs::mpi::communicator const &comm) {
-    average_k_ = mpi_all_reduce(average_k_, comm);
-    N          = mpi_all_reduce(N, comm);
+  void average_k::collect_results(mpi::communicator const &comm) {
+    average_k_ = mpi::all_reduce(average_k_, comm);
+    N          = mpi::all_reduce(N, comm);
     average_k_ = average_k_ / N;
   }
 

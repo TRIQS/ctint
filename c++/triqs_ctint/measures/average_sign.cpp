@@ -12,9 +12,9 @@ namespace triqs_ctint::measures {
     ++count;
   }
 
-  void average_sign::collect_results(triqs::mpi::communicator const &comm) {
-    average_sign_ = mpi_all_reduce(average_sign_, comm);
-    count         = mpi_all_reduce(count, comm);
+  void average_sign::collect_results(mpi::communicator const &comm) {
+    average_sign_ = mpi::all_reduce(average_sign_, comm);
+    count         = mpi::all_reduce(count, comm);
     average_sign_ = average_sign_ / count;
   }
 

@@ -69,10 +69,10 @@ namespace triqs_ctint::measures {
       }
   }
 
-  void M4_iw::collect_results(triqs::mpi::communicator const &comm) {
+  void M4_iw::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z      = mpi_all_reduce(Z, comm);
-    M4_iw_ = mpi_all_reduce(M4_iw_, comm);
+    Z      = mpi::all_reduce(Z, comm);
+    M4_iw_ = mpi::all_reduce(M4_iw_, comm);
     M4_iw_ = M4_iw_ / (Z * params.beta);
   }
 

@@ -7,7 +7,7 @@
 using namespace triqs_ctint;
 
 TEST(CtInt, Anderson) { // NOLINT
-  triqs::mpi::communicator world;
+  mpi::communicator world;
 
   // System Parameters
   double delta = 0.35;

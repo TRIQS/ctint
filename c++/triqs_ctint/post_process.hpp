@@ -279,8 +279,8 @@ namespace triqs_ctint {
       M_del[n_tau_M3_del - 1] *= 0.5;
     }
 
-    auto comm = triqs::mpi::communicator{};
-    for (auto &t : mpi_slice(tau_mesh_chi2, comm)) {
+    auto comm = mpi::communicator{};
+    for (auto &t : mpi::chunk(tau_mesh_chi2, comm)) {
 
       // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
       if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_chi2 - 1) continue;
@@ -391,7 +391,7 @@ namespace triqs_ctint {
       }
     }
 
-    chi2_conn() = mpi_all_reduce(chi2_conn, comm);
+    chi2_conn() = mpi::all_reduce(chi2_conn, comm);
 
     for (auto &t : tau_mesh_chi2) {
       // We perform a linear interpolation for the problematic Meshpoints of chi2_conn

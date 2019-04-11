@@ -80,10 +80,10 @@ namespace triqs_ctint::measures {
       }
   }
 
-  template <Chan_t Chan> void chi2_tau<Chan>::collect_results(triqs::mpi::communicator const &comm) {
+  template <Chan_t Chan> void chi2_tau<Chan>::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z         = mpi_all_reduce(Z, comm);
-    chi2_tau_ = mpi_all_reduce(chi2_tau_, comm);
+    Z         = mpi::all_reduce(Z, comm);
+    chi2_tau_ = mpi::all_reduce(chi2_tau_, comm);
     chi2_tau_ = chi2_tau_ / Z;
   }
 

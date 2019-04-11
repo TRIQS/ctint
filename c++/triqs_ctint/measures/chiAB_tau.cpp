@@ -81,10 +81,10 @@ namespace triqs_ctint::measures {
       }
   }
 
-  void chiAB_tau::collect_results(triqs::mpi::communicator const &comm) {
+  void chiAB_tau::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z          = mpi_all_reduce(Z, comm);
-    chiAB_tau_ = mpi_all_reduce(chiAB_tau_, comm);
+    Z          = mpi::all_reduce(Z, comm);
+    chiAB_tau_ = mpi::all_reduce(chiAB_tau_, comm);
     chiAB_tau_ = chiAB_tau_ / Z;
   }
 

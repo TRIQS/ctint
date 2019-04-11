@@ -40,14 +40,14 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M_iw::collect_results(triqs::mpi::communicator const &comm) {
+  void M_iw::collect_results(mpi::communicator const &comm) {
     // Flush remaining points in nfft buffers
     for (auto &buf_arr : buf_vec)
       for (auto &buf : buf_arr) buf.flush();
 
     // Collect results and normalize
-    Z     = mpi_all_reduce(Z, comm);
-    M_iw_ = mpi_all_reduce(M_iw_, comm);
+    Z     = mpi::all_reduce(Z, comm);
+    M_iw_ = mpi::all_reduce(M_iw_, comm);
     M_iw_ = M_iw_ / (-Z * params.beta);
   }
 

@@ -1,7 +1,7 @@
 #include <triqs_ctint/solver_core.hpp>
 
 #include <triqs/h5.hpp>
-#include <triqs/mpi/base.hpp>
+#include <mpi/mpi.hpp>
 #include <triqs/gfs/gf_tests.hpp>
 #include <triqs/clef.hpp>
 
@@ -13,8 +13,8 @@ using namespace triqs::h5;
 
 int main(int argc, char **argv) {
 
-  auto env  = triqs::mpi::environment(argc, argv);
-  auto comm = triqs::mpi::communicator();
+  auto env  = mpi::environment(argc, argv);
+  auto comm = mpi::communicator();
 
   // Hubbard Atom parameters
   double U    = 1.0;

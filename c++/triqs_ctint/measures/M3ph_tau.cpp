@@ -134,11 +134,11 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M3ph_tau::collect_results(triqs::mpi::communicator const &comm) {
+  void M3ph_tau::collect_results(mpi::communicator const &comm) {
     // Collect results
-    Z           = mpi_all_reduce(Z, comm);
-    M3ph_tau_   = mpi_all_reduce(M3ph_tau_, comm);
-    M3ph_delta_ = mpi_all_reduce(M3ph_delta_, comm);
+    Z           = mpi::all_reduce(Z, comm);
+    M3ph_tau_   = mpi::all_reduce(M3ph_tau_, comm);
+    M3ph_delta_ = mpi::all_reduce(M3ph_delta_, comm);
 
     // Normalize
     int n       = params.n_tau_M3 - 1;

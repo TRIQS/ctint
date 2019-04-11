@@ -38,11 +38,11 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void density::collect_results(triqs::mpi::communicator const &comm) {
+  void density::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z = mpi_all_reduce(Z, comm);
+    Z = mpi::all_reduce(Z, comm);
     for (auto &dens_mat : density_) {
-      dens_mat = mpi_all_reduce(dens_mat, comm);
+      dens_mat = mpi::all_reduce(dens_mat, comm);
       dens_mat = dens_mat / Z;
     }
   }

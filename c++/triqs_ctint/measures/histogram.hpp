@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
     void accumulate(mc_weight_t sign);
 
     /// Reduce and normalize
-    void collect_results(triqs::mpi::communicator const &comm);
+    void collect_results(mpi::communicator const &comm);
 
     private:
     // The Monte-Carlo configuration

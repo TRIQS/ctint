@@ -14,17 +14,17 @@ namespace triqs_ctint::measures {
     ++N;
   }
 
-  void histogram::collect_results(triqs::mpi::communicator const &comm) {
-    N = mpi_all_reduce(N, comm);
+  void histogram::collect_results(mpi::communicator const &comm) {
+    N = mpi::all_reduce(N, comm);
 
     // Make sure that all mpi threads have an equally sized histogram
     auto max_k_vec         = std::vector<size_t>(comm.size());
     max_k_vec[comm.rank()] = histogram_->size();
-    max_k_vec              = mpi_all_reduce(max_k_vec, comm);
+    max_k_vec              = mpi::all_reduce(max_k_vec, comm);
     histogram_->resize(*std::max_element(max_k_vec.begin(), max_k_vec.end()));
 
     // Reduce histogram over all mpi threads
-    histogram_ = mpi_all_reduce(histogram_.value(), comm);
+    histogram_ = mpi::all_reduce(histogram_.value(), comm);
     for (auto &h_k : histogram_.value()) h_k = h_k / N;
   }
 } // namespace triqs_ctint::measures

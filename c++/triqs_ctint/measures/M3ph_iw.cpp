@@ -121,10 +121,10 @@ namespace triqs_ctint::measures {
       }
   }
 
-  void M3ph_iw::collect_results(triqs::mpi::communicator const &comm) {
+  void M3ph_iw::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z        = mpi_all_reduce(Z, comm);
-    M3ph_iw_ = mpi_all_reduce(M3ph_iw_, comm);
+    Z        = mpi::all_reduce(Z, comm);
+    M3ph_iw_ = mpi::all_reduce(M3ph_iw_, comm);
     M3ph_iw_ = M3ph_iw_ / Z;
   }
 

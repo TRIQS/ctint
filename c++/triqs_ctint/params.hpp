@@ -74,7 +74,7 @@ namespace triqs_ctint {
     int n_warmup_cycles = 5000;
 
     /// Random seed of the random generator
-    int random_seed = 34788 + 928374 * triqs::mpi::communicator().rank();
+    int random_seed = 34788 + 928374 * mpi::communicator().rank();
 
     /// Name of the random generator
     std::string random_name = "";
@@ -86,7 +86,7 @@ namespace triqs_ctint {
     int max_time = -1;
 
     /// Verbosity
-    int verbosity = triqs::mpi::communicator().rank() == 0 ? 3 : 0;
+    int verbosity = mpi::communicator().rank() == 0 ? 3 : 0;
 
     // ----------- Measurements -----------
 

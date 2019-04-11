@@ -55,7 +55,7 @@ namespace triqs_ctint {
 
     private:
     // Mpi Communicator
-    triqs::mpi::communicator world;
+    mpi::communicator world;
 
     // Calculate G0_shift_tau given G0_iw
     void prepare_G0_shift_tau(params_t const &params);

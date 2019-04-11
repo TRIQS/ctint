@@ -39,14 +39,14 @@ namespace triqs_ctint::measures {
     }
   }
 
-  void M_tau::collect_results(triqs::mpi::communicator const &comm) {
+  void M_tau::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
-    Z           = mpi_all_reduce(Z, comm);
-    M_tau_      = mpi_all_reduce(M_tau_, comm);
+    Z           = mpi::all_reduce(Z, comm);
+    M_tau_      = mpi::all_reduce(M_tau_, comm);
     double dtau = M_tau_[0].mesh().delta();
     M_tau_      = M_tau_ / (-Z * dtau * params.beta);
     for (auto &m : M_hartree_) {
-      m = mpi_all_reduce(m, comm);
+      m = mpi::all_reduce(m, comm);
       m = m / (-Z * params.beta);
     }
 

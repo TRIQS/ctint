@@ -22,12 +22,13 @@
 #pragma once
 
 #include <triqs/gfs.hpp>
-#include <triqs/mpi/base.hpp>
 #include <triqs/arrays/block_matrix.hpp>
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
 #include <triqs/operators/util/extractors.hpp>
-#include <triqs/utility/itertools.hpp>
+
+#include <itertools/itertools.hpp>
+#include <mpi/mpi.hpp>
 
 #include <iostream>
 #include <string>
@@ -45,7 +46,7 @@ namespace triqs_ctint {
   using namespace triqs::utility;
   using namespace triqs::h5;
 
-  using namespace itertools;
+  using namespace itertools; 
 
   /// The channel type
   enum class Chan_t { PP, PH, XPH };
@@ -257,7 +258,7 @@ namespace triqs::operators {
     std::string op_bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
 
     // Capture positions in block and nonblock list
-    for (auto [bl_int_idx, bl] : utility::enumerate(gf_struct)) {
+    for (auto [bl_int_idx, bl] : itertools::enumerate(gf_struct)) {
       auto const &[bl_name, idx_lst] = bl;
       if (bl_name == op_bl_name) {
         int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));

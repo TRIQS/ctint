@@ -408,7 +408,7 @@ c.add_member(c_name = "n_warmup_cycles",
 
 c.add_member(c_name = "random_seed",
              c_type = "int",
-             initializer = """ 34788+928374*triqs::mpi::communicator().rank() """,
+             initializer = """ 34788+928374*mpi::communicator().rank() """,
              doc = """Random seed of the random generator""")
 
 c.add_member(c_name = "random_name",
@@ -428,7 +428,7 @@ c.add_member(c_name = "max_time",
 
 c.add_member(c_name = "verbosity",
              c_type = "int",
-             initializer = """ triqs::mpi::communicator().rank()==0?3:0 """,
+             initializer = """ mpi::communicator().rank()==0?3:0 """,
              doc = """Verbosity""")
 
 c.add_member(c_name = "measure_average_sign",
