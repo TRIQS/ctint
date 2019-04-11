@@ -45,6 +45,8 @@ namespace triqs_ctint {
   using namespace triqs::utility;
   using namespace triqs::h5;
 
+  using namespace itertools;
+
   /// The channel type
   enum class Chan_t { PP, PH, XPH };
 

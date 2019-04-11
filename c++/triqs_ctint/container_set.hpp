@@ -93,22 +93,22 @@ namespace triqs_ctint {
     std::optional<chi2_iw_t> chi2ph_iw;
 
     /// M2 in the particle-particle channel in imaginary time as obtained from M3
-    std::optional<chi2_tau_t> chi2pp_conn_tau;
+    std::optional<chi2_tau_t> chi2pp_conn_tau_from_M3;
 
     /// M2 in the particle-hole channel in imaginary time as obtained from M3
-    std::optional<chi2_tau_t> chi2ph_conn_tau;
+    std::optional<chi2_tau_t> chi2ph_conn_tau_from_M3;
 
     /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary times as obtained from M3pp_tau
-    std::optional<chi2_tau_t> chi2pp_new_tau;
+    std::optional<chi2_tau_t> chi2pp_tau_from_M3;
 
     /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained from M3ph_tau
-    std::optional<chi2_tau_t> chi2ph_new_tau;
+    std::optional<chi2_tau_t> chi2ph_tau_from_M3;
 
     /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary frequencies as obtained from M3pp_tau
-    std::optional<chi2_iw_t> chi2pp_new_iw;
+    std::optional<chi2_iw_t> chi2pp_iw_from_M3;
 
     /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau
-    std::optional<chi2_iw_t> chi2ph_new_iw;
+    std::optional<chi2_iw_t> chi2ph_iw_from_M3;
 
     /// The correlation function $\chi_AB$ in imaginary frequencies
     std::optional<gf<imfreq>> chiAB_iw;
@@ -155,10 +155,10 @@ namespace triqs_ctint {
       h5_write(grp, "G2c_iw", c.G2c_iw);
       h5_write(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_write(grp, "chi2ph_iw", c.chi2ph_iw);
-      h5_write(grp, "M2pp_tau", c.chi2pp_conn_tau);
-      h5_write(grp, "M2ph_tau", c.chi2ph_conn_tau);
-      h5_write(grp, "chi2pp_new_tau", c.chi2pp_new_tau);
-      h5_write(grp, "chi2ph_new_tau", c.chi2ph_new_tau);
+      h5_write(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
+      h5_write(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);
+      h5_write(grp, "chi2pp_tau_from_M3", c.chi2pp_tau_from_M3);
+      h5_write(grp, "chi2ph_tau_from_M3", c.chi2ph_tau_from_M3);
       h5_write(grp, "chiAB_iw", c.chiAB_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
@@ -201,10 +201,10 @@ namespace triqs_ctint {
       h5_read(grp, "G2c_iw", c.G2c_iw);
       h5_read(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
-      h5_read(grp, "M2pp_tau", c.chi2pp_conn_tau);
-      h5_read(grp, "M2ph_tau", c.chi2ph_conn_tau);
-      h5_read(grp, "chi2pp_new_tau", c.chi2pp_new_tau);
-      h5_read(grp, "chi2ph_new_tau", c.chi2ph_new_tau);
+      h5_read(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
+      h5_read(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);
+      h5_read(grp, "chi2pp_tau_from_M3", c.chi2pp_tau_from_M3);
+      h5_read(grp, "chi2ph_tau_from_M3", c.chi2ph_tau_from_M3);
       h5_read(grp, "chiAB_iw", c.chiAB_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);

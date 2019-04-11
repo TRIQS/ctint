@@ -84,8 +84,8 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chi2pp_iw"] = S.chi2pp_iw
     arch["chi2ph_iw"] = S.chi2ph_iw
     arch["chiAB_iw"] = S.chiAB_iw
-    arch["chi2pp_new_tau"] = S.chi2pp_new_tau
-    arch["chi2ph_new_tau"] = S.chi2ph_new_tau
+    arch["chi2pp_tau_from_M3"] = S.chi2pp_tau_from_M3
+    arch["chi2ph_tau_from_M3"] = S.chi2ph_tau_from_M3
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
