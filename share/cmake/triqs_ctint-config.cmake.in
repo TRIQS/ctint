@@ -14,7 +14,7 @@ set(CTINT_GIT_HASH @CTINT_GIT_HASH@)
 set(CTINT_ROOT  @CMAKE_INSTALL_PREFIX@)
 
 # Include the exported targets of this project
-include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs/app4triqs-targets.cmake)
+include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs/triqs_ctint-targets.cmake)
 
 MESSAGE(STATUS "Found CTINTConfig.cmake with version ${CTINT_VERSION}, hash = ${CTINT_GIT_HASH}")
 

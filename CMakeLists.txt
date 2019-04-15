@@ -31,7 +31,7 @@ add_compile_options(-Wall
 find_package(TRIQS 2.2 REQUIRED)
 find_package(Cpp2Py 1.6 REQUIRED)
 find_package(NFFT REQUIRED)
-install(TARGETS nfft EXPORT ctint-targets)
+install(TARGETS nfft EXPORT triqs_ctint-targets)
 
 # Default Install directory to TRIQS_ROOT if not given or invalid.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
@@ -46,7 +46,7 @@ set(CTINT_VERSION_MINOR 9)
 set(CTINT_VERSION_PATCH 0)
 set(CTINT_VERSION ${CTINT_VERSION_MAJOR}.${CTINT_VERSION_MINOR}.${CTINT_VERSION_PATCH})
 triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
-MESSAGE(STATUS "ctint version : ${CTINT_VERSION}")
+MESSAGE(STATUS "triqs_ctint version : ${CTINT_VERSION}")
 message(STATUS "Git hash: ${CTINT_GIT_HASH}")
 
 # Build and install the ctint library

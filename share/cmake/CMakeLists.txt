@@ -7,4 +7,4 @@ install(
   DESTINATION lib/cmake/triqs_ctint
 )
 
-install(EXPORT ctint-targets DESTINATION lib/cmake/triqs_ctint)
+install(EXPORT triqs_ctint-targets DESTINATION lib/cmake/triqs_ctint)

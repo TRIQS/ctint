@@ -2,8 +2,8 @@
 add_cpp2py_module(solver_core)
 add_cpp2py_module(post_process)
 
-target_link_libraries(solver_core ctint_c)
-target_link_libraries(post_process ctint_c)
+target_link_libraries(solver_core triqs_ctint_c)
+target_link_libraries(post_process triqs_ctint_c)
 
 # Configure the version
 configure_file(version.py.in version.py)
