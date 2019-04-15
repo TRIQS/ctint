@@ -1,20 +1,24 @@
+# This file allows other CMake Projects to find us
+# We provide general project information
+# and reestablish the exported CMake Targets
+
 # Multiple inclusion guard
-if (NOT CTINT_FOUND) 
+if(NOT CTINT_FOUND)
 set(CTINT_FOUND True)
 
 # version
 set(CTINT_VERSION @CTINT_VERSION@)
 set(CTINT_GIT_HASH @CTINT_GIT_HASH@)
 
-# Root of the installation 
+# Root of the installation
 set(CTINT_ROOT  @CMAKE_INSTALL_PREFIX@)
 
-# include the exported targets of this project 
-include(@CMAKE_INSTALL_PREFIX@/share/cmake/ctint-targets.cmake)
+# Include the exported targets of this project
+include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs/app4triqs-targets.cmake)
 
 MESSAGE(STATUS "Found CTINTConfig.cmake with version ${CTINT_VERSION}, hash = ${CTINT_GIT_HASH}")
 
-# Documentation
+# Was the Project built with Documentation?
 set(CTINT_WITH_DOCUMENTATION @Build_Documentation@)
 
-endif (NOT CTINT_FOUND) 
+endif()
