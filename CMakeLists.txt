@@ -41,8 +41,8 @@ endif()
 message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 
 # Define the ctint version numbers and get the git hash
-set(CTINT_VERSION_MAJOR 0)
-set(CTINT_VERSION_MINOR 9)
+set(CTINT_VERSION_MAJOR 2)
+set(CTINT_VERSION_MINOR 2)
 set(CTINT_VERSION_PATCH 0)
 set(CTINT_VERSION ${CTINT_VERSION_MAJOR}.${CTINT_VERSION_MINOR}.${CTINT_VERSION_PATCH})
 triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
