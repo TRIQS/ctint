@@ -155,10 +155,12 @@ namespace triqs_ctint {
       h5_write(grp, "G2c_iw", c.G2c_iw);
       h5_write(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_write(grp, "chi2ph_iw", c.chi2ph_iw);
-      h5_write(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
-      h5_write(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);
+      h5_write(grp, "chi2pp_conn_tau_from_M3", c.chi2pp_conn_tau_from_M3);
+      h5_write(grp, "chi2ph_conn_tau_from_M3", c.chi2ph_conn_tau_from_M3);
       h5_write(grp, "chi2pp_tau_from_M3", c.chi2pp_tau_from_M3);
       h5_write(grp, "chi2ph_tau_from_M3", c.chi2ph_tau_from_M3);
+      h5_write(grp, "chi2pp_iw_from_M3", c.chi2pp_iw_from_M3);
+      h5_write(grp, "chi2ph_iw_from_M3", c.chi2ph_iw_from_M3);
       h5_write(grp, "chiAB_iw", c.chiAB_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
@@ -170,14 +172,19 @@ namespace triqs_ctint {
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       // Useful to keep backward compatibility for older solvers
-      auto h5_try_read = [](triqs::h5::group grp, std::string key_name, auto &obj){
-	if(grp.has_key(key_name)) h5_read(grp, key_name, obj);
-	else std::cout << "WARNING: Could not find key " << key_name << " during h5_read!\n";
+      auto h5_try_read = [](triqs::h5::group grp, std::string key_name, auto &obj) {
+        if (!grp.has_key(key_name))
+          std::cerr << "WARNING: Could not find key " << key_name << " during h5_read!\n";
+        else {
+          try {
+            h5_read(grp, key_name, obj);
+          } catch (triqs::runtime_error &) { std::cerr << "WARNING: Failure to h5_read " << key_name << "\n"; }
+        }
       };
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);
       h5_read(grp, "histogram", c.histogram);
-      h5_read(grp, "density", c.density);
+      h5_try_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_hartree", c.M_hartree);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
@@ -201,10 +208,19 @@ namespace triqs_ctint {
       h5_read(grp, "G2c_iw", c.G2c_iw);
       h5_read(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
-      h5_read(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
-      h5_read(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);
+      h5_read(grp, "chi2pp_conn_tau_from_M3", c.chi2pp_conn_tau_from_M3);
+      h5_read(grp, "chi2ph_conn_tau_from_M3", c.chi2ph_conn_tau_from_M3);
       h5_read(grp, "chi2pp_tau_from_M3", c.chi2pp_tau_from_M3);
       h5_read(grp, "chi2ph_tau_from_M3", c.chi2ph_tau_from_M3);
+      h5_read(grp, "chi2pp_iw_from_M3", c.chi2pp_iw_from_M3);
+      h5_read(grp, "chi2ph_iw_from_M3", c.chi2ph_iw_from_M3);
+      // For backward compatibility we keep these additional reads
+      if(!c.chi2pp_conn_tau_from_M3) h5_read(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
+      if(!c.chi2ph_conn_tau_from_M3) h5_read(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);
+      if(!c.chi2pp_tau_from_M3) h5_read(grp, "chi2pp_new_tau", c.chi2pp_tau_from_M3);
+      if(!c.chi2ph_tau_from_M3) h5_read(grp, "chi2ph_new_tau", c.chi2ph_tau_from_M3);
+      if(!c.chi2pp_iw_from_M3) h5_read(grp, "chi2pp_new_iw", c.chi2pp_iw_from_M3);
+      if(!c.chi2ph_iw_from_M3) h5_read(grp, "chi2ph_new_iw", c.chi2ph_iw_from_M3);
       h5_read(grp, "chiAB_iw", c.chiAB_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
