@@ -14,9 +14,9 @@ set(CTINT_GIT_HASH @CTINT_GIT_HASH@)
 set(CTINT_ROOT  @CMAKE_INSTALL_PREFIX@)
 
 # Include the exported targets of this project
-include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs/triqs_ctint-targets.cmake)
+include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs_ctint/triqs_ctint-targets.cmake)
 
-MESSAGE(STATUS "Found CTINTConfig.cmake with version ${CTINT_VERSION}, hash = ${CTINT_GIT_HASH}")
+message(STATUS "Found triqs_ctint-config.cmake with version ${CTINT_VERSION}, hash = ${CTINT_GIT_HASH}")
 
 # Was the Project built with Documentation?
 set(CTINT_WITH_DOCUMENTATION @Build_Documentation@)

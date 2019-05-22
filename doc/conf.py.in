@@ -13,14 +13,14 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode',
               'sphinx.ext.autosummary',
-              'plot_directive',
               'numpydoc',
+              'plot_directive',
               'autorun']
 
 source_suffix = '.rst'
 
-project = u'TRIQS Interaction Expansion Solver'
-copyright = u'2016-2018, N. Wentzell, M. Ferrero, O. Parcollet'
+project = u'CTINT - A TRIQS Interaction Expansion Solver'
+copyright = u'2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
 version = '@CTINT_VERSION@'
 
 mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
@@ -30,14 +30,14 @@ html_theme = 'triqs'
 html_theme_path = ['@TRIQS_THEMES_PATH@']
 html_show_sphinx = False
 html_context = {'header_title': 'ctint',
-                'header_subtitle': 'a generic quantum impurity solver based on the <a class="triqs" style="font-size: 12px" href="http://ipht.cea.fr/triqs">TRIQS</a> library',
+                'header_subtitle': 'A generic quantum impurity solver based on the <a class="triqs" style="font-size: 12px" href="http://triqs.github.io">TRIQS</a> library',
                 'header_links': [['Install', 'install'],
                                  ['Documentation', 'documentation'],
                                  ['Issues', 'issues'],
-                                 ['About CTINT', 'about']]}
+                                 ['About ctint', 'about']]}
 html_static_path = ['@CMAKE_SOURCE_DIR@/doc/_static']
 html_sidebars = {'index': ['sideb.html', 'searchbox.html']}
 
-htmlhelp_basename = 'TRIQSCTINTdoc'
+htmlhelp_basename = 'CTINTdoc'
 
 intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None), 'triqslibs': ('https://triqs.github.io/triqs/master', None)}

@@ -26,7 +26,7 @@ triqs_hash = "@TRIQS_GIT_HASH@"
 ctint_hash = "@CTINT_GIT_HASH@"
 
 def show_version():
-  print "\nYou are using the ctint solver version %s\n"%version
+  print "\nYou are using triqs_ctint version %s\n"%version
 
 def show_git_hash():
-  print "\nYou are using the ctint solver git hash %s based on triqs git hash %s\n"%(ctint_hash, triqs_hash)
+  print "\nYou are using triqs_ctint git hash %s based on triqs git hash %s\n"%(ctint_hash, triqs_hash)

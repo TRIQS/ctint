@@ -4,8 +4,8 @@ add_library(triqs_ctint_c ${sources})
 # Link against dependencies
 target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE nfft)
 
-# Configure compilation 
-target_compile_options(triqs_ctint_c PUBLIC -std=c++17 -fPIC)
+# Configure compilation
+target_compile_options(triqs_ctint_c PUBLIC -fPIC)
 target_include_directories(triqs_ctint_c PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/c++>)
 target_compile_definitions(triqs_ctint_c PUBLIC
 				CTINT_GIT_HASH=${CTINT_GIT_HASH}

@@ -22,10 +22,12 @@ set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Enable compiler warnings for the whole project
-add_compile_options(-Wall
-		     $<$<CONFIG:Debug>:-Og>
-		     $<$<CONFIG:Debug>:-ggdb3>
-		     )
+add_compile_options(
+		-Wall
+		-Wextra
+		$<$<CONFIG:Debug>:-Og>
+		$<$<CONFIG:Debug>:-ggdb3>
+		)
 
 # Load Dependencies
 find_package(TRIQS 2.2 REQUIRED)
@@ -35,12 +37,12 @@ install(TARGETS nfft EXPORT triqs_ctint-targets)
 
 # Default Install directory to TRIQS_ROOT if not given or invalid.
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
-  message(STATUS " No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+  message(STATUS "No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
   set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
 endif()
 message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 
-# Define the ctint version numbers and get the git hash
+# Define the triqs_ctint version numbers and get the git hash
 set(CTINT_VERSION_MAJOR 2)
 set(CTINT_VERSION_MINOR 2)
 set(CTINT_VERSION_PATCH 0)
@@ -49,7 +51,10 @@ triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
 MESSAGE(STATUS "triqs_ctint version : ${CTINT_VERSION}")
 message(STATUS "Git hash: ${CTINT_GIT_HASH}")
 
-# Build and install the ctint library
+# Build and install the triqs_ctint library
+message(STATUS "triqs_ctint version : ${CTINT_VERSION}")
+message(STATUS "Git hash: ${CTINT_GIT_HASH}")
+
 add_subdirectory(c++/triqs_ctint)
 
 # Tests

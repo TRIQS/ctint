@@ -1,8 +1,8 @@
 #%Module1.0
 #
-# To be installed as ${MODULEPATH}/ctint/@CTINT_VERSION@
+# To be installed as ${MODULEPATH}/triqs_ctint/@CTINT_VERSION@
 
-set     name        ctint
+set     name        triqs_ctint
 set     version     @CTINT_VERSION@
 set     root        @CMAKE_INSTALL_PREFIX@
 set     git_hash    @CTINT_GIT_HASH@
@@ -24,7 +24,7 @@ proc ModulesHelp { } {
 # is installed under a different name in your setup.
 prereq triqs/@TRIQS_VERSION@
 
-# Only one version of ctint can be loaded at a time
+# Only one version of triqs_ctint can be loaded at a time
 conflict $name
 
 setenv          CTINT_ROOT      $root

@@ -1,23 +1,33 @@
-
-.. module:: triqs_ctint
+<<<<<<< HEAD
 
 .. _documentation:
 
 Documentation
 =============
 
-.. warning::
-  To be done. These are just notes.
-
-* For now ``time_accumulation`` does nothing, so it is only a frequency measurement.
-
-
-Further documentation
----------------------
+Table of Contents
+-----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 5
 
-   examples/examples
-   reference
+   index
+   install
+   issues
+   changelog
+   about
+
+C++ reference manual
+--------------------
+
+.. toctree::
+   :maxdepth: 5
+
+   cpp2rst_generated/triqs_ctint/solver_core
+
+Python reference manual
+-----------------------
+
+.. automodule:: triqs_ctint 
+   :members:
 

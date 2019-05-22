@@ -3,9 +3,9 @@
 The interaction-expansion solver
 ================================
 
-.. sidebar:: ctint 2.2
+.. sidebar:: ctint 2.2.0
 
-   This is the homepage ctint Version 2.2
+   This is the homepage ctint Version 2.2.0
    For changes see, Cf :ref:`changelog page <changelog>`
 
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver
@@ -40,7 +40,6 @@ so that the non-interacting Green's function of the impurity is:
 
 With the knowledge of :math:`G_0` and the matrix :math:`U_{\alpha\beta\gamma\delta}`,
 the quantum impurity solvers find the interacting Green's function :math:`G` of the
-problem. Learn how to use it in the :ref:`documentation`.
+problem.
 
-.. toctree::
-   :maxdepth: 2
+Lets have a look at the :ref:`documentation <documentation>`.
