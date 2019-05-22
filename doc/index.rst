@@ -1,11 +1,11 @@
 .. _welcome:
 
-app4triqs
+triqs_ctint
 =========
 
-.. sidebar:: app4triqs 2.2.0
+.. sidebar:: triqs_ctint 2.2.0
 
-   This is the homepage of app4triqs v2.2.0.
+   This is the homepage of triqs_ctint v2.2.0.
    For changes see the :ref:`changelog page <changelog>`.
 
 An example application using cpp2py and TRIQS.

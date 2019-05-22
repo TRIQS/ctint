@@ -2,7 +2,7 @@
 
 .. _install:
 
-Compiling app4triqs from source
+Compiling triqs_ctint from source
 ===============================
 
 
@@ -15,13 +15,13 @@ Prerequisites
 Installation steps
 ------------------
 
-#. Download the source code of the latest stable version by cloning the ``TRIQS/app4triqs`` repository from GitHub::
+#. Download the source code of the latest stable version by cloning the ``TRIQS/triqs_ctint`` repository from GitHub::
 
-     $ git clone https://github.com/TRIQS/app4triqs app4triqs.src
+     $ git clone https://github.com/TRIQS/triqs_ctint triqs_ctint.src
 
 #. Create and move to a new directory where you will compile the code::
 
-     $ mkdir app4triqs.build && cd app4triqs.build
+     $ mkdir triqs_ctint.build && cd triqs_ctint.build
 
 #. Ensure that your shell contains the TRIQS environment variables by sourcing the ``triqsvars.sh`` file from your TRIQS installation::
 
@@ -29,7 +29,7 @@ Installation steps
 
 #. In the build directory call cmake, including any additional custom CMake options, see below::
 
-     $ cmake ../app4triqs.src
+     $ cmake ../triqs_ctint.src
 
 #. Compile the code, run the tests and install the application::
 
@@ -40,12 +40,12 @@ Installation steps
 Version compatibility
 ---------------------
 
-Keep in mind that the version of ``app4triqs`` must be compatible with your TRIQS library version,
+Keep in mind that the version of ``triqs_ctint`` must be compatible with your TRIQS library version,
 see :ref:`TRIQS website <triqslibs:versions>`.
 In particular the Major and Minor Version numbers have to be the same.
 To use a particular version, go into the directory with the sources, and look at all available versions::
 
-     $ cd app4triqs.src && git tag
+     $ cd triqs_ctint.src && git tag
 
 Checkout the version of the code that you want::
 
@@ -56,14 +56,14 @@ and follow steps 2 to 4 above to compile the code.
 Custom CMake options
 --------------------
 
-The compilation of ``app4triqs`` can be configured using CMake-options::
+The compilation of ``triqs_ctint`` can be configured using CMake-options::
 
-    cmake ../app4triqs.src -DOPTION1=value1 -DOPTION2=value2 ... ../app4triqs.src
+    cmake ../triqs_ctint.src -DOPTION1=value1 -DOPTION2=value2 ... ../triqs_ctint.src
 
 +-----------------------------------------------------------------+-----------------------------------------------+
 | Options                                                         | Syntax                                        |
 +=================================================================+===============================================+
-| Specify an installation path other than path_to_triqs           | -DCMAKE_INSTALL_PREFIX=path_to_app4triqs      |
+| Specify an installation path other than path_to_triqs           | -DCMAKE_INSTALL_PREFIX=path_to_triqs_ctint      |
 +-----------------------------------------------------------------+-----------------------------------------------+
 | Build in Debugging Mode                                         | -DCMAKE_BUILD_TYPE=Debug                      |
 +-----------------------------------------------------------------+-----------------------------------------------+
