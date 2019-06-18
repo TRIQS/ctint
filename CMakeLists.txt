@@ -53,9 +53,6 @@ MESSAGE(STATUS "triqs_ctint version : ${CTINT_VERSION}")
 message(STATUS "Git hash: ${CTINT_GIT_HASH}")
 
 # Build and install the triqs_ctint library
-message(STATUS "triqs_ctint version : ${CTINT_VERSION}")
-message(STATUS "Git hash: ${CTINT_GIT_HASH}")
-
 add_subdirectory(c++/triqs_ctint)
 
 # Tests
