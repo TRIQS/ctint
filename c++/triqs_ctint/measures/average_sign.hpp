@@ -7,7 +7,7 @@ namespace triqs_ctint::measures {
   /// Measure of the average sign
   struct average_sign {
 
-    average_sign(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+    average_sign(params_t const &, qmc_config_t const &, container_set *results);
 
     /// Accumulate average sign
     void accumulate(mc_weight_t sign);

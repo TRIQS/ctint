@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
     M3ph_iw(M3ph_iw &&)      = default;
     ~M3ph_iw()               = default;
     M3ph_iw &operator=(M3ph_iw const &) = delete;
-    M3ph_iw &operator=(M3ph_iw &&) = default;
+    M3ph_iw &operator=(M3ph_iw &&) = delete;
 
     /// Accumulate M_tau using binning
     void accumulate(mc_weight_t sign);

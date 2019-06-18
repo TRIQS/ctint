@@ -7,10 +7,10 @@ namespace triqs_ctint::measures {
   // Measure the histogram of perturbation order
   struct histogram {
 
-    histogram(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+    histogram(params_t const &, qmc_config_t const &qmc_config_, container_set *results);
 
     /// Accumulate perturbation order into histogram
-    void accumulate(mc_weight_t sign);
+    void accumulate(mc_weight_t);
 
     /// Reduce and normalize
     void collect_results(mpi::communicator const &comm);

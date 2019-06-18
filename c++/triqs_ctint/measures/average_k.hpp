@@ -7,10 +7,10 @@ namespace triqs_ctint::measures {
   /// Measure of the average perturbation order
   struct average_k {
 
-    average_k(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+    average_k(params_t const &, qmc_config_t const &qmc_config_, container_set *results);
 
     /// Accumulate average sign
-    void accumulate(mc_weight_t sign);
+    void accumulate(mc_weight_t);
 
     /// Reduce and normalize
     void collect_results(mpi::communicator const &comm);

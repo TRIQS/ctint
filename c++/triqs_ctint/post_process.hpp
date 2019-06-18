@@ -69,7 +69,6 @@ namespace triqs_ctint {
                     + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, n, k_, l_);
 
           // Disconnected part
-          matrix_view<dcomplex>{km(1, ellipsis())} = 1.0;
           chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
                 + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * dens_G[bl2](l_, k_)
                 - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
@@ -230,7 +229,7 @@ namespace triqs_ctint {
   /// Calculate the chi2_conn from M3
   template <Chan_t Chan>
   chi2_tau_t chi2_conn_from_M3(chi3_tau_cv_t M3, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                               block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
+                               block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
 
     double beta  = G0_tau[0].domain().beta;
     int n_blocks = G0_tau.size();
@@ -247,8 +246,8 @@ namespace triqs_ctint {
     // We can calculate chi2_conn accurately only inbetween two tau-points of M3
     int n_tau_chi2     = n_tau_M3 * 2 - 1;
     auto tau_mesh_chi2 = gf_mesh<imtime>{beta, Boson, n_tau_chi2};
-    auto chi2_conn = make_block2_gf(tau_mesh_chi2, make_const_view(M3));
-    chi2_conn()    = 0.0;
+    auto chi2_conn     = make_block2_gf(tau_mesh_chi2, make_const_view(M3));
+    chi2_conn()        = 0.0;
 
     chi3_tau_t M3_conn = M3_conn_from_M3<Chan>(M3, M_iw, G0_iw, M_tau, M_hartree);
     M3_conn()          = M3_conn() * dtau_M3 * dtau_M3;
@@ -429,12 +428,12 @@ namespace triqs_ctint {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
   inline chi2_tau_t chi2_conn_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                         block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
-    return chi2_conn_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, gf_struct);
+                                         block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
+    return chi2_conn_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);
   }
   inline chi2_tau_t chi2_conn_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
-                                         block_matrix_t const &M_hartree, g_tau_cv_t G0_tau, gf_struct_t const &gf_struct) {
-    return chi2_conn_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau, gf_struct);
+                                         block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
+    return chi2_conn_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);
   }
 
 } // namespace triqs_ctint

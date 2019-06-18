@@ -2,12 +2,12 @@
 
 namespace triqs_ctint::measures {
 
-  average_k::average_k(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
+  average_k::average_k(params_t const &, qmc_config_t const &qmc_config_, container_set *results)
      : average_k_(results->average_k), qmc_config(qmc_config_) {
     average_k_ = 0.0;
   }
 
-  void average_k::accumulate(mc_weight_t sign) {
+  void average_k::accumulate(mc_weight_t) {
     average_k_ += qmc_config.vertex_lst.size();
     ++N;
   }

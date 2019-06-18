@@ -226,7 +226,7 @@ namespace triqs_ctint {
 
       if (M_iw) {
         chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
-                                                                M_hartree.value(), G0_shift_tau, p.gf_struct);
+                                                                M_hartree.value(), G0_shift_tau);
         chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw, density.value());
         auto iw_mesh            = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
         chi2pp_iw_from_M3       = make_gf_from_fourier(chi2pp_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2pp_tau_from_M3.value()));
@@ -250,7 +250,7 @@ namespace triqs_ctint {
 
       if (M_iw) {
         chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
-                                                                M_hartree.value(), G0_shift_tau, p.gf_struct);
+                                                                M_hartree.value(), G0_shift_tau);
         chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw, density.value());
         auto iw_mesh            = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
         chi2ph_iw_from_M3       = make_gf_from_fourier(chi2ph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2ph_tau_from_M3.value()));

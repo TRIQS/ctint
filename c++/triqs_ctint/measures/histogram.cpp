@@ -2,12 +2,12 @@
 
 namespace triqs_ctint::measures {
 
-  histogram::histogram(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
+  histogram::histogram(params_t const &, qmc_config_t const &qmc_config_, container_set *results)
      : qmc_config(qmc_config_), histogram_(results->histogram) {
     results->histogram = std::vector<double>(4);
   }
 
-  void histogram::accumulate(mc_weight_t sign) {
+  void histogram::accumulate(mc_weight_t) {
     int k = qmc_config.perturbation_order();
     while (k >= histogram_->size()) histogram_->resize(2 * histogram_->size());
     histogram_.value()[k] += 1.;

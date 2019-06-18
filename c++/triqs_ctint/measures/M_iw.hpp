@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
     M_iw(M_iw &&)      = default;
     ~M_iw()            = default;
     M_iw &operator=(M_iw const &) = delete;
-    M_iw &operator=(M_iw &&) = default;
+    M_iw &operator=(M_iw &&) = delete;
 
     /// Accumulate M_iw using nfft
     void accumulate(mc_weight_t sign);

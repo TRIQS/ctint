@@ -25,6 +25,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(
 		-Wall
 		-Wextra
+		-Wno-sign-compare
 		$<$<CONFIG:Debug>:-Og>
 		$<$<CONFIG:Debug>:-ggdb3>
 		)
