@@ -9,7 +9,6 @@ compiler:
 
 branches:
   only:
-    - master
     - unstable
 
 before_install:
@@ -33,27 +32,15 @@ script:
   - git clone https://github.com/TRIQS/triqs --branch unstable
   - mkdir triqs/build && cd triqs/build
   - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DBuild_Tests=OFF -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DCMAKE_BUILD_TYPE=Debug
-  - make -j8 install
+  - make -j2 install
   - source $INSTALL_DIR/share/triqsvars.sh
   # ===== Set up triqs_ctint and test
   - cd $TRAVIS_BUILD_DIR
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DASAN=ON -DUBSAN=ON -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DGTAU_IS_COMPLEX=ON -DINTERACTION_IS_COMPLEX=ON
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DASAN=ON -DUBSAN=ON -DGTAU_IS_COMPLEX=ON -DINTERACTION_IS_COMPLEX=ON
   - export UBSAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
   - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
   - export UBSAN_OPTIONS=symbolize=1:print_stacktrace=1
   - export ASAN_OPTIONS=symbolize=1:detect_leaks=0
   - export CTEST_OUTPUT_ON_FAILURE=1
-  - make -j8 && make test
-  # ===== Set up CTINT and Test using fsanitize=memory
-  #- > ##### Currently not working: libstdc++ has to be instrumentized for fsanitize=memory as well (and other dependencies). Try -fsanitize-blacklist instead?
-    #if [ "$CXX" = clang++ ]; then
-      #make clean;
-      #export LDFLAGS=/usr/lib/llvm-7/lib/clang/7.0.0/lib/linux/libclang_rt.msan-x86_64.a
-      #cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DCMAKE_CXX_FLAGS='-fsanitize=memory -fno-omit-frame-pointer -Wno-register -Wno-macro-redefined';
-      #make -j8;
-      #export MSAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer;
-      #export MSAN_OPTIONS=symbolize=1;
-      #cd test/c++ && ctest -V;
-      #cd ../python && ctest -V;
-    #fi
+  - make -j2 && make test
