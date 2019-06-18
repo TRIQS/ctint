@@ -263,10 +263,12 @@ namespace triqs_ctint {
     if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value());
-    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw, density.value());
-    if (M3pp_iw_nfft and M_iw) chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value());
-    if (M3ph_iw_nfft and M_iw) chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value());
+    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3pp_iw_nfft and M_iw)
+      chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3ph_iw_nfft and M_iw)
+      chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau
     auto iw_mesh = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};

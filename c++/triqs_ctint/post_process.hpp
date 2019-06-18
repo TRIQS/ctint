@@ -17,7 +17,8 @@ namespace triqs_ctint {
   chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct);
 
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
-  template <Chan_t Chan> chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
+  template <Chan_t Chan>
+  chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
 
     double beta  = M_iw[0].domain().beta;
     int n_blocks = M_iw.size();
@@ -58,9 +59,13 @@ namespace triqs_ctint {
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
-          auto km = make_zero_tail(GMG[bl2], 2);
+          auto km_GMG = make_zero_tail(GMG, 3);
+          for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+          auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
+          auto dens_GMG = density(GMG, tail_GMG);
+
           M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
-                - beta * kronecker(iW_) * M_iw[bl1](iw_)(j_, i_) * density(GMG[bl2], km)(l_, k_)
+                - beta * kronecker(iW_) * M_iw[bl1](iw_)(j_, i_) * dens_GMG[bl2](l_, k_)
                 + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * MG[bl2](iW_ + iw_)(j_, k_);
 
           for (int m : range(bl1_size))
@@ -405,11 +410,13 @@ namespace triqs_ctint {
   }
 
   // For wrapping purposes
-  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
-    return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G);
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+                                   block_matrix_t const &M_hartree) {
+    return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
-  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G) {
-    return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G);
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+                                   block_matrix_t const &M_hartree) {
+    return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
   inline chi2_tau_t chi2_from_chi2_conn_PP(chi2_tau_cv_t chi2_conn_tau, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
     return chi2_from_chi2_conn<Chan_t::PP>(chi2_conn_tau, G_iw, dens_G);

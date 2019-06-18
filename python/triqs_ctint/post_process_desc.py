@@ -35,9 +35,9 @@ module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t
 
 module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw, triqs::hilbert_space::gf_struct_t gf_struct)", doc = r"""Calculate the generalized ph susceptibility from G2c_iw and G_iw""")
 
-module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (triqs_ctint::chi3_iw_cv_t M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::block_matrix_t dens_G)", doc = r"""""")
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (triqs_ctint::chi3_iw_cv_t M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::block_matrix_t dens_G, triqs_ctint::block_matrix_t M_hartree)", doc = r"""""")
 
-module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (triqs_ctint::chi3_iw_cv_t M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::block_matrix_t dens_G)", doc = r"""""")
+module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PH (triqs_ctint::chi3_iw_cv_t M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::block_matrix_t dens_G, triqs_ctint::block_matrix_t M_hartree)", doc = r"""""")
 
 module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PP (triqs_ctint::chi2_tau_cv_t chi2_conn_tau, triqs_ctint::g_iw_cv_t G_iw, triqs_ctint::block_matrix_t dens_G)", doc = r"""""")
 
