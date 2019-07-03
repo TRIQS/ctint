@@ -37,7 +37,7 @@ script:
   # ===== Set up triqs_ctint and test
   - cd $TRAVIS_BUILD_DIR
   - mkdir build && cd build
-  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DASAN=ON -DUBSAN=ON -DGTAU_IS_COMPLEX=ON -DINTERACTION_IS_COMPLEX=ON
+  - cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/${CXX} -DASAN=ON -DUBSAN=ON
   - export UBSAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
   - export ASAN_SYMBOLIZER_PATH=/usr/lib/llvm-7/bin/llvm-symbolizer
   - export UBSAN_OPTIONS=symbolize=1:print_stacktrace=1
