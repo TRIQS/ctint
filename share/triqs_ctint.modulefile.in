@@ -5,7 +5,7 @@
 set     name        triqs_ctint
 set     version     @CTINT_VERSION@
 set     root        @CMAKE_INSTALL_PREFIX@
-set     git_hash    @CTINT_GIT_HASH@
+set     git_hash    @PROJECT_GIT_HASH@
 
 set     url         "https://github.com/TRIQS/ctint"
 set     description "An example application using cpp2py and triqs."

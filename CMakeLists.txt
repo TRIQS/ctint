@@ -1,15 +1,44 @@
-# Start configuration
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 project(triqs_ctint CXX)
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+# ############
+# Define Project
+
+project(APP4TRIQS VERSION 2.2.0 LANGUAGES CXX)
+
+# ############
+# Load TRIQS and CPP2PY
+find_package(TRIQS 2.2 REQUIRED)
+find_package(Cpp2Py 1.6 REQUIRED)
+
+# Get the git hash & print status
+triqs_get_git_hash_of_source_dir(PROJECT_GIT_HASH)
+message(STATUS "${PROJECT_NAME} version : ${PROJECT_VERSION}")
+message(STATUS "${PROJECT_NAME} Git hash: ${PROJECT_GIT_HASH}")
+
+# Enforce Consistent Versioning
+if(NOT ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR} VERSION_EQUAL ${TRIQS_VERSION_MAJOR}.${TRIQS_VERSION_MINOR})
+  message(FATAL_ERROR "The ${PROJECT_NAME} version ${PROJECT_VERSION} is not compatible with TRIQS version ${TRIQS_VERSION}.")
+endif()
+
+# Default Install directory to TRIQS_ROOT if not given or invalid.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
+  message(STATUS "No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
+  set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
+endif()
+message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
+
+# ############
+# Options
+
 # Default to Release build type
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Type of build" FORCE)
 endif()
-message( STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} --------")
+message(STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} --------")
 
 # Options for the compilation ...
 option(GTAU_IS_COMPLEX "If ON, the non-interacting Green-function G_0(tau) is complex" OFF)
@@ -21,36 +50,33 @@ set(BUILD_SHARED_LIBS OFF)
 # Export the list of compile-commands into compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Enable compiler warnings for the whole project
+# Global compiler options
 add_compile_options(
-		-Wall
-		-Wextra
-		-Wno-sign-compare
-		$<$<CONFIG:Debug>:-Og>
-		$<$<CONFIG:Debug>:-ggdb3>
-		)
+  $<$<CONFIG:Debug>:-Og>
+  $<$<CONFIG:Debug>:-ggdb3>
+)
 
-# Load Dependencies
-find_package(TRIQS 2.2 REQUIRED)
-find_package(Cpp2Py 1.6 REQUIRED)
+# Create an Interface target for compiler warnings
+add_library(project_warnings INTERFACE)
+install(TARGETS project_warnings EXPORT triqs_ctint-targets)
+target_compile_options(project_warnings
+  INTERFACE
+    -Wall
+    -Wextra
+    -Wshadow
+    -Wpedantic
+    -Wno-sign-compare
+)
+
+# #############
+# Load non-TRIQS Dependencies
+
 find_package(NFFT REQUIRED)
 install(TARGETS nfft EXPORT triqs_ctint-targets)
 
-# Default Install directory to TRIQS_ROOT if not given or invalid.
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTALL_PREFIX}))
-  message(STATUS "No install prefix given (or invalid). Defaulting to TRIQS_ROOT")
-  set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
-endif()
-message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 
-# Define the triqs_ctint version numbers and get the git hash
-set(CTINT_VERSION_MAJOR 2)
-set(CTINT_VERSION_MINOR 2)
-set(CTINT_VERSION_PATCH 0)
-set(CTINT_VERSION ${CTINT_VERSION_MAJOR}.${CTINT_VERSION_MINOR}.${CTINT_VERSION_PATCH})
-triqs_get_git_hash_of_source_dir(CTINT_GIT_HASH)
-MESSAGE(STATUS "triqs_ctint version : ${CTINT_VERSION}")
-message(STATUS "Git hash: ${CTINT_GIT_HASH}")
+# #############
+# Build Project
 
 # Build and install the triqs_ctint library
 add_subdirectory(c++/triqs_ctint)
@@ -70,31 +96,35 @@ if(TRIQS_WITH_PYTHON_SUPPORT)
   option(Build_Documentation "Build documentation" OFF)
   if(Build_Documentation)
     if(NOT TRIQS_WITH_DOCUMENTATION)
-      message(WARNING "TRIQS library has not been compiled with its documentation! Cannot build documentation.")
+      message(WARNING "TRIQS was installed without documentation! Cannot build documentation.")
     else()
       message(STATUS "Documentation Build enabled")
       add_subdirectory(doc)
     endif()
   endif()
 else()
-  message(WARNING "TRIQS library has been installed without Python support. Cannot build the Python Interface and Documentation.")
+  message(WARNING "TRIQS was installed without Python support. Cannot build the Python Interface and Documentation.")
 endif()
 
 # Additional configuration files
 add_subdirectory(share)
 
+# #############
 # Debian Package
+
 option(BUILD_DEBIAN_PACKAGE "Build a deb package" OFF)
 if(BUILD_DEBIAN_PACKAGE)
   if(NOT CMAKE_INSTALL_PREFIX STREQUAL "/usr")
     message(FATAL_ERROR "CMAKE_INSTALL_PREFIX must be /usr for packaging")
   endif()
-  SET(CPACK_GENERATOR "DEB")
-  SET(CPACK_PACKAGE_VERSION ${CTINT_VERSION})
-  SET(CPACK_PACKAGE_CONTACT "https://github.com/TRIQS/ctint")
-  EXECUTE_PROCESS(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CMAKE_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "triqs (>= 2.2)")
-  SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-  SET(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
-  INCLUDE(CPack)
+  set(CPACK_PACKAGE_NAME triqs_ctint)
+  set(CPACK_GENERATOR "DEB")
+  set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+  set(CPACK_PACKAGE_CONTACT "https://github.com/TRIQS/ctint")
+  execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CMAKE_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "triqs (>= 2.2)")
+  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+  set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+  include(CPack)
 endif()
+

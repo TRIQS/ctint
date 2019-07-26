@@ -2,7 +2,7 @@ file(GLOB_RECURSE sources *.cpp)
 add_library(triqs_ctint_c ${sources})
 
 # Link against dependencies
-target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE nfft)
+target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE nfft project_warnings)
 
 # Configure compilation
 target_compile_options(triqs_ctint_c PUBLIC -fPIC)

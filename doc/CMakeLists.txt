@@ -56,6 +56,6 @@ generate_docs(${CMAKE_SOURCE_DIR}/c++/triqs_ctint/solver_core.hpp)
 # ---------------------------------
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html/ COMPONENT documentation DESTINATION share/doc/triqs_ctint
   FILES_MATCHING
-  REGEX "\\.(html|pdf|png|gif|jpg|js|xsl|css|py|txt|inv|bib)$"
+  REGEX "\\.(html|pdf|png|gif|jpg|svg|js|xsl|css|py|txt|inv|bib)$"
   PATTERN "_*"
 )

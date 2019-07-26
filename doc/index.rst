@@ -42,4 +42,7 @@ With the knowledge of :math:`G_0` and the matrix :math:`U_{\alpha\beta\gamma\del
 the quantum impurity solvers find the interacting Green's function :math:`G` of the
 problem.
 
-Lets have a look at the :ref:`documentation <documentation>`.
+Learn how to use it in the :ref:`documentation`.
+
+.. toctree::
+   :maxdepth: 2

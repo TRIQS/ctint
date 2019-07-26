@@ -23,7 +23,7 @@
 
 version = "@CTINT_VERSION@"
 triqs_hash = "@TRIQS_GIT_HASH@"
-ctint_hash = "@CTINT_GIT_HASH@"
+triqs_ctint_hash = "@PROJECT_GIT_HASH@"
 
 def show_version():
   print "\nYou are using triqs_ctint version %s\n"%version
