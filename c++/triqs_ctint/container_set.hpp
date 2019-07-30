@@ -171,16 +171,6 @@ namespace triqs_ctint {
     /// Function that reads all containers from hdf5 file
     friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
-      // Useful to keep backward compatibility for older solvers
-      auto h5_try_read = [](triqs::h5::group grp, std::string key_name, auto &obj) {
-        if (!grp.has_key(key_name))
-          std::cerr << "WARNING: Could not find key " << key_name << " during h5_read!\n";
-        else {
-          try {
-            h5_read(grp, key_name, obj);
-          } catch (triqs::runtime_error &) { std::cerr << "WARNING: Failure to h5_read " << key_name << "\n"; }
-        }
-      };
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);
       h5_read(grp, "histogram", c.histogram);
