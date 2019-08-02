@@ -100,12 +100,22 @@ c.add_member(c_name = "M3ph_tau",
              read_only= True,
              doc = r"""Building block for the fermion boson vertex (ph channel) in imaginary time""")
 
+c.add_member(c_name = "M3xph_tau",
+             c_type = "std::optional<chi3_tau_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (xph channel) in imaginary time""")
+
 c.add_member(c_name = "M3pp_delta",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = r"""Equal-time peak in M3pp_tau""")
 
 c.add_member(c_name = "M3ph_delta",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""Equal-time peak in M3ph_tau""")
+
+c.add_member(c_name = "M3xph_delta",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = r"""Equal-time peak in M3ph_tau""")
@@ -150,6 +160,11 @@ c.add_member(c_name = "M3ph_iw",
              read_only= True,
              doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies""")
 
+c.add_member(c_name = "M3xph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (xph channel) in Matsubara frequencies""")
+
 c.add_member(c_name = "F_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
@@ -185,6 +200,11 @@ c.add_member(c_name = "chi2ph_conn_tau_from_M3",
              read_only= True,
              doc = r"""M2 in the particle-hole channel in imaginary time as obtained from M3""")
 
+c.add_member(c_name = "chi2xph_conn_tau_from_M3",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""M2 in the particle-hole-cross channel in imaginary time as obtained from M3""")
+
 c.add_member(c_name = "chi2pp_tau_from_M3",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
@@ -195,6 +215,11 @@ c.add_member(c_name = "chi2ph_tau_from_M3",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained from M3ph_tau""")
 
+c.add_member(c_name = "chi2xph_tau_from_M3",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary times as obtained from M3ph_tau""")
+
 c.add_member(c_name = "chi2pp_iw_from_M3",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
@@ -204,6 +229,11 @@ c.add_member(c_name = "chi2ph_iw_from_M3",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau""")
+
+c.add_member(c_name = "chi2xph_iw_from_M3",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau""")
 
 c.add_member(c_name = "chiAB_iw",
              c_type = "std::optional<gf<imfreq>>",
@@ -219,6 +249,11 @@ c.add_member(c_name = "chi3ph_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies""")
+
+c.add_member(c_name = "chi3xph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_3$ in the particle-hole-cross channel in Matsubara frequencies""")
 
 c.add_member(c_name = "chi3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
@@ -349,6 +384,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | measure_M3pp_tau              | bool                                 | false                                   | Measure M3pp(tau)                                                                                                                     |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_tau              | bool                                 | false                                   | Measure M3ph(tau)                                                                                                                     |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3xph_tau             | bool                                 | false                                   | Measure M3xph(tau)                                                                                                                    |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_tau_M3                      | int                                  | 201                                     | Number of imaginary time points in M3                                                                                                 |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -526,6 +563,11 @@ c.add_member(c_name = "measure_M3ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M3ph(tau)""")
+
+c.add_member(c_name = "measure_M3xph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3xph(tau)""")
 
 c.add_member(c_name = "n_tau_M3",
              c_type = "int",

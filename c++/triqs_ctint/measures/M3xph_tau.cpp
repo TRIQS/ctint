@@ -1,25 +1,25 @@
-#include "./M3ph_tau.hpp"
+#include "./M3xph_tau.hpp"
 
 namespace triqs_ctint::measures {
 
-  M3ph_tau::M3ph_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
+  M3xph_tau::M3xph_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_), qmc_config(qmc_config_), G0_tau(std::move(G0_tau_)), tau_mesh{params_.beta, Fermion, params_.n_tau_M3} {
 
     // Construct Matsubara mesh
-    mesh::prod<imtime, imtime> M3ph_tau_mesh{tau_mesh, tau_mesh};
+    mesh::prod<imtime, imtime> M3xph_tau_mesh{tau_mesh, tau_mesh};
 
-    // Init measurement container for M3ph and capture view
-    results->M3ph_tau = make_block2_gf(M3ph_tau_mesh, params.gf_struct);
-    M3ph_tau_.rebind(results->M3ph_tau.value());
-    M3ph_tau_() = 0;
+    // Init measurement container for M3xph and capture view
+    results->M3xph_tau = make_block2_gf(M3xph_tau_mesh, params.gf_struct);
+    M3xph_tau_.rebind(results->M3xph_tau.value());
+    M3xph_tau_() = 0;
 
-    // Init measurement container for equal-time component of M3ph
-    results->M3ph_delta = make_block2_gf(G0_tau[0].mesh(), params.gf_struct);
-    M3ph_delta_.rebind(*results->M3ph_delta);
-    M3ph_delta_() = 0;
+    // Init measurement container for equal-time component of M3xph
+    results->M3xph_delta = make_block2_gf(G0_tau[0].mesh(), params.gf_struct);
+    M3xph_delta_.rebind(*results->M3xph_delta);
+    M3xph_delta_() = 0;
   }
 
-  void M3ph_tau::accumulate(mc_weight_t sign) {
+  void M3xph_tau::accumulate(mc_weight_t sign) {
     // Accumulate sign
     Z += sign;
 
@@ -80,7 +80,7 @@ namespace triqs_ctint::measures {
       GMG_vec[bl] = GM_vec[bl] * G_right;
     }
 
-    // Calculate M3ph
+    // Calculate M3xph
     for (int bl1 : range(params.n_blocks())) {
 
       int det1_size = qmc_config.dets[bl1].size();
@@ -90,22 +90,22 @@ namespace triqs_ctint::measures {
 
       auto const &M     = M_vec[bl1];
       auto const &GM    = GM_vec[bl1];
-      auto const &MG    = MG_vec[bl1];
+      auto const &GMG   = GMG_vec[bl1];
       int bl1_size      = G0_tau[bl1].target_shape()[0];
       auto const &c1    = c_vec_M[bl1];
       auto const &cdag1 = cdag_vec_M[bl1];
 
       // Crossing term (equal blocks)
-      auto &M3ph_tau   = M3ph_tau_(bl1, bl1);
-      auto &M3ph_delta = M3ph_delta_(bl1, bl1);
+      auto &M3xph_tau   = M3xph_tau_(bl1, bl1);
+      auto &M3xph_delta = M3xph_delta_(bl1, bl1);
 
-      for (auto [i, j, k, l] : product_range(det1_size, det1_size, bl1_size, bl1_size)) {
+      for (auto [i, j, k, l] : product_range(det1_size, bl1_size, bl1_size, det1_size)) {
         // Take care of equal-time peak separately
-        if (c1[i].tau_pt == cdag1[j].tau_pt) {
-          M3ph_delta[c_vec_G0[bl1][i].tau_idx](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+        if (c1[i].tau_pt == cdag1[l].tau_pt) {
+          M3xph_delta[c_vec_G0[bl1][i].tau_idx](c1[i].u, j, k, cdag1[l].u) += -sign * M(l, i) * GMG(j, k);
         } else {
           // Since the crossing term is negative by itself, we get a negative sign here
-          M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+          M3xph_tau[{c1[i].tau_idx, cdag1[l].tau_idx}](c1[i].u, j, k, cdag1[l].u) += -sign * M(l, i) * GMG(j, k);
         }
       }
 
@@ -116,42 +116,43 @@ namespace triqs_ctint::measures {
         // Do not consider empty blocks
         if (det2_size == 0) continue;
 
-        auto const &GMG  = GMG_vec[bl2];
-        int bl2_size     = G0_tau[bl2].target_shape()[0];
-        auto &M3ph_tau_bl   = M3ph_tau_(bl1, bl2);
-        auto &M3ph_delta_bl = M3ph_delta_(bl1, bl2);
+        auto const &MG    = MG_vec[bl2];
+        int bl2_size      = G0_tau[bl2].target_shape()[0];
+        auto const &cdag2 = cdag_vec_M[bl2];
+        auto &M3xph_tau   = M3xph_tau_(bl1, bl2);
+        auto &M3xph_delta = M3xph_delta_(bl1, bl2);
 
         // Direct term
-        for (auto [i, j, k, l] : product_range(det1_size, det1_size, bl2_size, bl2_size)) {
+        for (auto [i, j, k, l] : product_range(det1_size, bl1_size, bl2_size, det2_size)) {
           // Take care of equal-time peak separately
-          if (c1[i].tau_pt == cdag1[j].tau_pt) {
-            M3ph_delta_bl[c_vec_G0[bl1][i].tau_idx](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+          if (c1[i].tau_pt == cdag2[l].tau_pt) {
+            M3xph_delta[c_vec_G0[bl1][i].tau_idx](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
           } else {
-            M3ph_tau_bl[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+            M3xph_tau[{c1[i].tau_idx, cdag2[l].tau_idx}](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
           }
         }
       }
     }
   }
 
-  void M3ph_tau::collect_results(mpi::communicator const &comm) {
+  void M3xph_tau::collect_results(mpi::communicator const &comm) {
     // Collect results
-    Z           = mpi::all_reduce(Z, comm);
-    M3ph_tau_   = mpi::all_reduce(M3ph_tau_, comm);
-    M3ph_delta_ = mpi::all_reduce(M3ph_delta_, comm);
+    Z            = mpi::all_reduce(Z, comm);
+    M3xph_tau_   = mpi::all_reduce(M3xph_tau_, comm);
+    M3xph_delta_ = mpi::all_reduce(M3xph_delta_, comm);
 
     // Normalize
     int n       = params.n_tau_M3 - 1;
     double dtau = params.beta / n;
-    M3ph_tau_   = M3ph_tau_ / (Z * dtau * dtau);
+    M3xph_tau_  = M3xph_tau_ / (Z * dtau * dtau);
 
     int n_del       = params.n_tau - 1;
     double dtau_del = params.beta / n_del;
-    M3ph_delta_     = M3ph_delta_ / (Z * dtau_del);
+    M3xph_delta_    = M3xph_delta_ / (Z * dtau_del);
 
     // Account for edge bins beeing smaller
     auto _ = all_t{};
-    for (auto [M, M_del] : zip(M3ph_tau_, M3ph_delta_)) {
+    for (auto [M, M_del] : zip(M3xph_tau_, M3xph_delta_)) {
       M[0, _] *= 2.0;
       M[_, 0] *= 2.0;
       M[n, _] *= 2.0;

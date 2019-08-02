@@ -129,6 +129,8 @@ namespace triqs_ctint {
     bool measure_M3pp_tau = false;
     /// Measure M3ph(tau)
     bool measure_M3ph_tau = false;
+    /// Measure M3xph(tau)
+    bool measure_M3xph_tau = false;
     /// Number of imaginary time points in M3
     int n_tau_M3 = 201;
 

@@ -77,6 +77,26 @@ namespace triqs_ctint {
           chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * dens_G[bl2](l_, k_)
                 - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
+        } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
+
+          auto km_GMG = make_zero_tail(GMG, 3);
+          for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+          auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
+          auto dens_GMG = density(GMG, tail_GMG);
+
+          M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+                - GM[bl1](iw_)(j_, i_) * MG[bl2](iW_ + iw_)(l_, k_)
+                + kronecker(bl1, bl2) * beta * kronecker(iW_) * M_iw[bl1](iw_)(l_, i_) * dens_GMG[bl2](j_, k_);
+
+          for (int m : range(bl1_size))
+            for (int n : range(bl1_size))
+              chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ + iw_)(l_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, j_, k_, n);
+
+          // Disconnected part
+          chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+                + G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ + iw_)(l_, k_)
+                - kronecker(bl1, bl2) * beta * kronecker(iW_) * G_iw[bl1](iw_)(l_, i_) * dens_GMG[bl2](j_, k_);
         }
       }
 
@@ -119,6 +139,12 @@ namespace triqs_ctint {
 
           chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_) + dens_G[bl1](j_, i_) * dens_G[bl2](l_, k_)
                 + kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](t_)(j_, k_); // Sign-change from G_tau shift
+
+        } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
+
+          chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_)
+                - G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](t_)(l_, k_) // Sign-change from G_tau shift
+                - kronecker(bl1, bl2) * dens_G[bl1](l_, i_) * dens_G[bl2](j_, k_);
         }
       }
 
@@ -225,6 +251,31 @@ namespace triqs_ctint {
                   - s * M_tau[bl1](d_t2_t1)(j_, i_) * dens_GMG[bl2](l_, k_)
                   - kronecker(bl1, bl2) * GM[bl1](beta - t1)(l_, i_) * MG[bl2](t2)(j_, k_); // Sign change from GM shift
           }
+        } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
+
+          for (auto [t1, t2] : M3_tau(0, 0).mesh()) {
+
+            // Treat the equal-time case explicitly
+            if (t1 == t2) { // We need to account for both M_tau(0+) and M_tau(0-)
+              M3_tau_conn(bl1, bl2)[t1, t2](i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1, t2](i_, j_, k_, l_)
+                    + kronecker(bl1, bl2) * (0.5 * M_tau[bl1](0.0)(l_, i_) - 0.5 * M_tau[bl1](beta)(l_, i_)) * dens_GMG[bl2](j_, k_)
+                    + GM[bl1](beta - t1)(j_, i_) * MG[bl2](t2)(l_, k_); // Sign change from GM shift
+              continue;
+            }
+
+            double s, d_t2_t1;
+            if (t2 > t1) {
+              s       = 1.0;
+              d_t2_t1 = t2 - t1;
+            } else { // t2 < t1
+              s       = -1.0;
+              d_t2_t1 = t2 - t1 + beta;
+            }
+
+            M3_tau_conn(bl1, bl2)[t1, t2](i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1, t2](i_, j_, k_, l_)
+                  + kronecker(bl1, bl2) * s * M_tau[bl1](d_t2_t1)(l_, i_) * dens_GMG[bl2](j_, k_)
+                  + GM[bl1](beta - t1)(j_, i_) * MG[bl2](t2)(l_, k_); // Sign change from GM shift
+          }
         }
       }
 
@@ -268,6 +319,11 @@ namespace triqs_ctint {
     if constexpr (Chan == Chan_t::PH) {
       for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
         M3_delta(bl1, bl2)(t_)(i_, j_, k_, l_) << M3_delta(bl1, bl2)[t_](i_, j_, k_, l_) - M_hartree[bl1](j_, i_) * dens_GMG[bl2](l_, k_);
+      }
+    } else if constexpr (Chan == Chan_t::XPH) {
+      for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
+        M3_delta(bl1, bl2)(t_)(i_, j_, k_, l_) << M3_delta(bl1, bl2)[t_](i_, j_, k_, l_)
+              + kronecker(bl1, bl2) * M_hartree[bl1](l_, i_) * dens_GMG[bl2](j_, k_);
       }
     }
     M3_delta() = M3_delta() * dtau_M3_del;
@@ -389,6 +445,29 @@ namespace triqs_ctint {
             auto M3_del_mnkl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, n, k, l).data());
             for (auto [i, j] : product_range(bl1_size, bl1_size)) {
               chi2c(i, j, k, l) += dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range())));
+            }
+          }
+        } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
+
+          auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
+          for (auto [m, i, l, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
+            arr_GG(m, i, l, n, range()) = G0_d_ti_t_del[bl1](m, i, range()) * G0_d_t_ti_del[bl2](l, n, range());
+          }
+
+          for (auto [m, j, k, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
+
+            // We have to make a copy so that M3 is contiguous in memory
+            auto M3_mjkn = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, k, n).data()};
+            for (auto [i, l] : product_range(bl1_size, bl2_size)) {
+              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range()));
+              auto G2_ln = vector_view<dcomplex>(G0_d_t_ti[bl2](l, n, range()));
+              chi2c(i, j, k, l) += dot(G1_mi, M3_mjkn * G2_ln);
+            }
+
+            // We treat the delta-contribution seperately
+            auto M3_del_mjkn = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, k, n).data());
+            for (auto [i, l] : product_range(bl1_size, bl2_size)) {
+              chi2c(i, j, k, l) += dot(M3_del_mjkn, vector_view<dcomplex>(arr_GG(m, i, l, n, range())));
             }
           }
         }
