@@ -124,6 +124,11 @@ class Solver(SolverCore):
                     # Full Hatree Fock Solution
                     Sig_HF[bl1][idx_u2, idx_u1] += coef * G_dens[bl3][u4, u3]
                     Sig_HF[bl3][idx_u4, idx_u3] += coef * G_dens[bl1][u2, u1]
+
+                    # # Consider cross terms for equal blocks
+                    # if bl1 == bl3:
+                        # Sig_HF[bl1][idx_u4, idx_u1] -= coef * G_dens[bl3][u2, u3]
+                        # Sig_HF[bl3][idx_u2, idx_u3] -= coef * G_dens[bl1][u4, u1]
             
                 return Sig_HF_flat - flatten(list(Sig_HF.iteritems()))
             
