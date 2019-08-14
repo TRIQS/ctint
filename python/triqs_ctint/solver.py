@@ -150,9 +150,9 @@ class Solver(SolverCore):
                     G_iw[bl] << inverse( inverse(G0_bl) - dict(Sig_HF)[bl] )
                     dens_HF = np.diag(G_iw[bl].density()).real
                     densities_HF.append((bl, dens_HF, sum(dens_HF)))
-                    if bl == 'up':
+                    if 'up' in bl:
                         alpha.append( np.array([[n_o + delta] for n_o in dens_HF ]) )
-                    elif bl == 'dn' or bl == 'down' or bl == 'do':
+                    elif 'dn' in bl or 'do' in bl:
                         alpha.append( np.array([[n_o - delta] for n_o in dens_HF ]) )
                     else:
                         alpha.append( np.array([[n_o] for n_o in dens_HF ]) )
@@ -160,9 +160,9 @@ class Solver(SolverCore):
                 mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
                 indices = gf_struct[0][1]
                 for bl, G0_bl in self.G0_iw:
-                    if bl == 'up':
+                    if 'up' in bl:
                         alpha.append( [[0.5 + delta] for i in indices ] )
-                    elif bl == 'dn' or bl == 'down' or bl == 'do':
+                    elif 'dn' in bl or 'do' in bl:
                         alpha.append( [[0.5 - delta] for i in indices ] )
                     else:
                         alpha.append( [[0.5] for i in indices ] )
