@@ -7,7 +7,7 @@
 
 using namespace triqs_ctint;
 
-constexpr std::string file_name("Solver_old.h5");
+std::string file_name = "Solver_old.h5";
 
 int main(int argc, char **argv) {
 

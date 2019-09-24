@@ -6,8 +6,7 @@ endif()
 
 # ############
 # Define Project
-
-project(APP4TRIQS VERSION 2.2.0 LANGUAGES CXX)
+project(APP4TRIQS VERSION 2.2.0 LANGUAGES C CXX)
 
 # ############
 # Load TRIQS and CPP2PY
@@ -66,14 +65,8 @@ target_compile_options(project_warnings
     -Wshadow
     -Wpedantic
     -Wno-sign-compare
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-gcc-compat>
 )
-
-# #############
-# Load non-TRIQS Dependencies
-
-find_package(NFFT REQUIRED)
-install(TARGETS nfft EXPORT triqs_ctint-targets)
-
 
 # #############
 # Build Project

@@ -1,8 +1,8 @@
 file(GLOB_RECURSE sources *.cpp)
 add_library(triqs_ctint_c ${sources})
 
-# Link against dependencies
-target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE nfft project_warnings)
+# Link against triqs and enable warnings
+target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE project_warnings)
 
 # Configure compilation
 target_compile_options(triqs_ctint_c PUBLIC -fPIC)
@@ -21,6 +21,11 @@ target_compile_definitions(triqs_ctint_c PUBLIC
 install(TARGETS triqs_ctint_c EXPORT triqs_ctint-targets DESTINATION lib)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 
+# ========= Additional Dependencies ==========
+
+find_package(NFFT REQUIRED)
+target_link_libraries(triqs_ctint_c PRIVATE nfft)
+install(TARGETS nfft EXPORT triqs_ctint-targets)
 
 # ========= Static Analyzer Checks ==========
 
@@ -46,7 +51,7 @@ if(ANALYZE_SOURCES)
 	TARGET triqs_ctint_c
 	COMMAND ${CPPCHECK_EXECUTABLE}
 	  --enable=warning,style,performance,portability
-	  --std=c++14
+	  --std=c++17
 	  --template=gcc
 	  --verbose
 	  --quiet
@@ -61,32 +66,16 @@ endif()
 
 # ========= Dynamic Analyzer Checks ==========
 
-set(sanitizers "")
-# Address Sanitizer
 option(ASAN OFF "Compile library and executables with LLVM Address Sanitizer")
-if(ASAN)
-  list(APPEND sanitizers asan)
-  target_compile_options(triqs_ctint_c PRIVATE -fsanitize=address -fno-omit-frame-pointer -ggdb3)
-  target_link_libraries(triqs_ctint_c INTERFACE "-fsanitize=address -fno-omit-frame-pointer")
-  if(NOT DEFINED ENV{ASAN_OPTIONS})
-    message(WARNING "ASAN_OPTIONS is not set. Consider setting ASAN_OPTIONS=symbolize=1:detect_leaks=0 when running tests")
-  endif()
-endif()
-
-# Undefined Behavior Sanitizer
 option(UBSAN OFF "Compile library and executables with LLVM Undefined Behavior Sanitizer")
-if(UBSAN)
-  list(APPEND sanitizers ubsan)
-  target_compile_options(triqs_ctint_c PUBLIC -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-omit-frame-pointer -ggdb3)
-  target_link_libraries(triqs_ctint_c INTERFACE "-fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-omit-frame-pointer")
-  if(NOT DEFINED ENV{UBSAN_OPTIONS})
-    message(WARNING "UBSAN_OPTIONS is not set. Consider setting UBSAN_OPTIONS=symbolize=1:print_stacktrace=1:halt_on_error=1 when running tests")
-  endif()
-endif()
 
-if(sanitizers)
-  find_package(sanitizer REQUIRED ${sanitizers})
-  if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    target_link_libraries(triqs_ctint_c INTERFACE "-fuse-ld=gold")
-  endif()
+if(ASAN)
+  find_package(sanitizer REQUIRED "asan")
+  target_link_libraries(triqs_ctint_c PUBLIC asan)
+  install(TARGETS asan EXPORT triqs_ctint-targets)
+endif()
+if(UBSAN)
+  find_package(sanitizer REQUIRED "ubsan")
+  target_link_libraries(triqs_ctint_c PUBLIC ubsan)
+  install(TARGETS ubsan EXPORT triqs_ctint-targets)
 endif()
