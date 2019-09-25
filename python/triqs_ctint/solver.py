@@ -21,7 +21,6 @@ def mpi_print(arg):
 class Solver(SolverCore):
 
     def __init__(self, **constr_params):
-        self.eval_count = 0
         """
         Initialise the solver.
 
@@ -53,154 +52,131 @@ class Solver(SolverCore):
         SolverCore.__init__(self, **constr_params)
 
 
+    # Helper Function
+    #
+    # For a given quartic operator
+    #
+    #   U_l * cdag_[bl0,u_0] cdag_[bl1,u_1] c_[bl1,u_1p] c_[bl0,u_0p]
+    #
+    # return the list of indicies
+    #
+    #   [bl0, bl1, u0, u0p, u1, u1p]
+    #
+    def indices_from_quartic_term(self, term, gf_struct):
+        bl0, u_str_0 = term[0][1]
+        bl1, u_str_1 = term[1][1]
+        bl1p, u_str_1p = term[2][1]
+        bl0p, u_str_0p = term[3][1]
+        assert bl0 == bl0p and bl1 == bl1p
 
-    def f(self, x,solve_params):
-        #setting up needed parameters
-        self.eval_count = self.eval_count + 1
-        assert 'h_int' in solve_params
-        if 'n_s' not in solve_params: solve_params['n_s'] = 1
-        if 'delta' not in solve_params: solve_params['delta'] = 0.1
-        solve_params.pop('delta')
-        n_s = solve_params['n_s']
-        h_int = solve_params['h_int']
+        u0 = dict(gf_struct)[bl0].index(u_str_0)
+        u1 = dict(gf_struct)[bl1].index(u_str_1)
+        u1p = dict(gf_struct)[bl1].index(u_str_1p)
+        u0p = dict(gf_struct)[bl0].index(u_str_0p)
+
+        return [bl0, bl1, u0, u0p, u1, u1p]
+
+    def f(self, x, solve_params):
+
+        # Parameters
         gf_struct = self.constr_params['gf_struct']
+        h_int = solve_params['h_int']
         n_terms = len(list(h_int))
+
+        # Update the solve_params with new alpha
+        _alpha = x.reshape(n_terms, 2, 2, 1)
+        _params = solve_params.copy()
+        _params['alpha'] = _alpha
+        _params.update(self.constr_params)
+
+        # Prepare the inverse of G0_iw and the known high-frequency moments
         km = {}
         for bl, g_bl in self.G0_iw:
             self.G0_iw_inv[bl] << inverse(g_bl)
             km[bl] = make_zero_tail(g_bl, 2)
             km[bl][1] = np.eye(g_bl.target_shape[0])
-        _alpha = x.reshape(n_terms, 2, 2, n_s)
-        _params = solve_params.copy()
-        _params['alpha'] = _alpha
-        _params.update(self.constr_params)
+
+        # Update G0_shift_iw with new value of alpha
         self.prepare_G0_shift_iw(**_params)
+
+        # Precalculate the G0_shift_iw densities
         _G0_shift_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_shift_iw }
+
         # Evaluate the violation of the self-consistency condition
         _res = []
         for n, (term, coeff) in enumerate(h_int):
-            bl_0, u_cdag_0 = term[0][1]
-            bl_1, u_cdag_1 = term[1][1]
-            bl_1, u_c_1 = term[2][1]
-            bl_0, u_c_0 = term[3][1]
-            idx_cdag_0 = dict(gf_struct)[bl_0].index(u_cdag_0)
-            idx_cdag_1 = dict(gf_struct)[bl_1].index(u_cdag_1)
-            idx_c_1 = dict(gf_struct)[bl_1].index(u_c_1)
-            idx_c_0 = dict(gf_struct)[bl_0].index(u_c_0)
-            _res.append(_G0_shift_dens[bl_0][idx_c_0,idx_cdag_0] - _alpha[n,0,0,0])
-            if bl_0 == bl_1:
-                _res.append(_G0_shift_dens[bl_0][idx_c_1,idx_cdag_0] - _alpha[n,0,1,0])
-                _res.append(_G0_shift_dens[bl_0][idx_c_0,idx_cdag_1] - _alpha[n,1,0,0])
-            else:
-                _res.append(-_alpha[n,0,1,0])
-                _res.append(-_alpha[n,1,0,0])
-            _res.append(_G0_shift_dens[bl_1][idx_c_1,idx_cdag_1] - _alpha[n,1,1,0])
+            bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+            _res.append(_G0_shift_dens[bl0][u0p,u0] - _alpha[n,0,0,0])
+            _res.append(_G0_shift_dens[bl0][u1p,u0] * (bl0 == bl1) - _alpha[n,0,1,0])
+            _res.append(_G0_shift_dens[bl0][u0p,u1] * (bl0 == bl1) - _alpha[n,1,0,0])
+            _res.append(_G0_shift_dens[bl1][u1p,u1] - _alpha[n,1,1,0])
+
         return np.array(_res)
 
-    def convert_alpha_to_ij(self,h_int,gf_struct,n,t):
-        U_tilde = 0.0
-        bl = None
-        for m, (term, coeff) in enumerate(h_int):
-            if n == m:
-                bl_0, u_cdag_0 = term[0][1]
-                bl_1, u_cdag_1 = term[1][1]
-                bl_1, u_c_1 = term[2][1]
-                bl_0, u_c_0 = term[3][1]
-                idx_cdag_0 = dict(gf_struct)[bl_0].index(u_cdag_0)
-                idx_cdag_1 = dict(gf_struct)[bl_1].index(u_cdag_1)
-                idx_c_1 = dict(gf_struct)[bl_1].index(u_c_1)
-                idx_c_0 = dict(gf_struct)[bl_0].index(u_c_0)
-                if t == 0:
-                    bl = bl_1
-                    i  = idx_cdag_1
-                    j  = idx_c_1
-                    U_tilde = -coeff
-                elif t == 1:
-                    if bl_0 == bl_1:
-                        bl = bl_1
-                        i  = idx_cdag_1
-                        j  = idx_c_0
-                        U_tilde = coeff
-                    else:
-                        return None
-                elif t == 2:
-                    if bl_0 == bl_1:
-                        bl = bl_1
-                        i  = idx_cdag_0
-                        j  = idx_c_1
-                        U_tilde = coeff
-                    else:
-                        return None
-                elif t == 3:
-                    bl = bl_0
-                    i  = idx_cdag_0
-                    j  = idx_c_0
-                    U_tilde = -coeff
-        return [bl,i,j,U_tilde]
-                        
+    def convert_alpha_to_ij(self, h_int, gf_struct, n, t):
+        term, coeff = list(h_int)[n]
+        bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+        if t == 0:    # alpha_00
+            return [bl1, u1, u1p, -coeff]
+        elif t == 1:  # alpha_01
+            return [bl1, u1, u0p,  coeff] if bl0 == bl1 else None
+        elif t == 2:  # alpha_10
+            return [bl1, u0, u1p,  coeff] if bl0 == bl1 else None
+        elif t == 3:  # alpha_11
+            return [bl0, u0, u0p, -coeff]
             
-    def jacobi(self,x,solve_params):
-        #setting up needed parameters
-        assert 'h_int' in solve_params
-        if 'n_s' not in solve_params: solve_params['n_s'] = 1
-        if 'delta' not in solve_params: solve_params['delta'] = 0.1
-        solve_params.pop('delta')
-        n_s = solve_params['n_s']
-        h_int = solve_params['h_int']
+    def jacobi(self, x, solve_params):
+
+        # Parameters
         gf_struct = self.constr_params['gf_struct']
+        h_int = solve_params['h_int']
         n_terms = len(list(h_int))
-        _alpha = x.reshape(n_terms, 2, 2, n_s)            
+
+        # Update the solve_params with new alpha
+        _alpha = x.reshape(n_terms, 2, 2, 1)
         _params = solve_params.copy()
         _params['alpha'] = _alpha
         _params.update(self.constr_params)
-        km = {}
+
+        # Prepare the inverse of G0_iw
         for bl, g_bl in self.G0_iw:
             self.G0_iw_inv[bl] << inverse(g_bl)
-            km[bl] = make_zero_tail(g_bl, 2)
-            km[bl][1] = np.eye(g_bl.target_shape[0])
-        #Set trivial, diagonal derivation:
-        jac = np.zeros((len(x),len(x)))
-        for i in range(len(x)):
-            jac[i,i] = -1.0
-        # Update the shifted Green function
+        
+        # Update G0_shift_iw with new value of alpha
         self.prepare_G0_shift_iw(**_params)
-        bl= gf_struct[0][0]
-        G =  self.G0_shift_iw[bl][0,0].copy()
+
+        # Set trivial, diagonal derivation:
+        jac = -np.eye(len(x))
+
         #create List with needed indices
+        bl = gf_struct[0][0]
+        G = self.G0_shift_iw[bl][0,0].copy()
         L  = []
         for n, (term, coeff) in enumerate(h_int):
-            bl_0, u_cdag_0 = term[0][1]
-            bl_1, u_cdag_1 = term[1][1]
-            bl_1, u_c_1 = term[2][1]
-            bl_0, u_c_0 = term[3][1]
-            idx_cdag_0 = dict(gf_struct)[bl_0].index(u_cdag_0)
-            idx_cdag_1 = dict(gf_struct)[bl_1].index(u_cdag_1)
-            idx_c_1 = dict(gf_struct)[bl_1].index(u_c_1)
-            idx_c_0 = dict(gf_struct)[bl_0].index(u_c_0)                              
-            L.append([bl_0,idx_c_0,idx_cdag_0,n,0])
-            if bl_0 == bl_1:
-                L.append([bl_0,idx_c_0,idx_cdag_1,n,1])
-                L.append([bl_1,idx_c_0,idx_cdag_1,n,2])
-            L.append([bl_1,idx_c_1,idx_cdag_1,n,3])
+            bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+            L.append([bl0,u0,u0p,n,0])
+            if bl0 == bl1:
+                L.append([bl0,u1,u0p,n,1]) # WHY, this should be u0, u1p no?
+                L.append([bl1,u1,u0p,n,2])
+            L.append([bl1,u1,u1p,n,3])
         for K in L:
             i = K[3]*4+K[4]
-            sigma = K[0]
-            h = K[1]
-            l = K[2]
+            bl = K[0]
+            l = K[1] # cdag
+            h = K[2] # c
             for n in range(n_terms):
                 for t in range(4):
-                    c = self.convert_alpha_to_ij(h_int,gf_struct,n,t)
+                    c = self.convert_alpha_to_ij(h_int, gf_struct, n, t)
                     if c == None:
                         continue;
                     else:
-                        [sigma_2,z1,z2,U_tilde] = c
+                        [blp,z1,z2,U_tilde] = c
                         j = 4*n+t
                         G.zero()
-                        if sigma == sigma_2:
-                            G = -self.G0_shift_iw[sigma_2][h,z1]*self.G0_shift_iw[sigma_2][z2,l]*U_tilde
+                        if bl == blp:
+                            G = -self.G0_shift_iw[blp][h,z1]*self.G0_shift_iw[blp][z2,l]*U_tilde
                     jac[i,j] += np.real(G.density())
         return jac
-
 
     
     def solve(self, **solve_params):
@@ -218,22 +194,17 @@ class Solver(SolverCore):
                      If not given, it will be constructed automatically.
         """
 
-        assert 'h_int' in solve_params
-        assert 'n_cycles' in solve_params
-        self.eval_count = 0
-        delta = solve_params.pop('delta', 0.1)
-        if 'n_s' not in solve_params: solve_params['n_s'] = 1
+        assert 'n_cycles' in solve_params, "Solve parameter n_cycles required"
+        assert 'n_s' not in solve_params, "Solve parameter n_s no longer supported"
 
-        h_int = solve_params['h_int']
+        # Parameters
         gf_struct = self.constr_params['gf_struct']
-        n_s = solve_params['n_s']
+        h_int = solve_params['h_int']
+        delta = solve_params.pop('delta', 0.1)
         
         if 'alpha' not in solve_params:
             # --------- Determine the alpha tensor from SC Hartree Fock ----------
             mpi_print("Determine alpha-tensor")
-
-            if n_s != 1:
-                raise Exception("Automatic alpha determination not implemented for n_s != 1")
 
             def sign(a):
                 if a >= 0: return 1
@@ -246,45 +217,30 @@ class Solver(SolverCore):
                 km[bl] = make_zero_tail(g_bl, 2)
                 km[bl][1] = np.eye(g_bl.target_shape[0])
                 
-            if 'use_jacobi' not in solve_params: solve_params['use_jacobi'] = True
-            use_jacobi = solve_params['use_jacobi']
-            solve_params.pop('use_jacobi')
             # The numer of terms in h_int determines the leading dimension of alpha
             n_terms = len(list(h_int))
 
-            # Calculate initial alpha guess from G0_iw.density(km)
-            alpha_init = np.zeros((n_terms, 2, 2, n_s))
+            # Precalculate the G0_iw densities
             G0_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_iw }
-            for n, (term, coeff) in enumerate(h_int):
-                bl_0, u_cdag_0 = term[0][1]
-                bl_1, u_cdag_1 = term[1][1]
-                bl_1, u_c_1 = term[2][1]
-                bl_0, u_c_0 = term[3][1]
-                idx_cdag_0 = dict(gf_struct)[bl_0].index(u_cdag_0)
-                idx_cdag_1 = dict(gf_struct)[bl_1].index(u_cdag_1)
-                idx_c_1 = dict(gf_struct)[bl_1].index(u_c_1)
-                idx_c_0 = dict(gf_struct)[bl_0].index(u_c_0)     
-                alpha_init[n,0,0,0] = G0_dens[bl_0][idx_c_0,idx_cdag_0]
-                alpha_init[n,1,1,0] = G0_dens[bl_1][idx_c_1,idx_cdag_1]
-                if bl_0 == bl_1:
-                    alpha_init[n,0,1,0] = G0_dens[bl_0][idx_c_1,idx_cdag_0]
-                    alpha_init[n,1,0,0] = G0_dens[bl_0][idx_c_0,idx_cdag_1]
-                else:
-                    alpha_init[n,0,1,0] = 0
-                    alpha_init[n,1,0,0] = 0
 
-            
+            # Calculate initial alpha guess from G0_iw.density(km)
+            alpha_init = np.zeros((n_terms, 2, 2, 1))
+            for n, (term, coeff) in enumerate(h_int):
+                bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+                alpha_init[n,0,0,0] = G0_dens[bl0][u0p,u0]
+                alpha_init[n,0,1,0] = G0_dens[bl0][u1p,u0] * (bl0 == bl1)
+                alpha_init[n,1,0,0] = G0_dens[bl0][u0p,u1] * (bl0 == bl1)
+                alpha_init[n,1,1,0] = G0_dens[bl1][u1p,u1]
+
             # mpi_print("Init Alpha: " + str(alpha_init[...,0]))
-            alpha_vec_init = alpha_init.reshape(4 * n_terms * n_s)
+            alpha_vec_init = alpha_init.reshape(4 * n_terms)
             alpha = alpha_init
 
-            
+            use_jacobi = solve_params.pop('use_jacobi', True)
+
             if mpi.is_master_node():
                 # Find alpha on master_node
-
-             
-                self.eval_count = 0
-                if use_jacobi == True:
+                if use_jacobi:
                     mpi_print("Using Jacobi-Matrix for root search")
                     root_finder = root(self.f, alpha_vec_init,args=(solve_params),jac=self.jacobi,method="hybr")
                 else:
@@ -293,7 +249,7 @@ class Solver(SolverCore):
                     
                 # Reshape result, Implement Fallback solution if unsuccessful
                 if root_finder['success']:
-                    alpha = root_finder['x'].reshape(n_terms, 2, 2, n_s)
+                    alpha = root_finder['x'].reshape(n_terms, 2, 2, 1)
                     solve_params['alpha'] = alpha
                 else:
                     mpi_print("Could not determine alpha, falling back to G0_iw.density()")
