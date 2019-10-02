@@ -6,7 +6,7 @@ endif()
 
 # ############
 # Define Project
-project(APP4TRIQS VERSION 2.2.0 LANGUAGES C CXX)
+project(CTINT VERSION 2.2.0 LANGUAGES C CXX)
 
 # ############
 # Load TRIQS and CPP2PY
