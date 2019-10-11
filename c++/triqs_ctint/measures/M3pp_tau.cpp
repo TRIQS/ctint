@@ -101,19 +101,19 @@ namespace triqs_ctint::measures {
         // Do not consider empty blocks
         if (det2_size == 0) continue;
 
-        auto const &GM2  = GM_vec[bl2];
-        auto const &c2   = c_vec[bl2];
-        int bl2_size     = G0_tau[bl2].target_shape()[0];
-        auto &M3pp_tau   = M3pp_tau_(bl1, bl2);
-        auto &M3pp_delta = M3pp_delta_(bl1, bl2);
+        auto const &GM2     = GM_vec[bl2];
+        auto const &c2      = c_vec[bl2];
+        int bl2_size        = G0_tau[bl2].target_shape()[0];
+        auto &M3pp_tau_bl   = M3pp_tau_(bl1, bl2);
+        auto &M3pp_delta_bl = M3pp_delta_(bl1, bl2);
 
         // Direct term
         for (auto [j, l, i, k] : product_range(bl1_size, bl2_size, det1_size, det2_size)) {
           // Take care of equal-time peak separately
           if (c1[i].tau_pt == c2[k].tau_pt) {
-            M3pp_delta[cdag_vec[bl1][i].tau_idx](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
+            M3pp_delta_bl[cdag_vec[bl1][i].tau_idx](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
           } else {
-            M3pp_tau[{c1[i].tau_idx, c2[k].tau_idx}](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
+            M3pp_tau_bl[{c1[i].tau_idx, c2[k].tau_idx}](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
           }
         }
       }

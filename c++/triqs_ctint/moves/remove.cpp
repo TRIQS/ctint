@@ -8,10 +8,9 @@ namespace triqs_ctint::moves {
     if (qmc_config->perturbation_order() == 0) return 0.0;
 
     // Prepare remove of single vertex
-    auto single_remove = [&](int vpos) {
-
+    auto single_remove = [&](int p) {
       // Lazy remove the vertex at given position
-      auto &v = qmc_config->vertex_lst[vpos];
+      auto &v = qmc_config->vertex_lst[p];
       lazy_op << v;
 
       // Calculate insertion proposition probability
