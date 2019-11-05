@@ -1,9 +1,9 @@
 #%Module1.0
 #
-# To be installed as ${MODULEPATH}/triqs_ctint/@CTINT_VERSION@
+# To be installed as ${MODULEPATH}/triqs_ctint/@PROJECT_VERSION@
 
 set     name        triqs_ctint
-set     version     @CTINT_VERSION@
+set     version     @PROJECT_VERSION@
 set     root        @CMAKE_INSTALL_PREFIX@
 set     git_hash    @PROJECT_GIT_HASH@
 

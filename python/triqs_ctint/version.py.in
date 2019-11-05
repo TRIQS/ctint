@@ -21,7 +21,7 @@
 #
 ################################################################################
 
-version = "@CTINT_VERSION@"
+version = "@PROJECT_VERSION@"
 triqs_hash = "@TRIQS_GIT_HASH@"
 triqs_ctint_hash = "@PROJECT_GIT_HASH@"
 

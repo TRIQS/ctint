@@ -21,7 +21,7 @@ source_suffix = '.rst'
 
 project = u'CTINT - A TRIQS Interaction Expansion Solver'
 copyright = u'2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
-version = '@CTINT_VERSION@'
+version = '@PROJECT_VERSION@'
 
 mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
 templates_path = ['@PROJECT_SOURCE_DIR@/doc/_templates']
