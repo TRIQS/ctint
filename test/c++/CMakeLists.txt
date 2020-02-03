@@ -31,8 +31,9 @@ foreach(test ${all_tests})
       --std=c++17
       --template=gcc
       --verbose
+      --force
       --quiet
-      ${CMAKE_CURRENT_SOURCE_DIR}/${test}.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/${test}
     )
   endif()
 endforeach()
