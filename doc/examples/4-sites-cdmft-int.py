@@ -3,7 +3,7 @@ from pytriqs.lattice.tight_binding import *
 from pytriqs.lattice.bz_patch import *
 from pytriqs.dos.hilbert_transform import *
 from pytriqs.sumk import *
-from pytriqs.archive import *
+from h5 import *
 import pytriqs.utility.mpi as mpi
 import numpy as np
 

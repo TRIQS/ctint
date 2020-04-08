@@ -23,7 +23,6 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/real_or_complex.hpp>
-#include <triqs/cpp2py_converters/h5.hpp>
 
 using namespace triqs_ctint;
 """)
@@ -370,7 +369,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 c.add_method("""void post_process ()""",
              doc = r"""""")
 
-c.add_method("""std::string hdf5_scheme ()""",
+c.add_method("""std::string hdf5_format ()""",
              is_static = True,
              doc = r"""""")
 

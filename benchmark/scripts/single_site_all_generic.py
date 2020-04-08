@@ -1,5 +1,5 @@
 from pytriqs.gf import *
-from pytriqs.archive import *
+from h5 import *
 from pytriqs.operators import *
 import numpy
 from numpy import zeros,matrix

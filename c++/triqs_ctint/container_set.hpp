@@ -126,7 +126,7 @@ namespace triqs_ctint {
     std::optional<chi3_iw_t> chi3ph_iw_nfft;
 
     /// Function that writes all containers to hdf5 file
-    friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, container_set const &c) {
+    friend void h5_write(h5::group h5group, std::string subgroup_name, container_set const &c) {
       auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
       h5_write(grp, "average_k", c.average_k);
@@ -169,7 +169,7 @@ namespace triqs_ctint {
     }
 
     /// Function that reads all containers from hdf5 file
-    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, container_set &c) {
+    friend void h5_read(h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);

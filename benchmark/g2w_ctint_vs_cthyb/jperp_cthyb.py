@@ -1,7 +1,7 @@
 from numpy import zeros,matrix, array,sinh,cosh, cos, sin, exp, arctan, linspace
 import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
-from pytriqs.archive import *
+from h5 import *
 from pytriqs.operators import *
 from cthyb_spin import SolverCore
 

@@ -3,7 +3,7 @@ from triqs_ctint import Solver
 from itertools import product
 import pytriqs.utility.mpi as mpi
 from pytriqs.gf import *
-from pytriqs.archive import *
+from h5 import *
 from pytriqs.operators import *
 from pytriqs.utility.h5diff import h5diff
 from numpy import matrix

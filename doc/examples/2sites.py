@@ -1,6 +1,6 @@
 from triqs_ctint import SolverCore
 from pytriqs.gf import *
-from pytriqs.archive import *
+from h5 import *
 import numpy as np
 
 # Solver

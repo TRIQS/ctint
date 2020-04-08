@@ -1,6 +1,6 @@
 #include <triqs_ctint/solver_core.hpp>
 
-#include <triqs/h5.hpp>
+#include <h5/h5.hpp>
 #include <mpi/mpi.hpp>
 #include <triqs/gfs/gf_tests.hpp>
 #include <triqs/clef.hpp>
@@ -9,7 +9,7 @@
 #include <vector>
 
 using namespace triqs_ctint;
-using namespace triqs::h5;
+using namespace h5;
 
 int main(int argc, char **argv) {
 

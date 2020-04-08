@@ -33,7 +33,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include <triqs/utility/variant.hpp>
+#include <variant>
 
 namespace triqs_ctint {
 
@@ -44,7 +44,7 @@ namespace triqs_ctint {
   using namespace triqs::operators::utils;
   using namespace triqs::hilbert_space;
   using namespace triqs::utility;
-  using namespace triqs::h5;
+  using namespace h5;
 
   using namespace itertools; 
 
