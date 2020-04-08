@@ -12,7 +12,7 @@ np.set_printoptions(precision=4)
 # print on master node
 def mpi_print(arg):
     if mpi.is_master_node():
-        print arg
+        print(arg)
 
 # Flatten a block vector of matrices
 def flatten(Sig_HF):
@@ -24,7 +24,7 @@ def unflatten(Sig_HF_flat, gf_struct):
     Sig_HF = []
     for bl, indices in gf_struct:
         N = len(indices)
-        Sig_HF.append([bl, Sig_HF_flat[range(offset, offset + N**2)].reshape((N,N))])
+        Sig_HF.append([bl, Sig_HF_flat[list(range(offset, offset + N**2))].reshape((N,N))])
         offset = offset + N**2
     return Sig_HF
 
@@ -60,8 +60,8 @@ class Solver(SolverCore):
                Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
         if isinstance(gf_struct,dict):
-            print "WARNING: gf_struct should be a list of pairs [ [str,[int,...]], ...], not a dict"
-            gf_struct = list(gf_struct.iteritems())
+            print("WARNING: gf_struct should be a list of pairs [ [str,[int,...]], ...], not a dict")
+            gf_struct = list(gf_struct.items())
 
         # Initialise the core solver
         SolverCore.__init__(self, beta=beta, gf_struct=gf_struct, 
@@ -130,7 +130,7 @@ class Solver(SolverCore):
                         # Sig_HF[bl1][idx_u4, idx_u1] -= coef * G_dens[bl3][u2, u3]
                         # Sig_HF[bl3][idx_u2, idx_u3] -= coef * G_dens[bl1][u4, u1]
             
-                return Sig_HF_flat - flatten(list(Sig_HF.iteritems()))
+                return Sig_HF_flat - flatten(list(Sig_HF.items()))
             
             # Invoke the root finder
             Sig_HF_init = [[bl, np.zeros((len(idx_lst), len(idx_lst)))] for bl, idx_lst in gf_struct]
@@ -175,7 +175,7 @@ class Solver(SolverCore):
                 mpi_print("        %s : \t%s    Total: %.4f"%(bl, dens, dens_tot))
 
             mpi_print("  -- Alpha Tensor : ")
-            for bl, alpha_bl in zip(dict(gf_struct).keys(), alpha):
+            for bl, alpha_bl in zip(list(dict(gf_struct).keys()), alpha):
                 mpi_print("        %s : \t"%bl + str(alpha_bl).replace('\n','\n           \t'))
 
         # Call the core solver's solve routine

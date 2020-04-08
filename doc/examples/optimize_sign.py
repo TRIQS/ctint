@@ -157,7 +157,7 @@ def get_sign(x, f_):
               numpy.array([[x[3]],[x[4]],[x[3]],[x[4]],[x[5]],[x[4]],[x[3]],[x[4]],[x[3]]]) ]
   S.G0 << G0
   S.Solve()
-  print "x = ", x[0], "  y = ", x[1], "  Av = ", S.average_sign
+  print("x = ", x[0], "  y = ", x[1], "  Av = ", S.average_sign)
   f_.write("%f %f %f\n"%(x[0],x[1],S.average_sign))
   f_.flush()
   return -abs(S.average_sign)
