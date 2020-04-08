@@ -1,6 +1,6 @@
 # See ../triqs/packaging for other options
 FROM flatironinstitute/triqs:unstable-ubuntu-clang
-ARG APPNAME=app4triqs
+ARG APPNAME=ctint
 
 RUN apt-get install -y libnfft3-dev || yum install -y nfft-devel
 

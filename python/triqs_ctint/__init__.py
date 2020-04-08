@@ -28,7 +28,7 @@ r"""
 DOC
 
 """
-from solver import Solver
-from solver_core import SolverCore
+from .solver import Solver
+from .solver_core import SolverCore
 
 __all__ = ['Solver','SolverCore']

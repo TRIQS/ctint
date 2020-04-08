@@ -19,8 +19,8 @@ extensions = ['sphinx.ext.autodoc',
 
 source_suffix = '.rst'
 
-project = u'CTINT - A TRIQS Interaction Expansion Solver'
-copyright = u'2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
+project = 'CTINT - A TRIQS Interaction Expansion Solver'
+copyright = '2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
 version = '@PROJECT_VERSION@'
 
 mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
