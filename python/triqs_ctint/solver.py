@@ -1,4 +1,4 @@
-from solver_core  import SolverCore
+from .solver_core import SolverCore
 from pytriqs.gf import *
 from pytriqs.utility import mpi
 
