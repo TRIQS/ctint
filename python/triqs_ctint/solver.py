@@ -124,7 +124,7 @@ class Solver(SolverCore):
             return [bl1, u0, u1p,  coeff] if bl0 == bl1 else None
         elif t == 3:  # alpha_11
             return [bl0, u0, u0p, -coeff]
-            
+
     def jacobi(self, x, solve_params):
 
         # Parameters
@@ -141,7 +141,7 @@ class Solver(SolverCore):
         # Prepare the inverse of G0_iw
         for bl, g_bl in self.G0_iw:
             self.G0_iw_inv[bl] << inverse(g_bl)
-        
+
         # Update G0_shift_iw with new value of alpha
         self.prepare_G0_shift_iw(**_params)
 
@@ -178,7 +178,7 @@ class Solver(SolverCore):
                     jac[i,j] += np.real(G.density())
         return jac
 
-    
+
     def solve(self, **solve_params):
         """
         Solve the impurity problem.
@@ -195,14 +195,16 @@ class Solver(SolverCore):
         """
 
         assert 'n_cycles' in solve_params, "Solve parameter n_cycles required"
-        assert 'n_s' not in solve_params, "Solve parameter n_s no longer supported"
 
-        # Parameters
-        gf_struct = self.constr_params['gf_struct']
-        h_int = solve_params['h_int']
-        delta = solve_params.pop('delta', 0.1)
-        
         if 'alpha' not in solve_params:
+
+            # Parameters
+            gf_struct = self.constr_params['gf_struct']
+            h_int = solve_params['h_int']
+            delta = solve_params.pop('delta', 0.1)
+            n_s = solve_params.get('n_s', 1)
+            assert n_s in [1, 2], "Solve parameter n_s has to be either 1 or 2 for automatic alpha mode"
+
             # --------- Determine the alpha tensor from SC Hartree Fock ----------
             mpi_print("Determine alpha-tensor")
 
@@ -216,7 +218,7 @@ class Solver(SolverCore):
                 self.G0_iw_inv[bl] << inverse(g_bl)
                 km[bl] = make_zero_tail(g_bl, 2)
                 km[bl][1] = np.eye(g_bl.target_shape[0])
-                
+
             # The numer of terms in h_int determines the leading dimension of alpha
             n_terms = len(list(h_int))
 
@@ -224,6 +226,9 @@ class Solver(SolverCore):
             G0_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_iw }
 
             # Calculate initial alpha guess from G0_iw.density(km)
+            # We always solve the self-consistency assuming n_s == 1
+            # If n_s > 1 we use this only in the post-processing of alpha
+            solve_params['n_s'] = 1
             alpha_init = np.zeros((n_terms, 2, 2, 1))
             for n, (term, coeff) in enumerate(h_int):
                 bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
@@ -234,37 +239,41 @@ class Solver(SolverCore):
 
             # mpi_print("Init Alpha: " + str(alpha_init[...,0]))
             alpha_vec_init = alpha_init.reshape(4 * n_terms)
-            alpha = alpha_init
-
-            use_jacobi = solve_params.pop('use_jacobi', True)
+            alpha = np.zeros((n_terms, 2, 2, n_s))
 
             if mpi.is_master_node():
                 # Find alpha on master_node
-                if use_jacobi:
+                if solve_params.pop('use_jacobi', True):
                     mpi_print("Using Jacobi-Matrix for root search")
                     root_finder = root(self.f, alpha_vec_init,args=(solve_params),jac=self.jacobi,method="hybr")
                 else:
                     root_finder = root(self.f, alpha_vec_init,args=(solve_params),method="hybr")
 
-                    
                 # Reshape result, Implement Fallback solution if unsuccessful
                 if root_finder['success']:
-                    alpha = root_finder['x'].reshape(n_terms, 2, 2, 1)
-                    solve_params['alpha'] = alpha
+                    alpha_sc = root_finder['x'].reshape(n_terms, 2, 2, 1)
                 else:
                     mpi_print("Could not determine alpha, falling back to G0_iw.density()")
+                    alpha_sc = alpha_init
+
+                #_ Introduce alpha assymetry
+                for n, (term, coeff) in enumerate(h_int):
+                    for s in range(n_s):
+                        alpha[n,0,0,s] = alpha_sc[n,0,0,0] - sign(coeff) * delta * (1 - 2*s)
+                        alpha[n,1,1,s] = alpha_sc[n,1,1,0] + delta * (1 - 2*s)
+                        alpha[n,0,1,s] = alpha_sc[n,0,1,0] + delta * (1 - 2*s) * (abs(alpha_sc[n,0,1,0]) > 1e-6)
+                        alpha[n,1,0,s] = alpha_sc[n,1,0,0] + sign(coeff) * delta * (1 - 2*s) * (abs(alpha_sc[n,1,0,0]) > 1e-6)
 
             alpha = mpi.bcast(alpha, root=0)
 
-            #_ Introduce alpha assymetry
-            for n, (term, coeff) in enumerate(h_int):
-                alpha[n,0,0,0] = alpha[n,0,0,0] - sign(coeff) * delta
-                alpha[n,1,1,0] = alpha[n,1,1,0] + delta
-                alpha[n,0,1,0] = alpha[n,0,1,0] + delta * (abs(alpha[n,0,1,0]) > 1e-6)
-                alpha[n,1,0,0] = alpha[n,1,0,0] + sign(coeff) * delta * (abs(alpha[n,1,0,0]) > 1e-6)
+            # Make sure to set n_s as provided by the user
+            solve_params['n_s'] = n_s
 
             mpi_print(" --- Alpha Tensor : ")
-            mpi_print(str(alpha[...,0]))
+            if n_s == 1:
+                mpi_print(str(alpha[...,0]))
+            else:
+                mpi_print(str(alpha))
             solve_params['alpha'] = alpha
 
         solve_status = SolverCore.solve(self, **solve_params)
