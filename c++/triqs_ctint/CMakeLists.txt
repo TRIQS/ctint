@@ -1,14 +1,15 @@
 file(GLOB_RECURSE sources *.cpp)
-add_library(triqs_ctint_c STATIC ${sources})
+add_library(triqs_ctint_c ${sources})
 
 # Link against triqs and enable warnings
-target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE project_warnings)
+target_link_libraries(triqs_ctint_c PUBLIC triqs PRIVATE $<BUILD_INTERFACE:triqs_ctint_warnings>)
 
-# Configure compilation
+# Configure target and compilation
 target_compile_options(triqs_ctint_c PUBLIC -fPIC)
-target_include_directories(triqs_ctint_c PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/c++>)
+target_include_directories(triqs_ctint_c PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/c++>)
+target_include_directories(triqs_ctint_c SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 target_compile_definitions(triqs_ctint_c PUBLIC
-				CTINT_GIT_HASH=${CTINT_GIT_HASH}
+				CTINT_GIT_HASH=${PROJECT_GIT_HASH}
 				TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
 				$<$<CONFIG:Debug>:CTINT_DEBUG>
 				$<$<CONFIG:Debug>:TRIQS_DEBUG>
@@ -76,13 +77,11 @@ if(ASAN)
   if(NOT TARGET asan)
     find_package(sanitizer REQUIRED "asan")
   endif()
-  target_link_libraries(triqs_ctint_c PUBLIC asan)
-  install(TARGETS asan EXPORT triqs_ctint-targets)
+  target_link_libraries(triqs_ctint_c PUBLIC $<BUILD_INTERFACE:asan>)
 endif()
 if(UBSAN)
   if(NOT TARGET ubsan)
     find_package(sanitizer REQUIRED "ubsan")
   endif()
-  target_link_libraries(triqs_ctint_c PUBLIC ubsan)
-  install(TARGETS ubsan EXPORT triqs_ctint-targets)
+  target_link_libraries(triqs_ctint_c PUBLIC $<BUILD_INTERFACE:ubsan>)
 endif()

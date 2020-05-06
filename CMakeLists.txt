@@ -1,18 +1,43 @@
-cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
-project(triqs_ctint CXX)
+# ##############################################################################
+#
+# triqs_ctint - An example application using triqs and cpp2py
+#
+# Copyright (C) 2016-2019 N. Wentzel, O. Parcollet
+# Copyright (C) 2019-2020 Simons Foundation
+#     author: N. Wentzell
+#
+# triqs_ctint is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# triqs_ctint is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# triqs_ctint (in the file COPYING.txt in this directory). If not, see
+# <http://www.gnu.org/licenses/>.
+#
+# ##############################################################################
+
+cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
+cmake_policy(VERSION 3.3.2)
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
+endif()
+if(POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
 endif()
 
 # ############
 # Define Project
-project(CTINT VERSION 2.2.0 LANGUAGES C CXX)
+project(CTINT VERSION 3.0.0 LANGUAGES C CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############
 # Load TRIQS and CPP2PY
-find_package(TRIQS 2.2 REQUIRED)
-find_package(Cpp2Py 1.6 REQUIRED)
+find_package(TRIQS 3.0 REQUIRED)
 
 # Get the git hash & print status
 triqs_get_git_hash_of_source_dir(PROJECT_GIT_HASH)
@@ -30,7 +55,11 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR (NOT IS_ABSOLUTE ${CMAKE_INSTA
   set(CMAKE_INSTALL_PREFIX ${TRIQS_ROOT} CACHE PATH "default install path" FORCE)
   set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT FALSE)
 endif()
-message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
+if(NOT IS_SUBPROJECT)
+  message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
+endif()
+set(APP4TRIQS_BINARY_DIR ${PROJECT_BINARY_DIR} CACHE STRING "Binary directory of the APP4TRIQS Project")
+
 
 # ############
 # Options
@@ -39,7 +68,15 @@ message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------"
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Type of build" FORCE)
 endif()
-message(STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} --------")
+if(NOT IS_SUBPROJECT)
+  message(STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} --------")
+endif()
+
+# Testing
+option(Build_Tests "Build tests" ON)
+if(Build_Tests)
+  enable_testing()
+endif()
 
 # Options for the compilation ...
 option(GTAU_IS_COMPLEX "If ON, the non-interacting Green-function G_0(tau) is complex" OFF)
@@ -49,17 +86,15 @@ option(INTERACTION_IS_COMPLEX "If ON, the interaction vertices (dynamic and stat
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Global compiler options
+option(BUILD_SHARED_LIBS "Enable compilation of shared libraries" OFF)
 add_compile_options(
   $<$<CONFIG:Debug>:-Og>
   $<$<CONFIG:Debug>:-ggdb3>
 )
 
 # Create an Interface target for compiler warnings
-if(NOT TARGET project_warnings)
-  add_library(project_warnings INTERFACE)
-endif()
-install(TARGETS project_warnings EXPORT triqs_ctint-targets)
-target_compile_options(project_warnings
+add_library(triqs_ctint_warnings INTERFACE)
+target_compile_options(triqs_ctint_warnings
   INTERFACE
     -Wall
     -Wextra
@@ -76,13 +111,14 @@ target_compile_options(project_warnings
 # #############
 # Build Project
 
+# Find / Build dependencies
+add_subdirectory(deps)
+
 # Build and install the triqs_ctint library
 add_subdirectory(c++/triqs_ctint)
 
 # Tests
-option(Build_Tests "Build tests" ON)
-if(Build_Tests AND NOT IS_SUBPROJECT)
-  enable_testing()
+if(Build_Tests)
   add_subdirectory(test)
 endif()
 
@@ -106,6 +142,7 @@ endif()
 
 # Additional configuration files
 add_subdirectory(share)
+
 
 # #############
 # Debian Package

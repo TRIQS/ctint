@@ -13,6 +13,10 @@ set(CTINT_GIT_HASH @PROJECT_GIT_HASH@)
 # Root of the installation
 set(CTINT_ROOT  @CMAKE_INSTALL_PREFIX@)
 
+## Find the target dependencies
+#include(CMakeFindDependencyMacro)
+#find_dependency(...)
+
 # Include the exported targets of this project
 include(@CMAKE_INSTALL_PREFIX@/lib/cmake/triqs_ctint/triqs_ctint-targets.cmake)
 
