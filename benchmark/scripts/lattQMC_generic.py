@@ -1,12 +1,12 @@
-from pytriqs.gf import *
+from triqs.gf import *
 from h5 import *
-from pytriqs.operators import *
+from triqs.operators import *
 import numpy
 from numpy import zeros,matrix
 from numpy import array,sinh,cosh, cos, sin, exp, arctan, linspace
 from math import sqrt, pi
-import pytriqs.utility.mpi as mpi
-from pytriqs.gf.descriptors import Function
+import triqs.utility.mpi as mpi
+from triqs.gf.descriptors import Function
 from triqs_ctint import SolverCore
 
 ################################################

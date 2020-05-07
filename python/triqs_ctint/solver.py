@@ -1,6 +1,6 @@
 from .solver_core import SolverCore
-from pytriqs.gf import *
-from pytriqs.utility import mpi
+from triqs.gf import *
+from triqs.utility import mpi
 
 import numpy as np
 from scipy.optimize import root

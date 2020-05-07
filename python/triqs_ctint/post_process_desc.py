@@ -1,12 +1,12 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C pytriqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C triqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
 module = module_(full_name = "post_process", doc = r"The TRIQS ctint postprocess functionality", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['pytriqs.gf', 'pytriqs.operators'])
+module.add_imports(*['triqs.gf', 'triqs.operators'])
 
 # Add here all includes
 module.add_include("triqs_ctint/post_process.hpp")

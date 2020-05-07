@@ -1,12 +1,12 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C pytriqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
 module = module_(full_name = "solver_core", doc = r"The TRIQS ctint solver", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['pytriqs.gf', 'pytriqs.operators', '_h5py'])
+module.add_imports(*['triqs.gf', 'triqs.operators', '_h5py'])
 
 # Add here all includes
 module.add_include("triqs_ctint/solver_core.hpp")

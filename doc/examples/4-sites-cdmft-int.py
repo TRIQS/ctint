@@ -1,10 +1,10 @@
-from pytriqs.gf import *
-from pytriqs.lattice.tight_binding import *
-from pytriqs.lattice.bz_patch import *
-from pytriqs.dos.hilbert_transform import *
-from pytriqs.sumk import *
+from triqs.gf import *
+from triqs.lattice.tight_binding import *
+from triqs.lattice.bz_patch import *
+from triqs.dos.hilbert_transform import *
+from triqs.sumk import *
 from h5 import *
-import pytriqs.utility.mpi as mpi
+import triqs.utility.mpi as mpi
 import numpy as np
 
 # Parameters

@@ -1,12 +1,12 @@
 from triqs_ctint import Solver
 
 from itertools import product
-import pytriqs.utility.mpi as mpi
-from pytriqs.gf import *
+import triqs.utility.mpi as mpi
+from triqs.gf import *
 from h5 import *
-from pytriqs.operators import *
-from pytriqs.utility.h5diff import h5diff
-from pytriqs.gf.descriptors import Function
+from triqs.operators import *
+from triqs.utility.h5diff import h5diff
+from triqs.gf.descriptors import Function
 from numpy import linspace
 
 test_name = 'all_continuousBoson'

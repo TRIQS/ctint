@@ -1,4 +1,4 @@
-from pytriqs.gf import *
+from triqs.gf import *
 from h5 import *
 from numpy import array, zeros, identity
 
