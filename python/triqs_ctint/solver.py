@@ -98,6 +98,13 @@ class Solver(SolverCore):
             # --------- Determine the alpha tensor from SC Hartree Fock ----------
             mpi_print("Determine alpha-tensor from SC Hartree Fock solution")
 
+            # Make sure that n_s parameter is compatible with automatic alpha
+            n_s = params_kw.get('n_s', 1)
+            if(all(any(s in bl for s in ['up', 'dn', 'do']) for bl, idxlst in gf_struct)):
+                assert n_s in [1, 2], "For spinfull systems the automatic alpha determination requires n_s to be either 1 or 2"
+            else:
+                assert n_s == 1, "For spinless systems the automatic alpha determination requires n_s to be 1"
+
             # Find the root of this function
             def f(Sig_HF_flat):
                 Sig_HF = dict(unflatten(Sig_HF_flat, gf_struct))
@@ -151,9 +158,9 @@ class Solver(SolverCore):
                     dens_HF = np.diag(G_iw[bl].density()).real
                     densities_HF.append((bl, dens_HF, sum(dens_HF)))
                     if 'up' in bl:
-                        alpha.append( np.array([[n_o + delta] for n_o in dens_HF ]) )
+                        alpha.append( np.array([[n_o + delta] if n_s == 1 else [n_o + delta, n_o - delta] for n_o in dens_HF ]) )
                     elif 'dn' in bl or 'do' in bl:
-                        alpha.append( np.array([[n_o - delta] for n_o in dens_HF ]) )
+                        alpha.append( np.array([[n_o - delta] if n_s == 1 else [n_o - delta, n_o + delta] for n_o in dens_HF ]) )
                     else:
                         alpha.append( np.array([[n_o] for n_o in dens_HF ]) )
             else:
@@ -161,14 +168,13 @@ class Solver(SolverCore):
                 indices = gf_struct[0][1]
                 for bl, G0_bl in self.G0_iw:
                     if 'up' in bl:
-                        alpha.append( [[0.5 + delta] for i in indices ] )
+                        alpha.append( [[0.5 + delta] if n_s == 1 else [0.5 + delta, 0.5 - delta] for i in indices ] )
                     elif 'dn' in bl or 'do' in bl:
-                        alpha.append( [[0.5 - delta] for i in indices ] )
+                        alpha.append( [[0.5 - delta] if n_s == 1 else [0.5 - delta, 0.5 + delta] for i in indices ] )
                     else:
                         alpha.append( [[0.5] for i in indices ] )
             
             params_kw['alpha'] = alpha
-            params_kw['n_s'] = 1
             
             mpi_print("  -- HF Densities : ")
             for bl, dens, dens_tot in densities_HF:
