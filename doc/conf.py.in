@@ -3,8 +3,8 @@
 # TRIQS documentation build configuration file
 
 import sys
-sys.path.insert(0, "@TRIQS_SPHINXEXT_PATH@/autorun")
-sys.path.insert(0, "@TRIQS_SPHINXEXT_PATH@/numpydoc")
+sys.path.insert(0, "@CMAKE_CURRENT_SOURCE_DIR@/sphinxext/autorun")
+sys.path.insert(0, "@CMAKE_CURRENT_SOURCE_DIR@/sphinxext/numpydoc")
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
@@ -13,29 +13,31 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.viewcode',
               'sphinx.ext.autosummary',
-              'numpydoc',
-              'plot_directive',
-              'autorun']
+              'sphinx.ext.githubpages',
+              'matplotlib.sphinxext.plot_directive',
+              'autorun',
+              'numpydoc']
 
 source_suffix = '.rst'
 
 project = 'CTINT - A TRIQS Interaction Expansion Solver'
-copyright = '2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
 version = '@PROJECT_VERSION@'
 
-mathjax_path = "@TRIQS_MATHJAX_PATH@/MathJax.js?config=default"
-templates_path = ['@PROJECT_SOURCE_DIR@/doc/_templates']
+copyright = '2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
+
+mathjax_path = "https://raw.githubusercontent.com/mathjax/MathJax/2.7.8/MathJax.js"
+templates_path = ['@CMAKE_CURRENT_SOURCE_DIR@/_templates']
 
 html_theme = 'triqs'
-html_theme_path = ['@TRIQS_THEMES_PATH@']
+html_theme_path = ['@CMAKE_CURRENT_SOURCE_DIR@/themes']
 html_show_sphinx = False
 html_context = {'header_title': 'ctint',
                 'header_subtitle': 'A generic quantum impurity solver based on the <a class="triqs" style="font-size: 12px" href="http://triqs.github.io">TRIQS</a> library',
                 'header_links': [['Install', 'install'],
                                  ['Documentation', 'documentation'],
                                  ['Issues', 'issues'],
-                                 ['About ctint', 'about']]}
-html_static_path = ['@PROJECT_SOURCE_DIR@/doc/_static']
+                                 ['About @PROJECT_NAME@', 'about']]}
+html_static_path = ['@CMAKE_CURRENT_SOURCE_DIR@/_static']
 html_sidebars = {'index': ['sideb.html', 'searchbox.html']}
 
 htmlhelp_basename = 'CTINTdoc'

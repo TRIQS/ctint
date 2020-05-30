@@ -32,7 +32,7 @@ endif()
 
 # ############
 # Define Project
-project(CTINT VERSION 3.0.0 LANGUAGES C CXX)
+project(triqs_ctint VERSION 3.0.0 LANGUAGES C CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############
@@ -58,11 +58,14 @@ endif()
 if(NOT IS_SUBPROJECT)
   message(STATUS "-------- CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX} --------")
 endif()
-set(APP4TRIQS_BINARY_DIR ${PROJECT_BINARY_DIR} CACHE STRING "Binary directory of the APP4TRIQS Project")
+set(${PROJECT_NAME}_BINARY_DIR ${PROJECT_BINARY_DIR} CACHE STRING "Binary directory of the ${PROJECT_NAME} Project")
 
 
 # ############
 # Options
+
+# Make additional Find Modules available
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/share/cmake/Modules)
 
 # Default to Release build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -71,6 +74,15 @@ endif()
 if(NOT IS_SUBPROJECT)
   message(STATUS "-------- BUILD-TYPE: ${CMAKE_BUILD_TYPE} --------")
 endif()
+
+# Python Support
+option(PythonSupport "Build with Python support" ON)
+if(PythonSupport AND NOT TRIQS_WITH_PYTHON_SUPPORT)
+  message(FATAL_ERROR "TRIQS was installed without Python support. Cannot build the Python Interface. Disable the build with -DPythonSupport=OFF")
+endif()
+
+# Documentation
+option(Build_Documentation "Build documentation" OFF)
 
 # Testing
 option(Build_Tests "Build tests" ON)
@@ -93,8 +105,8 @@ add_compile_options(
 )
 
 # Create an Interface target for compiler warnings
-add_library(triqs_ctint_warnings INTERFACE)
-target_compile_options(triqs_ctint_warnings
+add_library(${PROJECT_NAME}_warnings INTERFACE)
+target_compile_options(${PROJECT_NAME}_warnings
   INTERFACE
     -Wall
     -Wextra
@@ -114,35 +126,26 @@ target_compile_options(triqs_ctint_warnings
 # Find / Build dependencies
 add_subdirectory(deps)
 
-# Build and install the triqs_ctint library
-add_subdirectory(c++/triqs_ctint)
+# Build and install the library
+add_subdirectory(c++/${PROJECT_NAME})
 
 # Tests
 if(Build_Tests)
   add_subdirectory(test)
 endif()
 
-if(TRIQS_WITH_PYTHON_SUPPORT)
-  # Python interface
-  add_subdirectory(python/triqs_ctint)
+# Python
+if(PythonSupport)
+  add_subdirectory(python/${PROJECT_NAME})
+endif()
 
-  # Build the documentation
-  option(Build_Documentation "Build documentation" OFF)
-  if(Build_Documentation AND NOT IS_SUBPROJECT)
-    if(NOT TRIQS_WITH_DOCUMENTATION)
-      message(WARNING "TRIQS was installed without documentation! Cannot build documentation.")
-    else()
-      message(STATUS "Documentation Build enabled")
-      add_subdirectory(doc)
-    endif()
-  endif()
-else()
-  message(WARNING "TRIQS was installed without Python support. Cannot build the Python Interface and Documentation.")
+# Docs
+if(Build_Documentation)
+  add_subdirectory(doc)
 endif()
 
 # Additional configuration files
 add_subdirectory(share)
-
 
 # #############
 # Debian Package
@@ -152,14 +155,13 @@ if(BUILD_DEBIAN_PACKAGE AND NOT IS_SUBPROJECT)
   if(NOT CMAKE_INSTALL_PREFIX STREQUAL "/usr")
     message(FATAL_ERROR "CMAKE_INSTALL_PREFIX must be /usr for packaging")
   endif()
-  set(CPACK_PACKAGE_NAME triqs_ctint)
+  set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
   set(CPACK_GENERATOR "DEB")
   set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
   set(CPACK_PACKAGE_CONTACT "https://github.com/TRIQS/ctint")
   execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CMAKE_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "triqs (>= 2.2)")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "triqs (>= 3.0)")
   set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
   set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
   include(CPack)
 endif()
-
