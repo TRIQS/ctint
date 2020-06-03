@@ -43,6 +43,7 @@ w0=1.0
 # Dynamic Density-Density Interaction
 D = 0.5
 S.D0_iw['up','dn'][0,0]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
+S.D0_iw['dn','up'][0,0]  << D**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
