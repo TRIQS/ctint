@@ -65,7 +65,7 @@ Custom CMake options
 
 The compilation of ctint can be configured using CMake-options::
 
-    cmake ../ctint.src -DOPTION1=value1 -DOPTION2=value2 ... ../triqs_ctint.src
+    cmake ../ctint.src -DOPTION1=value1 -DOPTION2=value2 ...
 
 +-----------------------------------------------------------------+-----------------------------------------------+
 | Options                                                         | Syntax                                        |
