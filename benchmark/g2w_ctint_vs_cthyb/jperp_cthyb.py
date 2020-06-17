@@ -1,8 +1,8 @@
 from numpy import zeros,matrix, array,sinh,cosh, cos, sin, exp, arctan, linspace
-import pytriqs.utility.mpi as mpi
-from pytriqs.gf import *
-from pytriqs.archive import *
-from pytriqs.operators import *
+import triqs.utility.mpi as mpi
+from triqs.gf import *
+from h5 import *
+from triqs.operators import *
 from cthyb_spin import SolverCore
 
 n_cycles =10000000 # 40000

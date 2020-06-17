@@ -1,6 +1,6 @@
 #include <triqs_ctint/solver_core.hpp>
 
-#include <triqs/h5.hpp>
+#include <h5/h5.hpp>
 #include <triqs/gfs.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
@@ -91,7 +91,7 @@ TEST(CtInt, Anderson) { // NOLINT
   // Solve!
   S.solve(ps);
 
-  auto archive = triqs::h5::file("anderson.out.h5", 'w');
+  auto archive = h5::file("anderson.out.h5", 'w');
   h5_write(archive, "S", S);
 }
 

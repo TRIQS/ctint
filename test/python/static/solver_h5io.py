@@ -1,10 +1,10 @@
 from triqs_ctint import Solver
 
-from pytriqs.gf import *
-from pytriqs.archive import HDFArchive
-from pytriqs.utility import mpi
-from pytriqs.utility.comparison_tests import *
-from pytriqs.operators import *
+from triqs.gf import *
+from h5 import HDFArchive
+from triqs.utility import mpi
+from triqs.utility.comparison_tests import *
+from triqs.operators import *
 
 U    = 1.0
 mu   = U/2.0

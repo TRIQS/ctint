@@ -94,7 +94,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   EXPECT_GF_NEAR(giw_nfft_multi, giw_nfft_equid, 1e-12); // There should be no difference between the one-shot and multi nfft
 
   // Write to file
-  // triqs::h5::file h5file("nfft.equid.h5", 'w');
+  // h5::file h5file("nfft.equid.h5", 'w');
   // h5_write(h5file "giw_nfft_equid", giw_nfft_equid);
   // h5_write(h5file "giw_fftw", giw_fftw);
   // h5_write(h5file "giw_exact", giw_exact);
@@ -133,7 +133,7 @@ TEST_F(Nfft, Rng) { // NOLINT
   EXPECT_GF_NEAR(giw_nfft_rng, giw_exact, 1e-2); // Expect a Monte-Carlo Error of order 1/sqrt(n_tau)
 
   // Write to file
-  // triqs::h5::file h5file("nfft.rng.h5", 'w');
+  // h5::file h5file("nfft.rng.h5", 'w');
   // h5_write(h5file "giw_nfft_rng", giw_nfft_rng);
   // h5_write(h5file "giw_exact", giw_exact);
 }
@@ -201,7 +201,7 @@ TEST_F(Nfft, 2D) { // NOLINT
   EXPECT_GF_NEAR(giw_nfft_2d, giw_fftw_2d, 1e-8);  // Only small deviation due to truncation/oversampling factor (see Fig.3 Notes Josef)
 
   // Write to file
-  // triqs::h5::file h5file("nfft.2d.h5", 'w');
+  // h5::file h5file("nfft.2d.h5", 'w');
   // h5_write(h5file "arr_nfft_2d", giw_nfft_2d.data());
   // h5_write(h5file "arr_fftw_2d", giw_fftw_2d.data());
   // h5_write(h5file "arr_exact_2d", giw_exact_2d.data());

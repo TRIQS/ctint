@@ -1,6 +1,6 @@
 #include <triqs_ctint/solver_core.hpp>
 
-#include <triqs/h5.hpp>
+#include <h5/h5.hpp>
 #include <mpi/mpi.hpp>
 #include <triqs/gfs/gf_tests.hpp>
 #include <triqs/clef.hpp>
@@ -9,7 +9,7 @@
 #include <vector>
 
 using namespace triqs_ctint;
-using namespace triqs::h5;
+using namespace h5;
 
 int main(int argc, char **argv) {
 
@@ -46,5 +46,5 @@ int main(int argc, char **argv) {
   // Rerun the Solver and Compare
   auto S_old = solver_core::h5_read_construct(file("Solver.h5", 'r'), "S");
   S_old.solve(S_old.last_solve_params.value());
-  assert_block_gfs_are_close(S_old.G_iw, S.G_iw, 1e-16);
+  assert_block_gfs_are_close(S_old.G_iw, S.G_iw, 1e-15);
 }

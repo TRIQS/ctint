@@ -1,12 +1,12 @@
-from pytriqs.gf import *
-from pytriqs.archive import *
-from pytriqs.operators import *
+from triqs.gf import *
+from h5 import *
+from triqs.operators import *
 import numpy
 from numpy import zeros,matrix
 from numpy import array,sinh,cosh, cos, sin, exp, arctan, linspace
 from math import sqrt, pi
-import pytriqs.utility.mpi as mpi
-from pytriqs.gf.descriptors import Function
+import triqs.utility.mpi as mpi
+from triqs.gf.descriptors import Function
 from triqs_ctint import SolverCore
 
 ################################################
@@ -77,7 +77,7 @@ Nx=Ny=a
 N_states=Nx*Ny
 
 block_names = ['up','dn']
-gf_struct = {block_names[0] : range(N_states), block_names[1] : range(N_states)}
+gf_struct = {block_names[0] : list(range(N_states)), block_names[1] : list(range(N_states))}
 
 h_int = U * n(block_names[0],0)*n(block_names[1],0)
 for i in range(1,N_states):
@@ -143,8 +143,8 @@ S.solve(h_int=h_int,
         measure_g2t = False,
         g2t_indep = g2t_indep)
 
-gup = GfImFreq(indices = range(N_states), beta = beta, n_points = n_iw, name = "upBlock")
-gdn = GfImFreq(indices = range(N_states), beta = beta, n_points = n_iw, name = "dnBlock")
+gup = GfImFreq(indices = list(range(N_states)), beta = beta, n_points = n_iw, name = "upBlock")
+gdn = GfImFreq(indices = list(range(N_states)), beta = beta, n_points = n_iw, name = "dnBlock")
 
 M_iw = BlockGf(name_list = (block_names[0],block_names[1]), block_list = (gup,gdn), make_copies = True)
 GfromM_iw = BlockGf(name_list = (block_names[0],block_names[1]), block_list = (gup,gdn), make_copies = True)

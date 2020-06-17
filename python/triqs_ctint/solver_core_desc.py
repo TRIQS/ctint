@@ -1,12 +1,12 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C pytriqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
 module = module_(full_name = "solver_core", doc = r"The TRIQS ctint solver", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['pytriqs.gf', 'pytriqs.operators'])
+module.add_imports(*['triqs.gf', 'triqs.operators', 'h5._h5py'])
 
 # Add here all includes
 module.add_include("triqs_ctint/solver_core.hpp")
@@ -23,7 +23,6 @@ module.add_preamble("""
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/real_or_complex.hpp>
-#include <triqs/cpp2py_converters/h5.hpp>
 
 using namespace triqs_ctint;
 """)
@@ -370,7 +369,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 c.add_method("""void post_process ()""",
              doc = r"""""")
 
-c.add_method("""std::string hdf5_scheme ()""",
+c.add_method("""std::string hdf5_format ()""",
              is_static = True,
              doc = r"""""")
 

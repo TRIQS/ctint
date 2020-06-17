@@ -1,7 +1,7 @@
 import numpy
-from pytriqs.Base.Lattice.TightBinding import *
-from pytriqs.Base.DOS.Hilbert_Transform import *
-from pytriqs.Base.GF_Local import *
+from triqs.Base.Lattice.TightBinding import *
+from triqs.Base.DOS.Hilbert_Transform import *
+from triqs.Base.GF_Local import *
 
 #
 # SC, 1 site DMFT
@@ -19,7 +19,7 @@ mu                         =  U_interact/2.0
 #
 #  Solver
 #
-from pytriqs.Solvers.InteractionExpansion.Solver import Solver
+from triqs.Solvers.InteractionExpansion.Solver import Solver
 class Solver_no_fit(Solver):
   def fitTails(self): pass
 
@@ -70,7 +70,7 @@ for it in range(N_Loops):
        return a
 
      Dc = HT (Sigma['SC'], Field = numpy.array([[-mu ,Field_SC_loc],[Field_SC_loc, -mu]]), Epsilon_Hat= Epsilon_Hat_SC, Res = G['SC'] ).density()
-     print "Total density = %f"%((Dc[0,0]-Dc[1,1]+1.0).real)
+     print("Total density = %f"%((Dc[0,0]-Dc[1,1]+1.0).real))
 
      # Extraction
      S.G['1']['p','p'] = G['SC']['p','p']

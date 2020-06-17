@@ -1,5 +1,5 @@
-from pytriqs.gf import *
-from pytriqs.archive import *
+from triqs.gf import *
+from h5 import *
 from numpy import array, zeros, identity
 
 # set up a few parameters

@@ -1,10 +1,10 @@
-configure_file(triqs_ctint-config.cmake.in triqs_ctint-config.cmake @ONLY)
-configure_file(triqs_ctint-config-version.cmake.in triqs_ctint-config-version.cmake @ONLY)
+configure_file(${PROJECT_NAME}-config.cmake.in ${PROJECT_NAME}-config.cmake @ONLY)
+configure_file(${PROJECT_NAME}-config-version.cmake.in ${PROJECT_NAME}-config-version.cmake @ONLY)
 install(
   FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/triqs_ctint-config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/triqs_ctint-config-version.cmake
-  DESTINATION lib/cmake/triqs_ctint
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
-install(EXPORT triqs_ctint-targets NAMESPACE triqs_ctint:: DESTINATION lib/cmake/triqs_ctint)
+install(EXPORT ${PROJECT_NAME}-targets NAMESPACE ${PROJECT_NAME}:: DESTINATION lib/cmake/${PROJECT_NAME})

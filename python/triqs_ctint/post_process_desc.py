@@ -1,12 +1,12 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C pytriqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C triqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
 module = module_(full_name = "post_process", doc = r"The TRIQS ctint postprocess functionality", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['pytriqs.gf', 'pytriqs.operators'])
+module.add_imports(*['triqs.gf', 'triqs.operators'])
 
 # Add here all includes
 module.add_include("triqs_ctint/post_process.hpp")
@@ -43,9 +43,9 @@ module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_from_chi2_conn_P
 
 module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PH (triqs_ctint::chi2_tau_cv_t chi2_conn_tau, triqs_ctint::g_iw_cv_t G_iw, triqs_ctint::block_matrix_t dens_G)", doc = r"""""")
 
-module.add_function ("gf<triqs::gfs::imtime,triqs::gfs::matrix_valued> triqs_ctint::chiAB_from_chi2_PP (triqs_ctint::chi2_tau_cv_t chi2pp_tau, triqs::hilbert_space::gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
+module.add_function ("gf<triqs::gfs::imtime, triqs::gfs::matrix_valued> triqs_ctint::chiAB_from_chi2_PP (triqs_ctint::chi2_tau_cv_t chi2pp_tau, triqs::hilbert_space::gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
-module.add_function ("gf<triqs::gfs::imtime,triqs::gfs::matrix_valued> triqs_ctint::chiAB_from_chi2_PH (triqs_ctint::chi2_tau_cv_t chi2ph_tau, triqs::hilbert_space::gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
+module.add_function ("gf<triqs::gfs::imtime, triqs::gfs::matrix_valued> triqs_ctint::chiAB_from_chi2_PH (triqs_ctint::chi2_tau_cv_t chi2ph_tau, triqs::hilbert_space::gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
 module.add_function ("triqs_ctint::chi2_tau_t triqs_ctint::chi2_conn_from_M3_PP (triqs_ctint::chi3_tau_t M3pp_tau, triqs_ctint::chi2_tau_t M3pp_delta, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::g_tau_cv_t M_tau, triqs_ctint::block_matrix_t M_hartree, triqs_ctint::g_tau_cv_t G0_tau)", doc = r"""""")
 

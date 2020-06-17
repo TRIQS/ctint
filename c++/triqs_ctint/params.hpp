@@ -42,10 +42,10 @@ namespace triqs_ctint {
     }
 
     /// Write constr_params_t to hdf5
-    friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, constr_params_t const &cp);
+    friend void h5_write(h5::group h5group, std::string subgroup_name, constr_params_t const &cp);
 
     /// Read constr_params_t from hdf5
-    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, constr_params_t &cp);
+    friend void h5_read(h5::group h5group, std::string subgroup_name, constr_params_t &cp);
   };
 
   /// The parameters for the solve function
@@ -152,10 +152,10 @@ namespace triqs_ctint {
     bool post_process = true;
 
     /// Write constr_params_t to hdf5
-    friend void h5_write(triqs::h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
+    friend void h5_write(h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
 
     /// Read constr_params_t from hdf5
-    friend void h5_read(triqs::h5::group h5group, std::string subgroup_name, solve_params_t &sp);
+    friend void h5_read(h5::group h5group, std::string subgroup_name, solve_params_t &sp);
   };
 
   /// A struct combining both constr_params_t and solve_params_t

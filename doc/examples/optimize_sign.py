@@ -1,10 +1,10 @@
-from pytriqs.Base.GF_Local import *
-from pytriqs.Base.Archive import *
-from pytriqs.Base.Utility import MPI
-from pytriqs.Base.Utility.myUtils import Sum
-from pytriqs.Base.Lattice.TightBinding import *
-from pytriqs.Base.Lattice.TightBinding import TBLattice
-from pytriqs.Base.SumK.SumK_Discrete_From_Lattice import *
+from triqs.Base.GF_Local import *
+from triqs.Base.Archive import *
+from triqs.Base.Utility import MPI
+from triqs.Base.Utility.myUtils import Sum
+from triqs.Base.Lattice.TightBinding import *
+from triqs.Base.Lattice.TightBinding import TBLattice
+from triqs.Base.SumK.SumK_Discrete_From_Lattice import *
 import numpy, numpy.linalg
 
 # Parameters
@@ -130,7 +130,7 @@ SK = SumK_Discrete_From_Lattice(L, Number_Points_in_BZ = N_k)
 # Construct CT-INT solver
 ##################################################################################
 
-from pytriqs.Solvers.InteractionExpansion import Solver
+from triqs.Solvers.InteractionExpansion import Solver
 
 S = Solver(Beta = Beta,
            GFstruct = [('up',[1,2,3,4,5,6,7,8,9]), ('down',[1,2,3,4,5,6,7,8,9])],
@@ -157,7 +157,7 @@ def get_sign(x, f_):
               numpy.array([[x[3]],[x[4]],[x[3]],[x[4]],[x[5]],[x[4]],[x[3]],[x[4]],[x[3]]]) ]
   S.G0 << G0
   S.Solve()
-  print "x = ", x[0], "  y = ", x[1], "  Av = ", S.average_sign
+  print("x = ", x[0], "  y = ", x[1], "  Av = ", S.average_sign)
   f_.write("%f %f %f\n"%(x[0],x[1],S.average_sign))
   f_.flush()
   return -abs(S.average_sign)
