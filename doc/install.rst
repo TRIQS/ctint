@@ -19,13 +19,6 @@ Installation steps
 
      $ git clone https://github.com/TRIQS/ctint ctint.src
 
-#. Make sure that all additional dependencies are installed on your system and available in your environment.
-   Alternatively build the dependencies from source instead with::
-
-     $ (cd deps && ./download.sh)
-
-   In this case they will be installed together with your application.
-
 #. Create and move to a new directory where you will compile the code::
 
      $ mkdir ctint.build && cd ctint.build

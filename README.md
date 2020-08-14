@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/Wentzell/ctint.svg?token=wfLfVYkGNudjJc1dXgDp&branch=unstable)](https://travis-ci.com/Wentzell/ctint)
+[![build](https://github.com/TRIQS/ctint/workflows/build/badge.svg)](https://github.com/TRIQS/ctint/actions?query=workflow%3Abuild)
 
 triqs_ctint
 ===========

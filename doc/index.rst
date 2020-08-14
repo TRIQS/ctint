@@ -3,9 +3,9 @@
 The interaction-expansion solver
 ================================
 
-.. sidebar:: ctint 2.2.0
+.. sidebar:: ctint 3.0
 
-   This is the homepage ctint Version 2.2.0
+   This is the homepage ctint Version 3.0
    For changes see, Cf :ref:`changelog page <changelog>`
 
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver

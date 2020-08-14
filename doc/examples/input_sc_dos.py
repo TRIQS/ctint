@@ -87,7 +87,7 @@ for it in range(N_Loops):
      S.Solve()
 
      g_tau = GFBloc_ImTime(Indices = ['p','m'], Beta = Beta, NTimeSlices = 10000)
-     g_tau << InverseFourier(S.G['1'])
+     g_tau << Fourier(S.G['1'])
      g_tau.save("G_tau")
 
      Dc = S.G['1'].density()
