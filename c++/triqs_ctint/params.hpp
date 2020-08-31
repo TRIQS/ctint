@@ -73,6 +73,11 @@ namespace triqs_ctint {
     /// Number of warmup cycles
     int n_warmup_cycles = 5000;
 
+    /// (ADVANCED) The maximum number of quick updates before regenerating fully the
+    /// matrix inverse and determinant. Lowering this value can improve
+    /// accuracy of the configuration update process at the cost of performance.
+    int n_max_quick_updates = 100;
+
     /// Random seed of the random generator
     int random_seed = 34788 + 928374 * mpi::communicator().rank();
 
