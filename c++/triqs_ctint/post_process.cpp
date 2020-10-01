@@ -1,5 +1,6 @@
 #include "post_process.hpp"
 #include <triqs/gfs.hpp>
+#include <triqs/mesh.hpp>
 
 namespace triqs_ctint {
 
@@ -96,7 +97,7 @@ namespace triqs_ctint {
     int n_iw         = n_iw_G2 / 2;
     auto imfreq_bos  = gf_mesh<imfreq>{beta, Boson, n_iW};
     auto imfreq_ferm = gf_mesh<imfreq>{beta, Fermion, n_iw};
-    auto mesh        = gf_mesh{imfreq_bos, imfreq_ferm, imfreq_ferm};
+    auto mesh        = prod{imfreq_bos, imfreq_ferm, imfreq_ferm};
 
     chi4_iw_t chi_tilde_ph = make_block2_gf(mesh, gf_struct);
 

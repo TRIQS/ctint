@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
     // Construct Matsubara mesh
     gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    gf_mesh<cartesian_product<imfreq, imfreq>> M3ph_iw_mesh{iW_mesh, iw_mesh};
+    gf_mesh<prod<imfreq, imfreq>> M3ph_iw_mesh{iW_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
@@ -22,7 +22,7 @@ namespace triqs_ctint::measures {
 
     // Initialize intermediate scattering matrix
     gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
-    M  = block_gf{gf_mesh<cartesian_product<imfreq, imfreq>>{iw_mesh_large, iw_mesh}, params.gf_struct};
+    M  = block_gf{gf_mesh<prod<imfreq, imfreq>>{iw_mesh_large, iw_mesh}, params.gf_struct};
     GM = block_gf{iw_mesh, params.gf_struct};
     MG = block_gf{iw_mesh_large, params.gf_struct};
 

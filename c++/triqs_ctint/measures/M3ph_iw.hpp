@@ -35,7 +35,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<cartesian_product<imfreq, imfreq>, tensor_valued<4>> M3ph_iw_;
+    block2_gf_view<prod<imfreq, imfreq>, tensor_valued<4>> M3ph_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;
@@ -49,7 +49,7 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix in the measurement of M3ph
-    block_gf<cartesian_product<imfreq, imfreq>, matrix_valued> M;
+    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
     block_gf<imfreq, matrix_valued> GM;
     block_gf<imfreq, matrix_valued> MG;
     array<array<dcomplex, 2>, 1> GMG;

@@ -2,6 +2,7 @@
 
 #include <h5/h5.hpp>
 #include <triqs/gfs.hpp>
+#include <triqs/mesh.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
 using namespace triqs_ctint;

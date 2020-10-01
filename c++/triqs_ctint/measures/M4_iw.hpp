@@ -35,7 +35,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>> M4_iw_;
+    block2_gf_view<prod<imfreq, imfreq, imfreq>, tensor_valued<4>> M4_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;
@@ -44,7 +44,7 @@ namespace triqs_ctint::measures {
     array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
-    block_gf<cartesian_product<imfreq, imfreq>, matrix_valued> M;
+    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
   };
 
 } // namespace triqs_ctint::measures

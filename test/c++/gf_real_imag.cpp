@@ -1,9 +1,11 @@
 #include <triqs/gfs.hpp>
+#include <triqs/mesh.hpp>
 #include <triqs/test_tools/gfs.hpp>
 #include <triqs_ctint/types.hpp>
 
 
 using namespace triqs::gfs;
+using namespace triqs::mesh;
 using namespace triqs::clef;
 
 TEST(Gfs, Real_Imag) { // NOLINT

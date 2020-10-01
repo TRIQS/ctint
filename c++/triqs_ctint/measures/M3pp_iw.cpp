@@ -8,7 +8,7 @@ namespace triqs_ctint::measures {
     // Construct Matsubara mesh
     gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
     gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    gf_mesh<cartesian_product<imfreq, imfreq>> M3pp_iw_mesh{iW_mesh, iw_mesh};
+    gf_mesh<prod<imfreq, imfreq>> M3pp_iw_mesh{iW_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);

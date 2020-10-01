@@ -28,7 +28,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Gf view for the accumulation of M3pp_tau
-    block2_gf_view<cartesian_product<imtime, imtime>, tensor_valued<4>> M3pp_tau_;
+    block2_gf_view<prod<imtime, imtime>, tensor_valued<4>> M3pp_tau_;
 
     // Gf view for the accumulation of M3pp_delta
     block2_gf_view<imtime, tensor_valued<4>> M3pp_delta_;

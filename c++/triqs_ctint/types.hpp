@@ -22,6 +22,7 @@
 #pragma once
 
 #include <triqs/gfs.hpp>
+#include <triqs/mesh.hpp>
 #include <triqs/arrays/block_matrix.hpp>
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
@@ -39,6 +40,7 @@ namespace triqs_ctint {
 
   using namespace std::complex_literals; // Complex Unity 1i
   using namespace triqs::gfs;
+  using namespace triqs::mesh;
   using namespace triqs::arrays;
   using namespace triqs::operators;
   using namespace triqs::operators::utils;
@@ -119,7 +121,7 @@ namespace triqs_ctint {
   using chi2_tau_cv_t = chi2_tau_t::const_view_type;
 
   /// Container type of $\chi_3$ in Matsubara frequencies
-  using chi3_iw_t = block2_gf<cartesian_product<imfreq, imfreq>, tensor_valued<4>>;
+  using chi3_iw_t = block2_gf<prod<imfreq, imfreq>, tensor_valued<4>>;
 
   /// A view to a chi3_iw_t
   using chi3_iw_v_t = chi3_iw_t::view_type;
@@ -128,7 +130,7 @@ namespace triqs_ctint {
   using chi3_iw_cv_t = chi3_iw_t::const_view_type;
 
   /// Container type of $\chi_3$ in imaginary time
-  using chi3_tau_t = block2_gf<cartesian_product<imtime, imtime>, tensor_valued<4>>;
+  using chi3_tau_t = block2_gf<prod<imtime, imtime>, tensor_valued<4>>;
 
   /// A view to a chi3_tau_t
   using chi3_tau_v_t = chi3_tau_t::view_type;
@@ -137,10 +139,10 @@ namespace triqs_ctint {
   using chi3_tau_cv_t = chi3_tau_t::const_view_type;
 
   /// Container type of two-particle Green and Vertex functions in Matsubara frequencies
-  using chi4_iw_t = block2_gf<cartesian_product<imfreq, imfreq, imfreq>, tensor_valued<4>>;
+  using chi4_iw_t = block2_gf<prod<imfreq, imfreq, imfreq>, tensor_valued<4>>;
 
   /// Container type of two-particle Green and Vertex functions in imaginary time
-  using chi4_tau_t = block2_gf<cartesian_product<imtime, imtime, imtime>, tensor_valued<4>>;
+  using chi4_tau_t = block2_gf<prod<imtime, imtime, imtime>, tensor_valued<4>>;
 
   // Declare some placeholders for the rest of the code. Use anonymous namespace for proper linkage
   // in this code, all variables with trailing _ are placeholders by convention.
@@ -229,7 +231,7 @@ namespace triqs::gfs {
   }
 
   template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
-    return gf_closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
+    return mesh::closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
   }
 
   template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(hilbert_space::gf_struct_t const &gf_struct) {

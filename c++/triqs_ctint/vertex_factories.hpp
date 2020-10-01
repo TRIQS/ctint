@@ -1,6 +1,7 @@
 #pragma once
 #include <triqs/mc_tools.hpp>
 #include <triqs/gfs.hpp>
+#include <triqs/mesh.hpp>
 #include <vector>
 #include "./vertex.hpp"
 #include "./params.hpp"
