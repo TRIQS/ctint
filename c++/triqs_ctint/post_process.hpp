@@ -245,7 +245,7 @@ namespace triqs_ctint {
 
     auto const &tau_mesh_M3_del = M3_delta(0, 0).mesh();
     double dtau_M3_del          = tau_mesh_M3_del.delta();
-    double n_tau_M3_del         = tau_mesh_M3_del.size();
+    int n_tau_M3_del            = tau_mesh_M3_del.size();
 
     // We infer the number of tau points from M3
     // We can calculate chi2_conn accurately only inbetween two tau-points of M3
