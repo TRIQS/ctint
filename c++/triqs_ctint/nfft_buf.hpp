@@ -50,7 +50,17 @@ namespace triqs::utility {
     nfft_buf_t(nfft_buf_t const &) = delete;
     nfft_buf_t(nfft_buf_t &&)      = default;
     nfft_buf_t &operator=(nfft_buf_t const &) = delete;
-    nfft_buf_t &operator=(nfft_buf_t &&) = default;
+    nfft_buf_t &operator                      =(nfft_buf_t &&rhs) {
+      fiw_arr.rebind(rhs.fiw_arr);
+      plan_ptr = std::move(rhs.plan_ptr);
+
+      buf_size      = rhs.buf_size;
+      beta          = rhs.beta;
+      do_checks     = rhs.do_checks;
+      buf_counter   = rhs.buf_counter;
+      common_factor = rhs.common_factor;
+      return *this;
+    }
 
     /// Rebind nfft buffer to new accumulation container of same shape
     void rebind(array_view<dcomplex, Rank> new_fiw_arr) {
