@@ -1,8 +1,10 @@
 #pragma once
 
+#include <triqs/det_manip/det_manip_basic.hpp>
+
 namespace triqs_ctint {
 
-  using triqs::det_manip::det_manip;
+  using triqs::det_manip::det_manip_basic;
 
   //------------------------------------
 
@@ -55,6 +57,6 @@ namespace triqs_ctint {
   };
 
   /// Type of a single determinant
-  using det_t = det_manip<G0hat_t>;
+  using det_t = det_manip_basic<G0hat_t>;
 
 } // namespace triqs_ctint
