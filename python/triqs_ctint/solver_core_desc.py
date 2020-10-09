@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --includes="../../c++" --cxxflags="-std=c++17" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
@@ -16,6 +16,7 @@ module.add_preamble("""
 #include <cpp2py/converters/complex.hpp>
 #include <cpp2py/converters/optional.hpp>
 #include <cpp2py/converters/pair.hpp>
+#include <cpp2py/converters/std_array.hpp>
 #include <cpp2py/converters/string.hpp>
 #include <cpp2py/converters/variant.hpp>
 #include <cpp2py/converters/vector.hpp>

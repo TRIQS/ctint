@@ -14,7 +14,7 @@ namespace triqs_ctint::measures {
       // Helper function to initialize array<nfft_buf_t<1>, 2>
       auto init_func = [&](int i, int j) { return nfft_buf_t<1>{b.data()(range(), i, j), params.nfft_buf_size, params.beta}; };
       // Initialize vector of array<nfft_buf_t<1>, 2>
-      buf_vec.emplace_back(b.target_shape(), init_func);
+      buf_vec.emplace_back(array_adapter{b.target_shape(), init_func});
     }
   }
 

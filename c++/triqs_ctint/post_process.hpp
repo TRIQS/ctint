@@ -251,7 +251,7 @@ namespace triqs_ctint {
     // We can calculate chi2_conn accurately only inbetween two tau-points of M3
     int n_tau_chi2     = n_tau_M3 * 2 - 1;
     auto tau_mesh_chi2 = gf_mesh<imtime>{beta, Boson, n_tau_chi2};
-    auto chi2_conn     = make_block2_gf(tau_mesh_chi2, make_const_view(M3));
+    auto chi2_conn     = make_block2_gf(tau_mesh_chi2, M3);
     chi2_conn()        = 0.0;
 
     chi3_tau_t M3_conn = M3_conn_from_M3<Chan>(M3, M_iw, G0_iw, M_tau, M_hartree);

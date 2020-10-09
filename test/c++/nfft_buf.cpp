@@ -18,7 +18,7 @@ class Nfft : public ::testing::Test {
   int n_iw    = 100;
 
   // gf containers common to multiple tests
-  std::array<size_t, 2> shape;
+  std::array<long, 2> shape;
   gf<imfreq, matrix_valued> giw_exact;
 
   void SetUp() override {

@@ -11,6 +11,7 @@
 
 namespace triqs::utility {
 
+  using nda::stdutil::sum;
   using triqs::arrays::array_view;
   using dcomplex = std::complex<double>;
 
@@ -28,7 +29,7 @@ namespace triqs::utility {
        : fiw_arr(std::move(fiw_arr_)), buf_size(buf_size_), beta(beta_), do_checks(do_checks_) {
 
       // Capture frequency extents from fiw_arr and check that they are even ( i.e. fermionic matsubaras )
-      auto freq_extents = triqs::arrays::get_shape(fiw_arr).to_vector();
+      auto freq_extents = fiw_arr.shape();
       std::vector<int> extents_int;
       for (int n : freq_extents) {
         if (n % 2 != 0) TRIQS_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";

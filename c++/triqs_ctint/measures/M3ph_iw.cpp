@@ -30,21 +30,21 @@ namespace triqs_ctint::measures {
       int bl_size = GM[bl].target_shape()[0];
       return array<dcomplex, 2>(bl_size, bl_size);
     };
-    GMG = array<array<dcomplex, 2>, 1>{make_shape(params.n_blocks()), init_target_func};
+    GMG = array_adapter{make_shape(params.n_blocks()), init_target_func};
 
     // Create nfft buffers
     for (int bl : range(params.n_blocks())) {
       // M
       auto init_func_M = [&](int i, int j) { return nfft_buf_t<2>{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta}; };
-      buf_arrarr(bl)   = array<nfft_buf_t<2>, 2>{M[bl].target_shape(), init_func_M};
+      buf_arrarr(bl)   = array_adapter{M[bl].target_shape(), init_func_M};
 
       // GM
       auto init_func_GM = [&](int i, int j) { return nfft_buf_t<1>{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta}; };
-      buf_arrarr_GM(bl) = array<nfft_buf_t<1>, 2>{GM[bl].target_shape(), init_func_GM};
+      buf_arrarr_GM(bl) = array_adapter{GM[bl].target_shape(), init_func_GM};
 
       // MG
       auto init_func_MG = [&](int i, int j) { return nfft_buf_t<1>{slice_target_to_scalar(MG[bl], i, j).data(), params.nfft_buf_size, params.beta}; };
-      buf_arrarr_MG(bl) = array<nfft_buf_t<1>, 2>{MG[bl].target_shape(), init_func_MG};
+      buf_arrarr_MG(bl) = array_adapter{MG[bl].target_shape(), init_func_MG};
     }
   }
 

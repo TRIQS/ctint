@@ -24,7 +24,7 @@ namespace triqs_ctint::measures {
       auto init_target_func = [&](int i, int j) {
         return nfft_buf_t<1>{slice_target_to_scalar(GM[b], i, j).data(), params.nfft_buf_size, params.beta};
       };
-      buf_arrarr(b) = array<nfft_buf_t<1>, 2>{GM[b].target_shape(), init_target_func};
+      buf_arrarr(b) = array_adapter{GM[b].target_shape(), init_target_func};
     }
   }
 
