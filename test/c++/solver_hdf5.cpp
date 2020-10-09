@@ -3,7 +3,6 @@
 #include <h5/h5.hpp>
 #include <mpi/mpi.hpp>
 #include <triqs/gfs/gf_tests.hpp>
-#include <triqs/clef.hpp>
 
 #include <string>
 #include <vector>
