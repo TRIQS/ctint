@@ -21,6 +21,7 @@ for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu);
 # Parameters for the Run
 sp = {
   "h_int"           : U * n("up", 0) * n("down", 0),
+  "alpha"           : [[[0.5 + 0.1]], [[0.5 - 0.1]]],
   "length_cycle"    : 50,
   "n_warmup_cycles" : 1000,
   "n_cycles"        : 1000

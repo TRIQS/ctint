@@ -7,7 +7,6 @@ endforeach()
 # List of all tests
 set(all_tests
   static/anderson
-  static/rerun
   static/solver_h5io
   static/supercond
   static/two_site
