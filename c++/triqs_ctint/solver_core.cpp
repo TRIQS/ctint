@@ -208,20 +208,20 @@ namespace triqs_ctint {
     // Calculate M3_iw from M3_tau
     if (M3pp_tau) {
       {
-        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
         auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
         auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
         auto M3pp_ferm_iw  = make_gf_from_fourier<0, 1>(M3pp_tau.value(), iw_mesh, iw_mesh_large);
         auto M3pp_del_iW   = make_gf_from_fourier(M3pp_delta.value(), iW_mesh, make_zero_tail(M3pp_delta.value()));
-        M3pp_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
+        M3pp_iw            = make_block2_gf(gf_mesh{iW_mesh, iw_mesh}, p.gf_struct);
 
         // Shift from fermionic to mixed particle-particle frequency notation
-        M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_)
+        M3pp_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_)
            << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
 
         //// CAUTION! The both times should be fourier transformed with e^{-iwt}
         //// We correct this with an overall minus sign for both frequencies
-        //M3pp_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(-iw_, -(iW_ - iw_))(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(-iW_)(i_, j_, k_, l_);
+        //M3pp_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(-iw_, -(iW_ - iw_))(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(-iW_)(i_, j_, k_, l_);
       }
 
       if (M_iw) {
@@ -234,17 +234,17 @@ namespace triqs_ctint {
     }
     if (M3ph_tau) {
       {
-        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
         auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
+        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
         auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
         auto M3ph_ferm_iw  = make_gf_from_fourier<0, 1>(M3ph_tau.value(), iw_mesh, iw_mesh_large);
         auto M3ph_del_iW   = make_gf_from_fourier(M3ph_delta.value(), iW_mesh, make_zero_tail(M3ph_delta.value()));
-        M3ph_iw            = make_block2_gf(gf_mesh{iw_mesh, iW_mesh}, p.gf_struct);
+        M3ph_iw            = make_block2_gf(gf_mesh{iW_mesh, iw_mesh}, p.gf_struct);
 
         // Shift from fermionic to mixed particle-hole frequency notation
         // CAUTION! The first time should be fourier transformed with e^{-iwt}
         // We correct this with an overall minus sign for the first frequency
-        M3ph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_)
+        M3ph_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_)
            << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 

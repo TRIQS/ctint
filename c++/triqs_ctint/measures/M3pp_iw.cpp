@@ -6,9 +6,9 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
-    gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
     gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
-    gf_mesh<cartesian_product<imfreq, imfreq>> M3pp_iw_mesh{iw_mesh, iW_mesh};
+    gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
+    gf_mesh<cartesian_product<imfreq, imfreq>> M3pp_iw_mesh{iW_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
@@ -47,7 +47,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto[iw_mesh, iW_mesh] = M3pp_iw_(0, 0).mesh();
+    auto [iW_mesh, iw_mesh] = M3pp_iw_(0, 0).mesh();
 
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
@@ -62,9 +62,9 @@ namespace triqs_ctint::measures {
           for (int j : range(bl1_size))
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
-                for (auto const &iw : iw_mesh)
-                  for (auto const &iW : iW_mesh)
-                    M3pp_iw[iw, iW](i, j, k, l) +=
+                for (auto const &iW : iW_mesh)
+                  for (auto const &iw : iw_mesh)
+                    M3pp_iw[iW, iw](i, j, k, l) +=
                        sign * (GM1[iw](j, i) * GM2[iW - iw](l, k) - kronecker(bl1, bl2) * GM1[iw](l, i) * GM2[iW - iw](j, k));
       }
   }

@@ -45,16 +45,16 @@ namespace triqs_ctint {
 
         if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
-          M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+          M3_iw_conn(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 - GM[bl1](iw_)(j_, i_) * GM[bl2](iW_ - iw_)(l_, k_) + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * GM[bl2](iW_ - iw_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl2_size))
-              chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+              chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                     + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ - iw_)(n, k_) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, j_, n, l_);
 
           // Disconnected part
-          chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+          chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 + G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ - iw_)(l_, k_) - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ - iw_)(j_, k_);
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
@@ -64,17 +64,17 @@ namespace triqs_ctint {
           auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
           auto dens_GMG = density(GMG, tail_GMG);
 
-          M3_iw_conn(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+          M3_iw_conn(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 - beta * kronecker(iW_) * M_iw[bl1](iw_)(j_, i_) * dens_GMG[bl2](l_, k_)
                 + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * MG[bl2](iW_ + iw_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl1_size))
-              chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, n, k_, l_);
+              chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
+                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, n, k_, l_);
 
           // Disconnected part
-          chi3_iw(bl1, bl2)(iw_, iW_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw_, iW_](i_, j_, k_, l_)
+          chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * dens_G[bl2](l_, k_)
                 - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
         }

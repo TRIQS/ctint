@@ -1,3 +1,8 @@
+Version 3.0.1
+=============
+
+-Consistently put bosonic frequency first for objects with mixed bosonic and fermionic frequencies.
+
 Version 3.0.0
 =============
 
