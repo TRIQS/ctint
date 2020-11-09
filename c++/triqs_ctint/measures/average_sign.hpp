@@ -17,7 +17,10 @@ namespace triqs_ctint::measures {
 
     private:
     // Reference to double for accumulation
-    mc_weight_t &average_sign_;
+    mc_weight_t &average_sign_, average_static_sign, average_dynamic_sign;
+
+    // The Monte-Carlo configuration
+    qmc_config_t const &qmc_config;
 
     // Accumulation counter
     long count = 0;
