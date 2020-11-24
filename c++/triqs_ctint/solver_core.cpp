@@ -62,32 +62,39 @@ namespace triqs_ctint {
     // Build vertex factories
     const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_iw);
 
-    mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false}, "insertion");
-    mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false}, "removal");
+    mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false, params.max_order}, "insertion");
+    mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false, params.max_order}, "removal");
     if (params.use_double_insertion) {
-      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, true}, "double insertion");
-      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true}, "double removal");
+      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, true, params.max_order}, "double insertion");
+      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_order}, "double removal");
     }
 
     // Register all measurements
-    if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
-    if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
-    if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
-    if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
-    if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
-    if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
-    if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
-    if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
-    if (params.measure_M4pp_iw) mc.add_measure(measures::M4pp_iw{params, qmc_config, &result_set()}, "M4pp_iw measure");
-    if (params.measure_M4ph_iw) mc.add_measure(measures::M4ph_iw{params, qmc_config, &result_set()}, "M4ph_iw measure");
-    if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
-    if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
-    if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");
-    if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
-    if (params.measure_M3xph_tau) mc.add_measure(measures::M3xph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_tau measure");
-    if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
-    if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
-    if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
+    if (params.measure_sign_only) {
+      if (world.rank() == 0) { std::cout << "You selected Sign only mode" << std::endl; }
+      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
+      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+      mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
+    } else {
+      if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
+      if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+      if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
+      if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
+      if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
+      if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
+      if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
+      if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
+      if (params.measure_M4pp_iw) mc.add_measure(measures::M4pp_iw{params, qmc_config, &result_set()}, "M4pp_iw measure");
+      if (params.measure_M4ph_iw) mc.add_measure(measures::M4ph_iw{params, qmc_config, &result_set()}, "M4ph_iw measure");
+      if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
+      if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
+      if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");
+      if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
+      if (params.measure_M3xph_tau) mc.add_measure(measures::M3xph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_tau measure");
+      if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
+      if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
+      if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
+    }
 
     // Perform QMC run and collect results
     mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));

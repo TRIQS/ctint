@@ -22,12 +22,12 @@
 ################################################################################
 
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
-r"""
-DOC
-
-"""
+#warnings.simplefilter(action='ignore', category=FutureWarning)
+#
+#r"""
+#DOC
+#
+#"""
 from .solver import Solver
 from .solver_core import SolverCore
 

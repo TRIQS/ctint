@@ -21,6 +21,9 @@ namespace triqs_ctint::moves {
     /// Switch for double vertex removals
     bool double_removal = false;
 
+    /// Maximum perturbation order (<0 : unlimited)
+    int max_order = -1;
+
     int vpos = 0, vpos2 = 0;
 
     /// Object that allows to delay determinant operations, necessary for multi-inserts/removes
