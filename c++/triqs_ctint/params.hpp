@@ -21,7 +21,8 @@ namespace triqs_ctint {
 
     /// Switch for dynamic density-density interaction
     bool use_D = false;
-
+    
+    
     /// Switch for dynamic spin-spin interaction
     bool use_Jperp = false;
 
@@ -85,11 +86,18 @@ namespace triqs_ctint {
     /// Maximum running time in seconds (-1 : no limit)
     int max_time = -1;
 
+    /// Maximum pertubation order which is accepted in move::insert/remove
+    /// (-1 : no limit)
+    int max_pertubation_order = -1; 
+    
     /// Verbosity
     int verbosity = mpi::communicator().rank() == 0 ? 3 : 0;
 
     // ----------- Measurements -----------
 
+    /// Measure Sign only mode 
+    bool measure_sign_only = false;
+        
     /// Measure the MC sign
     bool measure_average_sign = true;
 
