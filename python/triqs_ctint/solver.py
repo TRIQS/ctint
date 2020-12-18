@@ -22,10 +22,9 @@ def flatten(Sig_HF):
 def unflatten(Sig_HF_flat, gf_struct):
     offset = 0
     Sig_HF = []
-    for bl, indices in gf_struct:
-        N = len(indices)
-        Sig_HF.append([bl, Sig_HF_flat[list(range(offset, offset + N**2))].reshape((N,N))])
-        offset = offset + N**2
+    for bl, bl_size in gf_struct:
+        Sig_HF.append([bl, Sig_HF_flat[list(range(offset, offset + bl_size**2))].reshape((bl_size, bl_size))])
+        offset = offset + bl_size**2
     return Sig_HF
 
 # === The SolverCore Wrapper
@@ -40,12 +39,11 @@ class Solver(SolverCore):
         ----------
         beta : scalar
                Inverse temperature.
-        gf_struct : list of pairs [ [str,[int,...]], ...]
+        gf_struct : list of pairs [ (str,int), ...]
                     Structure of the Green's functions. It must be a
                     list of pairs, each containing the name of the
-                    Green's function block as a string and a list of integer
-                    indices.
-                    For example: ``[ ['up', [0, 1, 2]], ['down', [0, 1, 2]] ]``.
+                    Green's function block as a string and the size of that block.
+                    For example: ``[ ('up', 3), ('down', 3) ]``.
         n_iw : integer, optional
                Number of Matsubara frequencies used for the Green's functions.
         n_tau : integer, optional
@@ -60,7 +58,7 @@ class Solver(SolverCore):
                Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
         if isinstance(gf_struct,dict):
-            print("WARNING: gf_struct should be a list of pairs [ [str,[int,...]], ...], not a dict")
+            print("WARNING: gf_struct should be a list of pairs [ (str,int), ...], not a dict")
             gf_struct = list(gf_struct.items())
 
         # Initialise the core solver
@@ -123,25 +121,20 @@ class Solver(SolverCore):
 
                     assert(bl1 == bl2 and bl3 == bl4)
 
-                    idx_u1 = dict(gf_struct)[bl1].index(u1)
-                    idx_u2 = dict(gf_struct)[bl2].index(u2)
-                    idx_u3 = dict(gf_struct)[bl3].index(u3)
-                    idx_u4 = dict(gf_struct)[bl4].index(u4)
-            
                     # Full Hatree Fock Solution
-                    Sig_HF[bl1][idx_u2, idx_u1] += coef * G_dens[bl3][u4, u3]
-                    Sig_HF[bl3][idx_u4, idx_u3] += coef * G_dens[bl1][u2, u1]
+                    Sig_HF[bl1][u2, u1] += coef * G_dens[bl3][u4, u3]
+                    Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
 
                     # # Consider cross terms for equal blocks
                     # if bl1 == bl3:
-                        # Sig_HF[bl1][idx_u4, idx_u1] -= coef * G_dens[bl3][u2, u3]
-                        # Sig_HF[bl3][idx_u2, idx_u3] -= coef * G_dens[bl1][u4, u1]
+                        # Sig_HF[bl1][u4, u1] -= coef * G_dens[bl3][u2, u3]
+                        # Sig_HF[bl3][u2, u3] -= coef * G_dens[bl1][u4, u1]
             
                 Sig_HF_ordered = [[bl, Sig_HF[bl]] for bl, idx_lst in gf_struct]
                 return Sig_HF_flat - flatten(Sig_HF_ordered)
             
             # Invoke the root finder
-            Sig_HF_init = [[bl, np.zeros((len(idx_lst), len(idx_lst)))] for bl, idx_lst in gf_struct]
+            Sig_HF_init = [[bl, np.zeros((bl_size, bl_size))] for bl, bl_size in gf_struct]
             root_finder = root(f, flatten(Sig_HF_init))
             
             # Now calculate alpha from the Hartree Fock solution
@@ -166,14 +159,14 @@ class Solver(SolverCore):
                         alpha.append( np.array([[n_o] for n_o in dens_HF ]) )
             else:
                 mpi_print("Could not determine Hartree Fock solution, falling back to manual alpha")
-                indices = gf_struct[0][1]
+                bl_size = gf_struct[0][1]
                 for bl, G0_bl in self.G0_iw:
                     if 'up' in bl:
-                        alpha.append( [[0.5 + delta] if n_s == 1 else [0.5 + delta, 0.5 - delta] for i in indices ] )
+                        alpha.append( [[0.5 + delta] if n_s == 1 else [0.5 + delta, 0.5 - delta] for i in range(bl_size) ] )
                     elif 'dn' in bl or 'do' in bl:
-                        alpha.append( [[0.5 - delta] if n_s == 1 else [0.5 - delta, 0.5 + delta] for i in indices ] )
+                        alpha.append( [[0.5 - delta] if n_s == 1 else [0.5 - delta, 0.5 + delta] for i in range(bl_size) ] )
                     else:
-                        alpha.append( [[0.5] for i in indices ] )
+                        alpha.append( [[0.5] for i in range(bl_size) ] )
             
             params_kw['alpha'] = alpha
             

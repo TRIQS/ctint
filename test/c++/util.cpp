@@ -38,16 +38,16 @@ TEST(util, hint_decomp) { // NOLINT
 // Given a gf_struct object, determine the integer indices of a given canonical operator
 TEST(util, get_op_indices) { // NOLINT
 
-  gf_struct_t gf_struct = {{"bl1", {"o1", "o2", "o3"}}, {"bl2", {"o4", "o5"}}};
+  gf_struct_t gf_struct = {{"bl1", 3}, {"bl2", 2}};
 
   many_body_operator_generic<double> myop;
 
   std::cout << " gf block structure: { ";
-  for (auto &bl : gf_struct) {
-    std::cout << bl.first << ": { ";
-    for (auto &idx : bl.second) {
-      std::cout << to_string(idx) << " ";
-      myop += c(bl.first, idx);
+  for (auto &[bl, bl_size] : gf_struct) {
+    std::cout << bl << ": { ";
+    for (auto idx : range(bl_size)) {
+      std::cout << std::to_string(idx) << " ";
+      myop += c(bl, idx);
     }
     std::cout << "} ";
   }
@@ -59,8 +59,8 @@ TEST(util, get_op_indices) { // NOLINT
       std::cout << " Integer indices for " << op << " : " << idx_pair.first << ", " << idx_pair.second << "\n";
     }
 
-  EXPECT_EQ(std::make_pair(1, 1), get_int_indices(canonical_ops_t{false, {"bl2", "o5"}}, gf_struct)); // NOLINT
-  EXPECT_EQ(std::make_pair(0, 2), get_int_indices(canonical_ops_t{false, {"bl1", "o3"}}, gf_struct)); // NOLINT
+  EXPECT_EQ(std::make_pair(1, 1), get_int_indices(canonical_ops_t{false, {"bl2", 1}}, gf_struct)); // NOLINT
+  EXPECT_EQ(std::make_pair(0, 2), get_int_indices(canonical_ops_t{false, {"bl1", 2}}, gf_struct)); // NOLINT
 }
 
 // Test cyclic_difference functionality

@@ -9,8 +9,8 @@ namespace triqs_ctint::measures {
     results->density = block_matrix_t{};
 
     // Init measurement container and capture view
-    for (auto &[bl, idx_lst] : params.gf_struct) {
-      results->density->push_back(zeros<M_tau_scalar_t>(make_shape(idx_lst.size(), idx_lst.size())));
+    for (auto &[bl, bl_size] : params.gf_struct) {
+      results->density->push_back(zeros<M_tau_scalar_t>(make_shape(bl_size, bl_size)));
       density_.push_back(results->density->back());
     }
   }

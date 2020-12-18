@@ -189,18 +189,15 @@ namespace triqs::gfs {
     std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
     std::vector<std::string> block_names;
 
-    for (auto const &bl1 : gf_struct) {
-      auto &bname  = bl1.first;
-      int bl1_size = bl1.second.size();
-      block_names.push_back(bname);
+    for (auto const &[bl1, bl1_size] : gf_struct) {
+      block_names.push_back(bl1);
       std::vector<std::string> indices1;
-      for (auto const &var : bl1.second) visit([&indices1](auto &&arg) { indices1.push_back(std::to_string(arg)); }, var);
+      for (auto idx : range(bl1_size)) indices1.push_back(std::to_string(idx));
 
       std::vector<gf<Var_t, Target>> gf_vec;
-      for (auto const &bl2 : gf_struct) {
-        int bl2_size = bl2.second.size();
+      for (auto const &[bl2, bl2_size] : gf_struct) {
         std::vector<std::string> indices2;
-        for (auto const &var : bl2.second) visit([&indices2](auto &&arg) { indices2.push_back(std::to_string(arg)); }, var);
+        for (auto idx : range(bl2_size)) indices2.push_back(std::to_string(idx));
         if constexpr (Target::rank == 4)
           gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size),
                               std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
@@ -237,10 +234,7 @@ namespace triqs::gfs {
   template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(hilbert_space::gf_struct_t const &gf_struct) {
 
     std::vector<matrix<Scalar_t>> res;
-    for (auto const &bl : gf_struct) {
-      int bl_size = bl.second.size();
-      res.emplace_back(zeros<Scalar_t>(make_shape(bl_size, bl_size)));
-    }
+    for (auto const &[bl, bl_size] : gf_struct) { res.emplace_back(zeros<Scalar_t>(make_shape(bl_size, bl_size))); }
     return res;
   }
 } // namespace triqs::gfs
@@ -258,14 +252,12 @@ namespace triqs::operators {
 
     // Get block-name with apply visitor, lambda(0) is called to determine return type ...
     std::string op_bl_name = visit([](auto idx) { return std::to_string(idx); }, op.indices[0]);
+    long nonbl_int_idx     = std::get<long>(op.indices[1]);
 
     // Capture positions in block and nonblock list
     for (auto [bl_int_idx, bl] : itertools::enumerate(gf_struct)) {
-      auto const &[bl_name, idx_lst] = bl;
-      if (bl_name == op_bl_name) {
-        int nonbl_int_idx = std::distance(idx_lst.cbegin(), std::find(idx_lst.cbegin(), idx_lst.cend(), op.indices[1]));
-        return std::make_pair(bl_int_idx, nonbl_int_idx);
-      }
+      auto const &[bl_name, bl_size] = bl;
+      if (bl_name == op_bl_name and 0 <= nonbl_int_idx and nonbl_int_idx < bl_size) { return std::make_pair(bl_int_idx, nonbl_int_idx); }
     }
     TRIQS_RUNTIME_ERROR << "Error: Failed to retrieve integer indices for operator";
   }

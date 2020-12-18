@@ -23,8 +23,8 @@ namespace triqs_ctint {
 
     // Allocate containers for dynamical spin-spin interaction
     if (p.use_Jperp) {
-      auto bl  = *(p.gf_struct.begin());
-      Jperp_iw = gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl.second.size(), bl.second.size())};
+      auto [bl, bl_size] = p.gf_struct[0];
+      Jperp_iw           = gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl_size, bl_size)};
     }
   }
 
@@ -112,7 +112,7 @@ namespace triqs_ctint {
     // Assert compatibility between gf_struct an alpha
     if (p.gf_struct.size() != p.alpha.size()) TRIQS_RUNTIME_ERROR << "Error: Alpha and gf_struct_t incompatible: Different number of blocks \n";
     for (auto [bl, alpha_bl] : zip(p.gf_struct, p.alpha))
-      if (alpha_bl.shape() != make_shape(bl.second.size(), p.n_s)) TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
+      if (alpha_bl.shape() != make_shape(bl.second, p.n_s)) TRIQS_RUNTIME_ERROR << "Error: Alpha block-shape incompatible with gf_struct \n";
 
     // Loop over static density-density interaction terms
     for (auto const &term : p.h_int) {

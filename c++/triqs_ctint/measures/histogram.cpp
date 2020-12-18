@@ -18,10 +18,8 @@ namespace triqs_ctint::measures {
     N = mpi::all_reduce(N, comm);
 
     // Make sure that all mpi threads have an equally sized histogram
-    auto max_k_vec         = std::vector<size_t>(comm.size());
-    max_k_vec[comm.rank()] = histogram_->size();
-    max_k_vec              = mpi::all_reduce(max_k_vec, comm);
-    histogram_->resize(*std::max_element(max_k_vec.begin(), max_k_vec.end()));
+    auto max_size = mpi::all_reduce(histogram_->size(), comm, MPI_MAX);
+    histogram_->resize(max_size, 0.0);
 
     // Reduce histogram over all mpi threads
     histogram_ = mpi::all_reduce(histogram_.value(), comm);

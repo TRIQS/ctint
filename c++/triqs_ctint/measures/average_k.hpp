@@ -16,11 +16,11 @@ namespace triqs_ctint::measures {
     void collect_results(mpi::communicator const &comm);
 
     private:
-    // Reference to double for accumulation
-    double &average_k_;
-
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
+
+    // Reference to double for accumulation
+    double &average_k_;
 
     // Accumulation counter
     long long N = 0;

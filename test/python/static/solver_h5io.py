@@ -13,7 +13,7 @@ beta = 10
 # Create Solver
 cp = {
   "beta": beta,
-  "gf_struct" : [["up", [0]], ["down", [0]]]
+  "gf_struct" : [["up", 1], ["down", 1]]
 }
 S = Solver(**cp)
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu);

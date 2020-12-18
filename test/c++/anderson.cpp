@@ -30,7 +30,7 @@ TEST(CtInt, Anderson) { // NOLINT
   // Construct Parameters
   constr_params_t pc;
   pc.beta      = 20.0;
-  pc.gf_struct = {{"up", {0}}, {"down", {0}}};
+  pc.gf_struct = {{"up", 1}, {"down", 1}};
   pc.n_tau     = 10000;
   pc.n_iw      = 500;
   pc.use_D     = false;

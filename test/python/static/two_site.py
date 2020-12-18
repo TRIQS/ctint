@@ -26,7 +26,7 @@ n_cyc = 1000
 # --------- set up static interactions and the block structure ---------
 block_names = ['dn','up']
 orb_names = [0,1]
-gf_struct = [(bl, orb_names) for bl in block_names]
+gf_struct = [(bl, len(orb_names)) for bl in block_names]
 h_int = h_int_kanamori(block_names, orb_names,
                         array([[0,      Up-3*J ],
                                [Up-3*J, 0      ]]), # Interaction for equal spins

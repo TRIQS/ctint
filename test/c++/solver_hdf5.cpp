@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   // Create Solver
   constr_params_t cp{};
   cp.beta      = beta;
-  cp.gf_struct = {{"up", {0}}, {"down", {0}}};
+  cp.gf_struct = {{"up", 1}, {"down", 1}};
   auto S       = triqs_ctint::solver_core{cp};
   S.G0_iw[0][iw_] << 1.0 / (iw_ + mu);
   S.G0_iw[1][iw_] << 1.0 / (iw_ + mu);
