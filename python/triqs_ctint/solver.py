@@ -137,7 +137,8 @@ class Solver(SolverCore):
                         # Sig_HF[bl1][idx_u4, idx_u1] -= coef * G_dens[bl3][u2, u3]
                         # Sig_HF[bl3][idx_u2, idx_u3] -= coef * G_dens[bl1][u4, u1]
             
-                return Sig_HF_flat - flatten(list(Sig_HF.items()))
+                Sig_HF_ordered = [[bl, Sig_HF[bl]] for bl, idx_lst in gf_struct]
+                return Sig_HF_flat - flatten(Sig_HF_ordered)
             
             # Invoke the root finder
             Sig_HF_init = [[bl, np.zeros((len(idx_lst), len(idx_lst)))] for bl, idx_lst in gf_struct]
