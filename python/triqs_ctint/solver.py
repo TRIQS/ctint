@@ -204,7 +204,7 @@ class Solver(SolverCore):
             delta = solve_params.pop('delta', 0.1)
             n_s = solve_params.get('n_s', 1)
             assert n_s in [1, 2], "Solve parameter n_s has to be either 1 or 2 for automatic alpha mode"
-
+            n_s_user = n_s
             # --------- Determine the alpha tensor from SC Hartree Fock ----------
             mpi_print("Determine alpha-tensor")
 
@@ -258,7 +258,7 @@ class Solver(SolverCore):
 
                 #_ Introduce alpha assymetry
                 for n, (term, coeff) in enumerate(h_int):
-                    for s in range(n_s):
+                    for s in range(n_s_user):
                         alpha[n,0,0,s] = alpha_sc[n,0,0,0] - sign(coeff) * delta * (1 - 2*s)
                         alpha[n,1,1,s] = alpha_sc[n,1,1,0] + delta * (1 - 2*s)
                         alpha[n,0,1,s] = alpha_sc[n,0,1,0] + delta * (1 - 2*s) * (abs(alpha_sc[n,0,1,0]) > 1e-6)
@@ -267,13 +267,16 @@ class Solver(SolverCore):
             alpha = mpi.bcast(alpha, root=0)
 
             # Make sure to set n_s as provided by the user
-            solve_params['n_s'] = n_s
+            solve_params['n_s'] = n_s_user
 
             mpi_print(" --- Alpha Tensor : ")
-            if n_s == 1:
+            if n_s_user == 1:
                 mpi_print(str(alpha[...,0]))
             else:
-                mpi_print(str(alpha))
+                mpi_print("Alpha Tensor n_s = 1:")
+                mpi_print(str(alpha[...,0]))
+                mpi_print("Alpha Tensor n_s = 2:")
+                mpi_print(str(alpha[...,1]))
             solve_params['alpha'] = alpha
 
         solve_status = SolverCore.solve(self, **solve_params)
