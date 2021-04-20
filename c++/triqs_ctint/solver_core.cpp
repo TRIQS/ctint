@@ -116,6 +116,7 @@ namespace triqs_ctint {
       if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
       if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
       if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
+      if (params.measure_G2_fluct_diag_tau) mc.add_measure(measures::G2_fluct_diag_tau{params, qmc_config, &result_set()}, "G2_fluct_diag_tau measure");
     }
 
     // Perform QMC run and collect results

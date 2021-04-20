@@ -10,4 +10,5 @@
 #include "./measures/M3pp_tau.hpp"
 #include "./measures/M3ph_tau.hpp"
 #include "./measures/chi2_tau.hpp"
+#include "./measures/G2_fluct_diag_tau.hpp"
 #include "./measures/chiAB_tau.hpp"
