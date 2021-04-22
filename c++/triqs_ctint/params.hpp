@@ -150,9 +150,11 @@ namespace triqs_ctint {
     bool measure_G2_fluct_diag_tau = false;
     /// Number of imaginary time points in G2_fluct_diag
     int n_tau_G2_fluct_diag = 201;
-    /// Number of positive Matsubara frequencies in G2_fluct_diag
-    int n_iw_G2_fluct_diag = 32;
-
+    /// Measure of G2_fluct_diag_omega_tau by insertion
+    bool measure_G2_fluct_diag_omega_tau = false;
+    /// Number of imaginary time points in G2_fluct_diag_omega
+    int n_tau_G2_fluct_diag_omega = 201;
+    
     /// Measure of chiAB by insertion
     bool measure_chiAB_tau = false;
     /// The list of all operators A

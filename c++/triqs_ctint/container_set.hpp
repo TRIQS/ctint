@@ -60,6 +60,9 @@ namespace triqs_ctint {
     /// The equal time correlator $G2_fluct_diag_tau$ in the particle-hole channel in imaginary times as obtained by operator insertion
     std::optional<chi2_tau_t> G2_fluct_diag_tau;
     
+    /// The equal time correlator $G2_fluct_diag_omega_tau$ in the particle-hole channel in imaginary times as obtained by operator insertion
+    std::optional<chi3_tau_t> G2_fluct_diag_omega_tau;
+    
     /// The correlation function $\chi_AB$ in imaginary times
     std::optional<gf<imtime>> chiAB_tau;
 
