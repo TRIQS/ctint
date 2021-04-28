@@ -38,9 +38,6 @@ namespace triqs_ctint::measures {
 
                 auto tau_point  = make_tau_t(double(tau));
 
-                // Time-Ordering
-                tau_point.n += 3;  // tau -> tau^{+++}
-
                 if (tau.index() == params.n_tau_G2_fluct_diag - 1) {
                   tau_point  = tau_t::get_beta_minus();
                 }
