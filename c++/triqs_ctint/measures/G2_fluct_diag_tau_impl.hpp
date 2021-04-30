@@ -31,31 +31,40 @@ namespace triqs_ctint::measures {
         for (int a : range(bl1_size))
           for (int b : range(bl1_size))
             for (int c : range(bl2_size))
-              for (auto tau : tau_mesh) {
+              for (int d : range(bl2_size))
+                for (auto tau : tau_mesh) {
 
-                cdag_t cdag_a, cdag_c;
-                c_t c_b, c_d;
+                  cdag_t cdag_a, cdag_d;
+                  c_t c_b, c_c;
 
-                auto tau_point  = make_tau_t(double(tau));
+                  auto tau_point  = make_tau_t(double(tau));
+		  auto taup_point  = make_tau_t(double(tau));
+		  auto taupp_point  = make_tau_t(double(tau));
 
-                if (tau.index() == params.n_tau_G2_fluct_diag - 1) {
-                  tau_point  = tau_t::get_beta_minus();
+                  tau_point.n += 3;  // tau -> tau^{+++}
+                  taup_point.n += 2; // taup -> tau^{++}
+	          taupp_point.n += 1; // taupp -> tau^{+}
+                
+	          if (tau.index() == params.n_tau_G2_fluct_diag - 1) {
+                    tau_point  = tau_t::get_beta_minus();
+		    taup_point  = tau_t::get_beta_minus_minus();
+		    taupp_point  = tau_t::get_beta_minus_minus_minus();
+                  }
+
+                  cdag_a = cdag_t{tau_point, a};
+                  c_b    = c_t{taup_point, b};
+                  c_c    = c_t{taupp_point, c};
+                  cdag_d = cdag_t{tau_t::get_zero(), d};
+
+                  if (bl1 == bl2)
+                    G2_fluct_diag_tau[tau](a, b, c, d) += sign * det1.try_insert2(0, 1, 0, 1, c_b, c_c, cdag_a, cdag_d);
+                  else
+                    G2_fluct_diag_tau[tau](a, b, c, d) += sign * det1.try_insert(0, 0, c_c, cdag_a) * det2.try_insert(0, 0, c_b, cdag_d);
+
+                  det1.reject_last_try();
+                  det2.reject_last_try();
                 }
-
-                cdag_a = cdag_t{tau_point, a};
-                c_b    = c_t{tau_t::get_zero_plus_plus(), b};
-                cdag_c = cdag_t{tau_t::get_zero_plus(), c};
-                c_d    = c_t{tau_t::get_zero(), c};
-
-                if (bl1 == bl2)
-                  G2_fluct_diag_tau[tau](a, b, c, c) += sign * det1.try_insert2(0, 1, 0, 1, c_b, c_d, cdag_a, cdag_c);
-                else
-                  G2_fluct_diag_tau[tau](a, b, c, c) += sign * det1.try_insert(0, 0, c_b, cdag_a) * det2.try_insert(0, 0, c_d, cdag_c);
-
-                det1.reject_last_try();
-                det2.reject_last_try();
-              }
-      }
+        }
   }
 
   void G2_fluct_diag_tau::collect_results(mpi::communicator const &comm) {

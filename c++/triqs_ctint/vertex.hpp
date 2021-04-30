@@ -56,6 +56,9 @@ namespace triqs_ctint {
 
     /// Return \tau = beta^{--} = \beta - 2*\delta
     static constexpr tau_t get_beta_minus_minus() { return tau_t{n_max - 2}; }
+    
+    /// Return \tau = beta^{--} = \beta - 3*\delta
+    static constexpr tau_t get_beta_minus_minus_minus() { return tau_t{n_max - 3}; }
   };
 
   /// Calculate the time-difference of two tau points shifted to the interval [0,\beta] as well
