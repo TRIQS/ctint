@@ -323,7 +323,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +----------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
 | measure_histogram    | bool                                 | false                                   | Measure the average perturbation order distribution       |
 +----------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
-| measure_density      | bool                                 | true                                    | Measure the density matrix by operator insertion          |
+| measure_density      | bool                                 | false                                   | Measure the density matrix by operator insertion          |
 +----------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
 | measure_M_tau        | bool                                 | true                                    | Measure M(tau)                                            |
 +----------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
@@ -454,7 +454,7 @@ c.add_member(c_name = "measure_histogram",
 
 c.add_member(c_name = "measure_density",
              c_type = "bool",
-             initializer = """ true """,
+             initializer = """ false """,
              doc = r"""Measure the density matrix by operator insertion""")
 
 c.add_member(c_name = "measure_M_tau",

@@ -100,7 +100,7 @@ namespace triqs_ctint {
     bool measure_histogram = false;
 
     /// Measure the density matrix by operator insertion
-    bool measure_density = true;
+    bool measure_density = false;
 
     /// Measure M(tau)
     bool measure_M_tau = true;
