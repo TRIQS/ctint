@@ -5,14 +5,16 @@ from triqs.utility import mpi
 import numpy as np
 from scipy.optimize import root
 
-np.set_printoptions(precision=4)
 
 # === Some utility functions
 
 # print on master node
 def mpi_print(arg):
     if mpi.is_master_node():
+        po = np.get_printoptions()
+        np.set_printoptions(precision=4)
         print(arg)
+        np.set_printoptions(**po)
 
 # Flatten a block vector of matrices
 def flatten(Sig_HF):
