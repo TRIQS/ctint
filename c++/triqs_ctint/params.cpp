@@ -19,7 +19,7 @@ namespace triqs_ctint {
     h5_read(grp, "n_tau", cp.n_tau);
     h5_read(grp, "n_iw", cp.n_iw);
     h5_read(grp, "beta", cp.beta);
-    h5_read(grp, "gf_struct", cp.gf_struct);
+    h5_read_gf_struct(grp, "gf_struct", cp.gf_struct);
     h5_read(grp, "use_D", cp.use_D);
     h5_read(grp, "use_Jperp", cp.use_Jperp);
     h5_read(grp, "n_tau_dynamical_interactions", cp.n_tau_dynamical_interactions);
