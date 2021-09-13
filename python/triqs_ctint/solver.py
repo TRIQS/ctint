@@ -63,17 +63,11 @@ class Solver(SolverCore):
     #   [bl0, bl1, u0, u0p, u1, u1p]
     #
     def indices_from_quartic_term(self, term, gf_struct):
-        bl0, u_str_0 = term[0][1]
-        bl1, u_str_1 = term[1][1]
-        bl1p, u_str_1p = term[2][1]
-        bl0p, u_str_0p = term[3][1]
+        bl0, u0 = term[0][1]
+        bl1, u1 = term[1][1]
+        bl1p, u1p = term[2][1]
+        bl0p, u0p = term[3][1]
         assert bl0 == bl0p and bl1 == bl1p
-
-        u0 = dict(gf_struct)[bl0].index(u_str_0)
-        u1 = dict(gf_struct)[bl1].index(u_str_1)
-        u1p = dict(gf_struct)[bl1].index(u_str_1p)
-        u0p = dict(gf_struct)[bl0].index(u_str_0p)
-
         return [bl0, bl1, u0, u0p, u1, u1p]
 
     def f(self, x, solve_params):
