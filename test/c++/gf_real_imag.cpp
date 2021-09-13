@@ -6,7 +6,7 @@
 
 using namespace triqs::gfs;
 using namespace triqs::mesh;
-using namespace triqs::clef;
+using namespace nda::clef;
 
 TEST(Gfs, Real_Imag) { // NOLINT
 

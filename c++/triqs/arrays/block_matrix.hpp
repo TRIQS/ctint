@@ -26,7 +26,7 @@
 #include <mpi/vector.hpp>
 #include <mpi/string.hpp>
 #include <triqs/utility/is_complex.hpp>
-#include <triqs/arrays.hpp>
+#include <nda/nda.hpp>
 #include <boost/serialization/access.hpp>
 
 namespace triqs {
@@ -38,7 +38,7 @@ namespace triqs {
   */
     template <typename T> struct block_matrix {
 
-      using matrix_t     = triqs::arrays::matrix<T>;
+      using matrix_t     = nda::matrix<T>;
       using regular_type = block_matrix<T>;
       std::vector<std::string> block_names;
       std::vector<matrix_t> matrix_vec;
@@ -51,7 +51,7 @@ namespace triqs {
       int size() const { return matrix_vec.size(); }
 
       /// Call operator with a string (slow)
-      triqs::arrays::matrix_view<T> operator()(std::string const &name) {
+      nda::matrix_view<T> operator()(std::string const &name) {
         auto it = std::find(block_names.begin(), block_names.end(), name);
         if (it == block_names.end()) TRIQS_RUNTIME_ERROR << "block_matrix: Block name " << name << " is incorrect";
         return matrix_vec[std::distance(block_names.begin(), it)];
@@ -61,7 +61,7 @@ namespace triqs {
       matrix_t &operator[](int i) { return matrix_vec[i]; }
 
       /// Subscript operator (fast)
-      triqs::arrays::matrix_const_view<T> operator[](int i) const { return matrix_vec[i]; }
+      nda::matrix_const_view<T> operator[](int i) const { return matrix_vec[i]; }
 
       // Add block matrix
       block_matrix &operator+=(block_matrix const &b) {

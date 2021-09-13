@@ -59,9 +59,7 @@ class Solver(SolverCore):
         n_iw_dynamical_interactions : int, optional
                Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
-        if isinstance(gf_struct,dict):
-            print("WARNING: gf_struct should be a list of pairs [ (str,int), ...], not a dict")
-            gf_struct = list(gf_struct.items())
+        gf_struct = fix_gf_struct_type(gf_struct)
 
         # Initialise the core solver
         SolverCore.__init__(self, beta=beta, gf_struct=gf_struct, 

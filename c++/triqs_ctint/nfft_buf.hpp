@@ -1,6 +1,6 @@
 #pragma once
 #include <numeric>
-#include <triqs/arrays.hpp>
+#include <nda/nda.hpp>
 #include <array>
 #include <cmath>
 
@@ -11,8 +11,8 @@
 
 namespace triqs::utility {
 
+  using nda::array_view;
   using nda::stdutil::sum;
-  using triqs::arrays::array_view;
   using dcomplex = std::complex<double>;
 
   template <int Rank> struct nfft_buf_t {
@@ -32,7 +32,7 @@ namespace triqs::utility {
       auto freq_extents = fiw_arr.shape();
       std::vector<int> extents_int;
       for (int n : freq_extents) {
-        if (n % 2 != 0) TRIQS_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";
+        if (n % 2 != 0) NDA_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";
         extents_int.push_back(n);
         common_factor *= (n / 2) % 2 ? -1 : 1; // Additional Minus sign for uneven Matsubara offset
       }
@@ -75,7 +75,7 @@ namespace triqs::utility {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
 
       // Check if buffer has been properly initialized
-      if (!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+      if (!plan_ptr) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Write the set of shifted and normalized tau values (i. e. x values) to the NFFT buffer and sum taus
       double tau_sum = 0.0;
@@ -86,7 +86,7 @@ namespace triqs::utility {
       }
 
       // Write f(x) to nfft_plan-> The prefactor accounts for the Pi/beta offset in fermionic Matsubaras
-      fx_arr()[buf_counter] = std::exp(1i * M_PI * tau_sum / beta) * ftau; // NOLINT
+      fx_arr()[buf_counter] = std::exp(dcomplex(0, M_PI * tau_sum / beta)) * ftau; // NOLINT
 
       ++buf_counter;
 
@@ -101,7 +101,7 @@ namespace triqs::utility {
     void flush() {
 
       // Check if buffer has been properly initialized
-      if (!plan_ptr) TRIQS_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+      if (!plan_ptr) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Don't do anything if buffer is empty
       if (is_empty()) return;
@@ -163,7 +163,7 @@ namespace triqs::utility {
 #endif
       if (do_checks) { // Check validity of NFFT parameters
         const char *error_str = nfft_check(plan_ptr.get());
-        if (error_str != nullptr) TRIQS_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
+        if (error_str != nullptr) NDA_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
       }
 
       // Execute transform
