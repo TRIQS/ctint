@@ -5,7 +5,12 @@ foreach(file ${all_h5_ref_files})
 endforeach()
 
 # List of all tests
-set(all_tests util gf_real_imag nfft_buf solver_hdf5)
+set(all_tests
+  util.cpp
+  gf_real_imag.cpp
+  nfft_buf.cpp
+  solver_hdf5.cpp
+)
 #file(GLOB_RECURSE all_tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
 foreach(test ${all_tests})
