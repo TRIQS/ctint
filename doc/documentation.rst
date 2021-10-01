@@ -2,7 +2,7 @@
 .. _documentation:
 
 Documentation
-=============
+*************
 
 Table of Contents
 -----------------
@@ -17,7 +17,7 @@ Table of Contents
    about
 
 C++ reference manual
---------------------
+====================
 
 .. toctree::
    :maxdepth: 5
@@ -25,7 +25,7 @@ C++ reference manual
    cpp2rst_generated/triqs_ctint/solver_core
 
 Python reference manual
------------------------
+=======================
 
 .. automodule:: triqs_ctint 
    :members:

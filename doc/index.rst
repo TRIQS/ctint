@@ -1,12 +1,17 @@
 .. _welcome:
 
 The interaction-expansion solver
-================================
+********************************
 
-.. sidebar:: ctint 3.0
+.. sidebar:: ctint 3.1.0
 
-   This is the homepage ctint Version 3.0
-   For changes see, Cf :ref:`changelog page <changelog>`
+   This is the homepage of ctint v3.1.0.
+   For changes see the :ref:`changelog page <changelog>`.
+      
+      .. image:: _static/logo_github.png
+         :width: 75%
+         :align: center
+         :target: https://github.com/triqs/ctint
 
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver
 allows to solve the generic problem of a **quantum impurity** embedded in a
@@ -44,5 +49,13 @@ problem.
 
 Learn how to use it in the :ref:`documentation`.
 
+    
 .. toctree::
    :maxdepth: 2
+   :hidden:
+
+   install
+   documentation
+   issues
+   ChangeLog.md
+   about
