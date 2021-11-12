@@ -15,6 +15,9 @@ namespace triqs_ctint {
     /// Average perturbation order
     double average_k;
 
+    /// Auto-correlation time
+    double auto_corr_time;
+
     /// Average perturbation order distribution
     std::optional<std::vector<double>> histogram;
 
@@ -130,6 +133,7 @@ namespace triqs_ctint {
       auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
       h5_write(grp, "average_k", c.average_k);
+      h5_write(grp, "auto_corr_time", c.auto_corr_time);
       h5_write(grp, "histogram", c.histogram);
       h5_write(grp, "density", c.density);
       h5_write(grp, "M_tau", c.M_tau);
@@ -173,6 +177,7 @@ namespace triqs_ctint {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
       h5_try_read(grp, "average_k", c.average_k);
+      h5_try_read(grp, "auto_corr_time", c.auto_corr_time);
       h5_read(grp, "histogram", c.histogram);
       h5_try_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);

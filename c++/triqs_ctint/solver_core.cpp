@@ -72,6 +72,7 @@ namespace triqs_ctint {
     // Register all measurements
     if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
     if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+    if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
     if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
     if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
@@ -92,6 +93,7 @@ namespace triqs_ctint {
     if (world.rank() == 0) {
       if (params.measure_average_sign) std::cout << "Average sign: " << average_sign << "\n";
       if (params.measure_average_k) std::cout << "Average perturbation order: " << average_k << "\n";
+      if (params.measure_auto_corr_time) std::cout << "Auto-correlation time: " << auto_corr_time << "\n";
     }
 
     // Post Processing
