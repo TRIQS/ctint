@@ -19,12 +19,13 @@ namespace triqs_ctint::moves {
     triqs::mc_tools::random_generator &rng;
 
     /// Switch for double vertex removals
-    bool double_removal = false;
+    int n_removals = 1;
 
     /// Maximum perturbation order (<0 : unlimited)
     int max_order = -1;
 
-    int vpos = 0, vpos2 = 0;
+    /// Positions at which to remove vertices
+    std::vector<int> vpos = {};
 
     /// Object that allows to delay determinant operations, necessary for multi-inserts/removes
     lazy_det_operation_t lazy_op = lazy_det_operation_t{&qmc_config->dets};
