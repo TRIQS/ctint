@@ -82,6 +82,9 @@ namespace triqs_ctint {
     /// Use double insertion
     bool use_double_insertion = false;
 
+    /// Types of insertions to use
+    std::vector<int> insertion_types = {};
+
     /// Maximum running time in seconds (-1 : no limit)
     int max_time = -1;
 

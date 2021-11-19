@@ -21,29 +21,15 @@ namespace triqs_ctint {
 
     // This type keeps track of lazy inserts for single determinant
     struct one_block {
-      static constexpr int n_max = 2;
-
-      // Array of $c$ (x) and $c^\dagger$ (y) operators
-      std::array<c_t, n_max> c_lst;
-      std::array<cdag_t, n_max> cdag_lst;
-
-      // Array of the operator positions
-      std::array<int, n_max> pos_c, pos_cdag;
-
-      // Counter for the $c$ and $c^\dagger$
-      int c_count = 0, cdag_count = 0;
+      // Vector of $c$ (x) and $c^\dagger$ (y) operators
+      std::vector<c_t> c_lst       = {};
+      std::vector<cdag_t> cdag_lst = {};
 
       // Lazy-add a $c$ operator
-      void lazy_add_c(c_t const &c_) {
-        TRIQS_ASSERT(c_count < n_max);
-        c_lst[c_count++] = c_;
-      }
+      void lazy_add_c(c_t const &c_) { c_lst.emplace_back(c_); }
 
       // Lazy-add a $c^\dagger$ operator
-      void lazy_add_cdag(cdag_t const &cdag_) {
-        TRIQS_ASSERT(cdag_count < n_max);
-        cdag_lst[cdag_count++] = cdag_;
-      }
+      void lazy_add_cdag(cdag_t const &cdag_) { cdag_lst.emplace_back(cdag_); }
 
       // Tries to perform all insertions into the det, returning the det ratio
       g_tau_scalar_t execute_try_insert(det_t *d);
@@ -61,8 +47,8 @@ namespace triqs_ctint {
     /// Clean all registered moves
     void reset() {
       for (auto &l : lazy_op_lst) {
-        l.c_count    = 0;
-        l.cdag_count = 0;
+        l.c_lst.clear();
+        l.cdag_lst.clear();
       }
     }
 

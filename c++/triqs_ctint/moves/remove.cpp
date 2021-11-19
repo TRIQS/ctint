@@ -3,6 +3,9 @@
 namespace triqs_ctint::moves {
 
   mc_weight_t remove::attempt() {
+    TRIQS_ASSERT(n_removals > 0);
+    vpos.reserve(n_removals);
+    vpos.clear();
 
     // Don't remove if config is empty
     if (qmc_config->perturbation_order() == 0) return 0.0;
@@ -21,19 +24,18 @@ namespace triqs_ctint::moves {
     };
 
     // Choose one of the vertices for removal
-    vpos = rng(qmc_config->perturbation_order());
-
-    // Lazy insert and capture the weight for the first vertex
-    U_scalar_t ratio = single_remove(vpos);
-
-    // In case of double remove we pick up another vertex
-    if (double_removal) {
-      vpos2 = rng(qmc_config->perturbation_order());
-      if (vpos == vpos2) {
+    U_scalar_t ratio = 1;
+    for (int i = 0; i < n_removals; ++i) {
+      int const this_vpos = rng(qmc_config->perturbation_order());
+      // In case of double remove we pick up another vertex
+      if (std::find(vpos.begin(), vpos.end(), this_vpos) == vpos.end()) {
+        vpos.emplace_back(this_vpos);
+        // Lazy insert and capture the weight for the vertex
+        ratio *= single_remove(this_vpos);
+      } else {
         lazy_op.reset();
         return 0;
       }
-      ratio *= single_remove(vpos2);
     }
 
     // Execute the removal move
@@ -42,7 +44,7 @@ namespace triqs_ctint::moves {
 
     double remove_proposition_proba = 0.0;
     if(max_order == -1 || qmc_config->perturbation_order() < max_order) {
-      remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_removal ? qmc_config->perturbation_order() : 1));
+      remove_proposition_proba = 1.0 / std::pow(qmc_config->perturbation_order(), n_removals);
     }
 
     // Return the overall weight
@@ -54,12 +56,13 @@ namespace triqs_ctint::moves {
     // Finish the removal from the determinants
     for (auto &d : qmc_config->dets) d.complete_operation(); // maybe doing nothing if not try_insert but it is quick
 
+    // sort the vertices in reverse order
+    std::sort(vpos.begin(), vpos.end(), std::greater<>());
+
     // Remove the vertices from vertex_lst
-    if (double_removal) {
-      if (vpos > vpos2) std::swap(vpos, vpos2); // ensure vpos < vpos2
-      qmc_config->vertex_lst.erase(begin(qmc_config->vertex_lst) + vpos2);
+    for (auto &&this_vpos : vpos) {
+      qmc_config->vertex_lst.erase(begin(qmc_config->vertex_lst) + this_vpos);
     }
-    qmc_config->vertex_lst.erase(begin(qmc_config->vertex_lst) + vpos);
 
     return 1.0; // no need for a correction of the sign
   }

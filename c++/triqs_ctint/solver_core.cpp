@@ -67,11 +67,14 @@ namespace triqs_ctint {
     // Build vertex factories
     const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_iw);
 
-    mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false, params.max_order}, "insertion");
-    mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false, params.max_order}, "removal");
-    if (params.use_double_insertion) {
-      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, true, params.max_order}, "double insertion");
-      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_order}, "double removal");
+    // Eliminate duplicates from the move types
+    if (params.insertion_types.empty()) { params.insertion_types = params.use_double_insertion ? std::vector<int>{1, 2} : std::vector<int>{1}; }
+    std::sort(params.insertion_types.begin(), params.insertion_types.end());
+    std::ignore = std::unique(params.insertion_types.begin(), params.insertion_types.end());
+
+    for (auto &&num_insert : params.insertion_types) {
+      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, num_insert, params.max_order}, "insert " + std::to_string(num_insert));
+      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, num_insert, params.max_order}, "remove " + std::to_string(num_insert));
     }
 
     // Register warmup measurements
