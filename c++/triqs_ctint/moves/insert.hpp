@@ -19,7 +19,7 @@ namespace triqs_ctint::moves {
     triqs::mc_tools::random_generator &rng;
 
     /// Switch for double vertex insertions
-    bool double_insertion = false;
+    int n_insertions = 1;
 
     /// Maximum perturbation order (<0 : unlimited)
     int max_order = -1;
