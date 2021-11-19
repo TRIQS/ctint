@@ -152,7 +152,7 @@ namespace triqs {
 
       // Boost.Serialization
       friend class boost::serialization::access;
-      template <class Archive> void serialize(Archive &ar, const unsigned int version) {
+      template <class Archive> void serialize(Archive &ar, const unsigned int /* version */) {
         ar &block_names;
         ar &matrix_vec;
       }
@@ -169,12 +169,12 @@ namespace triqs {
       /// Read from HDF5
       friend void h5_read(h5::group fg, std::string subgroup_name, block_matrix &c) {
         h5::group gr = fg.open_group(subgroup_name);
-        std::vector<std::string> block_names;
-        std::vector<matrix_t> matrix_vec;
+        std::vector<std::string> block_names_;
+        std::vector<matrix_t> matrix_vec_;
 
-        h5_read(gr, "block_names", block_names);
-        h5_read(gr, "matrix_vec", matrix_vec);
-        c = block_matrix<T>(block_names, matrix_vec);
+        h5_read(gr, "block_names", block_names_);
+        h5_read(gr, "matrix_vec", matrix_vec_);
+        c = block_matrix<T>(block_names_, matrix_vec_);
       }
     };
   } // namespace arrays

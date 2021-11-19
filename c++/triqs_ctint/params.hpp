@@ -96,6 +96,9 @@ namespace triqs_ctint {
     /// Measure the average perturbation order
     bool measure_average_k = true;
 
+    /// Measure the auto-correlation time
+    bool measure_auto_corr_time = true;
+
     /// Measure the average perturbation order distribution
     bool measure_histogram = false;
 
