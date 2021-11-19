@@ -37,6 +37,7 @@ namespace triqs_ctint {
     h5_write(grp, "random_seed", sp.random_seed);
     h5_write(grp, "random_name", sp.random_name);
     h5_write(grp, "use_double_insertion", sp.use_double_insertion);
+    h5_write(grp, "insertion_types", sp.insertion_types);
     h5_write(grp, "max_time", sp.max_time);
     h5_write(grp, "verbosity", sp.verbosity);
     h5_write(grp, "measure_average_sign", sp.measure_average_sign);
@@ -82,6 +83,7 @@ namespace triqs_ctint {
     h5_read(grp, "n_warmup_cycles", sp.n_warmup_cycles);
     h5_read(grp, "random_name", sp.random_name);
     h5_read(grp, "use_double_insertion", sp.use_double_insertion);
+    h5_read(grp, "insertion_types", sp.insertion_types);
     h5_read(grp, "max_time", sp.max_time);
     h5_read(grp, "measure_average_sign", sp.measure_average_sign);
     h5_read(grp, "measure_average_k", sp.measure_average_k);
