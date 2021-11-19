@@ -66,17 +66,15 @@ namespace triqs_ctint {
       std::stable_sort(cdag_lst.begin(), cdag_lst.end(), predicate);
 
       // Calculate the insertion positions
-      std::vector<std::tuple<size_t, c_t>> ix(c_count);
-      std::vector<std::tuple<size_t, cdag_t>> jy(c_count);
+      std::vector<size_t> pos_c(c_count);
+      std::vector<size_t> pos_cdag(c_count);
       for (size_t i = 0; i < c_count; ++i) {
-        size_t const pos_c    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
-        size_t const pos_cdag = i + get_cdag_lower_bound(d, cdag_lst[i]);
-        if ((pos_c + pos_cdag) % 2) prefactor *= -1.0;
-        ix[i] = std::make_tuple(pos_c, c_lst[i]);
-        jy[i] = std::make_tuple(pos_cdag, cdag_lst[i]);
+        pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
+        pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
+        if ((pos_c[i] + pos_cdag[i]) % 2) prefactor *= -1.0;
       }
 
-      return d->try_insert_k(ix, jy) * prefactor;
+      return d->try_insert_k(pos_c, pos_cdag, c_lst, cdag_lst) * prefactor;
     }
   }
 
