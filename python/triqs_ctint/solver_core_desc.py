@@ -47,6 +47,11 @@ c.add_member(c_name = "average_k",
              read_only= True,
              doc = r"""Average perturbation order""")
 
+c.add_member(c_name = "auto_corr_time",
+             c_type = "double",
+             read_only= True,
+             doc = r"""Auto-correlation time""")
+
 c.add_member(c_name = "histogram",
              c_type = "std::optional<std::vector<double> >",
              read_only= True,
