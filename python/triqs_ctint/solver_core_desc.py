@@ -1,12 +1,12 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --includes="../../c++" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/solver_core.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m solver_core -o solver_core -C triqs --moduledoc="The TRIQS ctint solver" --includes=../../c++ --cxxflags="-std=c++20 $(triqs++ -cxxflags)" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
 module = module_(full_name = "solver_core", doc = r"The TRIQS ctint solver", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['triqs.gf', 'triqs.operators', 'h5._h5py'])
+module.add_imports(*['triqs.gf', 'triqs.gf.meshes', 'triqs.operators', 'h5._h5py'])
 
 # Add here all includes
 module.add_include("triqs_ctint/solver_core.hpp")
@@ -18,9 +18,7 @@ module.add_preamble("""
 #include <cpp2py/converters/pair.hpp>
 #include <cpp2py/converters/std_array.hpp>
 #include <cpp2py/converters/string.hpp>
-#include <cpp2py/converters/variant.hpp>
 #include <cpp2py/converters/vector.hpp>
-#include <triqs/cpp2py_converters/arrays.hpp>
 #include <triqs/cpp2py_converters/gf.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/real_or_complex.hpp>
@@ -53,7 +51,7 @@ c.add_member(c_name = "auto_corr_time",
              doc = r"""Auto-correlation time""")
 
 c.add_member(c_name = "histogram",
-             c_type = "std::optional<std::vector<double> >",
+             c_type = "std::optional<std::vector<double>>",
              read_only= True,
              doc = r"""Average perturbation order distribution""")
 
@@ -63,7 +61,7 @@ c.add_member(c_name = "density",
              doc = r"""The density matrix (measured by operator insertion)""")
 
 c.add_member(c_name = "M_tau",
-             c_type = "std::optional<block_gf<imtime, M_tau_target_t> >",
+             c_type = "std::optional<block_gf<imtime, M_tau_target_t>>",
              read_only= True,
              doc = r"""Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 
@@ -123,7 +121,7 @@ c.add_member(c_name = "chi2ph_tau",
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained by operator insertion""")
 
 c.add_member(c_name = "chiAB_tau",
-             c_type = "std::optional<gf<imtime> >",
+             c_type = "std::optional<gf<imtime>>",
              read_only= True,
              doc = r"""The correlation function $\chi_AB$ in imaginary times""")
 
@@ -208,7 +206,7 @@ c.add_member(c_name = "chi2ph_iw_from_M3",
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau""")
 
 c.add_member(c_name = "chiAB_iw",
-             c_type = "std::optional<gf<imfreq> >",
+             c_type = "std::optional<gf<imfreq>>",
              read_only= True,
              doc = r"""The correlation function $\chi_AB$ in imaginary frequencies""")
 
@@ -238,12 +236,12 @@ c.add_member(c_name = "G0_iw",
              doc = r"""Noninteracting Green Function in Matsubara frequencies""")
 
 c.add_member(c_name = "D0_iw",
-             c_type = "std::optional<block2_gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<block2_gf<imfreq, matrix_valued>>",
              read_only= True,
              doc = r"""Dynamic density-density interaction in Matsubara frequencies""")
 
 c.add_member(c_name = "Jperp_iw",
-             c_type = "std::optional<gf<imfreq, matrix_valued> >",
+             c_type = "std::optional<gf<imfreq, matrix_valued>>",
              read_only= True,
              doc = r"""Dynamic spin-spin interaction in Matsubara frequencies""")
 
@@ -271,25 +269,25 @@ c.add_constructor("""(**triqs_ctint::constr_params_t)""", doc = r"""Construct a 
 
 
 
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| Parameter Name               | Type                              | Default   | Documentation                                                  |
-+==============================+===================================+===========+================================================================+
-| n_tau                        | int                               | 5001      | Number of tau points for gf<imtime, matrix_valued>             |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| n_iw                         | int                               | 500       | Number of Matsubara frequencies for gf<imfreq, matrix_valued>  |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| beta                         | double                            | --        | Inverse temperature                                            |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| gf_struct                    | triqs::hilbert_space::gf_struct_t | --        | block structure of the gf                                      |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| use_D                        | bool                              | false     | Switch for dynamic density-density interaction                 |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| use_Jperp                    | bool                              | false     | Switch for dynamic spin-spin interaction                       |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| n_tau_dynamical_interactions | int                               | n_tau     | Number of tau pts for D0_tau and jperp_tau                     |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
-| n_iw_dynamical_interactions  | int                               | n_iw      | Number of matsubara freqs for D0_iw and jperp_iw               |
-+------------------------------+-----------------------------------+-----------+----------------------------------------------------------------+
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| Parameter Name               | Type                    | Default   | Documentation                                                  |
++==============================+=========================+===========+================================================================+
+| n_tau                        | int                     | 5001      | Number of tau points for gf<imtime, matrix_valued>             |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| n_iw                         | int                     | 500       | Number of Matsubara frequencies for gf<imfreq, matrix_valued>  |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| beta                         | double                  | --        | Inverse temperature                                            |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| gf_struct                    | triqs::gfs::gf_struct_t | --        | block structure of the gf                                      |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| use_D                        | bool                    | false     | Switch for dynamic density-density interaction                 |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| use_Jperp                    | bool                    | false     | Switch for dynamic spin-spin interaction                       |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| n_tau_dynamical_interactions | int                     | n_tau     | Number of tau pts for D0_tau and jperp_tau                     |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
+| n_iw_dynamical_interactions  | int                     | n_iw      | Number of matsubara freqs for D0_iw and jperp_iw               |
++------------------------------+-------------------------+-----------+----------------------------------------------------------------+
 """)
 
 c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
@@ -299,7 +297,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 
 +------------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
 | Parameter Name         | Type                                 | Default                                 | Documentation                                             |
-+======================--+======================================+=========================================+===========================================================+
++========================+======================================+=========================================+===========================================================+
 | h_int                  | triqs::operators::many_body_operator | --                                      | Interaction Hamiltonian                                   |
 +------------------------+--------------------------------------+-----------------------------------------+-----------------------------------------------------------+
 | n_s                    | int                                  | 1                                       | Number of auxiliary spins                                 |
@@ -592,7 +590,7 @@ c.add_member(c_name = "beta",
              doc = r"""Inverse temperature""")
 
 c.add_member(c_name = "gf_struct",
-             c_type = "triqs::hilbert_space::gf_struct_t",
+             c_type = "triqs::gfs::gf_struct_t",
              initializer = """  """,
              doc = r"""block structure of the gf""")
 
