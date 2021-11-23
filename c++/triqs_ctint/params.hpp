@@ -154,6 +154,22 @@ namespace triqs_ctint {
     /// Perform post processing
     bool post_process = true;
 
+    /// The maximum size of the determinant matrix before a resize
+    int det_init_size = 1000;
+
+    /// Max number of ops before the test of deviation of the det, M^-1 is performed.
+    int det_n_operations_before_check = 100;
+
+    /// Threshold for determinant precision warnings
+    double det_precision_warning = 1.e-8;
+
+    /// Threshold for determinant precision error
+    double det_precision_error = 1.e-5;
+
+    /// Bound for the determinant matrix being singular: abs(det) < singular_threshold.
+    /// For negative threshold check if !isnormal(abs(det)).
+    double det_singular_threshold = -1;
+
     /// Write constr_params_t to hdf5
     friend void h5_write(h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
 
