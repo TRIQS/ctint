@@ -64,6 +64,11 @@ namespace triqs_ctint {
     h5_write(grp, "chi_B_vec", sp.chi_B_vec);
     h5_write(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_write(grp, "post_process", sp.post_process);
+    h5_write(grp, "det_init_size", sp.det_init_size);
+    h5_write(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
+    h5_write(grp, "det_precision_warning", sp.det_precision_warning);
+    h5_write(grp, "det_precision_error", sp.det_precision_error);
+    h5_write(grp, "det_singular_threshold", sp.det_singular_threshold);
   }
 
   void h5_read(h5::group h5group, std::string subgroup_name, solve_params_t &sp) {
@@ -103,6 +108,11 @@ namespace triqs_ctint {
     h5_read(grp, "chi_B_vec", sp.chi_B_vec);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_read(grp, "post_process", sp.post_process);
+    h5_try_read(grp, "det_init_size", sp.det_init_size);
+    h5_try_read(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
+    h5_try_read(grp, "det_precision_warning", sp.det_precision_warning);
+    h5_try_read(grp, "det_precision_error", sp.det_precision_error);
+    h5_try_read(grp, "det_singular_threshold", sp.det_singular_threshold);
   }
 
 } // namespace triqs_ctint
