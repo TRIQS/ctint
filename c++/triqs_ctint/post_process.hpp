@@ -5,7 +5,7 @@
 namespace triqs_ctint {
 
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
-  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, mpi::communicator const &comm);
 
   /// Calculate the vertex function $F$ from G2c_iw and G_iw
   chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw);
