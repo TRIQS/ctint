@@ -99,6 +99,7 @@ namespace triqs_ctint {
       if (world.rank() == 0){std::cout << "You selected Sign only mode" << std::endl;}
       mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
       mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+      mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     }
     
     else{
