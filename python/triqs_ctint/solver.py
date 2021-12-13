@@ -216,20 +216,34 @@ class Solver(SolverCore):
             # The numer of terms in h_int determines the leading dimension of alpha
             n_terms = len(list(h_int))
 
-            # Precalculate the G0_iw densities
-            G0_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_iw }
-
-            # Calculate initial alpha guess from G0_iw.density(km)
             # We always solve the self-consistency assuming n_s == 1
             # If n_s > 1 we use this only in the post-processing of alpha
             solve_params['n_s'] = 1
-            alpha_init = np.zeros((n_terms, 2, 2, 1))
-            for n, (term, coeff) in enumerate(h_int):
-                bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
-                alpha_init[n,0,0,0] = G0_dens[bl0][u0p,u0]
-                alpha_init[n,0,1,0] = G0_dens[bl0][u1p,u0] * (bl0 == bl1)
-                alpha_init[n,1,0,0] = G0_dens[bl0][u0p,u1] * (bl0 == bl1)
-                alpha_init[n,1,1,0] = G0_dens[bl1][u1p,u1]
+            if not self.last_solve_params is None:
+                mpi_print("Reusing alpha from previous iteration")
+                alpha_init = self.last_solve_params['alpha']
+                if alpha_init.shape[-1] == 1:
+                    # undo the delta shift
+                    for n, (term, coeff) in enumerate(h_int):
+                        alpha_init[n,0,0,0] -= - sign(coeff) * delta
+                        alpha_init[n,1,1,0] -= delta
+                        alpha_init[n,0,1,0] -= delta * (abs(alpha_init[n,0,1,0]) > 1e-6)
+                        alpha_init[n,1,0,0] -= sign(coeff) * delta * (abs(alpha_init[n,1,0,0]) > 1e-6)
+                else:
+                    # Project the supplied alpha on n_s = 1 in case the provided one was n_s = 2
+                    # This will naturally remove the opposite delta
+                    alpha_init = np.mean(alpha_init, axis=-1).reshape(n_terms, 2, 2, 1)
+            else:
+                # Calculate initial alpha guess from G0_iw.density(km)
+                alpha_init = np.zeros((n_terms, 2, 2, 1))
+                # Precalculate the G0_iw densities
+                G0_dens = { bl: g_bl.density(km[bl]).real for bl, g_bl in self.G0_iw }
+                for n, (term, coeff) in enumerate(h_int):
+                    bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
+                    alpha_init[n,0,0,0] = G0_dens[bl0][u0p,u0]
+                    alpha_init[n,0,1,0] = G0_dens[bl0][u1p,u0] * (bl0 == bl1)
+                    alpha_init[n,1,0,0] = G0_dens[bl0][u0p,u1] * (bl0 == bl1)
+                    alpha_init[n,1,1,0] = G0_dens[bl1][u1p,u1]
 
             # mpi_print("Init Alpha: " + str(alpha_init[...,0]))
             alpha_vec_init = alpha_init.reshape(4 * n_terms)
