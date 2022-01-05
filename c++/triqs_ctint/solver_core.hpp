@@ -79,7 +79,7 @@ namespace triqs_ctint {
     // Function that writes the solver_core to hdf5 file
     friend void h5_write(h5::group h5group, std::string subgroup_name, solver_core const &s) {
       auto grp = h5group.create_group(subgroup_name);
-      h5_write_attribute(grp, "Format", solver_core::hdf5_format());
+      write_hdf5_format(grp, s);
       h5_write_attribute(grp, "TRIQS_GIT_HASH", std::string(STRINGIZE(TRIQS_GIT_HASH)));
       h5_write_attribute(grp, "CTINT_GIT_HASH", std::string(STRINGIZE(CTINT_GIT_HASH)));
       h5_write(grp, "", s.result_set());
