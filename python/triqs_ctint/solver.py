@@ -250,20 +250,30 @@ class Solver(SolverCore):
             alpha = np.zeros((n_terms, 2, 2, n_s))
 
             if mpi.is_master_node():
-                # Find alpha on master_node
-                if solve_params.pop('use_jacobi', True):
-                    mpi_print("Using Jacobi-Matrix for root search")
-                    root_finder = root(self.f, alpha_vec_init,args=(solve_params),jac=self.jacobi,method="hybr")
-                else:
-                    root_finder = root(self.f, alpha_vec_init,args=(solve_params),method="hybr")
+                found = False
+                count = 0
+                while (found == False):
+                    count  +=1
 
-                # Reshape result, Implement Fallback solution if unsuccessful
-                if root_finder['success']:
-                    alpha_sc = root_finder['x'].reshape(n_terms, 2, 2, 1)
-                else:
-                    mpi_print("Could not determine alpha, falling back to G0_iw.density()")
-                    alpha_sc = alpha_init
-
+                    # Find alpha on master_node
+                    if solve_params.pop('use_jacobi', True):
+                        mpi_print("Using Jacobi-Matrix for root search")
+                        root_finder = root(self.f, alpha_vec_init,args=(solve_params),jac=self.jacobi,method="hybr")
+                    else:
+                        root_finder = root(self.f, alpha_vec_init,args=(solve_params),method="hybr")
+                    # Reshape result, Implement Fallback solution if unsuccessful
+                    if root_finder['success']:
+                        alpha_sc = root_finder['x'].reshape(n_terms, 2, 2, 1)
+                        found = True
+                    elif count > 100:
+                        mpi_print("Could not determine alpha, falling back to G0_iw.density()")
+                        alpha_sc = alpha_init
+                        found = True
+                    else:
+                        from numpy import random
+                        mpi_print("Could not determine alpha, Try again step %s" % count)
+                        for i in range(len(alpha_vec_init)):
+                            alpha_vec_init[i] = alpha_vec_init[i] + (-0.5+random.rand())
                 #_ Introduce alpha assymetry
                 for n, (term, coeff) in enumerate(h_int):
                     for s in range(n_s):
