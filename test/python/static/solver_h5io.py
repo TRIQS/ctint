@@ -6,6 +6,8 @@ from triqs.utility import mpi
 from triqs.utility.comparison_tests import *
 from triqs.operators import *
 
+import numpy as np
+
 U    = 1.0
 mu   = U/2.0
 beta = 10
@@ -22,7 +24,7 @@ for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu);
 sp = {
   "h_int"           : U * n("up", 0) * n("down", 0),
   "n_s"             : 1,
-  "alpha"           : [[[0.5 + 0.1]], [[0.5 - 0.1]]],
+  "alpha"           : np.diag([0.5 + 0.1, 0.5 - 0.1]).reshape(1,2,2,1),
   "length_cycle"    : 50,
   "n_warmup_cycles" : 1000,
   "n_cycles"        : 1000
