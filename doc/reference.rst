@@ -18,5 +18,5 @@ The main class is **solver_core**. It constructs Monte-Carlo solver which owns a
 Python interface
 ~~~~~~~~~~~~~~~~~
 
-.. autoclass:: ctint.SolverCore
+.. autoclass:: triqs_ctint.SolverCore
   :members:

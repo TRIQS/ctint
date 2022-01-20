@@ -4,18 +4,6 @@
 Documentation
 *************
 
-Table of Contents
------------------
-
-.. toctree::
-   :maxdepth: 5
-
-   index
-   install
-   issues
-   changelog
-   about
-
 C++ reference manual
 ====================
 
