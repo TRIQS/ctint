@@ -15,6 +15,9 @@ C++ reference manual
 Python reference manual
 =======================
 
-.. automodule:: triqs_ctint 
-   :members:
+.. autosummary::
+   :toctree: _autosummary
+   :template: autosummary_module_template.rst
+   :recursive:
 
+   triqs_ctint

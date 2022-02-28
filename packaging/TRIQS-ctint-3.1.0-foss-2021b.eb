@@ -1,13 +1,7 @@
 easyblock = 'CMakeMake'
 
-<<<<<<< HEAD:packaging/TRIQS-ctint-3.0.0-foss-2019a-Python-3.7.2.eb
 name = 'TRIQS-ctint'
-version = '3.0.0'
-versionsuffix = '-Python-%(pyver)s'
-=======
-name = 'TRIQS-app4triqs'
 version = '3.1.0'
->>>>>>> app4triqs-remote/3.1.x:packaging/TRIQS-app4triqs-3.1.0-foss-2021b.eb
 
 homepage = 'https://triqs.github.io/ctint/'
 description = """
