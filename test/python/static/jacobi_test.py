@@ -29,14 +29,14 @@ import numpy as np
 from triqs.utility.comparison_tests import *
 import unittest
 
-def jacobi_numerical(f,solve_params,x,dx):
+def jacobi_numerical(f,x,dx):
     n = len(x)
     jac = np.zeros((n,n))
-    fi_x = f(x,solve_params)
+    fi_x = f(x)
     for j in range(n):
         x_dx = x.copy()
         x_dx[j] = x[j] + dx 
-        jac[:,j] = (f(x_dx,solve_params) - fi_x)/dx
+        jac[:,j] = (f(x_dx) - fi_x)/dx
     return jac
 
 class test_Gf_Base_Op(unittest.TestCase):
@@ -78,8 +78,8 @@ class test_Gf_Base_Op(unittest.TestCase):
             }
             for i in range(10):
                 np.random.seed(i)
-                x = np.random.rand(4 * n_terms)
-                assert_arrays_are_close(S.jacobi(x,solve_params), jacobi_numerical(lambda x,y: S.f(x,y),solve_params,x,dx))
+                x = np.random.rand(3 * n_terms)
+                assert_arrays_are_close(S.jacobi(x,solve_params), jacobi_numerical(lambda x: S.f(x,solve_params),x,dx))
                 
  
 if __name__ == '__main__':
