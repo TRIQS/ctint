@@ -86,11 +86,11 @@ namespace triqs_ctint {
     // Build vertex factories
     const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_iw);
 
-    mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false, params.max_pertubation_order}, "insertion");
-    mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false, params.max_pertubation_order}, "removal");
+    mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, false, params.max_order}, "insertion");
+    mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, false, params.max_order}, "removal");
     if (params.use_double_insertion) {
-      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, true, params.max_pertubation_order}, "double insertion");
-      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_pertubation_order}, "double removal");
+      mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, true, params.max_order}, "double insertion");
+      mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_order}, "double removal");
     }
 
     // Register all measurements
