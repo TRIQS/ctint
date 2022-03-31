@@ -86,8 +86,8 @@ namespace triqs_ctint {
     int max_time = -1;
 
     /// Maximum pertubation order which is accepted in move::insert/remove
-    /// (-1 : no limit)
-    int max_pertubation_order = -1;
+    /// (<0 : unlimited)
+    int max_order = -1;
 
     /// Verbosity
     int verbosity = mpi::communicator().rank() == 0 ? 3 : 0;

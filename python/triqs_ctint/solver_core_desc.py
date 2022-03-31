@@ -400,7 +400,7 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_time                      | int                                  | -1                                      | Maximum running time in seconds (-1 : no limit)                                                                                       |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| max_pertubation_order         | int                                  | -1                                      | Maximum pertubation order which is accepted in move::insert/remove (-1 : no limit)                                                    |
+| max_order                     | int                                  | -1                                      | Maximum pertubation order which is accepted in move::insert/remove (<0 : unlimited)                                                   |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | verbosity                     | int                                  | mpi::communicator().rank()==0?3:0       | Verbosity                                                                                                                             |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -512,7 +512,7 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_time                      | int                                  | -1                                      | Maximum running time in seconds (-1 : no limit)                                                                                       |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| max_pertubation_order         | int                                  | -1                                      | Maximum pertubation order which is accepted in move::insert/remove (-1 : no limit)                                                    |
+| max_order                     | int                                  | -1                                      | Maximum pertubation order which is accepted in move::insert/remove (<0 : unlimited)                                                   |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | verbosity                     | int                                  | mpi::communicator().rank()==0?3:0       | Verbosity                                                                                                                             |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -653,11 +653,11 @@ c.add_member(c_name = "max_time",
              initializer = """ -1 """,
              doc = r"""Maximum running time in seconds (-1 : no limit)""")
 
-c.add_member(c_name = "max_pertubation_order",
+c.add_member(c_name = "max_order",
              c_type = "int",
              initializer = """ -1 """,
              doc = r"""Maximum pertubation order which is accepted in move::insert/remove
-     (-1 : no limit)""")
+     (<0 : unlimited)""")
 
 c.add_member(c_name = "verbosity",
              c_type = "int",
@@ -917,11 +917,11 @@ c.add_member(c_name = "max_time",
              initializer = """ -1 """,
              doc = r"""Maximum running time in seconds (-1 : no limit)""")
 
-c.add_member(c_name = "max_pertubation_order",
+c.add_member(c_name = "max_order",
              c_type = "int",
              initializer = """ -1 """,
              doc = r"""Maximum pertubation order which is accepted in move::insert/remove
-     (-1 : no limit)""")
+     (<0 : unlimited)""")
 
 c.add_member(c_name = "verbosity",
              c_type = "int",

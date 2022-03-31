@@ -40,22 +40,10 @@ namespace triqs_ctint::moves {
     g_tau_scalar_t det_ratio = lazy_op.execute_try_remove();
 
 
-    double remove_proposition_proba;
-    if(max_p_order != -1)
-      {
-	if(qmc_config->perturbation_order() >=max_p_order)
-	  {
-	    remove_proposition_proba = 0.0;
-	  }
-	else
-	  {
-	    remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_removal ? qmc_config->perturbation_order() : 1));
-	  }
-      }
-    else
-      {
-	remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_removal ? qmc_config->perturbation_order() : 1));
-      }
+    double remove_proposition_proba = 0.0;
+    if(max_order == -1 || qmc_config->perturbation_order() < max_order) {
+      remove_proposition_proba = 1.0 / (qmc_config->perturbation_order() * (double_removal ? qmc_config->perturbation_order() : 1));
+    }
 
     // Return the overall weight
     return mc_weight_t{det_ratio} * ratio / remove_proposition_proba;
