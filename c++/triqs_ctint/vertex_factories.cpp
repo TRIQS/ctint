@@ -33,10 +33,8 @@ namespace triqs_ctint {
         // Construct the factory and insert into list
         auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng] {
           int n                     = rng(indices.size());
-          auto &idx                 = indices[n];
-          bool is_densdens_interact = (idx.b1 == idx.b2) and (idx.b3 == idx.b4) and (idx.u1 == idx.u2) and (idx.u3 == idx.u4);
           tau_t t                   = tau_t::get_random(rng);
-          int s                     = is_densdens_interact ? rng(n_s) : 0;
+          int s                     = rng(n_s);
           double prop_proba         = 1.0 / (beta * indices.size() * n_s);
           return vertex_t{indices[n], t, t, t, t, amplitudes[n] / n_s, prop_proba, n, s};
         };
