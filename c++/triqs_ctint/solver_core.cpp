@@ -89,7 +89,7 @@ namespace triqs_ctint {
     const std::vector<vertex_factory_t> vertex_factories = make_vertex_factories(params, rng, D0_iw, Jperp_iw);
 
     // Eliminate duplicates from the move types
-    TRIQS_ASSERT(!params.insertion_types.empty());
+    if (params.insertion_types.empty()) { params.insertion_types = params.use_double_insertion ? std::vector<int>{1, 2} : std::vector<int>{1}; }
     std::sort(params.insertion_types.begin(), params.insertion_types.end());
     std::unique(params.insertion_types.begin(), params.insertion_types.end());
 
