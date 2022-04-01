@@ -39,7 +39,7 @@ namespace triqs_ctint::moves {
     // Calculate the removal proposition probability
     double remove_proposition_proba = 0.0;
     if (max_order == -1 || qmc_config->perturbation_order() < max_order) {
-      remove_proposition_proba = 1.0 / std::pow(perturbation_order, n_insertions);
+      remove_proposition_proba = 1.0 / std::pow(qmc_config->perturbation_order(), n_insertions);
     }
 
     // Return the overall weight
