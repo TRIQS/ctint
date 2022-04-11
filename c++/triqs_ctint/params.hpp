@@ -100,6 +100,9 @@ namespace triqs_ctint {
     /// Verbosity
     int verbosity = mpi::communicator().rank() == 0 ? 3 : 0;
 
+    /// Catch exceptions on nodes and rethrow on rank 0
+    bool rethrow_exception = true;
+
     // ----------- Measurements -----------
 
     /// Measure Sign only mode
