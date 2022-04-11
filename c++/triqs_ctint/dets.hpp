@@ -31,7 +31,7 @@ namespace triqs_ctint {
     int s = 0;
 
     /// Lexicographical sorting of arg_t. This determines the order of row and columns inside the dets.
-    bool operator<(arg_t const &x) const { return std::tie(tau, u, s) < std::tie(x.tau, x.u, x.s); }
+    bool operator<(arg_t const &x) const { return std::tie(tau, u, vertex_label, pos, s) < std::tie(x.tau, x.u, x.vertex_label, x.pos, x.s); }
   };
 
   using c_t    = arg_t<false>;
