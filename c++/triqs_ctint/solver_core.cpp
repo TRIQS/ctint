@@ -77,7 +77,7 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Construct the generic Monte-Carlo solver
-    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity);
+    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity, params.rethrow_exception);
 
     // Capture random number generator
     auto &rng = mc.get_rng();

@@ -40,6 +40,7 @@ namespace triqs_ctint {
     h5_write(grp, "insertion_types", sp.insertion_types);
     h5_write(grp, "max_time", sp.max_time);
     h5_write(grp, "verbosity", sp.verbosity);
+    h5_write(grp, "rethrow_exception", sp.rethrow_exception);
     h5_write(grp, "measure_average_sign", sp.measure_average_sign);
     h5_write(grp, "measure_average_k", sp.measure_average_k);
     h5_write(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
