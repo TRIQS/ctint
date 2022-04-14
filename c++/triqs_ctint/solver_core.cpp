@@ -35,15 +35,17 @@ namespace triqs_ctint {
 
     last_solve_params = solve_params;
 
-    // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
-    if (world.rank() == 0)
-      std::cout << "\n"
-                   "╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┌┬┐┬ ┌┐┌┌┬┐\n"
-                   " ║ ╠╦╝║║═╬╗╚═╗  │   │ │ │││ │ \n"
-                   " ╩ ╩╚═╩╚═╝╚╚═╝  └─┘ ┴ ┴ ┘└┘ ┴ \n";
-
     // Merge constr_params and solve_params
     params_t params(constr_params, solve_params);
+
+    // Open new report stream
+    triqs::utility::report_stream report(&std::cout, params.verbosity);
+
+    // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
+    report(3) << "\n"
+                 "╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┌┬┐┬ ┌┐┌┌┬┐\n"
+                 " ║ ╠╦╝║║═╬╗╚═╗  │   │ │ │││ │ \n"
+                 " ╩ ╩╚═╩╚═╝╚╚═╝  └─┘ ┴ ┴ ┘└┘ ┴ \n";
 
     // Assert hermiticity of the given Weiss field
     if (!is_gf_hermitian(G0_iw)) TRIQS_RUNTIME_ERROR << "Please make sure that G0_iw fullfills the hermiticity relation G_ij[iw] = G_ji[-iw]*";
@@ -93,16 +95,28 @@ namespace triqs_ctint {
       mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_order}, "double removal");
     }
 
+    // Register warmup measurements
+    mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+    mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
+
+    // Warmup
+    report(3) << "\nWarming up ..." << std::endl;
+    mc.run(params.n_warmup_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
+
+    // Clear warmup measurements
+    mc.clear_measures();
+    container_set::operator=(container_set{});
+
     // Register all measurements
+    if (params.measure_average_sign)
+      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+    if (params.measure_average_k)
+      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true,
+                     /* report */ true);
+    if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     if (params.measure_sign_only) {
-      if (world.rank() == 0) { std::cout << "You selected Sign only mode" << std::endl; }
-      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
-      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
-      mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
+      report(3) << "You selected Sign only mode" << std::endl;
     } else {
-      if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
-      if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
-      if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
       if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
       if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
@@ -121,14 +135,13 @@ namespace triqs_ctint {
     }
 
     // Perform QMC run and collect results
-    mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
+    report(3) << "\nAccumulating ..." << std::endl;
+    mc.run(params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
     mc.collect_results(world);
 
-    if (world.rank() == 0) {
-      if (params.measure_average_sign) std::cout << "Average sign: " << average_sign << "\n";
-      if (params.measure_average_k) std::cout << "Average perturbation order: " << average_k << "\n";
-      if (params.measure_auto_corr_time) std::cout << "Auto-correlation time: " << auto_corr_time << "\n";
-    }
+    if (params.measure_average_sign) report(3) << "Average sign: " << average_sign << "\n";
+    if (params.measure_average_k) report(3) << "Average perturbation order: " << average_k << "\n";
+    if (params.measure_auto_corr_time) report(3) << "Auto-correlation time: " << auto_corr_time << "\n";
 
     // Post Processing
     if (params.post_process) { post_process(params); }
