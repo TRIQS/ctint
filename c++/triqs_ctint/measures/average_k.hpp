@@ -15,6 +15,9 @@ namespace triqs_ctint::measures {
     /// Reduce and normalize
     void collect_results(mpi::communicator const &comm);
 
+    /// Report current value representation
+    std::string report() const;
+
     private:
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;

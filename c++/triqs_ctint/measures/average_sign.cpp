@@ -17,4 +17,10 @@ namespace triqs_ctint::measures {
     average_sign_ = average_sign_ / count;
   }
 
+  std::string average_sign::report() const {
+    std::ostringstream os;
+    os << "Average sign: " << average_sign_ / count;
+    return os.str();
+  }
+
 } // namespace triqs_ctint::measures
