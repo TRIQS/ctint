@@ -15,6 +15,9 @@ namespace triqs_ctint::measures {
     /// Reduce and normalize
     void collect_results(mpi::communicator const &comm);
 
+    /// Report the current value representation
+    std::string report() const;
+
     private:
     // Reference to double for accumulation
     mc_weight_t &average_sign_, average_static_sign, average_dynamic_sign;
