@@ -77,6 +77,9 @@ namespace triqs_ctint {
     // Construct the generic Monte-Carlo solver
     triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity);
 
+    // Open new report stream
+    triqs::utility::report_stream report(&std::cout, params.verbosity);
+
     // Capture random number generator
     auto &rng = mc.get_rng();
 
@@ -93,18 +96,29 @@ namespace triqs_ctint {
       mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, true, params.max_order}, "double removal");
     }
 
-    // Register all measurements
+    // Register warmup measurements
+    mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+    mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
 
+    // Warmup
+    report(3) << "\nWarming up ..." << std::endl;
+    mc.run(params.n_warmup_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
+
+    // Clear warmup measurements
+    mc.clear_measures();
+    container_set::operator=(container_set{});
+
+    // Register all measurements
     if (params.measure_sign_only){
       if (world.rank() == 0){std::cout << "You selected Sign only mode" << std::endl;}
-      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
-      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
       mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     }
     
     else{
-      if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure");
-      if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure");
+      if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+      if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
       if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
       if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
@@ -121,7 +135,8 @@ namespace triqs_ctint {
     }
 
     // Perform QMC run and collect results
-    mc.warmup_and_accumulate(params.n_warmup_cycles, params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time));
+    report(3) << "\nAccumulating ..." << std::endl;
+    mc.run(params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
     mc.collect_results(world);
 
     if (world.rank() == 0) {

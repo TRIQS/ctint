@@ -18,4 +18,10 @@ namespace triqs_ctint::measures {
     average_k_ = average_k_ / N;
   }
 
+  std::string average_k::report() const {
+    std::ostringstream os;
+    os << "Average perturbation order: " << average_k_ / N;
+    return os.str();
+  }
+
 } // namespace triqs_ctint::measures
