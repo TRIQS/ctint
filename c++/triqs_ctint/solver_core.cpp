@@ -35,15 +35,17 @@ namespace triqs_ctint {
 
     last_solve_params = solve_params;
 
-    // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
-    if (world.rank() == 0)
-      std::cout << "\n"
-                   "╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┌┬┐┬ ┌┐┌┌┬┐\n"
-                   " ║ ╠╦╝║║═╬╗╚═╗  │   │ │ │││ │ \n"
-                   " ╩ ╩╚═╩╚═╝╚╚═╝  └─┘ ┴ ┴ ┘└┘ ┴ \n";
-
     // Merge constr_params and solve_params
     params_t params(constr_params, solve_params);
+
+    // Open new report stream
+    triqs::utility::report_stream report(&std::cout, params.verbosity);
+
+    // http://patorjk.com/software/taag/#p=display&f=Calvin%20S&t=TRIQS%20ctint
+    report(3) << "\n"
+                 "╔╦╗╦═╗╦╔═╗ ╔═╗  ┌─┐┌┬┐┬ ┌┐┌┌┬┐\n"
+                 " ║ ╠╦╝║║═╬╗╚═╗  │   │ │ │││ │ \n"
+                 " ╩ ╩╚═╩╚═╝╚╚═╝  └─┘ ┴ ┴ ┘└┘ ┴ \n";
 
     // Assert hermiticity of the given Weiss field
     if (!is_gf_hermitian(G0_iw)) TRIQS_RUNTIME_ERROR << "Please make sure that G0_iw fullfills the hermiticity relation G_ij[iw] = G_ji[-iw]*";
@@ -77,9 +79,6 @@ namespace triqs_ctint {
     // Construct the generic Monte-Carlo solver
     triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity);
 
-    // Open new report stream
-    triqs::utility::report_stream report(&std::cout, params.verbosity);
-
     // Capture random number generator
     auto &rng = mc.get_rng();
 
@@ -109,14 +108,12 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Register all measurements
-    if (params.measure_sign_only){
-      if (world.rank() == 0){std::cout << "You selected Sign only mode" << std::endl;}
+    if (params.measure_sign_only) {
+      report(3) << "You selected Sign only mode" << std::endl;
       mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
       mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
       mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
-    }
-    
-    else{
+    } else {
       if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
       if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
       if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
@@ -139,11 +136,9 @@ namespace triqs_ctint {
     mc.run(params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
     mc.collect_results(world);
 
-    if (world.rank() == 0) {
-      if (params.measure_average_sign) std::cout << "Average sign: " << average_sign << "\n";
-      if (params.measure_average_k) std::cout << "Average perturbation order: " << average_k << "\n";
-      if (params.measure_auto_corr_time) std::cout << "Auto-correlation time: " << auto_corr_time << "\n";
-    }
+    if (params.measure_average_sign) report(3) << "Average sign: " << average_sign << "\n";
+    if (params.measure_average_k) report(3) << "Average perturbation order: " << average_k << "\n";
+    if (params.measure_auto_corr_time) report(3) << "Auto-correlation time: " << auto_corr_time << "\n";
 
     // Post Processing
     if (params.post_process) { post_process(params); }
