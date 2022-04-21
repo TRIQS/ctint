@@ -1,5 +1,5 @@
 # Generated automatically using the command :
-# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C triqs --moduledoc="The TRIQS ctint postprocess functionality" --cxxflags="-std=c++17" --target_file_only
+# c++2py ../../c++/triqs_ctint/post_process.hpp --members_read_only -N triqs_ctint -a triqs_ctint -m post_process -o post_process -C triqs --moduledoc="The TRIQS ctint postprocess functionality" --includes=../../c++ --cxxflags="-std=c++20 $(triqs++ -cxxflags)" --target_file_only
 from cpp2py.wrap_generator import *
 
 # The module
@@ -32,7 +32,7 @@ module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t:
 
 module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2c_iw and G_iw""")
 
-module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw, triqs::gfs::gf_struct_t gf_struct)", doc = r"""Calculate the generalized ph susceptibility from G2c_iw and G_iw""")
+module.add_function ("triqs_ctint::chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2c (chi4_iw_t::view_type G2c_iw, triqs_ctint::g_iw_cv_t G_iw, triqs::gfs::gf_struct_t gf_struct, int n_iW, int n_iw)", doc = r"""Calculate the generalized ph susceptibility from G2c_iw and G_iw""")
 
 module.add_function ("triqs_ctint::chi3_iw_t triqs_ctint::chi3_from_M3_PP (triqs_ctint::chi3_iw_cv_t M3_iw, triqs_ctint::g_iw_cv_t M_iw, triqs_ctint::g_iw_cv_t G0_iw, triqs_ctint::block_matrix_t dens_G, triqs_ctint::block_matrix_t M_hartree)", doc = r"""""")
 
