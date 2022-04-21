@@ -253,15 +253,16 @@ namespace triqs_ctint {
     return G2ph_iw;
   }
 
-  chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct) {
+  chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct, int n_iW = -1, int n_iw = -1) {
 
     int n_blocks = G_iw.size();
     double beta  = G_iw[0].mesh().beta();
 
     // Choose ranges such that
-    int n_iw_G2      = G2c_iw(0, 0).data().shape()[0] / 2;
-    int n_iW         = n_iw_G2 / 2;
-    int n_iw         = n_iw_G2 / 2;
+    int n_iw_G2 = G2c_iw(0, 0).data().shape()[0] / 2;
+    n_iW        = (n_iW < 0 ? n_iw_G2 / 2 : n_iW);
+    n_iw        = (n_iw < 0 ? n_iw_G2 / 2 : n_iw);
+    TRIQS_ASSERT(n_iw + n_iW <= n_iw_G2);
     auto imfreq_bos  = mesh::imfreq{beta, Boson, n_iW};
     auto imfreq_ferm = mesh::imfreq{beta, Fermion, n_iw};
     auto mesh        = prod{imfreq_bos, imfreq_ferm, imfreq_ferm};
