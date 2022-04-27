@@ -108,15 +108,12 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Register all measurements
+    if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
+    if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
+    if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     if (params.measure_sign_only) {
       report(3) << "You selected Sign only mode" << std::endl;
-      mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
-      mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
-      mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
     } else {
-      if (params.measure_average_sign) mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
-      if (params.measure_average_k) mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true, /* report */ true);
-      if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
       if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
       if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
