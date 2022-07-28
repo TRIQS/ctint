@@ -21,6 +21,12 @@ namespace triqs_ctint {
     /// Auto-correlation time
     double auto_corr_time;
 
+    /// Warmup time in seconds
+    double warmup_time;
+
+    /// Accumulation time in seconds
+    double accumulation_time;
+
     /// Average perturbation order distribution
     std::optional<std::vector<double>> histogram;
 
@@ -138,6 +144,8 @@ namespace triqs_ctint {
       h5_write(grp, "nmeasures", c.nmeasures);
       h5_write(grp, "average_k", c.average_k);
       h5_write(grp, "auto_corr_time", c.auto_corr_time);
+      h5_write(grp, "warmup_time", c.warmup_time);
+      h5_write(grp, "accumulation_time", c.accumulation_time);
       h5_write(grp, "histogram", c.histogram);
       h5_write(grp, "density", c.density);
       h5_write(grp, "M_tau", c.M_tau);
@@ -183,6 +191,8 @@ namespace triqs_ctint {
       h5_try_read(grp, "nmeasures", c.nmeasures);
       h5_try_read(grp, "average_k", c.average_k);
       h5_try_read(grp, "auto_corr_time", c.auto_corr_time);
+      h5_try_read(grp, "warmup_time", c.warmup_time);
+      h5_try_read(grp, "accumulation_time", c.accumulation_time);
       h5_read(grp, "histogram", c.histogram);
       h5_try_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
