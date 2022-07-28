@@ -8,7 +8,7 @@ namespace triqs_ctint::measures {
   }
 
   void average_k::accumulate(mc_weight_t) {
-    average_k_ += qmc_config.vertex_lst.size();
+    average_k_ += qmc_config.perturbation_order();
     ++N;
   }
 
