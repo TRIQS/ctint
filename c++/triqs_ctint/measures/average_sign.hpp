@@ -21,6 +21,7 @@ namespace triqs_ctint::measures {
     private:
     // Reference to double for accumulation
     mc_weight_t &average_sign_;
+    uint64_t &nmeasures;
 
     // Accumulation counter
     long count = 0;

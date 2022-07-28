@@ -12,6 +12,9 @@ namespace triqs_ctint {
     /// Average sign of the CTINT
     mc_weight_t average_sign;
 
+    /// Total number of measures
+    uint64_t nmeasures;
+
     /// Average perturbation order
     double average_k;
 
@@ -177,6 +180,7 @@ namespace triqs_ctint {
     friend void h5_write(h5::group h5group, std::string subgroup_name, container_set const &c) {
       auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
+      h5_write(grp, "nmeasures", c.nmeasures);
       h5_write(grp, "average_k", c.average_k);
       h5_write(grp, "auto_corr_time", c.auto_corr_time);
       h5_write(grp, "histogram", c.histogram);
@@ -236,6 +240,7 @@ namespace triqs_ctint {
     friend void h5_read(h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
+      h5::try_read(grp, "nmeasures", c.nmeasures);
       h5::try_read(grp, "average_k", c.average_k);
       h5::try_read(grp, "auto_corr_time", c.auto_corr_time);
       h5_read(grp, "histogram", c.histogram);

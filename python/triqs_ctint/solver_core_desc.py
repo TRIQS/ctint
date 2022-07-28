@@ -40,6 +40,11 @@ c.add_member(c_name = "average_sign",
              read_only= True,
              doc = r"""Average sign of the CTINT""")
 
+c.add_member(c_name = "nmeasures",
+             c_type = "uint64_t",
+             read_only= True,
+             doc = r"""Total number of measures""")
+
 c.add_member(c_name = "average_k",
              c_type = "double",
              read_only= True,
