@@ -57,6 +57,16 @@ c.add_member(c_name = "auto_corr_time",
              read_only= True,
              doc = r"""Auto-correlation time""")
 
+c.add_member(c_name = "warmup_time",
+             c_type = "double",
+             read_only= True,
+             doc = r"""Warmup time in seconds""")
+
+c.add_member(c_name = "accumulation_time",
+             c_type = "double",
+             read_only= True,
+             doc = r"""Accumulation time in seconds""")
+
 c.add_member(c_name = "histogram",
              c_type = "std::optional<std::vector<double>>",
              read_only= True,

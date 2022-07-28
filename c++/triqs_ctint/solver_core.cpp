@@ -102,6 +102,7 @@ namespace triqs_ctint {
     // Warmup
     report(3) << "\nWarming up ..." << std::endl;
     mc.run(params.n_warmup_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
+    double warmup_time_ = mc.get_accumulation_time();
 
     // Clear warmup measurements
     mc.clear_measures();
@@ -137,7 +138,10 @@ namespace triqs_ctint {
     // Perform QMC run and collect results
     report(3) << "\nAccumulating ..." << std::endl;
     mc.run(params.n_cycles, params.length_cycle, triqs::utility::clock_callback(params.max_time), /* do_measure */ true);
+    double accumulation_time_ = mc.get_accumulation_time();
     mc.collect_results(world);
+    warmup_time       = mpi::all_reduce(warmup_time_, world, MPI_MAX);
+    accumulation_time = mpi::all_reduce(accumulation_time_, world, MPI_MAX);
 
     if (params.measure_average_sign) report(3) << "Average sign: " << average_sign << "\n";
     if (params.measure_average_k) report(3) << "Average perturbation order: " << average_k << "\n";
