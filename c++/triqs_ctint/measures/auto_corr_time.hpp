@@ -17,11 +17,14 @@ namespace triqs_ctint::measures {
     void collect_results(mpi::communicator const &comm);
 
     private:
+    // The Monte-Carlo configuration
+    qmc_config_t const &qmc_config;
+
     // Reference to double for accumulation
     double &auto_corr_time_;
 
-    // Accumulator
-    triqs::stat::accumulator<mc_weight_t> log_acc = {0.0, -1, 0};
+    // Initialize one complex log accumulator for each observable to use for the autocorrelation analysis
+    std::vector<triqs::stat::accumulator<dcomplex>> log_accs = {2, {0.0, -1, 0}};
   };
 
 } // namespace triqs_ctint::measures
