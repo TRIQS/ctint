@@ -12,7 +12,8 @@ namespace triqs_ctint {
   struct tau_t {
 
     /// Maximum value that can be stored inside a uint32_t
-    static constexpr uint32_t n_max = std::numeric_limits<uint32_t>::max();
+    static constexpr uint32_t const n_max = std::numeric_limits<uint32_t>::max();
+    static constexpr double const n_max_inv = 1. / n_max;
 
     /// Inverse temperature associated with all $\tau$ points
     static double beta;
@@ -24,7 +25,7 @@ namespace triqs_ctint {
     template <typename RNG> static tau_t get_random(RNG &rng) { return tau_t{rng(n_max)}; }
 
     /// Cast to corresponding double value in $[0,\beta]$
-    explicit operator double() const { return beta * double(n) / n_max; }
+    explicit operator double() const { return beta * n * n_max_inv; }
 
     // --- Comparison operators
     bool operator==(const tau_t &tau) const { return n == tau.n; }
@@ -60,8 +61,22 @@ namespace triqs_ctint {
 
   /// Calculate the time-difference of two tau points shifted to the interval [0,\beta] as well
   /// as the sign change resulting from the shift in a fermionic function
-  std::pair<double, double> cyclic_difference(tau_t const &tau1, tau_t const &tau2);
-  std::pair<double, double> cyclic_difference(double tau1, double tau2);
+  // Note: The subtration of unsigned integers is inherently cyclic
+  static inline std::pair<double, double> cyclic_difference(tau_t const &tau1, tau_t const &tau2) {
+    // Assume tau1 > tau2 for the equal time case
+    double const sign = (tau2 <= tau1) - (tau2 > tau1);
+    double const value = static_cast<double>(tau_t{tau1.n - tau2.n});
+    return std::make_pair(sign, value);
+  }
+
+  static inline std::pair<double, double> cyclic_difference(double tau1, double tau2) {
+    // Assume tau1 > tau2 for the equal time case
+    double const dtau = tau1 - tau2;
+    int const nshifts = std::floor(dtau / tau_t::beta);
+    double const sign = (nshifts % 2 == 0) ? 1.0 : -1.0;
+    double const value = dtau - nshifts * tau_t::beta;
+    return std::make_pair(sign, value);
+  }
 
   // Generate a tau_t-object from a double
   tau_t make_tau_t(double tau);
