@@ -75,7 +75,7 @@ namespace triqs_ctint::measures {
 
         //Fill GMG, GM, MG
         for (int abar_u : range(bl_size)) {
-          auto G0_ia = G0_tau[bl][closest_mesh_pt(c_i.tau)](c_i.u, abar_u);
+          auto G0_ia = G0_tau[bl][closest_mesh_pt(tau_i)](c_i.u, abar_u);
           for (int b_u : range(bl_size)) {
             // Note: Minus sign from the shift of -tau_j
             auto G0_bj = -G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, cdag_j.u);
