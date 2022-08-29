@@ -282,9 +282,14 @@ namespace triqs_ctint {
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw, world);
-    if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
-    if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
+    // TODO: properly distribute data and work across all ranks
+    if (world.rank() == 0) {
+      if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
+      if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
+      if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
+    } else {
+      M4_iw.reset();
+    }
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
