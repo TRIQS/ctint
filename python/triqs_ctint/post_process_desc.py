@@ -6,7 +6,7 @@ from cpp2py.wrap_generator import *
 module = module_(full_name = "post_process", doc = r"The TRIQS ctint postprocess functionality", app_name = "triqs_ctint")
 
 # Imports
-module.add_imports(*['triqs.gf', 'triqs.gf.meshes', 'triqs.operators', 'triqs.utility.mpi'])
+module.add_imports(*['triqs.gf', 'triqs.gf.meshes', 'triqs.operators'])
 
 # Add here all includes
 module.add_include("triqs_ctint/post_process.hpp")
