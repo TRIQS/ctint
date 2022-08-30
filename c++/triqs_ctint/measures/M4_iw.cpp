@@ -12,7 +12,9 @@ namespace triqs_ctint::measures {
     // Init measurement container and capture view
     results->M4_iw = make_block2_gf(M4_iw_mesh, params.gf_struct);
     M4_iw_.rebind(results->M4_iw.value());
-    M4_iw_() = 0;
+    for (auto &&[bl1, bl2] : params.block_pairs_indices_M4()) {
+      M4_iw_(bl1, bl2)() = 0;
+    }
 
     // Construct Matsubara mesh for temporary Matrix
     gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, 3 * params.n_iw_M4};
@@ -46,34 +48,34 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto const &iw_mesh = std::get<0>(M4_iw_(0, 0).mesh());
-
-    for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
-      for (int bl2 : range(params.n_blocks())) {
-        int bl1_size   = M[bl1].target_shape()[0];
-        int bl2_size   = M[bl2].target_shape()[0];
-        auto const &M1 = M[bl1];
-        auto const &M2 = M[bl2];
-        auto &M4       = M4_iw_(bl1, bl2);
-        for (int i : range(bl1_size))
-          for (int j : range(bl1_size))
-            for (int k : range(bl2_size))
-              for (int l : range(bl2_size))
-                for (auto const &iw1 : iw_mesh)
-                  for (auto const &iw2 : iw_mesh)
-                    for (auto const &iw3 : iw_mesh) {
-                      gf_mesh<imfreq>::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
-                      M4[{iw1, iw2, iw3}](i, j, k, l) +=
-                         sign * (M1[{iw2, iw1}](j, i) * M2[{iw4, iw3}](l, k) - kronecker(bl1, bl2) * M1[{iw4, iw1}](l, i) * M2[{iw2, iw3}](j, k));
-                    }
+    for (auto &&[bl1, bl2] : params.block_pairs_indices_M4()) {
+      int bl1_size   = M[bl1].target_shape()[0];
+      int bl2_size   = M[bl2].target_shape()[0];
+      auto const &M1 = M[bl1];
+      auto const &M2 = M[bl2];
+      auto &M4       = M4_iw_(bl1, bl2);
+      auto const &iw_mesh = std::get<0>(M4.mesh());
+      for (int i : range(bl1_size))
+        for (int j : range(bl1_size))
+          for (int k : range(bl2_size))
+            for (int l : range(bl2_size))
+              for (auto const &iw1 : iw_mesh)
+                for (auto const &iw2 : iw_mesh)
+                  for (auto const &iw3 : iw_mesh) {
+                    gf_mesh<imfreq>::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
+                    M4[{iw1, iw2, iw3}](i, j, k, l) +=
+                       sign * (M1[{iw2, iw1}](j, i) * M2[{iw4, iw3}](l, k) - kronecker(bl1, bl2) * M1[{iw4, iw1}](l, i) * M2[{iw2, iw3}](j, k));
+                  }
       }
   }
 
   void M4_iw::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
     Z      = mpi::all_reduce(Z, comm);
-    M4_iw_ = mpi::all_reduce(M4_iw_, comm);
-    M4_iw_ = M4_iw_ / (Z * params.beta);
+    for (auto &&[bl1, bl2] : params.block_pairs_indices_M4()) {
+      M4_iw_(bl1, bl2) = mpi::all_reduce(M4_iw_(bl1, bl2), comm);
+      M4_iw_(bl1, bl2) = M4_iw_(bl1, bl2) / (Z * params.beta);
+    }
   }
 
 } // namespace triqs_ctint::measures

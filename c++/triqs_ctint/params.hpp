@@ -123,6 +123,8 @@ namespace triqs_ctint {
     bool measure_M4_iw = false;
     /// Number of positive Matsubara frequencies in M4
     int n_iw_M4 = 32;
+    /// Pairs of blocks to consider in M4 measurement
+    std::set<std::pair<std::string, std::string>> block_pairs_M4 = {};
 
     /// Measure M3pp(iw)
     bool measure_M3pp_iw = false;
@@ -190,6 +192,8 @@ namespace triqs_ctint {
     params_t() = default;
     params_t(constr_params_t const &constr_params_, solve_params_t const &solve_params_)
        : constr_params_t(constr_params_), solve_params_t(solve_params_) {}
+
+    std::set<std::pair<int, int>> block_pairs_indices_M4() const;
   };
 
 } // namespace triqs_ctint

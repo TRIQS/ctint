@@ -115,4 +115,31 @@ namespace triqs_ctint {
     h5_try_read(grp, "det_singular_threshold", sp.det_singular_threshold);
   }
 
+  std::set<std::pair<int, int>> params_t::block_pairs_indices_M4() const {
+    // Convert block names to indices
+    auto name_to_bl = [&gf_struct = gf_struct](auto &bl_name) {
+      auto it =
+         std::find_if(cbegin(gf_struct), cend(gf_struct), [&bl_name](auto const &blname_and_size) {
+           return bl_name == blname_and_size.first;
+         });
+      return std::distance(cbegin(gf_struct), it);
+    };
+
+    // Get list of blocks
+    std::set<std::pair<int, int>> block_pairs_indices;
+    if (!block_pairs_M4.empty()) {
+      for (auto &&[bl1, bl2] : block_pairs_M4) {
+        block_pairs_indices.emplace(name_to_bl(bl1), name_to_bl(bl2));
+      }
+    } else {
+      for (int bl1 = 0; bl1 < n_blocks(); ++bl1) {
+        for (int bl2 = 0; bl2 < n_blocks(); ++bl2) {
+          block_pairs_indices.emplace(bl1, bl2);
+        }
+      }
+    }
+
+    return block_pairs_indices;
+  }
+
 } // namespace triqs_ctint

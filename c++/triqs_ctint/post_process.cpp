@@ -4,38 +4,40 @@
 
 namespace triqs_ctint {
 
-  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw, params_t const &params) {
 
     double beta  = M_iw[0].domain().beta;
     int n_blocks = M_iw.size();
 
-    // Calculate connected part of M4
-    chi4_iw_t M4_iw_conn = M4_iw;
+    // Construct Matsubara mesh
+    gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M4};
+    gf_mesh<prod<imfreq, imfreq, imfreq>> M4_iw_mesh{iw_mesh, iw_mesh, iw_mesh};
 
-    for (int bl1 : range(n_blocks))
-      for (int bl2 : range(n_blocks))
-        M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-              - beta * kronecker(iw1_, iw2_) * M_iw[bl1](iw1_)(j_, i_) * M_iw[bl2](iw3_)(l_, k_)
-              + beta * kronecker(bl1, bl2) * kronecker(iw2_, iw3_) * M_iw[bl1](iw1_)(l_, i_) * M_iw[bl2](iw3_)(j_, k_);
+    // Calculate connected part of M4
+    chi4_iw_t M4_iw_conn = make_block2_gf(M4_iw_mesh, params.gf_struct);
+
+    for (auto &&[bl1, bl2] : params.block_pairs_indices_M4())
+      M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << M4_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+            - beta * kronecker(iw1_, iw2_) * M_iw[bl1](iw1_)(j_, i_) * M_iw[bl2](iw3_)(l_, k_)
+            + beta * kronecker(bl1, bl2) * kronecker(iw2_, iw3_) * M_iw[bl1](iw1_)(l_, i_) * M_iw[bl2](iw3_)(j_, k_);
 
     // Calculate disconnected part of the two-particle Green function
-    chi4_iw_t G2c_iw = M4_iw_conn; // FIXME Product Ranges with += Lazy Expressions
-    G2c_iw()         = 0.;
+    chi4_iw_t G2c_iw = make_block2_gf(M4_iw_mesh, params.gf_struct); // FIXME Product Ranges with += Lazy Expressions
 
-    for (int bl1 : range(n_blocks))
-      for (int bl2 : range(n_blocks)) {
+    for (auto &&[bl1, bl2] : params.block_pairs_indices_M4()) {
+      G2c_iw(bl1, bl2)() = 0.;
 
-        int bl1_size = M4_iw(bl1, bl2).target_shape()[0];
-        int bl2_size = M4_iw(bl1, bl2).target_shape()[2];
+      int bl1_size = M4_iw(bl1, bl2).target_shape()[0];
+      int bl2_size = M4_iw(bl1, bl2).target_shape()[2];
 
-        for (int m : range(bl1_size))
-          for (int n : range(bl1_size))
-            for (int o : range(bl2_size))
-              for (int p : range(bl2_size))
-                G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
-                      + G0_iw[bl1](iw2_)(j_, n) * G0_iw[bl2](iw1_ - iw2_ + iw3_)(l_, p) * M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
-                         * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
-      }
+      for (int m : range(bl1_size))
+        for (int n : range(bl1_size))
+          for (int o : range(bl2_size))
+            for (int p : range(bl2_size))
+              G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_) << G2c_iw(bl1, bl2)(iw1_, iw2_, iw3_)(i_, j_, k_, l_)
+                    + G0_iw[bl1](iw2_)(j_, n) * G0_iw[bl2](iw1_ - iw2_ + iw3_)(l_, p) * M4_iw_conn(bl1, bl2)(iw1_, iw2_, iw3_)(m, n, o, p)
+                       * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
+    }
 
     return G2c_iw;
   }

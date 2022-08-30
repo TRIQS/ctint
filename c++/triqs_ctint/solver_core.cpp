@@ -284,7 +284,7 @@ namespace triqs_ctint {
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
     // TODO: properly distribute data and work across all ranks
     if (world.rank() == 0) {
-      if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
+      if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw, p);
       if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
       if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
     } else {
