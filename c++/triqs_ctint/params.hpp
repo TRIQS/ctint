@@ -85,6 +85,9 @@ namespace triqs_ctint {
     /// Types of insertions to use
     std::vector<int> insertion_types = {};
 
+    /// Use auxiliary spin-flip insertion (requires n_s = 2)
+    bool use_auxiliary_spin_flip = false;
+
     /// Maximum running time in seconds (-1 : no limit)
     int max_time = -1;
 
