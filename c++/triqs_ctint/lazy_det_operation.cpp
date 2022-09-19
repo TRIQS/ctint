@@ -66,8 +66,8 @@ namespace triqs_ctint {
       std::stable_sort(cdag_lst.begin(), cdag_lst.end(), predicate);
 
       // Calculate the insertion positions
-      std::vector<size_t> pos_c(c_count);
-      std::vector<size_t> pos_cdag(c_count);
+      std::vector<long> pos_c(c_count);
+      std::vector<long> pos_cdag(c_count);
       for (size_t i = 0; i < c_count; ++i) {
         pos_c[i]    = i + get_c_lower_bound(d, c_lst[i]); // Shift by i to take into account of the insertion of previous ones.
         pos_cdag[i] = i + get_cdag_lower_bound(d, cdag_lst[i]);
@@ -110,8 +110,8 @@ namespace triqs_ctint {
       std::stable_sort(cdag_lst.begin(), cdag_lst.end(), predicate);
 
       // Calculate the removal positions
-      std::vector<size_t> pos_c(c_count);
-      std::vector<size_t> pos_cdag(c_count);
+      std::vector<long> pos_c(c_count);
+      std::vector<long> pos_cdag(c_count);
       for (size_t i = 0; i < c_count; ++i) {
         pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
         pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
@@ -120,6 +120,33 @@ namespace triqs_ctint {
 
       // Perform higher rank removal
       return d->try_remove_k(pos_c, pos_cdag) * prefactor;
+    }
+  }
+
+  g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_change_col_row(det_t *d) {
+
+    if (c_lst.size() != cdag_lst.size()) TRIQS_RUNTIME_ERROR << "Trying to remove unequal number of c and c_dag operators from block!";
+
+    size_t const c_count = c_lst.size();
+
+    // Trivial flip
+    if (c_count == 0) return 1.0;
+
+    // Calculate the flip positions
+    std::vector<long> pos_c(c_count);
+    std::vector<long> pos_cdag(c_count);
+    for (int i = 0; i < c_count; ++i) {
+      pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
+      pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
+    }
+
+    // Perform single spinflip
+    switch (c_count) {
+      case (1):
+        c_lst[0].s    = 1 - c_lst[0].s;
+        cdag_lst[0].s = 1 - cdag_lst[0].s;
+        return d->try_change_col_row(pos_c[0], pos_cdag[0], c_lst[0], cdag_lst[0]);
+      default: TRIQS_RUNTIME_ERROR << "Not implemented"; return 0; // avoid compiler warning
     }
   }
 

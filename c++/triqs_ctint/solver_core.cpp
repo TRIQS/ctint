@@ -2,6 +2,7 @@
 #include "./measures.hpp"
 #include "./moves/insert.hpp"
 #include "./moves/remove.hpp"
+#include "./moves/spinflip.hpp"
 #include "./post_process.hpp"
 #include "./qmc_config.hpp"
 #include "./vertex_factories.hpp"
@@ -96,6 +97,10 @@ namespace triqs_ctint {
     for (auto &&num_insert : params.insertion_types) {
       mc.add_move(moves::insert{&qmc_config, vertex_factories, rng, num_insert, params.max_order}, "insert " + std::to_string(num_insert));
       mc.add_move(moves::remove{&qmc_config, vertex_factories, rng, num_insert, params.max_order}, "remove " + std::to_string(num_insert));
+    }
+    if (params.use_auxiliary_spin_flip) {
+      TRIQS_ASSERT2(params.n_s == 2, "ERROR: Auxiliary spin-flip move requires n_s = 2.");
+      mc.add_move(moves::spinflip{&qmc_config, vertex_factories, rng, /* n_spinflips */ 1, params.max_order}, "auxiliary spin-flip");
     }
 
     // Register warmup measurements
