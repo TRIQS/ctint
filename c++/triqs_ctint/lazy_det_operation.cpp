@@ -121,4 +121,30 @@ namespace triqs_ctint {
     }
   }
 
+
+  g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_change_col_row(det_t *d) {
+
+    if (c_count != cdag_count) TRIQS_RUNTIME_ERROR << "Trying to remove unequal number of c and c_dag operators from block!";
+
+    // Trivial flip
+    if (c_count == 0) return 1.0;
+
+    // Calculate the flip positions
+    for (int i = 0; i < c_count; ++i) {
+      pos_c[i]    = get_c_lower_bound(d, c_lst[i]);
+      pos_cdag[i] = get_cdag_lower_bound(d, cdag_lst[i]);
+    }
+
+    // Perform single spinflip
+    switch (c_count) {
+      case (1):
+        c_lst[0].s = 1 - c_lst[0].s;
+        cdag_lst[0].s = 1 - cdag_lst[0].s;
+        return d->try_change_col_row(pos_c[0], pos_cdag[0], c_lst[0], cdag_lst[0]);
+      default:
+        TRIQS_RUNTIME_ERROR << "Not implemented";
+        return 0; // avoid compiler warning
+    }
+  }
+
 } // namespace triqs_ctint

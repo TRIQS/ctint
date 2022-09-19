@@ -40,6 +40,9 @@ namespace triqs_ctint {
 
       // Tries to perform all removals from the det, returning the det ratio
       g_tau_scalar_t execute_try_remove(det_t *d);
+
+      // Tries to perform all spinflips from the det, returning the det ratio
+      g_tau_scalar_t execute_try_change_col_row(det_t *d);
     };
 
     // The list of lazy operations, one for each determinant
@@ -78,6 +81,14 @@ namespace triqs_ctint {
     g_tau_scalar_t execute_try_remove() {
       g_tau_scalar_t det_ratio = 1.0;
       for (auto i : range(dets->size())) det_ratio *= lazy_op_lst[i].execute_try_remove(&(*dets)[i]);
+      reset();
+      return det_ratio;
+    }
+
+    /// Tries to perform the removal from all dets, returning the det ratio
+    g_tau_scalar_t execute_try_change_col_row() {
+      g_tau_scalar_t det_ratio = 1.0;
+      for (auto i : range(dets->size())) det_ratio *= lazy_op_lst[i].execute_try_change_col_row(&(*dets)[i]);
       reset();
       return det_ratio;
     }
