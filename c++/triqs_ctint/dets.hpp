@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ostream>
+
 namespace triqs_ctint {
 
   using triqs::det_manip::det_manip;
@@ -33,6 +35,15 @@ namespace triqs_ctint {
 
   using c_t    = arg_t<false>;
   using cdag_t = arg_t<true>;
+
+  template <bool dag> std::ostream &operator<<(std::ostream &os, arg_t<dag> const &c) {
+    os << (c.dagger ? "cdag_t{" : "c_t{") << "tau=" << c.tau << ", "
+       << "u=" << c.u << ", "
+       << "vertex_label=" << c.vertex_label << ", "
+       << "pos=" << c.pos << ", "
+       << "s=" << c.s << "}";
+    return os;
+  }
 
   /**
    * Functor that evaluates the matrix elements, used by the det_manip. 

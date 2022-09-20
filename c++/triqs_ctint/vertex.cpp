@@ -28,4 +28,26 @@ namespace triqs_ctint {
     return tau_t{uint32_t(tau_t::n_max / tau_t::beta * tau)};
   }
 
+  std::ostream &operator<<(std::ostream &os, vertex_idx_t const &v) {
+    os << "vertex_idx_t{"
+       << "b1,u1=" << v.b1 << "," << v.u1 << ", "
+       << "b2,u2=" << v.b2 << "," << v.u2 << ", "
+       << "b3,u3=" << v.b3 << "," << v.u2 << ", "
+       << "b4,u4=" << v.b4 << "," << v.u2 << "}";
+    return os;
+  }
+
+  std::ostream &operator<<(std::ostream &os, vertex_t const &v) {
+    os << "vertex_t{"
+       << "idx=" << v.idx << ", "
+       << "tau1=" << v.tau1 << ", "
+       << "tau2=" << v.tau2 << ", "
+       << "tau3=" << v.tau3 << ", "
+       << "tau4=" << v.tau4 << ", "
+       << "amplitude=" << v.amplitude << ", "
+       << "proposition_proba=" << v.proposition_proba << ", "
+       << "s=" << v.s << "}";
+    return os;
+  }
+
 } // namespace triqs_ctint

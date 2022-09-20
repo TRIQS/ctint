@@ -86,6 +86,8 @@ namespace triqs_ctint {
     int b4, u4;
   };
 
+  std::ostream &operator<<(std::ostream &os, vertex_idx_t const &v);
+
   /**
    * Type representing an interaction vertex of the microscopic model at hand. 
    * Can be inserted in the Monte-Carlo move.
@@ -110,5 +112,7 @@ namespace triqs_ctint {
     /// Value of auxiliary spin
     int s = 0;
   };
+
+  std::ostream &operator<<(std::ostream &os, vertex_t const &v);
 
 } // namespace triqs_ctint
