@@ -53,7 +53,7 @@ namespace triqs_ctint {
       std::vector<gf<imtime, scalar_real_valued>> D0_tau_lst;
 #endif
 
-      auto tau_mesh = gf_mesh<imtime>{params.beta, Boson, params.n_tau_dynamical_interactions};
+      auto tau_mesh = mesh::imtime{params.beta, Boson, params.n_tau_dynamical_interactions};
       auto D0_tau = make_gf_from_fourier(*D0_iw, tau_mesh, make_zero_tail(*D0_iw, 2));
 
       // Loop over block indices
@@ -106,7 +106,7 @@ namespace triqs_ctint {
 
       if (params.n_blocks() != 2) TRIQS_RUNTIME_ERROR << "Jperp requires exactly two blocks corresponding to the spins";
 
-      auto tau_mesh = gf_mesh<imtime>{params.beta, Boson, params.n_tau_dynamical_interactions};
+      auto tau_mesh = mesh::imtime{params.beta, Boson, params.n_tau_dynamical_interactions};
       auto Jperp_tau = make_gf_from_fourier(*Jperp_iw, tau_mesh, make_zero_tail(*Jperp_iw, 2));
 
       // Loop over non-block indices

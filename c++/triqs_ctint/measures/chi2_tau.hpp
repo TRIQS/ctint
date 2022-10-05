@@ -32,7 +32,7 @@ namespace triqs_ctint::measures {
     mc_weight_t Z = 0.0;
 
     // The tau-mesh
-    gf_mesh<imtime> tau_mesh;
+    mesh::imtime tau_mesh;
   };
 
 } // namespace triqs_ctint::measures

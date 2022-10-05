@@ -171,7 +171,7 @@ namespace triqs_ctint {
     // Known high-frequency moments of G0_shift_iw are assumed to be {0,1}
     auto km = make_zero_tail(G0_shift_iw, 2);
     for (auto &km_bl : km) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
-    auto tau_mesh = gf_mesh<imtime>{p.beta, Fermion, p.n_tau};
+    auto tau_mesh = mesh::imtime{p.beta, Fermion, p.n_tau};
 #ifdef GTAU_IS_COMPLEX
     auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
     G0_shift_tau     = make_gf_from_fourier(G0_shift_iw, tau_mesh, tail);
@@ -210,9 +210,9 @@ namespace triqs_ctint {
     // Calculate M3_iw from M3_tau
     if (M3pp_tau) {
       {
-        auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
-        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
-        auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
+        auto iW_mesh       = mesh::imfreq{p.beta, Boson, p.n_iW_M3};
+        auto iw_mesh       = mesh::imfreq{p.beta, Fermion, p.n_iw_M3};
+        auto iw_mesh_large = mesh::imfreq{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
         auto M3pp_ferm_iw  = make_gf_from_fourier<0, 1>(M3pp_tau.value(), iw_mesh, iw_mesh_large);
         auto M3pp_del_iW   = make_gf_from_fourier(M3pp_delta.value(), iW_mesh, make_zero_tail(M3pp_delta.value()));
         M3pp_iw            = make_block2_gf(prod{iW_mesh, iw_mesh}, p.gf_struct);
@@ -230,15 +230,15 @@ namespace triqs_ctint {
         chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
         chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw, density.value());
-        auto iw_mesh            = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+        auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
         chi2pp_iw_from_M3       = make_gf_from_fourier(chi2pp_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2pp_tau_from_M3.value()));
       }
     }
     if (M3ph_tau) {
       {
-        auto iW_mesh       = gf_mesh<imfreq>{p.beta, Boson, p.n_iW_M3};
-        auto iw_mesh       = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3};
-        auto iw_mesh_large = gf_mesh<imfreq>{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
+        auto iW_mesh       = mesh::imfreq{p.beta, Boson, p.n_iW_M3};
+        auto iw_mesh       = mesh::imfreq{p.beta, Fermion, p.n_iw_M3};
+        auto iw_mesh_large = mesh::imfreq{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
         auto M3ph_ferm_iw  = make_gf_from_fourier<0, 1>(M3ph_tau.value(), iw_mesh, iw_mesh_large);
         auto M3ph_del_iW   = make_gf_from_fourier(M3ph_delta.value(), iW_mesh, make_zero_tail(M3ph_delta.value()));
         M3ph_iw            = make_block2_gf(prod{iW_mesh, iw_mesh}, p.gf_struct);
@@ -254,7 +254,7 @@ namespace triqs_ctint {
         chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
         chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw, density.value());
-        auto iw_mesh            = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+        auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
         chi2ph_iw_from_M3       = make_gf_from_fourier(chi2ph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2ph_tau_from_M3.value()));
       }
     }
@@ -273,7 +273,7 @@ namespace triqs_ctint {
       chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau
-    auto iw_mesh = gf_mesh<imfreq>{p.beta, Boson, p.n_iw_chi2};
+    auto iw_mesh = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), iw_mesh, make_zero_tail(chi2pp_tau.value()));
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), iw_mesh, make_zero_tail(chi2ph_tau.value()));
 

@@ -39,8 +39,8 @@
 namespace triqs_ctint {
 
   using namespace std::complex_literals; // Complex Unity 1i
+  using namespace triqs;
   using namespace triqs::gfs;
-  using namespace triqs::mesh;
   using namespace nda;
   using namespace triqs::operators;
   using namespace triqs::operators::utils;
@@ -59,7 +59,7 @@ namespace triqs_ctint {
   using alpha_t = std::vector<array<double, 2>>;
 
   /// The structure of the gf : block_idx -> pair of block_name and index list (int/string)
-  using triqs::hilbert_space::gf_struct_t;
+  using triqs::gfs::gf_struct_t;
 
   /// Container type of one-particle Green and Vertex functions in imaginary times
 #ifdef GTAU_IS_COMPLEX
@@ -186,10 +186,10 @@ namespace triqs::gfs {
   /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
   template <typename Gf> std::enable_if_t<is_gf_v<Gf>, double> max_norm(Gf const &G) { return max_norm(G.data()); }
 
-  template <typename Var_t, typename Target = tensor_valued<4>>
-  block2_gf<Var_t, Target> make_block2_gf(gf_mesh<Var_t> const &m, triqs::hilbert_space::gf_struct_t const &gf_struct) {
+  template <typename M, typename Target = tensor_valued<4>>
+  block2_gf<M, Target> make_block2_gf(M const &m, gf_struct_t const &gf_struct) {
 
-    std::vector<std::vector<gf<Var_t, Target>>> gf_vecvec;
+    std::vector<std::vector<gf<M, Target>>> gf_vecvec;
     std::vector<std::string> block_names;
 
     for (auto const &[bl1, bl1_size] : gf_struct) {
@@ -197,7 +197,7 @@ namespace triqs::gfs {
       std::vector<std::string> indices1;
       for (auto idx : range(bl1_size)) indices1.push_back(std::to_string(idx));
 
-      std::vector<gf<Var_t, Target>> gf_vec;
+      std::vector<gf<M, Target>> gf_vec;
       for (auto const &[bl2, bl2_size] : gf_struct) {
         std::vector<std::string> indices2;
         for (auto idx : range(bl2_size)) indices2.push_back(std::to_string(idx));
@@ -213,16 +213,16 @@ namespace triqs::gfs {
     return make_block2_gf(block_names, block_names, std::move(gf_vecvec));
   }
 
-  template <typename Var1_t, typename Var2_t, typename Target = tensor_valued<4>>
-  block2_gf<Var1_t, Target> make_block2_gf(gf_mesh<Var1_t> const &m, block2_gf_const_view<Var2_t, Target> g_in) {
+  template <typename M1, typename M2, typename Target = tensor_valued<4>>
+  block2_gf<M1, Target> make_block2_gf(M1 const &m, block2_gf_const_view<M2, Target> g_in) {
 
-    std::vector<std::vector<gf<Var1_t, Target>>> gf_vecvec;
+    std::vector<std::vector<gf<M1, Target>>> gf_vecvec;
 
     int n_blocks0 = g_in.block_names()[0].size();
     int n_blocks1 = g_in.block_names()[1].size();
 
     for (int i : range(n_blocks0)) {
-      std::vector<gf<Var1_t, Target>> gf_vec;
+      std::vector<gf<M1, Target>> gf_vec;
       for (int j : range(n_blocks1)) { gf_vec.emplace_back(m, g_in(i, j).target_shape(), g_in(i, j).indices()); }
       gf_vecvec.emplace_back(std::move(gf_vec));
     }
@@ -230,11 +230,11 @@ namespace triqs::gfs {
     return make_block2_gf(g_in.block_names()[0], g_in.block_names()[1], std::move(gf_vecvec));
   }
 
-  template <typename Var_t> auto bin_to_mesh(double val, gf_mesh<Var_t> const &m) {
-    return mesh::closest_point<Var_t, int>::invoke(m, closest_mesh_pt(val));
+  template <typename M> auto bin_to_mesh(double val, M const &m) {
+    return mesh::closest_point<M, int>::invoke(m, closest_mesh_pt(val));
   }
 
-  template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(hilbert_space::gf_struct_t const &gf_struct) {
+  template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(gf_struct_t const &gf_struct) {
 
     std::vector<matrix<Scalar_t>> res;
     for (auto const &[bl, bl_size] : gf_struct) { res.emplace_back(zeros<Scalar_t>(make_shape(bl_size, bl_size))); }

@@ -6,9 +6,9 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
-    gf_mesh<imfreq> iW_mesh{params.beta, Boson, params.n_iW_M3};
-    gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    gf_mesh<prod<imfreq, imfreq>> M3pp_iw_mesh{iW_mesh, iw_mesh};
+    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M3};
+    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M3};
+    mesh::prod<imfreq, imfreq> M3pp_iw_mesh{iW_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
@@ -16,7 +16,7 @@ namespace triqs_ctint::measures {
     M3pp_iw_() = 0;
 
     // Initialize intermediate scattering matrix
-    gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
+    mesh::imfreq iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
     GM = block_gf{iw_mesh_large, params.gf_struct};
 
     // Create nfft buffers

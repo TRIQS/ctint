@@ -6,8 +6,8 @@ namespace triqs_ctint::measures {
   M4_iw::M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh
-    gf_mesh<imfreq> iw_mesh{params.beta, Fermion, params.n_iw_M4};
-    gf_mesh<prod<imfreq, imfreq, imfreq>> M4_iw_mesh{iw_mesh, iw_mesh, iw_mesh};
+    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M4};
+    mesh::prod<imfreq, imfreq, imfreq> M4_iw_mesh{iw_mesh, iw_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M4_iw = make_block2_gf(M4_iw_mesh, params.gf_struct);
@@ -15,8 +15,8 @@ namespace triqs_ctint::measures {
     M4_iw_() = 0;
 
     // Construct Matsubara mesh for temporary Matrix
-    gf_mesh<imfreq> iw_mesh_large{params.beta, Fermion, 3 * params.n_iw_M4};
-    gf_mesh<prod<imfreq, imfreq>> M_mesh{iw_mesh_large, iw_mesh};
+    mesh::imfreq iw_mesh_large{params.beta, Fermion, 3 * params.n_iw_M4};
+    mesh::prod<imfreq, imfreq> M_mesh{iw_mesh_large, iw_mesh};
 
     // Initialize intermediate scattering matrix
     M = block_gf{M_mesh, params.gf_struct};
@@ -62,7 +62,7 @@ namespace triqs_ctint::measures {
                 for (auto const &iw1 : iw_mesh)
                   for (auto const &iw2 : iw_mesh)
                     for (auto const &iw3 : iw_mesh) {
-                      gf_mesh<imfreq>::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
+                      mesh::imfreq::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
                       M4[{iw1, iw2, iw3}](i, j, k, l) +=
                          sign * (M1[{iw2, iw1}](j, i) * M2[{iw4, iw3}](l, k) - kronecker(bl1, bl2) * M1[{iw4, iw1}](l, i) * M2[{iw2, iw3}](j, k));
                     }

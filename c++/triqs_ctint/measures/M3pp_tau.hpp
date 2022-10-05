@@ -40,7 +40,7 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // The tau-mesh for a single argument
-    gf_mesh<imtime> tau_mesh;
+    mesh::imtime tau_mesh;
 
     // A helper type to precompute the tau-binning
     struct idx_t {

@@ -100,8 +100,8 @@ namespace triqs_ctint {
     int n_iw_G2      = G2c_iw(0, 0).data().shape()[0] / 2;
     int n_iW         = n_iw_G2 / 2;
     int n_iw         = n_iw_G2 / 2;
-    auto imfreq_bos  = gf_mesh<imfreq>{beta, Boson, n_iW};
-    auto imfreq_ferm = gf_mesh<imfreq>{beta, Fermion, n_iw};
+    auto imfreq_bos  = mesh::imfreq{beta, Boson, n_iW};
+    auto imfreq_ferm = mesh::imfreq{beta, Fermion, n_iw};
     auto mesh        = prod{imfreq_bos, imfreq_ferm, imfreq_ferm};
 
     chi4_iw_t chi_tilde_ph = make_block2_gf(mesh, gf_struct);

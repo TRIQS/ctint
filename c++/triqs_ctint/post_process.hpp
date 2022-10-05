@@ -250,7 +250,7 @@ namespace triqs_ctint {
     // We infer the number of tau points from M3
     // We can calculate chi2_conn accurately only inbetween two tau-points of M3
     int n_tau_chi2     = n_tau_M3 * 2 - 1;
-    auto tau_mesh_chi2 = gf_mesh<imtime>{beta, Boson, n_tau_chi2};
+    auto tau_mesh_chi2 = mesh::imtime{beta, Boson, n_tau_chi2};
     auto chi2_conn     = make_block2_gf(tau_mesh_chi2, M3);
     chi2_conn()        = 0.0;
 
@@ -292,7 +292,7 @@ namespace triqs_ctint {
       // ==== Precalculate all relevant G0_tau interpolation points
 
       // Function to generate the G0(t-ti) and G0(ti-t) vectors
-      auto get_G0_vecs = [&](gf_mesh<imtime> const &tau_mesh) {
+      auto get_G0_vecs = [&](mesh::imtime const &tau_mesh) {
         auto G0_d_ti_t_vec = std::vector<array<dcomplex, 3>>{};
         auto G0_d_t_ti_vec = std::vector<array<dcomplex, 3>>{};
 

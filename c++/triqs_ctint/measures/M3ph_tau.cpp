@@ -6,7 +6,7 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), G0_tau(std::move(G0_tau_)), tau_mesh{params_.beta, Fermion, params_.n_tau_M3} {
 
     // Construct Matsubara mesh
-    gf_mesh<prod<imtime, imtime>> M3ph_tau_mesh{tau_mesh, tau_mesh};
+    mesh::prod<imtime, imtime> M3ph_tau_mesh{tau_mesh, tau_mesh};
 
     // Init measurement container for M3ph and capture view
     results->M3ph_tau = make_block2_gf(M3ph_tau_mesh, params.gf_struct);
