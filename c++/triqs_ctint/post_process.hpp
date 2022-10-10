@@ -89,6 +89,7 @@ namespace triqs_ctint {
           chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
                 + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * dens_G[bl2](l_, k_)
                 - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
+                
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           auto km_GMG = make_zero_tail(GMG, 3);

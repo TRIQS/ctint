@@ -87,6 +87,7 @@ namespace triqs_ctint {
     if (params.measure_M3xph_tau) mc.add_measure(measures::M3xph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_tau measure");
     if (params.measure_chi2pp_tau) mc.add_measure(measures::chi2_tau<Chan_t::PP>{params, qmc_config, &result_set()}, "chi2pp_tau measure");
     if (params.measure_chi2ph_tau) mc.add_measure(measures::chi2_tau<Chan_t::PH>{params, qmc_config, &result_set()}, "chi2ph_tau measure");
+    if (params.measure_chi2xph_tau) mc.add_measure(measures::chi2_tau<Chan_t::XPH>{params, qmc_config, &result_set()}, "chi2xph_tau measure");
     if (params.measure_chiAB_tau) mc.add_measure(measures::chiAB_tau{params, qmc_config, &result_set()}, "chiAB_tau measure");
 
     // Perform QMC run and collect results
@@ -312,6 +313,7 @@ namespace triqs_ctint {
     auto iw_mesh = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
     if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), iw_mesh, make_zero_tail(chi2pp_tau.value()));
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), iw_mesh, make_zero_tail(chi2ph_tau.value()));
+    if (chi2xph_tau) chi2xph_iw = make_gf_from_fourier(chi2xph_tau.value(), iw_mesh, make_zero_tail(chi2xph_tau.value()));
 
     // Calculate chiAB_iw from chiAB_tau
     if (chiAB_tau) chiAB_iw = make_gf_from_fourier(chiAB_tau.value(), iw_mesh, make_zero_tail(chiAB_tau.value()));

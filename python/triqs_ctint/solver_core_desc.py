@@ -141,6 +141,11 @@ c.add_member(c_name = "chi2ph_tau",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained by operator insertion""")
 
+c.add_member(c_name = "chi2xph_tau",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the crossed particle-hole channel in imaginary times as obtained by operator insertion""")
+
 c.add_member(c_name = "chiAB_tau",
              c_type = "std::optional<gf<imtime>>",
              read_only= True,
@@ -230,6 +235,11 @@ c.add_member(c_name = "chi2ph_iw",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in Matsubara frequencies""")
+
+c.add_member(c_name = "chi2xph_iw",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the crossed particle-hole channel in Matsubara frequencies""")
 
 c.add_member(c_name = "chi2pp_conn_tau_from_M3",
              c_type = "std::optional<chi2_tau_t>",
@@ -645,6 +655,11 @@ c.add_member(c_name = "measure_chi2ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure of chi2ph by insertion""")
+
+c.add_member(c_name = "measure_chi2xph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure of chi2xph by insertion""")
 
 c.add_member(c_name = "n_tau_chi2",
              c_type = "int",

@@ -15,7 +15,11 @@ namespace triqs_ctint::measures {
     } else if (Chan == Chan_t::PH) {
       results->chi2ph_tau = make_block2_gf(tau_mesh, params.gf_struct);
       chi2_tau_.rebind(results->chi2ph_tau.value());
+    } else if (Chan == Chan_t::XPH) {
+      results->chi2xph_tau = make_block2_gf(tau_mesh, params.gf_struct);
+      chi2_tau_.rebind(results->chi2xph_tau.value());
     }
+
     chi2_tau_() = 0;
   }
 
@@ -67,6 +71,13 @@ namespace triqs_ctint::measures {
                     c_b    = c_t{taup_point, b};
                     cdag_c = cdag_t{tau_t::get_zero_plus(), c};
                     c_d    = c_t{tau_t::get_zero(), d};
+
+                  } else if constexpr (Chan == Chan_t::XPH) { // Crossed particle-hole channel
+
+                    cdag_a = cdag_t{tau_point, a};
+                    c_b    = c_t{tau_t::get_zero(), b};
+                    cdag_c = cdag_t{tau_t::get_zero_plus(), c};
+                    c_d    = c_t{taup_point, d};
                   }
 
                   if (bl1 == bl2)

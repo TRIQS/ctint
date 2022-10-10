@@ -144,6 +144,8 @@ namespace triqs_ctint {
     bool measure_chi2pp_tau = false;
     /// Measure of chi2ph by insertion
     bool measure_chi2ph_tau = false;
+    /// Measure of chi2xph by insertion
+    bool measure_chi2xph_tau = false;
     /// Number of imaginary time points in chi2
     int n_tau_chi2 = 201;
     /// Number of positive Matsubara frequencies in chi2
