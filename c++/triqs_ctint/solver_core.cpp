@@ -271,8 +271,8 @@ namespace triqs_ctint {
         // Shift from fermionic to mixed particle-hole-cross frequency notation
         // CAUTION! The first time should be fourier transformed with e^{-iwt}
         // We correct this with an overall minus sign for the first frequency
-        M3xph_iw.value()(bl1_, bl2_)(iw_, iW_)(i_, j_, k_, l_)
-           << M3xph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3xph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
+        M3xph_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_)
+           << M3xph_ferm_iw(bl1_, bl2_)(iW_ + iw_, -iw_)(i_, j_, k_, l_) + M3xph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 
       if (M_iw) {
