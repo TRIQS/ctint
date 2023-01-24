@@ -51,7 +51,7 @@ namespace triqs_ctint {
           for (int m : range(bl1_size))
             for (int n : range(bl2_size))
               chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ - iw_)(n, k_) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, j_, n, l_);
+                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ - iw_)(n, k_) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, j_, n, l_);
 
           // Disconnected part
           chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
@@ -91,7 +91,7 @@ namespace triqs_ctint {
           for (int m : range(bl1_size))
             for (int n : range(bl1_size))
               chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ + iw_)(l_, n) * M3_iw_conn(bl1, bl2)(iw_, iW_)(m, j_, k_, n);
+                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ + iw_)(l_, n) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, j_, k_, n);
 
           // Disconnected part
           chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
