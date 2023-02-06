@@ -132,8 +132,8 @@ namespace triqs_ctint {
 
           // Add Disconnected part
           chi2_tau(bl1, bl2)(t_)(i_, j_, k_, l_) << chi2_tau_conn(bl1, bl2)[t_](i_, j_, k_, l_)
-                + G_tau[bl1](beta - t_)(j_, i_) * G_tau[bl2](beta - t_)(l_, k_)
-                - kronecker(bl1, bl2) * G_tau[bl1](beta - t_)(l_, i_) * G_tau[bl2](beta - t_)(j_, k_);
+                + G_tau[bl1](t_)(j_, i_) * G_tau[bl2](t_)(l_, k_)
+                - kronecker(bl1, bl2) * G_tau[bl1](t_)(l_, i_) * G_tau[bl2](t_)(j_, k_);
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -223,8 +223,8 @@ namespace triqs_ctint {
         if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
           M3_tau_conn(bl1, bl2)(t1_, t2_)(i_, j_, k_, l_) << M3_tau(bl1, bl2)[t1_, t2_](i_, j_, k_, l_)
-                - GM[bl1](beta - t1_)(j_, i_) * GM[bl2](beta - t2_)(l_, k_)
-                + kronecker(bl1, bl2) * GM[bl1](beta - t1_)(l_, i_) * GM[bl2](beta - t2_)(j_, k_);
+                - GM[bl1](t1_)(j_, i_) * GM[bl2](t2_)(l_, k_)
+                + kronecker(bl1, bl2) * GM[bl1](t1_)(l_, i_) * GM[bl2](t2_)(j_, k_);
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -404,7 +404,7 @@ namespace triqs_ctint {
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
           for (auto [m, i, n, k] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
-            arr_GG(m, i, n, k, range()) = G0_d_ti_t_del[bl1](m, i, range()) * G0_d_ti_t_del[bl2](n, k, range());
+            arr_GG(m, i, n, k, range()) = G0_d_t_ti_del[bl1](m, i, range()) * G0_d_t_ti_del[bl2](n, k, range());
           }
 
           for (auto [m, j, n, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
@@ -412,8 +412,8 @@ namespace triqs_ctint {
             // We have to make a copy so that M3 is contiguous in memory
             auto M3_mjnl = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, n, l).data()};
             for (auto [i, k] : product_range(bl1_size, bl2_size)) {
-              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range()));
-              auto G2_nk = vector_view<dcomplex>(G0_d_ti_t[bl2](n, k, range()));
+              auto G1_mi = vector_view<dcomplex>(G0_d_t_ti[bl1](m, i, range()));
+              auto G2_nk = vector_view<dcomplex>(G0_d_t_ti[bl2](n, k, range()));
               chi2c(i, j, k, l) += dot(G1_mi, M3_mjnl * G2_nk);
             }
 
