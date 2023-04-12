@@ -204,20 +204,20 @@ namespace triqs_ctint {
     friend void h5_read(h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);
-      h5_try_read(grp, "average_k", c.average_k);
-      h5_try_read(grp, "auto_corr_time", c.auto_corr_time);
+      h5::try_read(grp, "average_k", c.average_k);
+      h5::try_read(grp, "auto_corr_time", c.auto_corr_time);
       h5_read(grp, "histogram", c.histogram);
-      h5_try_read(grp, "density", c.density);
+      h5::try_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_hartree", c.M_hartree);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M3pp_tau", c.M3pp_tau);
       h5_read(grp, "M3ph_tau", c.M3ph_tau);
-      h5_try_read(grp, "M3xph_tau", c.M3xph_tau);
+      h5::try_read(grp, "M3xph_tau", c.M3xph_tau);
       h5_read(grp, "M3pp_delta", c.M3pp_delta);
       h5_read(grp, "M3ph_delta", c.M3ph_delta);
-      h5_try_read(grp, "M3xph_delta", c.M3xph_delta);
+      h5::try_read(grp, "M3xph_delta", c.M3xph_delta);
       h5_read(grp, "M3pp_iw_nfft", c.M3pp_iw_nfft);
       h5_read(grp, "M3ph_iw_nfft", c.M3ph_iw_nfft);
       h5_read(grp, "chi2pp_tau", c.chi2pp_tau);
@@ -228,7 +228,7 @@ namespace triqs_ctint {
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
-      h5_try_read(grp, "M3xph_iw", c.M3xph_iw);
+      h5::try_read(grp, "M3xph_iw", c.M3xph_iw);
       h5_read(grp, "F_iw", c.F_iw);
       h5_read(grp, "G2_iw", c.G2_iw);
       h5_read(grp, "G2c_iw", c.G2c_iw);
@@ -236,13 +236,13 @@ namespace triqs_ctint {
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
       h5_read(grp, "chi2pp_conn_tau_from_M3", c.chi2pp_conn_tau_from_M3);
       h5_read(grp, "chi2ph_conn_tau_from_M3", c.chi2ph_conn_tau_from_M3);
-      h5_try_read(grp, "chi2xph_conn_tau_from_M3", c.chi2xph_conn_tau_from_M3);
+      h5::try_read(grp, "chi2xph_conn_tau_from_M3", c.chi2xph_conn_tau_from_M3);
       h5_read(grp, "chi2pp_tau_from_M3", c.chi2pp_tau_from_M3);
       h5_read(grp, "chi2ph_tau_from_M3", c.chi2ph_tau_from_M3);
-      h5_try_read(grp, "chi2xph_tau_from_M3", c.chi2xph_tau_from_M3);
+      h5::try_read(grp, "chi2xph_tau_from_M3", c.chi2xph_tau_from_M3);
       h5_read(grp, "chi2pp_iw_from_M3", c.chi2pp_iw_from_M3);
       h5_read(grp, "chi2ph_iw_from_M3", c.chi2ph_iw_from_M3);
-      h5_try_read(grp, "chi2xph_iw_from_M3", c.chi2xph_iw_from_M3);
+      h5::try_read(grp, "chi2xph_iw_from_M3", c.chi2xph_iw_from_M3);
       // For backward compatibility we keep these additional reads
       if (!c.chi2pp_conn_tau_from_M3) h5_read(grp, "M2pp_tau", c.chi2pp_conn_tau_from_M3);
       if (!c.chi2ph_conn_tau_from_M3) h5_read(grp, "M2ph_tau", c.chi2ph_conn_tau_from_M3);

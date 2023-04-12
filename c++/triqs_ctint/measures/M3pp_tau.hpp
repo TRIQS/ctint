@@ -44,7 +44,7 @@ namespace triqs_ctint::measures {
 
     // A helper type to precompute the tau-binning
     struct idx_t {
-      int tau_idx;
+      long tau_idx;
       int u;
       tau_t tau_pt;
     };

@@ -20,7 +20,7 @@ namespace triqs_ctint {
   template <Chan_t Chan>
   chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
 
-    double beta  = M_iw[0].domain().beta;
+    double beta  = M_iw[0].mesh().beta;
     int n_blocks = M_iw.size();
 
     // Connected part of M3
@@ -106,7 +106,7 @@ namespace triqs_ctint {
   // Calculate the $\chi_2$ function from the building blocks chi2_conn_tau and M_iw
   template <Chan_t Chan> chi2_tau_t chi2_from_chi2_conn(chi2_tau_cv_t chi2_tau_conn, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
 
-    double beta  = G_iw[0].domain().beta;
+    double beta  = G_iw[0].mesh().beta;
     int n_blocks = G_iw.size();
 
     // Create Container for chi2
@@ -194,7 +194,7 @@ namespace triqs_ctint {
   template <Chan_t Chan>
   chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t const &M_hartree) {
 
-    double beta  = M_tau[0].domain().beta;
+    double beta  = M_tau[0].mesh().beta;
     int n_blocks = M_tau.size();
 
     // Temporary quantities
@@ -287,7 +287,7 @@ namespace triqs_ctint {
   chi2_tau_t chi2_conn_from_M3(chi3_tau_cv_t M3, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
 
-    double beta  = G0_tau[0].domain().beta;
+    double beta  = G0_tau[0].mesh().beta;
     int n_blocks = G0_tau.size();
 
     auto const &tau_mesh_M3 = M3(0, 0).mesh();
@@ -340,10 +340,10 @@ namespace triqs_ctint {
     }
 
     auto comm = mpi::communicator{};
-    for (auto &t : mpi::chunk(tau_mesh_chi2, comm)) {
+    for (auto t : mpi::chunk(tau_mesh_chi2, comm)) {
 
       // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
-      if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_chi2 - 1) continue;
+      if (t.datidx % 2 == 0 and t.datidx != 0 and t.datidx != n_tau_chi2 - 1) continue;
 
       // ==== Precalculate all relevant G0_tau interpolation points
 
@@ -358,20 +358,20 @@ namespace triqs_ctint {
           G0_d_ti_t_vec.emplace_back(sh[0], sh[1], n_tau);
           G0_d_t_ti_vec.emplace_back(sh[0], sh[1], n_tau);
 
-          for (auto const &ti : tau_mesh) {
+          for (auto ti : tau_mesh) {
 
             auto [s1, d_ti_t] = cyclic_difference(ti, t);
             auto [s2, d_t_ti] = cyclic_difference(t, ti);
 
             // Treat t=0 and t=beta cases separately
-            if (t.linear_index() == 0) {
+            if (t.datidx == 0) {
               s1     = 1.0;
               d_ti_t = ti;
 
               s2     = -1.0;
               d_t_ti = beta - ti;
             }
-            if (t.linear_index() == n_tau_chi2 - 1) {
+            if (t.datidx == n_tau_chi2 - 1) {
               s1     = -1.0;
               d_ti_t = ti;
 
@@ -379,8 +379,8 @@ namespace triqs_ctint {
               d_t_ti = beta - ti;
             }
 
-            G0_d_ti_t_vec[bl](range(), range(), ti.linear_index()) = s1 * G0_tau[bl](d_ti_t);
-            G0_d_t_ti_vec[bl](range(), range(), ti.linear_index()) = s2 * G0_tau[bl](d_t_ti);
+            G0_d_ti_t_vec[bl](range::all, range::all, ti.datidx) = s1 * G0_tau[bl](d_ti_t);
+            G0_d_t_ti_vec[bl](range::all, range::all, ti.datidx) = s2 * G0_tau[bl](d_t_ti);
           }
         }
 
@@ -404,7 +404,7 @@ namespace triqs_ctint {
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
           for (auto [m, i, n, k] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
-            arr_GG(m, i, n, k, range()) = G0_d_ti_t_del[bl1](m, i, range()) * G0_d_ti_t_del[bl2](n, k, range());
+            arr_GG(m, i, n, k, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_ti_t_del[bl2](n, k, range::all);
           }
 
           for (auto [m, j, n, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
@@ -412,15 +412,15 @@ namespace triqs_ctint {
             // We have to make a copy so that M3 is contiguous in memory
             auto M3_mjnl = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, n, l).data()};
             for (auto [i, k] : product_range(bl1_size, bl2_size)) {
-              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range()));
-              auto G2_nk = vector_view<dcomplex>(G0_d_ti_t[bl2](n, k, range()));
-              chi2c(i, j, k, l) += dot(G1_mi, M3_mjnl * G2_nk);
+              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
+              auto G2_nk = vector_view<dcomplex>(G0_d_ti_t[bl2](n, k, range::all));
+              chi2c(i, j, k, l) += nda::blas::dot(G1_mi, M3_mjnl * G2_nk);
             }
 
             // We treat the delta-contribution seperately
             auto M3_del_mjnl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, n, l).data());
             for (auto [i, k] : product_range(bl1_size, bl2_size)) {
-              chi2c(i, j, k, l) += dot(M3_del_mjnl, vector_view<dcomplex>(arr_GG(m, i, n, k, range())));
+              chi2c(i, j, k, l) += nda::blas::dot(M3_del_mjnl, vector_view<dcomplex>(arr_GG(m, i, n, k, range::all)));
             }
           }
 
@@ -428,7 +428,7 @@ namespace triqs_ctint {
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl1_size, bl1_size, n_tau_M3_del);
           for (auto [m, i, j, n] : product_range(bl1_size, bl1_size, bl1_size, bl1_size)) {
-            arr_GG(m, i, j, n, range()) = G0_d_ti_t_del[bl1](m, i, range()) * G0_d_t_ti_del[bl1](j, n, range());
+            arr_GG(m, i, j, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl1](j, n, range::all);
           }
 
           for (auto [m, n, k, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
@@ -436,22 +436,22 @@ namespace triqs_ctint {
             // We have to make a copy so that M3 is contiguous in memory
             auto M3_mnkl = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, n, k, l).data()};
             for (auto [i, j] : product_range(bl1_size, bl1_size)) {
-              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range()));
-              auto G2_jn = vector_view<dcomplex>(G0_d_t_ti[bl1](j, n, range()));
-              chi2c(i, j, k, l) += dot(G1_mi, M3_mnkl * G2_jn);
+              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
+              auto G2_jn = vector_view<dcomplex>(G0_d_t_ti[bl1](j, n, range::all));
+              chi2c(i, j, k, l) += nda::blas::dot(G1_mi, M3_mnkl * G2_jn);
             }
 
             // We treat the delta-contribution seperately
             auto M3_del_mnkl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, n, k, l).data());
             for (auto [i, j] : product_range(bl1_size, bl1_size)) {
-              chi2c(i, j, k, l) += dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range())));
+              chi2c(i, j, k, l) += nda::blas::dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range::all)));
             }
           }
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
           for (auto [m, i, l, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
-            arr_GG(m, i, l, n, range()) = G0_d_ti_t_del[bl1](m, i, range()) * G0_d_t_ti_del[bl2](l, n, range());
+            arr_GG(m, i, l, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl2](l, n, range::all);
           }
 
           for (auto [m, j, k, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
@@ -459,15 +459,15 @@ namespace triqs_ctint {
             // We have to make a copy so that M3 is contiguous in memory
             auto M3_mjkn = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, k, n).data()};
             for (auto [i, l] : product_range(bl1_size, bl2_size)) {
-              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range()));
-              auto G2_ln = vector_view<dcomplex>(G0_d_t_ti[bl2](l, n, range()));
-              chi2c(i, j, k, l) += dot(G1_mi, M3_mjkn * G2_ln);
+              auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
+              auto G2_ln = vector_view<dcomplex>(G0_d_t_ti[bl2](l, n, range::all));
+              chi2c(i, j, k, l) += nda::blas::dot(G1_mi, M3_mjkn * G2_ln);
             }
 
             // We treat the delta-contribution seperately
             auto M3_del_mjkn = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, k, n).data());
             for (auto [i, l] : product_range(bl1_size, bl2_size)) {
-              chi2c(i, j, k, l) += dot(M3_del_mjkn, vector_view<dcomplex>(arr_GG(m, i, l, n, range())));
+              chi2c(i, j, k, l) += nda::blas::dot(M3_del_mjkn, vector_view<dcomplex>(arr_GG(m, i, l, n, range::all)));
             }
           }
         }
@@ -476,11 +476,11 @@ namespace triqs_ctint {
 
     chi2_conn() = mpi::all_reduce(chi2_conn, comm);
 
-    for (auto &t : tau_mesh_chi2) {
+    for (auto t : tau_mesh_chi2) {
       // We perform a linear interpolation for the problematic Meshpoints of chi2_conn
-      if (t.linear_index() % 2 == 0 and t.linear_index() != 0 and t.linear_index() != n_tau_chi2 - 1) {
+      if (t.datidx % 2 == 0 and t.datidx != 0 and t.datidx != n_tau_chi2 - 1) {
         for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
-          chi2_conn(bl1, bl2)[t] = 0.5 * (chi2_conn(bl1, bl2)[t.linear_index() - 1] + chi2_conn(bl1, bl2)[t.linear_index() + 1]);
+          chi2_conn(bl1, bl2)[t] = 0.5 * (chi2_conn(bl1, bl2)[t.datidx - 1] + chi2_conn(bl1, bl2)[t.datidx + 1]);
         }
       }
     }

@@ -59,12 +59,12 @@ namespace triqs_ctint::measures {
           for (int j : range(bl1_size))
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
-                for (auto const &iw1 : iw_mesh)
-                  for (auto const &iw2 : iw_mesh)
-                    for (auto const &iw3 : iw_mesh) {
-                      mesh::imfreq::mesh_point_t iw4{iw_mesh, iw1.index() + iw3.index() - iw2.index()};
-                      M4[{iw1, iw2, iw3}](i, j, k, l) +=
-                         sign * (M1[{iw2, iw1}](j, i) * M2[{iw4, iw3}](l, k) - kronecker(bl1, bl2) * M1[{iw4, iw1}](l, i) * M2[{iw2, iw3}](j, k));
+                for (auto iw1 : iw_mesh)
+                  for (auto iw2 : iw_mesh)
+                    for (auto iw3 : iw_mesh) {
+                      auto iw4 = iw1 + iw3 - iw2;
+                      M4[iw1, iw2, iw3](i, j, k, l) +=
+                         sign * (M1[iw2, iw1](j, i) * M2[iw4, iw3](l, k) - kronecker(bl1, bl2) * M1[iw4, iw1](l, i) * M2[iw2, iw3](j, k));
                     }
       }
   }

@@ -87,7 +87,7 @@ namespace triqs_ctint {
     h5_read(grp, "measure_average_k", sp.measure_average_k);
     h5_read(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
     h5_read(grp, "measure_histogram", sp.measure_histogram);
-    h5_try_read(grp, "measure_density", sp.measure_density);
+    h5::try_read(grp, "measure_density", sp.measure_density);
     h5_read(grp, "measure_M_tau", sp.measure_M_tau);
     h5_read(grp, "measure_M_iw", sp.measure_M_iw);
     h5_read(grp, "measure_M4_iw", sp.measure_M4_iw);
@@ -108,11 +108,11 @@ namespace triqs_ctint {
     h5_read(grp, "chi_B_vec", sp.chi_B_vec);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
     h5_read(grp, "post_process", sp.post_process);
-    h5_try_read(grp, "det_init_size", sp.det_init_size);
-    h5_try_read(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
-    h5_try_read(grp, "det_precision_warning", sp.det_precision_warning);
-    h5_try_read(grp, "det_precision_error", sp.det_precision_error);
-    h5_try_read(grp, "det_singular_threshold", sp.det_singular_threshold);
+    h5::try_read(grp, "det_init_size", sp.det_init_size);
+    h5::try_read(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
+    h5::try_read(grp, "det_precision_warning", sp.det_precision_warning);
+    h5::try_read(grp, "det_precision_error", sp.det_precision_error);
+    h5::try_read(grp, "det_singular_threshold", sp.det_singular_threshold);
   }
 
 } // namespace triqs_ctint

@@ -230,14 +230,10 @@ namespace triqs::gfs {
     return make_block2_gf(g_in.block_names()[0], g_in.block_names()[1], std::move(gf_vecvec));
   }
 
-  template <typename M> auto bin_to_mesh(double val, M const &m) {
-    return mesh::closest_point<M, int>::invoke(m, closest_mesh_pt(val));
-  }
-
   template <typename Scalar_t> std::vector<matrix<Scalar_t>> make_block_vector(gf_struct_t const &gf_struct) {
 
     std::vector<matrix<Scalar_t>> res;
-    for (auto const &[bl, bl_size] : gf_struct) { res.emplace_back(zeros<Scalar_t>(make_shape(bl_size, bl_size))); }
+    for (auto const &[bl, bl_size] : gf_struct) { res.emplace_back(nda::zeros<Scalar_t>(bl_size, bl_size)); }
     return res;
   }
 } // namespace triqs::gfs

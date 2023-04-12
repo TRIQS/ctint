@@ -114,8 +114,8 @@ namespace triqs_ctint::measures {
           for (int j : range(bl1_size))
             for (int k : range(bl2_size))
               for (int l : range(bl2_size))
-                for (auto const &iW : iW_mesh)
-                  for (auto const &iw : iw_mesh)
+                for (auto iW : iW_mesh)
+                  for (auto iw : iw_mesh)
                     M3ph_iw[iW, iw](i, j, k, l) +=
                        sign * (M1[iW + iw, iw](j, i) * GMG2(l, k) - kronecker(bl1, bl2) * GM1[iw](l, i) * MG2[iW + iw](j, k));
       }

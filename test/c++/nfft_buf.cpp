@@ -45,7 +45,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_equid = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer
-  nfft_buf_t<1> buf_equid(giw_nfft_equid.data()(range(), 0, 0), buf_size, beta, true);
+  nfft_buf_t<1> buf_equid(giw_nfft_equid.data()(range::all, 0, 0), buf_size, beta, true);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   buf_equid.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -61,7 +61,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   // Generate Gf with fftw
   auto gtau    = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
   auto iw_mesh = make_adjoint_mesh(gtau.mesh(), n_iw);
-  for (auto &tau : gtau.mesh()) gtau[tau] = f_tau(tau);
+  for (auto tau : gtau.mesh()) gtau[tau] = f_tau(tau);
   auto giw_fftw = make_gf_from_fourier(gtau, iw_mesh, make_zero_tail(gtau));
 
   // Compare to exact and fftw
@@ -74,7 +74,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_multi = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer with size 4000 = 2 * buf_size / 5
-  nfft_buf_t<1> buf_multi(giw_nfft_multi.data()(range(), 0, 0), 2 * buf_size / 5, beta, true);
+  nfft_buf_t<1> buf_multi(giw_nfft_multi.data()(range::all, 0, 0), 2 * buf_size / 5, beta, true);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   // Buffer performs multiple transforms as buf_size < n_tau
@@ -119,7 +119,7 @@ TEST_F(Nfft, Rng) { // NOLINT
   // nfft_buffer
   n_tau    = 1e+6;
   buf_size = n_tau;
-  nfft_buf_t<1> buf_rng(giw_nfft_rng.data()(range(), 0, 0), buf_size, beta, true);
+  nfft_buf_t<1> buf_rng(giw_nfft_rng.data()(range::all, 0, 0), buf_size, beta, true);
 
   // Generate values at random tau points
   for (int i = 0; i < n_tau; ++i) {
@@ -184,12 +184,12 @@ TEST_F(Nfft, 2D) { // NOLINT
   // Create 1d giw from fftw
   auto gtau2 = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
   auto iw_mesh = make_adjoint_mesh(gtau2.mesh(), n_iw);
-  for (auto &tau : gtau2.mesh()) gtau2[tau] = f_tau(tau);
+  for (auto tau : gtau2.mesh()) gtau2[tau] = f_tau(tau);
   auto giw_fftw = make_gf_from_fourier(gtau2, iw_mesh, make_zero_tail(gtau2));
   // Create giw_fftw_2d from product of giw_fftw
   auto giw_fftw_2d = gf<prod<imfreq, imfreq>>{{{beta, Fermion, n_iw}, {beta, Fermion, n_iw}}, shape};
-  for (auto &iw1 : giw_fftw.mesh())
-    for (auto &iw2 : giw_fftw.mesh()) giw_fftw_2d[{iw1, iw2}] = giw_fftw[iw1] * giw_fftw[iw2];
+  for (auto iw1 : giw_fftw.mesh())
+    for (auto iw2 : giw_fftw.mesh()) giw_fftw_2d[iw1, iw2] = giw_fftw[iw1] * giw_fftw[iw2];
 
   // Init exact reference gf
   nda::clef::placeholder<0> iw1_;

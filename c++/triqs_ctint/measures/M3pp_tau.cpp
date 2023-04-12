@@ -35,11 +35,11 @@ namespace triqs_ctint::measures {
 
       // Consider shifted time here as need in fourier transform (for the transform of unbarred index of M)
       auto x_to_mesh = [beta = params.beta, &M_tau_mesh](c_t const &c_i) {
-        return idx_t{bin_to_mesh(beta - double(c_i.tau), M_tau_mesh), c_i.u, c_i.tau};
+        return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(beta - double(c_i.tau))), c_i.u, c_i.tau};
       };
 
       auto y_to_mesh = [beta = params.beta, &G0_tau_mesh](cdag_t const &cdag_j) {
-        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u, cdag_j.tau};
+        return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
       };
 
       // Careful: Use the row and column indices of the matrix in their internal storage order
@@ -90,7 +90,7 @@ namespace triqs_ctint::measures {
           M3pp_delta[cdag_vec[bl1][i].tau_idx](c1[i].u, j, c1[k].u, l) += -sign * GM1(l, i) * GM1(j, k);
         } else {
           // Since the crossing term is negative by itself, we get a negative sign here
-          M3pp_tau[{c1[i].tau_idx, c1[k].tau_idx}](c1[i].u, j, c1[k].u, l) += -sign * GM1(l, i) * GM1(j, k);
+          M3pp_tau[c1[i].tau_idx, c1[k].tau_idx](c1[i].u, j, c1[k].u, l) += -sign * GM1(l, i) * GM1(j, k);
         }
       }
 
@@ -113,7 +113,7 @@ namespace triqs_ctint::measures {
           if (c1[i].tau_pt == c2[k].tau_pt) {
             M3pp_delta_bl[cdag_vec[bl1][i].tau_idx](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
           } else {
-            M3pp_tau_bl[{c1[i].tau_idx, c2[k].tau_idx}](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
+            M3pp_tau_bl[c1[i].tau_idx, c2[k].tau_idx](c1[i].u, j, c2[k].u, l) += sign * GM1(j, i) * GM2(l, k);
           }
         }
       }

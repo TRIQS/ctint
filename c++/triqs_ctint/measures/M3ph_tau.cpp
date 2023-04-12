@@ -34,13 +34,15 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points for different meshes
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), G0_tau_mesh), c_i.u, c_i.tau}; };
+      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
       auto y_to_G0_mesh = [beta = params.beta, &G0_tau_mesh](cdag_t const &cdag_j) {
-        return idx_t{bin_to_mesh(beta - double(cdag_j.tau), G0_tau_mesh), cdag_j.u, cdag_j.tau};
+        return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
       };
 
-      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{bin_to_mesh(double(c_i.tau), M_tau_mesh), c_i.u, c_i.tau}; };
-      auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) { return idx_t{bin_to_mesh(double(cdag_j.tau), M_tau_mesh), cdag_j.u, cdag_j.tau}; };
+      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
+      auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) {
+        return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
+      };
 
       // Careful: x and y vectors have to be used in internal storage order
       c_vec_G0.push_back(make_vector_from_range(transform(det.get_x_internal_order(), x_to_G0_mesh)));
@@ -105,7 +107,7 @@ namespace triqs_ctint::measures {
           M3ph_delta[c_vec_G0[bl1][i].tau_idx](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
         } else {
           // Since the crossing term is negative by itself, we get a negative sign here
-          M3ph_tau[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
+          M3ph_tau[c1[i].tau_idx, cdag1[j].tau_idx](c1[i].u, cdag1[j].u, k, l) += -sign * GM(l, i) * MG(j, k);
         }
       }
 
@@ -127,7 +129,7 @@ namespace triqs_ctint::measures {
           if (c1[i].tau_pt == cdag1[j].tau_pt) {
             M3ph_delta_bl[c_vec_G0[bl1][i].tau_idx](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
           } else {
-            M3ph_tau_bl[{c1[i].tau_idx, cdag1[j].tau_idx}](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
+            M3ph_tau_bl[c1[i].tau_idx, cdag1[j].tau_idx](c1[i].u, cdag1[j].u, k, l) += sign * M(j, i) * GMG(l, k);
           }
         }
       }
