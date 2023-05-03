@@ -40,9 +40,91 @@ namespace triqs_ctint {
                            * G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw3_)(o, k_);
         }
     }
-    mpi::broadcast(G2c_iw, comm);
 
+    mpi::broadcast(G2c_iw, comm);
     return G2c_iw;
+  }
+
+  chi4_iw_t G2ppc_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw,
+                            mpi::communicator const &comm) {
+
+    chi4_iw_t G2ppc_iw = M4pp_iw; // FIXME Product Ranges with += Lazy Expressions
+
+    if (comm.rank() == 0) {
+      double beta  = M_iw[0].mesh().beta;
+      int n_blocks = M_iw.size();
+
+      // Calculate connected part of M4
+      chi4_iw_t M4pp_iw_conn = M4pp_iw;
+
+      for (int bl1 : range(n_blocks))
+        for (int bl2 : range(n_blocks))
+          M4pp_iw_conn(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << M4pp_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                - beta * kronecker(iw_, iW_ - iwp_) * M_iw[bl1](iw_)(j_, i_) * M_iw[bl2](iW_ - iw_)(l_, k_)
+                + beta * kronecker(bl1, bl2) * kronecker(iW_ - iwp_, iW_ - iw_) * M_iw[bl1](iw_)(l_, i_) * M_iw[bl2](iW_ - iw_)(j_, k_);
+
+      // Calculate disconnected part of the two-particle Green function
+      G2ppc_iw() = 0.;
+
+      for (int bl1 : range(n_blocks))
+        for (int bl2 : range(n_blocks)) {
+
+          int bl1_size = M4pp_iw(bl1, bl2).target_shape()[0];
+          int bl2_size = M4pp_iw(bl1, bl2).target_shape()[2];
+
+          for (int m : range(bl1_size))
+            for (int n : range(bl1_size))
+              for (int o : range(bl2_size))
+                for (int p : range(bl2_size))
+                  G2ppc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << G2ppc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                        + G0_iw[bl1](iW_ - iwp_)(j_, n) * G0_iw[bl2](iwp_)(l_, p) * M4pp_iw_conn(bl1, bl2)(iW_, iw_, iwp_)(m, n, o, p)
+                           * G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ - iw_)(o, k_);
+        }
+    }
+
+    mpi::broadcast(G2ppc_iw, comm);
+    return G2ppc_iw;
+  }
+
+  chi4_iw_t G2phc_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw,
+                            mpi::communicator const &comm) {
+
+    chi4_iw_t G2phc_iw = M4ph_iw; // FIXME Product Ranges with += Lazy Expressions
+
+    if (comm.rank() == 0) {
+      double beta  = M_iw[0].mesh().beta;
+      int n_blocks = M_iw.size();
+
+      // Calculate connected part of M4
+      chi4_iw_t M4ph_iw_conn = M4ph_iw;
+
+      for (int bl1 : range(n_blocks))
+        for (int bl2 : range(n_blocks))
+          M4ph_iw_conn(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << M4ph_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                - beta * kronecker(iw_, iW_ + iw_) * M_iw[bl1](iw_)(j_, i_) * M_iw[bl2](iW_ + iwp_)(l_, k_)
+                + beta * kronecker(bl1, bl2) * kronecker(iW_ + iw_, iW_ + iwp_) * M_iw[bl1](iw_)(l_, i_) * M_iw[bl2](iW_ + iwp_)(j_, k_);
+
+      // Calculate disconnected part of the two-particle Green function
+      G2phc_iw() = 0.;
+
+      for (int bl1 : range(n_blocks))
+        for (int bl2 : range(n_blocks)) {
+
+          int bl1_size = M4ph_iw(bl1, bl2).target_shape()[0];
+          int bl2_size = M4ph_iw(bl1, bl2).target_shape()[2];
+
+          for (int m : range(bl1_size))
+            for (int n : range(bl1_size))
+              for (int o : range(bl2_size))
+                for (int p : range(bl2_size))
+                  G2phc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << G2phc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                        + G0_iw[bl1](iW_ + iw_)(j_, n) * G0_iw[bl2](iwp_)(l_, p) * M4ph_iw_conn(bl1, bl2)(iW_, iw_, iwp_)(m, n, o, p)
+                           * G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ + iwp_)(o, k_);
+        }
+    }
+
+    mpi::broadcast(G2phc_iw, comm);
+    return G2phc_iw;
   }
 
   chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw) {
@@ -74,6 +156,64 @@ namespace triqs_ctint {
     return F_iw;
   }
 
+  chi4_iw_t Fpp_from_G2ppc(chi4_iw_t::const_view_type G2ppc_iw, g_iw_t::const_view_type G_iw) {
+
+    int n_blocks = G_iw.size();
+
+    // Temporary quantities
+    g_iw_t Ginv = inverse(G_iw);
+
+    // Calculate vertex function F
+    chi4_iw_t Fpp_iw = G2ppc_iw; // FIXME Product Ranges with += Lazy Expressions
+    Fpp_iw()         = 0;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks)) {
+
+        int bl1_size = G2ppc_iw(bl1, bl2).target_shape()[0];
+        int bl2_size = G2ppc_iw(bl1, bl2).target_shape()[2];
+
+        for (int m : range(bl1_size))
+          for (int n : range(bl1_size))
+            for (int o : range(bl2_size))
+              for (int p : range(bl2_size))
+                Fpp_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << Fpp_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                      + Ginv[bl1](iW_ - iwp_)(j_, n) * Ginv[bl2](iwp_)(l_, p) * G2ppc_iw(bl1, bl2)(iW_, iw_, iwp_)(m, n, o, p) * Ginv[bl1](iw_)(m, i_)
+                         * Ginv[bl2](iW_ - iw_)(o, k_);
+      }
+
+    return Fpp_iw;
+  }
+
+  chi4_iw_t Fph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_t::const_view_type G_iw) {
+
+    int n_blocks = G_iw.size();
+
+    // Temporary quantities
+    g_iw_t Ginv = inverse(G_iw);
+
+    // Calculate vertex function F
+    chi4_iw_t Fph_iw = G2phc_iw; // FIXME Product Ranges with += Lazy Expressions
+    Fph_iw()         = 0;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks)) {
+
+        int bl1_size = G2phc_iw(bl1, bl2).target_shape()[0];
+        int bl2_size = G2phc_iw(bl1, bl2).target_shape()[2];
+
+        for (int m : range(bl1_size))
+          for (int n : range(bl1_size))
+            for (int o : range(bl2_size))
+              for (int p : range(bl2_size))
+                Fph_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << Fph_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+                      + Ginv[bl1](iW_ + iw_)(j_, n) * Ginv[bl2](iwp_)(l_, p) * G2phc_iw(bl1, bl2)(iW_, iw_, iwp_)(m, n, o, p) * Ginv[bl1](iw_)(m, i_)
+                         * Ginv[bl2](iW_ + iwp_)(o, k_);
+      }
+
+    return Fph_iw;
+  }
+
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
@@ -89,6 +229,40 @@ namespace triqs_ctint {
               - beta * kronecker(bl1, bl2) * kronecker(iw2_, iw3_) * G_iw[bl1](iw1_)(l_, i_) * G_iw[bl2](iw3_)(j_, k_);
 
     return G2_iw;
+  }
+
+  chi4_iw_t G2pp_from_G2ppc(chi4_iw_t::const_view_type G2ppc_iw, g_iw_t::const_view_type G_iw) {
+
+    int n_blocks = G_iw.size();
+    double beta  = G_iw[0].mesh().beta;
+
+    // Calculate G2_iw from G2c_iw and G_iw
+    chi4_iw_t G2pp_iw = G2ppc_iw;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks))
+        G2pp_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << G2ppc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+              + beta * kronecker(iw_, iW_ - iwp_) * G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ - iw_)(l_, k_)
+              - beta * kronecker(bl1, bl2) * kronecker(iW_ - iwp_, iW_ - iw_) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ - iw_)(j_, k_);
+
+    return G2pp_iw;
+  }
+
+  chi4_iw_t G2ph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_t::const_view_type G_iw) {
+
+    int n_blocks = G_iw.size();
+    double beta  = G_iw[0].mesh().beta;
+
+    // Calculate G2_iw from G2c_iw and G_iw
+    chi4_iw_t G2ph_iw = G2phc_iw;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks))
+        G2ph_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_) << G2phc_iw(bl1, bl2)(iW_, iw_, iwp_)(i_, j_, k_, l_)
+              + beta * kronecker(iw_, iW_ + iw_) * G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ + iwp_)(l_, k_)
+              - beta * kronecker(bl1, bl2) * kronecker(iW_ + iw_, iW_ + iwp_) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iwp_)(j_, k_);
+
+    return G2ph_iw;
   }
 
   chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct) {

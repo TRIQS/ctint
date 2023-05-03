@@ -6,6 +6,8 @@
 #include "./measures/M_tau.hpp"
 #include "./measures/M_iw.hpp"
 #include "./measures/M4_iw.hpp"
+#include "./measures/M4pp_iw.hpp"
+#include "./measures/M4ph_iw.hpp"
 #include "./measures/M3pp_iw.hpp"
 #include "./measures/M3ph_iw.hpp"
 #include "./measures/M3pp_tau.hpp"

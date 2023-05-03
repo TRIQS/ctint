@@ -113,7 +113,13 @@ namespace triqs_ctint {
 
     /// Measure M4(iw) NFFT
     bool measure_M4_iw = false;
-    /// Number of positive Matsubara frequencies in M4
+    /// Measure M4pp(iw) NFFT
+    bool measure_M4pp_iw = false;
+    /// Measure M4ph(iw) NFFT
+    bool measure_M4ph_iw = false;
+    /// Number of positive bosonic Matsubara frequencies in M4
+    int n_iW_M4 = 32;
+    /// Number of positive fermionic Matsubara frequencies in M4
     int n_iw_M4 = 32;
 
     /// Measure M3pp(iw)

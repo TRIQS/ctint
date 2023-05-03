@@ -66,7 +66,6 @@ namespace triqs_ctint::measures {
 
       //for (auto &[c_i, cdag_j, Ginv1] : qmc_config.dets[b1]) // FIXME c++17
       foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) {
-
         auto tau_i = double(c_i.tau);
         auto tau_j = double(cdag_j.tau);
 
@@ -116,8 +115,9 @@ namespace triqs_ctint::measures {
               for (int l : range(bl2_size))
                 for (auto iW : iW_mesh)
                   for (auto iw : iw_mesh)
-                    M3ph_iw[iW, iw](i, j, k, l) +=
-                       sign * (M1[iW + iw, iw](j, i) * GMG2(l, k) - kronecker(bl1, bl2) * GM1[iw](l, i) * MG2[iW + iw](j, k));
+                    M3ph_iw[iW, iw](i, j, k, l) += sign
+                       * (M1[matsubara_freq{iW + iw}, matsubara_freq{iw}](j, i) * GMG2(l, k)
+                          - kronecker(bl1, bl2) * GM1[matsubara_freq{iw}](l, i) * MG2[matsubara_freq{iW + iw}](j, k));
       }
   }
 

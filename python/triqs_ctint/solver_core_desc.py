@@ -81,6 +81,16 @@ c.add_member(c_name = "M4_iw",
              read_only= True,
              doc = r"""Building block for the full vertex function measured directly in Matsubara frequencies using NFFT""")
 
+c.add_member(c_name = "M4pp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full vertex function (pp channel) measured directly in Matsubara frequencies using NFFT""")
+
+c.add_member(c_name = "M4ph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
+
 c.add_member(c_name = "M3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
@@ -171,15 +181,45 @@ c.add_member(c_name = "F_iw",
              read_only= True,
              doc = r"""The two-particle vertex function in purely fermionic notation (iw1, iw2, iw3)""")
 
+c.add_member(c_name = "Fpp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle vertex function in the pp channel""")
+
+c.add_member(c_name = "Fph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle vertex function in the ph channel""")
+
 c.add_member(c_name = "G2c_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The connected part of the two-particle Green function""")
 
+c.add_member(c_name = "G2ppc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The connected part of the two-particle Green function (pp channel)""")
+
+c.add_member(c_name = "G2phc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The connected part of the two-particle Green function (ph channel)""")
+
 c.add_member(c_name = "G2_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The two-particle Green function""")
+
+c.add_member(c_name = "G2pp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle Green function (pp channel)""")
+
+c.add_member(c_name = "G2ph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle Green function (ph channel)""")
 
 c.add_member(c_name = "chi2pp_iw",
              c_type = "std::optional<chi2_iw_t>",
@@ -372,7 +412,13 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M4_iw                 | bool                                 | false                                   | Measure M4(iw) NFFT                                                                                                                   |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw_M4                       | int                                  | 32                                      | Number of positive Matsubara frequencies in M4                                                                                        |
+| measure_M4pp_iw               | bool                                 | false                                   | Measure M4pp(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M4ph_iw               | bool                                 | false                                   | Measure M4ph(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iW_M4                       | int                                  | 32                                      | Number of positive bosonic Matsubara frequencies in M4                                                                                |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iw_M4                       | int                                  | 32                                      | Number of positive fermionic Matsubara frequencies in M4                                                                              |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3pp_iw               | bool                                 | false                                   | Measure M3pp(iw)                                                                                                                      |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -530,10 +576,25 @@ c.add_member(c_name = "measure_M4_iw",
              initializer = """ false """,
              doc = r"""Measure M4(iw) NFFT""")
 
+c.add_member(c_name = "measure_M4pp_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4pp(iw) NFFT""")
+
+c.add_member(c_name = "measure_M4ph_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4ph(iw) NFFT""")
+
+c.add_member(c_name = "n_iW_M4",
+             c_type = "int",
+             initializer = """ 32 """,
+             doc = r"""Number of positive bosonic Matsubara frequencies in M4""")
+
 c.add_member(c_name = "n_iw_M4",
              c_type = "int",
              initializer = """ 32 """,
-             doc = r"""Number of positive Matsubara frequencies in M4""")
+             doc = r"""Number of positive fermionic Matsubara frequencies in M4""")
 
 c.add_member(c_name = "measure_M3pp_iw",
              c_type = "bool",
