@@ -64,7 +64,7 @@ namespace triqs_ctint::measures {
                     for (auto iw3 : iw_mesh) {
                       auto iw4 = iw1 + iw3 - iw2;
                       M4[iw1, iw2, iw3](i, j, k, l) +=
-                         sign * (M1[iw2, iw1](j, i) * M2[iw4, iw3](l, k) - kronecker(bl1, bl2) * M1[iw4, iw1](l, i) * M2[iw2, iw3](j, k));
+                         sign * (M1[iw2.value(), iw1](j, i) * M2[iw4, iw3](l, k) - kronecker(bl1, bl2) * M1[iw4, iw1](l, i) * M2[iw2.value(), iw3](j, k));
                     }
       }
   }
