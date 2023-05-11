@@ -194,18 +194,12 @@ namespace triqs::gfs {
 
     for (auto const &[bl1, bl1_size] : gf_struct) {
       block_names.push_back(bl1);
-      std::vector<std::string> indices1;
-      for (auto idx : range(bl1_size)) indices1.push_back(std::to_string(idx));
-
       std::vector<gf<M, Target>> gf_vec;
       for (auto const &[bl2, bl2_size] : gf_struct) {
-        std::vector<std::string> indices2;
-        for (auto idx : range(bl2_size)) indices2.push_back(std::to_string(idx));
         if constexpr (Target::rank == 4)
-          gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size),
-                              std::vector<std::vector<std::string>>{indices1, indices1, indices2, indices2});
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl1_size, bl2_size, bl2_size));
         else
-          gf_vec.emplace_back(m, make_shape(bl1_size, bl2_size), std::vector<std::vector<std::string>>{indices1, indices2});
+          gf_vec.emplace_back(m, make_shape(bl1_size, bl2_size));
       }
       gf_vecvec.emplace_back(std::move(gf_vec));
     }
@@ -223,7 +217,7 @@ namespace triqs::gfs {
 
     for (int i : range(n_blocks0)) {
       std::vector<gf<M1, Target>> gf_vec;
-      for (int j : range(n_blocks1)) { gf_vec.emplace_back(m, g_in(i, j).target_shape(), g_in(i, j).indices()); }
+      for (int j : range(n_blocks1)) { gf_vec.emplace_back(m, g_in(i, j).target_shape()); }
       gf_vecvec.emplace_back(std::move(gf_vec));
     }
 
