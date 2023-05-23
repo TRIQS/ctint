@@ -57,7 +57,7 @@ namespace triqs_ctint::measures {
               tau_point.n += 3;  // tau -> tau^{+++}
               taup_point.n += 2; // taup -> tau^{++}
 
-              if (tau.idx == params.n_tau_chi2 - 1) {
+              if (tau.index() == params.n_tau_chi2 - 1) {
                 tau_point  = tau_t::get_beta_minus();
                 taup_point = tau_t::get_beta_minus_minus();
               }

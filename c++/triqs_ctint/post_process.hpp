@@ -20,7 +20,7 @@ namespace triqs_ctint {
   template <Chan_t Chan>
   chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
 
-    double beta  = M_iw[0].mesh().beta;
+    double beta  = M_iw[0].mesh().beta();
     int n_blocks = M_iw.size();
 
     // Connected part of M3
@@ -106,7 +106,7 @@ namespace triqs_ctint {
   // Calculate the $\chi_2$ function from the building blocks chi2_conn_tau and M_iw
   template <Chan_t Chan> chi2_tau_t chi2_from_chi2_conn(chi2_tau_cv_t chi2_tau_conn, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
 
-    double beta  = G_iw[0].mesh().beta;
+    double beta  = G_iw[0].mesh().beta();
     int n_blocks = G_iw.size();
 
     // Create Container for chi2
@@ -194,7 +194,7 @@ namespace triqs_ctint {
   template <Chan_t Chan>
   chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t const &M_hartree) {
 
-    double beta  = M_tau[0].mesh().beta;
+    double beta  = M_tau[0].mesh().beta();
     int n_blocks = M_tau.size();
 
     // Temporary quantities
@@ -287,7 +287,7 @@ namespace triqs_ctint {
   chi2_tau_t chi2_conn_from_M3(chi3_tau_cv_t M3, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
 
-    double beta  = G0_tau[0].mesh().beta;
+    double beta  = G0_tau[0].mesh().beta();
     int n_blocks = G0_tau.size();
 
     auto const &tau_mesh_M3 = M3(0, 0).mesh();
@@ -343,7 +343,7 @@ namespace triqs_ctint {
     for (auto t : mpi::chunk(tau_mesh_chi2, comm)) {
 
       // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
-      if (t.datidx % 2 == 0 and t.datidx != 0 and t.datidx != n_tau_chi2 - 1) continue;
+      if (t.data_index() % 2 == 0 and t.data_index() != 0 and t.data_index() != n_tau_chi2 - 1) continue;
 
       // ==== Precalculate all relevant G0_tau interpolation points
 
@@ -364,14 +364,14 @@ namespace triqs_ctint {
             auto [s2, d_t_ti] = cyclic_difference(t, ti);
 
             // Treat t=0 and t=beta cases separately
-            if (t.datidx == 0) {
+            if (t.data_index() == 0) {
               s1     = 1.0;
               d_ti_t = ti;
 
               s2     = -1.0;
               d_t_ti = beta - ti;
             }
-            if (t.datidx == n_tau_chi2 - 1) {
+            if (t.data_index() == n_tau_chi2 - 1) {
               s1     = -1.0;
               d_ti_t = ti;
 
@@ -379,8 +379,8 @@ namespace triqs_ctint {
               d_t_ti = beta - ti;
             }
 
-            G0_d_ti_t_vec[bl](range::all, range::all, ti.datidx) = s1 * G0_tau[bl](d_ti_t);
-            G0_d_t_ti_vec[bl](range::all, range::all, ti.datidx) = s2 * G0_tau[bl](d_t_ti);
+            G0_d_ti_t_vec[bl](range::all, range::all, ti.data_index()) = s1 * G0_tau[bl](d_ti_t);
+            G0_d_t_ti_vec[bl](range::all, range::all, ti.data_index()) = s2 * G0_tau[bl](d_t_ti);
           }
         }
 
@@ -478,9 +478,9 @@ namespace triqs_ctint {
 
     for (auto t : tau_mesh_chi2) {
       // We perform a linear interpolation for the problematic Meshpoints of chi2_conn
-      if (t.datidx % 2 == 0 and t.datidx != 0 and t.datidx != n_tau_chi2 - 1) {
+      if (t.data_index() % 2 == 0 and t.data_index() != 0 and t.data_index() != n_tau_chi2 - 1) {
         for (auto [bl1, bl2] : product_range(n_blocks, n_blocks)) {
-          chi2_conn(bl1, bl2)[t] = 0.5 * (chi2_conn(bl1, bl2)[t.datidx - 1] + chi2_conn(bl1, bl2)[t.datidx + 1]);
+          chi2_conn(bl1, bl2)[t] = 0.5 * (chi2_conn(bl1, bl2)[t.data_index() - 1] + chi2_conn(bl1, bl2)[t.data_index() + 1]);
         }
       }
     }

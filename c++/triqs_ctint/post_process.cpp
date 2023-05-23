@@ -10,7 +10,7 @@ namespace triqs_ctint {
     chi4_iw_t G2c_iw = M4_iw; // FIXME Product Ranges with += Lazy Expressions
 
     if (comm.rank() == 0) {
-      double beta  = M_iw[0].mesh().beta;
+      double beta  = M_iw[0].mesh().beta();
       int n_blocks = M_iw.size();
 
       // Calculate connected part of M4
@@ -77,7 +77,7 @@ namespace triqs_ctint {
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
-    double beta  = G_iw[0].mesh().beta;
+    double beta  = G_iw[0].mesh().beta();
 
     // Calculate G2_iw from G2c_iw and G_iw
     chi4_iw_t G2_iw = G2c_iw;
@@ -94,7 +94,7 @@ namespace triqs_ctint {
   chi4_iw_t chi_tilde_ph_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct) {
 
     int n_blocks = G_iw.size();
-    double beta  = G_iw[0].mesh().beta;
+    double beta  = G_iw[0].mesh().beta();
 
     // Choose ranges such that
     int n_iw_G2      = G2c_iw(0, 0).data().shape()[0] / 2;

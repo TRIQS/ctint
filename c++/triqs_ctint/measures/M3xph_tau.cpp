@@ -35,14 +35,14 @@ namespace triqs_ctint::measures {
     // Precompute binned tau-points for different meshes
     for (auto &det : qmc_config.dets) {
 
-      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
+      auto x_to_G0_mesh = [&G0_tau_mesh](c_t const &c_i) { return idx_t{G0_tau_mesh.to_index(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
       auto y_to_G0_mesh = [beta = params.beta, &G0_tau_mesh](cdag_t const &cdag_j) {
-        return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
+        return idx_t{G0_tau_mesh.to_index(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
       };
 
-      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
+      auto x_to_M_mesh = [&M_tau_mesh](c_t const &c_i) { return idx_t{M_tau_mesh.to_index(closest_mesh_pt(double(c_i.tau))), c_i.u, c_i.tau}; };
       auto y_to_M_mesh = [&M_tau_mesh](cdag_t const &cdag_j) {
-        return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
+        return idx_t{M_tau_mesh.to_index(closest_mesh_pt(double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
       };
 
       // Careful: x and y vectors have to be used in internal storage order

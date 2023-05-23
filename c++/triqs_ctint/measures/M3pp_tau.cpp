@@ -36,11 +36,11 @@ namespace triqs_ctint::measures {
 
       // Consider shifted time here as need in fourier transform (for the transform of unbarred index of M)
       auto x_to_mesh = [beta = params.beta, &M_tau_mesh](c_t const &c_i) {
-        return idx_t{M_tau_mesh.to_idx(closest_mesh_pt(beta - double(c_i.tau))), c_i.u, c_i.tau};
+        return idx_t{M_tau_mesh.to_index(closest_mesh_pt(beta - double(c_i.tau))), c_i.u, c_i.tau};
       };
 
       auto y_to_mesh = [beta = params.beta, &G0_tau_mesh](cdag_t const &cdag_j) {
-        return idx_t{G0_tau_mesh.to_idx(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
+        return idx_t{G0_tau_mesh.to_index(closest_mesh_pt(beta - double(cdag_j.tau))), cdag_j.u, cdag_j.tau};
       };
 
       // Careful: Use the row and column indices of the matrix in their internal storage order
