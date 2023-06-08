@@ -416,10 +416,12 @@ namespace triqs_ctint {
             arr_GG(m, i, n, k, range::all) = G0_d_t_ti_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl2](n, k, range::all);
           }
 
+          auto M3_perm = nda::array<dcomplex, 6>{permuted_indices_view<encode(std::array{4, 5, 0, 1, 2, 3})>(M3_conn(bl1, bl2).data())};
+          auto M3_del  = nda::array<dcomplex, 5>{permuted_indices_view<encode(std::array{4, 0, 1, 2, 3})>(M3_delta(bl1, bl2).data())};
+
           for (auto [m, j, n, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
 
-            // We have to make a copy so that M3 is contiguous in memory
-            auto M3_mjnl = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, n, l).data()};
+            auto M3_mjnl = matrix_view<dcomplex>{M3_perm(m, j, n, l, _, _)};
             for (auto [i, k] : product_range(bl1_size, bl2_size)) {
               auto G1_mi = vector_view<dcomplex>(G0_d_t_ti[bl1](m, i, range::all));
               auto G2_nk = vector_view<dcomplex>(G0_d_t_ti[bl2](n, k, range::all));
@@ -427,7 +429,7 @@ namespace triqs_ctint {
             }
 
             // We treat the delta-contribution seperately
-            auto M3_del_mjnl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, n, l).data());
+            auto M3_del_mjnl = vector_view<dcomplex>{M3_del(m, j, n, l, _)};
             for (auto [i, k] : product_range(bl1_size, bl2_size)) {
               chi2c(i, j, k, l) += nda::blas::dot(M3_del_mjnl, vector_view<dcomplex>(arr_GG(m, i, n, k, range::all)));
             }
@@ -440,10 +442,12 @@ namespace triqs_ctint {
             arr_GG(m, i, j, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl1](j, n, range::all);
           }
 
+          auto M3_perm = nda::array<dcomplex, 6>{permuted_indices_view<encode(std::array{4, 5, 0, 1, 2, 3})>(M3_conn(bl1, bl2).data())};
+          auto M3_del  = nda::array<dcomplex, 5>{permuted_indices_view<encode(std::array{4, 0, 1, 2, 3})>(M3_delta(bl1, bl2).data())};
+
           for (auto [m, n, k, l] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
 
-            // We have to make a copy so that M3 is contiguous in memory
-            auto M3_mnkl = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, n, k, l).data()};
+            auto M3_mnkl = matrix_view<dcomplex>{M3_perm(m, n, k, l, _, _)};
             for (auto [i, j] : product_range(bl1_size, bl1_size)) {
               auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
               auto G2_jn = vector_view<dcomplex>(G0_d_t_ti[bl1](j, n, range::all));
@@ -451,11 +455,12 @@ namespace triqs_ctint {
             }
 
             // We treat the delta-contribution seperately
-            auto M3_del_mnkl = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, n, k, l).data());
+            auto M3_del_mnkl = vector_view<dcomplex>{M3_del(m, n, k, l, _)};
             for (auto [i, j] : product_range(bl1_size, bl1_size)) {
               chi2c(i, j, k, l) += nda::blas::dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range::all)));
             }
           }
+          
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);
@@ -463,10 +468,12 @@ namespace triqs_ctint {
             arr_GG(m, i, l, n, range::all) = G0_d_ti_t_del[bl1](m, i, range::all) * G0_d_t_ti_del[bl2](l, n, range::all);
           }
 
+          auto M3_perm = nda::array<dcomplex, 6>{permuted_indices_view<encode(std::array{4, 5, 0, 1, 2, 3})>(M3_conn(bl1, bl2).data())};
+          auto M3_del  = nda::array<dcomplex, 5>{permuted_indices_view<encode(std::array{4, 0, 1, 2, 3})>(M3_delta(bl1, bl2).data())};
+
           for (auto [m, j, k, n] : product_range(bl1_size, bl1_size, bl2_size, bl2_size)) {
 
-            // We have to make a copy so that M3 is contiguous in memory
-            auto M3_mjkn = matrix<dcomplex>{slice_target_to_scalar(M3_conn(bl1, bl2), m, j, k, n).data()};
+            auto M3_mjkn = matrix_view<dcomplex>{M3_perm(m, j, k, n, _, _)};
             for (auto [i, l] : product_range(bl1_size, bl2_size)) {
               auto G1_mi = vector_view<dcomplex>(G0_d_ti_t[bl1](m, i, range::all));
               auto G2_ln = vector_view<dcomplex>(G0_d_t_ti[bl2](l, n, range::all));
@@ -474,7 +481,7 @@ namespace triqs_ctint {
             }
 
             // We treat the delta-contribution seperately
-            auto M3_del_mjkn = vector<dcomplex>(slice_target_to_scalar(M3_delta(bl1, bl2), m, j, k, n).data());
+            auto M3_del_mjkn = vector_view<dcomplex>{M3_del(m, j, k, n, _)};
             for (auto [i, l] : product_range(bl1_size, bl2_size)) {
               chi2c(i, j, k, l) += nda::blas::dot(M3_del_mjkn, vector_view<dcomplex>(arr_GG(m, i, l, n, range::all)));
             }
