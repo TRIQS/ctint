@@ -287,9 +287,9 @@ namespace triqs_ctint {
     }
 
     // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw, world);
-    if (M4pp_iw and M_iw) G2ppc_iw = G2ppc_from_M4pp(M4pp_iw.value(), M_iw.value(), G0_shift_iw, world);
-    if (M4ph_iw and M_iw) G2phc_iw = G2phc_from_M4ph(M4ph_iw.value(), M_iw.value(), G0_shift_iw, world);
+    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M4pp_iw and M_iw) G2ppc_iw = G2ppc_from_M4pp(M4pp_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M4ph_iw and M_iw) G2phc_iw = G2phc_from_M4ph(M4ph_iw.value(), M_iw.value(), G0_shift_iw);
 
     if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
     if (G2ppc_iw and M_iw) Fpp_iw = Fpp_from_G2ppc(G2ppc_iw.value(), G_iw);

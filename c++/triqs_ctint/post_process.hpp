@@ -5,11 +5,11 @@
 namespace triqs_ctint {
 
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
-  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, mpi::communicator const &comm);
+  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2ppc_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, mpi::communicator const &comm);
+  chi4_iw_t G2ppc_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2phc_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, mpi::communicator const &comm);
+  chi4_iw_t G2phc_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
 
   /// Calculate the vertex function $F$ from G2c_iw and G_iw
   chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw);
@@ -349,8 +349,7 @@ namespace triqs_ctint {
       M_del[n_tau_M3_del - 1] *= 0.5;
     }
 
-    auto comm = mpi::communicator{};
-    for (auto t : mpi::chunk(tau_mesh_chi2, comm)) {
+    for (auto t : tau_mesh_chi2) {
 
       // We have to skip the points that match the M3 tau_mesh to avoid problems in the integration below
       if (t.data_index() % 2 == 0 and t.data_index() != 0 and t.data_index() != n_tau_chi2 - 1) continue;
@@ -483,8 +482,6 @@ namespace triqs_ctint {
         }
       }
     }
-
-    chi2_conn() = mpi::all_reduce(chi2_conn, comm);
 
     for (auto t : tau_mesh_chi2) {
       // We perform a linear interpolation for the problematic Meshpoints of chi2_conn
