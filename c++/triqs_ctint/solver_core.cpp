@@ -268,7 +268,7 @@ namespace triqs_ctint {
         auto iw_mesh_large = mesh::imfreq{p.beta, Fermion, p.n_iw_M3 + p.n_iW_M3};
         auto M3xph_ferm_iw = make_gf_from_fourier<0, 1>(M3xph_tau.value(), iw_mesh, iw_mesh_large);
         auto M3xph_del_iW  = make_gf_from_fourier(M3xph_delta.value(), iW_mesh, make_zero_tail(M3xph_delta.value()));
-        M3xph_iw           = make_block2_gf(mesh::prod{iw_mesh, iW_mesh}, p.gf_struct);
+        M3xph_iw           = make_block2_gf(mesh::prod{iW_mesh, iw_mesh}, p.gf_struct);
 
         // Shift from fermionic to mixed particle-hole-cross frequency notation
         // CAUTION! The first time should be fourier transformed with e^{-iwt}
