@@ -44,7 +44,8 @@ namespace triqs_ctint::measures {
     array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
+    block_gf<prod<imfreq, imfreq>, matrix_valued> M, K1, K2;
+    block_gf<prod<imfreq, imfreq, imfreq>, matrix_valued> K3;
   };
 
 } // namespace triqs_ctint::measures
