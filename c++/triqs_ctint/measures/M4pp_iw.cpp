@@ -58,17 +58,20 @@ namespace triqs_ctint::measures {
         auto const &M1 = M[bl1];
         auto const &M2 = M[bl2];
         auto &M4       = M4pp_iw_(bl1, bl2);
-        for (int i : range(bl1_size))
-          for (int j : range(bl1_size))
-            for (int k : range(bl2_size))
-              for (int l : range(bl2_size))
-                for (auto iW : iW_mesh)
-                  for (auto iw : iw_mesh)
-                    for (auto iwp : iw_mesh) {
-                      M4[iW, iw, iwp](i, j, k, l) += sign
-                         * (M1[matsubara_freq{iW - iwp}, matsubara_freq{iw}](j, i) * M2[matsubara_freq{iwp}, matsubara_freq{iW - iw}](l, k)
-                            - kronecker(bl1, bl2) * M1[matsubara_freq{iwp}, matsubara_freq{iw}](l, i) * M2[matsubara_freq{iW - iwp}, matsubara_freq{iW - iw}](j, k));
+
+        for (auto iW : iW_mesh)
+          for (auto iw : iw_mesh)
+            for (auto iwp : iw_mesh)
+              for (int i : range(bl1_size))
+                for (int j : range(bl1_size)) {
+                  auto M1val = M1[iW - iwp, iw.value()](j, i);
+
+                  for (int k : range(bl2_size))
+                    for (int l : range(bl2_size)) {
+                      M4[iW, iw, iwp](i, j, k, l) += sign * M1val * M2[iwp.value(), iW - iw](l, k);
+                      if (bl1 == bl2) { M4[iW, iw, iwp](i, j, k, l) -= sign * M1[iwp.value(), iw.value()](l, i) * M2[iW - iwp, iW - iw](j, k); }
                     }
+                }
       }
   }
 

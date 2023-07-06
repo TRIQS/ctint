@@ -56,17 +56,21 @@ namespace triqs_ctint::measures {
         auto const &M1 = M[bl1];
         auto const &M2 = M[bl2];
         auto &M4       = M4_iw_(bl1, bl2);
-        for (int i : range(bl1_size))
-          for (int j : range(bl1_size))
-            for (int k : range(bl2_size))
-              for (int l : range(bl2_size))
-                for (auto iw1 : iw_mesh)
-                  for (auto iw2 : iw_mesh)
-                    for (auto iw3 : iw_mesh) {
+
+        for (auto iw1 : iw_mesh)
+          for (auto iw2 : iw_mesh)
+            for (auto iw3 : iw_mesh)
+              for (int i : range(bl1_size))
+                for (int j : range(bl1_size)) {
+                  auto M1val = M1[iw2.value(), iw1](j, i);
+
+                  for (int k : range(bl2_size))
+                    for (int l : range(bl2_size)) {
                       auto iw4 = iw1 + iw3 - iw2;
-                      M4[iw1, iw2, iw3](i, j, k, l) +=
-                         sign * (M1[iw2.value(), iw1](j, i) * M2[iw4, iw3](l, k) - kronecker(bl1, bl2) * M1[iw4, iw1](l, i) * M2[iw2.value(), iw3](j, k));
+                      M4[iw1, iw2, iw3](i, j, k, l) += sign * M1val * M2[iw4, iw3](l, k);
+                      if (bl1 == bl2) { M4[iw1, iw2, iw3](i, j, k, l) -= sign * M1[iw4, iw1](l, i) * M2[iw2.value(), iw3](j, k); }
                     }
+                }
       }
   }
 
