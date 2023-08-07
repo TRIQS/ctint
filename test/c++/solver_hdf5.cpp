@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
   // Hubbard Atom parameters
   double U    = 1.0;
-  double mu   = U/2.0;
+  double mu   = U / 2.0;
   double beta = 10;
 
   // Create Solver

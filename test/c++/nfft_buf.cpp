@@ -182,7 +182,7 @@ TEST_F(Nfft, 2D) { // NOLINT
 
   // === Generate 2d Gf with fftw
   // Create 1d giw from fftw
-  auto gtau2 = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
+  auto gtau2   = gf<imtime, matrix_valued>{{beta, Fermion, n_tau}, shape};
   auto iw_mesh = make_adjoint_mesh(gtau2.mesh(), n_iw);
   for (auto tau : gtau2.mesh()) gtau2[tau] = f_tau(tau);
   auto giw_fftw = make_gf_from_fourier(gtau2, iw_mesh, make_zero_tail(gtau2));
