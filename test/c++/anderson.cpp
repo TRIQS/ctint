@@ -13,7 +13,7 @@ TEST(CtInt, Anderson) { // NOLINT
   // System Parameters
   double delta = 0.35;
   double U     = 1.0;
-  double mu    = U/2;
+  double mu    = U / 2;
 
   // Discrete bath energies and hoppings
   std::vector<double> energ = {-0.7, -0.15, 0.15, 0.7}; // Vertex Paper ( optimized for Beta=20 ) to fit box DOS

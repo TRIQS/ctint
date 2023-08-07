@@ -34,8 +34,7 @@ namespace triqs_ctint::measures {
           // Project tau to closest point on the binning grid
           M_tau_[b][closest_mesh_pt(dtau)](cdag_j.u, c_i.u) += Ginv * s * sign;
         }
-      })
-        ;
+      });
     }
   }
 

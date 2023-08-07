@@ -23,14 +23,12 @@ namespace triqs_ctint {
 
   // Find index of first row in determinant matrix that has an element not less than c.
   int get_c_lower_bound(det_t const *d, c_t const &c) {
-    return lower_bound(
-       d->size(), [d](int n) { return d->get_x(n); }, c);
+    return lower_bound(d->size(), [d](int n) { return d->get_x(n); }, c);
   }
 
   // Find index of first column in determinant matrix that has an element not less than cdag.
   int get_cdag_lower_bound(det_t const *d, cdag_t const &cdag) {
-    return lower_bound(
-       d->size(), [d](int n) { return d->get_y(n); }, cdag);
+    return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, cdag);
   }
 
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {

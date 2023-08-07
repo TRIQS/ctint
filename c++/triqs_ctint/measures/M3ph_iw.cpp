@@ -84,8 +84,7 @@ namespace triqs_ctint::measures {
             buf_arrarr_MG(bl)(b_u, c_i.u).push_back({tau_j}, Ginv_ji * G0_ia);
           }
         }
-      })
-        ;
+      });
     }
 
     // Flush remaining points from all buffers

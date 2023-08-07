@@ -32,7 +32,6 @@ TEST(util, hint_decomp) { // NOLINT
 
   EXPECT_OPERATOR_NEAR(h_dens, U * n("up", 0) * n("down", 1));
   EXPECT_OPERATOR_NEAR(h_nondens, J * sx_0 * sx_1);
-
 }
 
 // Given a gf_struct object, determine the integer indices of a given canonical operator
@@ -79,7 +78,6 @@ TEST(util, cyclic_difference) { // NOLINT
   EXPECT_EQ(std::make_pair(-1.0, 8.0), cyclic_difference(t1, t2));
   EXPECT_EQ(std::make_pair(1.0, 8.0), cyclic_difference(t1, t2 + beta));
   EXPECT_EQ(std::make_pair(-1.0, 2.0), cyclic_difference(t2, t1 + beta));
-
 }
 
 MAKE_MAIN;
