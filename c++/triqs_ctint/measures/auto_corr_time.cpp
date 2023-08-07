@@ -2,8 +2,7 @@
 
 namespace triqs_ctint::measures {
 
-  auto_corr_time::auto_corr_time(params_t const &, qmc_config_t const &, container_set *results)
-    : auto_corr_time_(results->auto_corr_time) {}
+  auto_corr_time::auto_corr_time(params_t const &, qmc_config_t const &, container_set *results) : auto_corr_time_(results->auto_corr_time) {}
 
   void auto_corr_time::accumulate(mc_weight_t sign) { log_acc << sign; }
 

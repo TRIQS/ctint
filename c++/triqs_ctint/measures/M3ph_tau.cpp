@@ -14,7 +14,7 @@ namespace triqs_ctint::measures {
     M3ph_tau_() = 0;
 
     // Init measurement container for equal-time component of M3ph
-    auto mesh_b = mesh::imtime({params.beta, Boson, params.n_tau});
+    auto mesh_b         = mesh::imtime({params.beta, Boson, params.n_tau});
     results->M3ph_delta = make_block2_gf(mesh_b, params.gf_struct);
     M3ph_delta_.rebind(*results->M3ph_delta);
     M3ph_delta_() = 0;
@@ -119,8 +119,8 @@ namespace triqs_ctint::measures {
         // Do not consider empty blocks
         if (det2_size == 0) continue;
 
-        auto const &GMG  = GMG_vec[bl2];
-        int bl2_size     = G0_tau[bl2].target_shape()[0];
+        auto const &GMG     = GMG_vec[bl2];
+        int bl2_size        = G0_tau[bl2].target_shape()[0];
         auto &M3ph_tau_bl   = M3ph_tau_(bl1, bl2);
         auto &M3ph_delta_bl = M3ph_delta_(bl1, bl2);
 

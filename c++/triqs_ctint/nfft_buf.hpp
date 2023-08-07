@@ -48,10 +48,10 @@ namespace triqs::utility {
     }
 
     // nfft_buffer needs to be uncopyable, because nfft_plan contains raw pointers
-    nfft_buf_t(nfft_buf_t const &) = delete;
-    nfft_buf_t(nfft_buf_t &&)      = default;
+    nfft_buf_t(nfft_buf_t const &)            = delete;
+    nfft_buf_t(nfft_buf_t &&)                 = default;
     nfft_buf_t &operator=(nfft_buf_t const &) = delete;
-    nfft_buf_t &operator                      =(nfft_buf_t &&rhs) {
+    nfft_buf_t &operator=(nfft_buf_t &&rhs) {
       fiw_arr.rebind(rhs.fiw_arr);
       plan_ptr = std::move(rhs.plan_ptr);
 
@@ -108,7 +108,7 @@ namespace triqs::utility {
 
       // Trivial initialization of the remaining points
       for (int i = buf_counter; i < buf_size; ++i) {
-        fx_arr()[i] = 0.0; // NOLINT
+        fx_arr()[i] = 0.0;                                                                  // NOLINT
         for (int r = 0; r < Rank; ++r) x_arr()[i * Rank + r] = -0.5 + double(i) / buf_size; // NOLINT
       }
       do_nfft();
@@ -178,4 +178,4 @@ namespace triqs::utility {
       }
     }
   };
-} // namespace triqs_ctint
+} // namespace triqs::utility

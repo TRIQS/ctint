@@ -15,11 +15,11 @@ namespace triqs_ctint::measures {
     M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_);
 
     // M3pp_iw needs to be uncopyable due to nfft_buf_t
-    M3pp_iw(M3pp_iw const &) = delete;
-    M3pp_iw(M3pp_iw &&)      = default;
-    ~M3pp_iw()               = default;
+    M3pp_iw(M3pp_iw const &)            = delete;
+    M3pp_iw(M3pp_iw &&)                 = default;
+    ~M3pp_iw()                          = default;
     M3pp_iw &operator=(M3pp_iw const &) = delete;
-    M3pp_iw &operator=(M3pp_iw &&) = delete;
+    M3pp_iw &operator=(M3pp_iw &&)      = delete;
 
     /// Accumulate M_tau using binning
     void accumulate(mc_weight_t sign);

@@ -460,7 +460,7 @@ namespace triqs_ctint {
               chi2c(i, j, k, l) += nda::blas::dot(M3_del_mnkl, vector_view<dcomplex>(arr_GG(m, i, j, n, range::all)));
             }
           }
-          
+
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           auto arr_GG = array<dcomplex, 5>(bl1_size, bl1_size, bl2_size, bl2_size, n_tau_M3_del);

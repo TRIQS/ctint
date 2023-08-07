@@ -28,7 +28,6 @@ namespace triqs_ctint::measures {
       // Loop over every index pair (x,y) in the determinant matrix
       // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
-
         // Absolut time-difference tau of the index pair
         auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
 

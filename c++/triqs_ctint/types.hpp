@@ -186,8 +186,7 @@ namespace triqs::gfs {
   /// The maximum's norm of a triqs Green function. Returns the max_norm of the data array.
   template <typename Gf> std::enable_if_t<is_gf_v<Gf>, double> max_norm(Gf const &G) { return max_norm(G.data()); }
 
-  template <typename M, typename Target = tensor_valued<4>>
-  block2_gf<M, Target> make_block2_gf(M const &m, gf_struct_t const &gf_struct) {
+  template <typename M, typename Target = tensor_valued<4>> block2_gf<M, Target> make_block2_gf(M const &m, gf_struct_t const &gf_struct) {
 
     std::vector<std::vector<gf<M, Target>>> gf_vecvec;
     std::vector<std::string> block_names;

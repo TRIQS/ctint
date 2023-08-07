@@ -14,7 +14,7 @@ namespace triqs_ctint::measures {
     M3pp_tau_() = 0;
 
     // Init measurement container for equal-time component of M3pp
-    auto mesh_b = mesh::imtime({params.beta, Boson, params.n_tau});
+    auto mesh_b         = mesh::imtime({params.beta, Boson, params.n_tau});
     results->M3pp_delta = make_block2_gf(mesh_b, params.gf_struct);
     M3pp_delta_.rebind(*results->M3pp_delta);
     M3pp_delta_() = 0;

@@ -27,11 +27,11 @@ namespace triqs_ctint {
     solver_core(constr_params_t const &constr_params_);
 
     // Delete assignement operator because of const members
-    solver_core(solver_core const &p) = default;
-    solver_core(solver_core &&p)      = default;
-    ~solver_core()                    = default;
+    solver_core(solver_core const &p)            = default;
+    solver_core(solver_core &&p)                 = default;
+    ~solver_core()                               = default;
     solver_core &operator=(solver_core const &p) = delete;
-    solver_core &operator=(solver_core &&p) = default;
+    solver_core &operator=(solver_core &&p)      = default;
 
     /**
      * Solve method that performs CTINT calculation

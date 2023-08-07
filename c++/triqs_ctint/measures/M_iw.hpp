@@ -15,11 +15,11 @@ namespace triqs_ctint::measures {
     M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
     // M_iw needs to be uncopyable due to nfft_buf_t
-    M_iw(M_iw const &) = delete;
-    M_iw(M_iw &&)      = default;
-    ~M_iw()            = default;
+    M_iw(M_iw const &)            = delete;
+    M_iw(M_iw &&)                 = default;
+    ~M_iw()                       = default;
     M_iw &operator=(M_iw const &) = delete;
-    M_iw &operator=(M_iw &&) = delete;
+    M_iw &operator=(M_iw &&)      = delete;
 
     /// Accumulate M_iw using nfft
     void accumulate(mc_weight_t sign);

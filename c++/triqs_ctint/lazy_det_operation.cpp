@@ -23,12 +23,14 @@ namespace triqs_ctint {
 
   // Find index of first row in determinant matrix that has an element not less than c.
   int get_c_lower_bound(det_t const *d, c_t const &c) {
-    return lower_bound(d->size(), [d](int n) { return d->get_x(n); }, c);
+    return lower_bound(
+       d->size(), [d](int n) { return d->get_x(n); }, c);
   }
 
   // Find index of first column in determinant matrix that has an element not less than cdag.
   int get_cdag_lower_bound(det_t const *d, cdag_t const &cdag) {
-    return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, cdag);
+    return lower_bound(
+       d->size(), [d](int n) { return d->get_y(n); }, cdag);
   }
 
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
@@ -64,9 +66,7 @@ namespace triqs_ctint {
     switch (c_count) {
       case (1): return d->try_insert(pos_c[0], pos_cdag[0], c_lst[0], cdag_lst[0]) * prefactor;
       case (2): return d->try_insert2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1], c_lst[0], c_lst[1], cdag_lst[0], cdag_lst[1]) * prefactor;
-      default:
-        TRIQS_RUNTIME_ERROR << "Not implemented";
-        return 0; // avoid compiler warning
+      default: TRIQS_RUNTIME_ERROR << "Not implemented"; return 0; // avoid compiler warning
     }
   }
 
@@ -103,9 +103,7 @@ namespace triqs_ctint {
     switch (c_count) {
       case (1): return d->try_remove(pos_c[0], pos_cdag[0]) * prefactor;
       case (2): return d->try_remove2(pos_c[0], pos_c[1], pos_cdag[0], pos_cdag[1]) * prefactor;
-      default:
-        TRIQS_RUNTIME_ERROR << "Not implemented";
-        return 0; // avoid compiler warning
+      default: TRIQS_RUNTIME_ERROR << "Not implemented"; return 0; // avoid compiler warning
     }
   }
 

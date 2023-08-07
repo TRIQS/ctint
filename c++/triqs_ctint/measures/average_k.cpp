@@ -3,7 +3,7 @@
 namespace triqs_ctint::measures {
 
   average_k::average_k(params_t const &, qmc_config_t const &qmc_config_, container_set *results)
-    : qmc_config(qmc_config_), average_k_(results->average_k) {
+     : qmc_config(qmc_config_), average_k_(results->average_k) {
     average_k_ = 0.0;
   }
 

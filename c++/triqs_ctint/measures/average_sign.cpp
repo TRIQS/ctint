@@ -2,8 +2,7 @@
 
 namespace triqs_ctint::measures {
 
-  average_sign::average_sign(params_t const &, qmc_config_t const &, container_set *results)
-     : average_sign_(results->average_sign) {
+  average_sign::average_sign(params_t const &, qmc_config_t const &, container_set *results) : average_sign_(results->average_sign) {
     average_sign_ = 0.0;
   }
 
