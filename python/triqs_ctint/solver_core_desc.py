@@ -21,6 +21,7 @@ module.add_preamble("""
 #include <cpp2py/converters/vector.hpp>
 #include <nda_py/cpp2py_converters.hpp>
 #include <triqs/cpp2py_converters/gf.hpp>
+#include <triqs/cpp2py_converters/mesh.hpp>
 #include <triqs/cpp2py_converters/operators_real_complex.hpp>
 #include <triqs/cpp2py_converters/real_or_complex.hpp>
 
@@ -96,6 +97,16 @@ c.add_member(c_name = "M4_iw",
              read_only= True,
              doc = r"""Building block for the full vertex function measured directly in Matsubara frequencies using NFFT""")
 
+c.add_member(c_name = "M4pp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full vertex function (pp channel) measured directly in Matsubara frequencies using NFFT""")
+
+c.add_member(c_name = "M4ph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
+
 c.add_member(c_name = "M3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
@@ -116,12 +127,22 @@ c.add_member(c_name = "M3ph_tau",
              read_only= True,
              doc = r"""Building block for the fermion boson vertex (ph channel) in imaginary time""")
 
+c.add_member(c_name = "M3xph_tau",
+             c_type = "std::optional<chi3_tau_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (xph channel) in imaginary time""")
+
 c.add_member(c_name = "M3pp_delta",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = r"""Equal-time peak in M3pp_tau""")
 
 c.add_member(c_name = "M3ph_delta",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""Equal-time peak in M3ph_tau""")
+
+c.add_member(c_name = "M3xph_delta",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
              doc = r"""Equal-time peak in M3ph_tau""")
@@ -166,20 +187,55 @@ c.add_member(c_name = "M3ph_iw",
              read_only= True,
              doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies""")
 
+c.add_member(c_name = "M3xph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (xph channel) in Matsubara frequencies""")
+
 c.add_member(c_name = "F_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The two-particle vertex function in purely fermionic notation (iw1, iw2, iw3)""")
+
+c.add_member(c_name = "Fpp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle vertex function in the pp channel""")
+
+c.add_member(c_name = "Fph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle vertex function in the ph channel""")
 
 c.add_member(c_name = "G2c_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The connected part of the two-particle Green function""")
 
+c.add_member(c_name = "G2ppc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The connected part of the two-particle Green function (pp channel)""")
+
+c.add_member(c_name = "G2phc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The connected part of the two-particle Green function (ph channel)""")
+
 c.add_member(c_name = "G2_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The two-particle Green function""")
+
+c.add_member(c_name = "G2pp_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle Green function (pp channel)""")
+
+c.add_member(c_name = "G2ph_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The two-particle Green function (ph channel)""")
 
 c.add_member(c_name = "chi2pp_iw",
              c_type = "std::optional<chi2_iw_t>",
@@ -201,6 +257,11 @@ c.add_member(c_name = "chi2ph_conn_tau_from_M3",
              read_only= True,
              doc = r"""M2 in the particle-hole channel in imaginary time as obtained from M3""")
 
+c.add_member(c_name = "chi2xph_conn_tau_from_M3",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""M2 in the particle-hole-cross channel in imaginary time as obtained from M3""")
+
 c.add_member(c_name = "chi2pp_tau_from_M3",
              c_type = "std::optional<chi2_tau_t>",
              read_only= True,
@@ -211,6 +272,11 @@ c.add_member(c_name = "chi2ph_tau_from_M3",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained from M3ph_tau""")
 
+c.add_member(c_name = "chi2xph_tau_from_M3",
+             c_type = "std::optional<chi2_tau_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary times as obtained from M3ph_tau""")
+
 c.add_member(c_name = "chi2pp_iw_from_M3",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
@@ -220,6 +286,11 @@ c.add_member(c_name = "chi2ph_iw_from_M3",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau""")
+
+c.add_member(c_name = "chi2xph_iw_from_M3",
+             c_type = "std::optional<chi2_iw_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau""")
 
 c.add_member(c_name = "chiAB_iw",
              c_type = "std::optional<gf<imfreq>>",
@@ -235,6 +306,11 @@ c.add_member(c_name = "chi3ph_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies""")
+
+c.add_member(c_name = "chi3xph_iw",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""The equal time correlator $\chi_3$ in the particle-hole-cross channel in Matsubara frequencies""")
 
 c.add_member(c_name = "chi3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
@@ -367,7 +443,13 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M4_iw                 | bool                                 | false                                   | Measure M4(iw) NFFT                                                                                                                   |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw_M4                       | int                                  | 32                                      | Number of positive Matsubara frequencies in M4                                                                                        |
+| measure_M4pp_iw               | bool                                 | false                                   | Measure M4pp(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M4ph_iw               | bool                                 | false                                   | Measure M4ph(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iW_M4                       | int                                  | 32                                      | Number of positive bosonic Matsubara frequencies in M4                                                                                |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iw_M4                       | int                                  | 32                                      | Number of positive fermionic Matsubara frequencies in M4                                                                              |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3pp_iw               | bool                                 | false                                   | Measure M3pp(iw)                                                                                                                      |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -380,6 +462,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | measure_M3pp_tau              | bool                                 | false                                   | Measure M3pp(tau)                                                                                                                     |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_tau              | bool                                 | false                                   | Measure M3ph(tau)                                                                                                                     |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3xph_tau             | bool                                 | false                                   | Measure M3xph(tau)                                                                                                                    |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_tau_M3                      | int                                  | 201                                     | Number of imaginary time points in M3                                                                                                 |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -487,6 +571,14 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iw_M4                       | int                                  | 32                                      | Number of positive Matsubara frequencies in M4                                                                                        |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M4pp_iw               | bool                                 | false                                   | Measure M4pp(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M4ph_iw               | bool                                 | false                                   | Measure M4ph(iw) NFFT                                                                                                                 |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iW_M4                       | int                                  | 32                                      | Number of positive bosonic Matsubara frequencies in M4                                                                                |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_iw_M4                       | int                                  | 32                                      | Number of positive fermionic Matsubara frequencies in M4                                                                              |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3pp_iw               | bool                                 | false                                   | Measure M3pp(iw)                                                                                                                      |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_iw               | bool                                 | false                                   | Measure M3ph(iw)                                                                                                                      |
@@ -498,6 +590,8 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 | measure_M3pp_tau              | bool                                 | false                                   | Measure M3pp(tau)                                                                                                                     |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_tau              | bool                                 | false                                   | Measure M3ph(tau)                                                                                                                     |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3xph_tau             | bool                                 | false                                   | Measure M3xph(tau)                                                                                                                    |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_tau_M3                      | int                                  | 201                                     | Number of imaginary time points in M3                                                                                                 |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -667,10 +761,25 @@ c.add_member(c_name = "measure_M4_iw",
              initializer = """ false """,
              doc = r"""Measure M4(iw) NFFT""")
 
+c.add_member(c_name = "measure_M4pp_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4pp(iw) NFFT""")
+
+c.add_member(c_name = "measure_M4ph_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4ph(iw) NFFT""")
+
+c.add_member(c_name = "n_iW_M4",
+             c_type = "int",
+             initializer = """ 32 """,
+             doc = r"""Number of positive bosonic Matsubara frequencies in M4""")
+
 c.add_member(c_name = "n_iw_M4",
              c_type = "int",
              initializer = """ 32 """,
-             doc = r"""Number of positive Matsubara frequencies in M4""")
+             doc = r"""Number of positive fermionic Matsubara frequencies in M4""")
 
 c.add_member(c_name = "measure_M3pp_iw",
              c_type = "bool",
@@ -701,6 +810,11 @@ c.add_member(c_name = "measure_M3ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M3ph(tau)""")
+
+c.add_member(c_name = "measure_M3xph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3xph(tau)""")
 
 c.add_member(c_name = "n_tau_M3",
              c_type = "int",
@@ -946,10 +1060,25 @@ c.add_member(c_name = "measure_M4_iw",
              initializer = """ false """,
              doc = r"""Measure M4(iw) NFFT""")
 
+c.add_member(c_name = "measure_M4pp_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4pp(iw) NFFT""")
+
+c.add_member(c_name = "measure_M4ph_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M4ph(iw) NFFT""")
+
+c.add_member(c_name = "n_iW_M4",
+             c_type = "int",
+             initializer = """ 32 """,
+             doc = r"""Number of positive bosonic Matsubara frequencies in M4""")
+
 c.add_member(c_name = "n_iw_M4",
              c_type = "int",
              initializer = """ 32 """,
-             doc = r"""Number of positive Matsubara frequencies in M4""")
+             doc = r"""Number of positive fermionic Matsubara frequencies in M4""")
 
 c.add_member(c_name = "measure_M3pp_iw",
              c_type = "bool",
@@ -980,6 +1109,11 @@ c.add_member(c_name = "measure_M3ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M3ph(tau)""")
+
+c.add_member(c_name = "measure_M3xph_tau",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3xph(tau)""")
 
 c.add_member(c_name = "n_tau_M3",
              c_type = "int",
