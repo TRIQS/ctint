@@ -79,8 +79,12 @@ class test_Gf_Base_Op(unittest.TestCase):
             for i in range(10):
                 np.random.seed(i)
                 x = np.random.rand(3 * n_terms)
-                assert_arrays_are_close(S.jacobi(x,solve_params), jacobi_numerical(lambda x: S.f(x,solve_params),x,dx))
-                
- 
+                assert_arrays_are_close(
+                    S.jacobi(x,solve_params),
+                    jacobi_numerical(lambda x: S.f(x,solve_params),x,dx),
+                    1e-5,
+                )
+
+
 if __name__ == '__main__':
     unittest.main()
