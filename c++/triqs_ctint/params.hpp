@@ -167,6 +167,10 @@ namespace triqs_ctint {
 
     /// Measure of chiAB by insertion
     bool measure_chiAB_tau = false;
+    /// DLR energy cutoff
+    double dlr_w_max = NAN;
+    /// DLR tolerance
+    double dlr_eps = 1e-10;
     /// The list of all operators A
     std::vector<many_body_operator> chi_A_vec = {};
     /// The list of all operators B

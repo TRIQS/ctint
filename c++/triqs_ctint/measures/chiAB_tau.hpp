@@ -26,7 +26,7 @@ namespace triqs_ctint::measures {
     qmc_config_t &qmc_config;
 
     // Container for the accumulation
-    gf_view<imtime> chiAB_tau_;
+    gf_view<dlr_imtime> chiAB_tau_;
 
     // The bosonic operator vectors
     using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
@@ -37,7 +37,7 @@ namespace triqs_ctint::measures {
     mc_weight_t Z = 0.0;
 
     // The tau-mesh
-    mesh::imtime tau_mesh;
+    mesh::dlr_imtime tau_mesh;
   };
 
 } // namespace triqs_ctint::measures

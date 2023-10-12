@@ -6,7 +6,10 @@ using namespace triqs::utility;
 namespace triqs_ctint::measures {
 
   chiAB_tau::chiAB_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.n_tau_chi2} {
+     : params(params_), qmc_config(qmc_config_) {
+
+    if (std::isnan(params.dlr_w_max)) TRIQS_RUNTIME_ERROR << "chiAB: Failed to provide dlr energy cutoff dlr_w_max in solve_params \n";
+    tau_mesh = dlr_imtime{params.beta, Boson, params.dlr_w_max, params.dlr_eps};
 
     if (params.chi_A_vec.size() == 0 or params.chi_B_vec.size() == 0)
       TRIQS_RUNTIME_ERROR << " Empty operator vector detected in chiAB measurement \n";
@@ -15,7 +18,7 @@ namespace triqs_ctint::measures {
     for (auto B : params.chi_B_vec) B_vec.emplace_back(get_terms(B, params.gf_struct));
 
     // Init measurement container and capture view
-    results->chiAB_tau = gf<imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
+    results->chiAB_tau = gf{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
     chiAB_tau_.rebind(results->chiAB_tau.value());
     chiAB_tau_() = 0;
   }

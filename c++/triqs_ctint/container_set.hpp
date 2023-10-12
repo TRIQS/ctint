@@ -82,7 +82,7 @@ namespace triqs_ctint {
     std::optional<chi2_tau_t> chi2ph_tau;
 
     /// The correlation function $\chi_AB$ in imaginary times
-    std::optional<gf<imtime>> chiAB_tau;
+    std::optional<gf<dlr_imtime>> chiAB_tau;
 
     //============ Containers dependent on measured quantities
 
@@ -164,9 +164,6 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau
     std::optional<chi2_iw_t> chi2xph_iw_from_M3;
 
-    /// The correlation function $\chi_AB$ in imaginary frequencies
-    std::optional<gf<imfreq>> chiAB_iw;
-
     /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;
 
@@ -236,7 +233,6 @@ namespace triqs_ctint {
       h5_write(grp, "chi2pp_iw_from_M3", c.chi2pp_iw_from_M3);
       h5_write(grp, "chi2ph_iw_from_M3", c.chi2ph_iw_from_M3);
       h5_write(grp, "chi2xph_iw_from_M3", c.chi2xph_iw_from_M3);
-      h5_write(grp, "chiAB_iw", c.chiAB_iw);
       h5_write(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_write(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_write(grp, "chi3xph_iw", c.chi3xph_iw);
@@ -305,7 +301,6 @@ namespace triqs_ctint {
       if (!c.chi2ph_tau_from_M3) h5_read(grp, "chi2ph_new_tau", c.chi2ph_tau_from_M3);
       if (!c.chi2pp_iw_from_M3) h5_read(grp, "chi2pp_new_iw", c.chi2pp_iw_from_M3);
       if (!c.chi2ph_iw_from_M3) h5_read(grp, "chi2ph_new_iw", c.chi2ph_iw_from_M3);
-      h5_read(grp, "chiAB_iw", c.chiAB_iw);
       h5_read(grp, "chi3pp_iw", c.chi3pp_iw);
       h5_read(grp, "chi3ph_iw", c.chi3ph_iw);
       h5_read(grp, "chi3xph_iw", c.chi3xph_iw);
