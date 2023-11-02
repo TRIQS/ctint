@@ -51,6 +51,12 @@ namespace triqs_ctint {
     /// Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4ph_iw;
 
+    /// Building block for the full, local vertex function (pp channel) measured directly in Matsubara frequencies using NFFT
+    std::optional<chi4_iw_t> f4pp_loc_iw;
+
+    /// Building block for the full, local vertex function (ph channel) measured directly in Matsubara frequencies using NFFT
+    std::optional<chi4_iw_t> f4ph_loc_iw;
+
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT
     std::optional<chi3_iw_t> M3pp_iw_nfft;
 
@@ -92,6 +98,10 @@ namespace triqs_ctint {
     /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
     g_iw_t G_iw;
 
+    /// Buffers to store Ginv * G0 / G0 * Ginv. Needed for local vertex measurement
+    g_iw_t GinvG01_iw; // Ginv * G0
+    g_iw_t GinvG02_iw; // G0 * Ginv
+
     /// Self-energy in Matsubara frequencies. Dependent on M_iw
     g_iw_t Sigma_iw;
 
@@ -112,6 +122,12 @@ namespace triqs_ctint {
 
     /// The two-particle vertex function (ph channel)
     std::optional<chi4_iw_t> Fph_iw;
+
+    /// The local two-particle vertex function (pp channel)
+    std::optional<chi4_iw_t> Fpp_loc_iw;
+
+    /// The local two-particle vertex function (ph channel)
+    std::optional<chi4_iw_t> Fph_loc_iw;
 
     /// The connected part of the two-particle Green function
     std::optional<chi4_iw_t> G2c_iw;
@@ -199,6 +215,8 @@ namespace triqs_ctint {
       h5_write(grp, "M4_iw", c.M4_iw);
       h5_write(grp, "M4pp_iw", c.M4pp_iw);
       h5_write(grp, "M4ph_iw", c.M4ph_iw);
+      h5_write(grp, "f4pp_loc_iw", c.f4pp_loc_iw);
+      h5_write(grp, "f4ph_loc_iw", c.f4ph_loc_iw);
       h5_write(grp, "M3pp_tau", c.M3pp_tau);
       h5_write(grp, "M3ph_tau", c.M3ph_tau);
       h5_write(grp, "M3xph_tau", c.M3xph_tau);
@@ -212,6 +230,8 @@ namespace triqs_ctint {
       h5_write(grp, "chiAB_tau", c.chiAB_tau);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
+      h5_write(grp, "GinvG01_iw", c.GinvG01_iw);
+      h5_write(grp, "GinvG02_iw", c.GinvG02_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
@@ -219,6 +239,8 @@ namespace triqs_ctint {
       h5_write(grp, "F_iw", c.F_iw);
       h5_write(grp, "Fpp_iw", c.Fpp_iw);
       h5_write(grp, "Fph_iw", c.Fph_iw);
+      h5_write(grp, "Fpp_loc_iw", c.Fpp_loc_iw);
+      h5_write(grp, "Fph_loc_iw", c.Fph_loc_iw);
       h5_write(grp, "G2_iw", c.G2_iw);
       h5_write(grp, "G2pp_iw", c.G2pp_iw);
       h5_write(grp, "G2ph_iw", c.G2ph_iw);
@@ -261,6 +283,8 @@ namespace triqs_ctint {
       h5_read(grp, "M4_iw", c.M4_iw);
       h5_read(grp, "M4pp_iw", c.M4pp_iw);
       h5_read(grp, "M4ph_iw", c.M4ph_iw);
+      h5_read(grp, "f4pp_loc_iw", c.f4pp_loc_iw);
+      h5_read(grp, "f4ph_loc_iw", c.f4ph_loc_iw);
       h5_read(grp, "M3pp_tau", c.M3pp_tau);
       h5_read(grp, "M3ph_tau", c.M3ph_tau);
       h5::try_read(grp, "M3xph_tau", c.M3xph_tau);
@@ -274,6 +298,8 @@ namespace triqs_ctint {
       h5_read(grp, "chiAB_tau", c.chiAB_tau);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
+      h5_read(grp, "GinvG01_iw", c.GinvG01_iw);
+      h5_read(grp, "GinvG02_iw", c.GinvG02_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
@@ -281,6 +307,8 @@ namespace triqs_ctint {
       h5_read(grp, "F_iw", c.F_iw);
       h5_read(grp, "Fpp_iw", c.Fpp_iw);
       h5_read(grp, "Fph_iw", c.Fph_iw);
+      h5_read(grp, "Fpp_loc_iw", c.Fpp_loc_iw);
+      h5_read(grp, "Fph_loc_iw", c.Fph_loc_iw);
       h5_read(grp, "G2_iw", c.G2_iw);
       h5_read(grp, "G2pp_iw", c.G2pp_iw);
       h5_read(grp, "G2ph_iw", c.G2ph_iw);

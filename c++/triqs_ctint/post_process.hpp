@@ -18,6 +18,13 @@ namespace triqs_ctint {
   /// Calculate the vertex function $Fph$ from G2phc_iw and G_iw
   chi4_iw_t Fph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_cv_t G_iw);
 
+  /// Calculate the vertex function $Fpp_loc$ from f4pp_loc, M_iw and Ginv * G0 / G0 * Ginv
+  chi4_iw_t Fpp_loc_from_f4pp_loc(chi4_iw_t::const_view_type f4pp_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
+                                  g_iw_t::const_view_type GinvG02_iw);
+  /// Calculate the vertex function $Fph_loc$ from f4ph_loc, M_iw and Ginv * G0 / G0 * Ginv
+  chi4_iw_t Fph_loc_from_f4ph_loc(chi4_iw_t::const_view_type f4ph_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
+                                  g_iw_t::const_view_type GinvG02_iw);
+
   /// Calculate the two-particle Green function from G2c_iw and G_iw
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw);
   /// Calculate the two-particle Green function from G2ppc_iw and G_iw

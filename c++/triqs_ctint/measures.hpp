@@ -8,6 +8,8 @@
 #include "./measures/M4_iw.hpp"
 #include "./measures/M4pp_iw.hpp"
 #include "./measures/M4ph_iw.hpp"
+#include "./measures/f4pp_loc_iw.hpp"
+#include "./measures/f4ph_loc_iw.hpp"
 #include "./measures/M3pp_iw.hpp"
 #include "./measures/M3ph_iw.hpp"
 #include "./measures/M3pp_tau.hpp"

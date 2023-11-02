@@ -78,6 +78,13 @@ namespace triqs_ctint {
       post_process({constr_params, last_solve_params.value()});
     }
 
+    // Init buffers for local vertex measurement from previous run
+    void init_GinvG0_buffers() {
+      auto const Ginv = inverse(G_iw);
+      GinvG01_iw = Ginv * G0_iw;
+      GinvG02_iw = G0_iw * Ginv;
+    }
+
     static std::string hdf5_format() { return "CTINT_SolverCore"; }
 
     // Function that writes the solver_core to hdf5 file
