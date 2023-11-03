@@ -211,7 +211,7 @@ namespace triqs_ctint {
 
     for (int bl : range(M_iw.size())) {
       int bl_size      = m[bl].target_shape()[0];
-      auto const &m_bl = m[bl];
+      auto &m_bl       = m[bl];
       auto const &M_bl = M_iw[bl];
       auto const &L_bl = GinvG01_iw[bl];
       auto const &R_bl = GinvG02_iw[bl];
@@ -256,7 +256,7 @@ namespace triqs_ctint {
 
     for (int bl : range(M_iw.size())) {
       int bl_size      = m[bl].target_shape()[0];
-      auto const &m_bl = m[bl];
+      auto &m_bl       = m[bl];
       auto const &M_bl = M_iw[bl];
       auto const &L_bl = GinvG01_iw[bl];
       auto const &R_bl = GinvG02_iw[bl];

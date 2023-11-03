@@ -3,7 +3,7 @@
 
 namespace triqs_ctint::measures {
   f4pp_loc_iw::f4pp_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), GinvG01_iw(results->GinvG01_iw), GinvG02_iw(results->GinvG02_iw) {
+     : params(params_), GinvG01_iw(results->GinvG01_iw), GinvG02_iw(results->GinvG02_iw), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh
     mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M4};
@@ -53,7 +53,7 @@ namespace triqs_ctint::measures {
 
     for (int bl : range(params.n_blocks())) {
       int bl_size      = m[bl].target_shape()[0];
-      auto const &m_bl = m[bl];
+      auto &m_bl       = m[bl];
       auto const &M_bl = M[bl];
       auto const &L_bl = GinvG01_iw[bl];
       auto const &R_bl = GinvG02_iw[bl];

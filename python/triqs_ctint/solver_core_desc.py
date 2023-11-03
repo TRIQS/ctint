@@ -107,6 +107,16 @@ c.add_member(c_name = "M4ph_iw",
              read_only= True,
              doc = r"""Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
 
+c.add_member(c_name = "f4pp_loc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full, local vertex function (pp channel) measured directly in Matsubara frequencies using NFFT""")
+
+c.add_member(c_name = "f4ph_loc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the full, local vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
+
 c.add_member(c_name = "M3pp_iw_nfft",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,
@@ -206,6 +216,16 @@ c.add_member(c_name = "Fph_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The two-particle vertex function in the ph channel""")
+
+c.add_member(c_name = "Fpp_loc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The local two-particle vertex function in the pp channel""")
+
+c.add_member(c_name = "Fph_loc_iw",
+             c_type = "std::optional<chi4_iw_t>",
+             read_only= True,
+             doc = r"""The local two-particle vertex function in the ph channel""")
 
 c.add_member(c_name = "G2c_iw",
              c_type = "std::optional<chi4_iw_t>",
@@ -447,6 +467,10 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M4ph_iw               | bool                                 | false                                   | Measure M4ph(iw) NFFT                                                                                                                 |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_f4pp_loc_iw           | bool                                 | false                                   | Measure f4pp_loc(iw) NFFT                                                                                                             |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_f4ph_loc_iw           | bool                                 | false                                   | Measure f4ph_loc(iw) NFFT                                                                                                             |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iW_M4                       | int                                  | 32                                      | Number of positive bosonic Matsubara frequencies in M4                                                                                |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iw_M4                       | int                                  | 32                                      | Number of positive fermionic Matsubara frequencies in M4                                                                              |
@@ -484,6 +508,8 @@ c.add_method("""void solve (**triqs_ctint::solve_params_t)""",
 | nfft_buf_size                 | int                                  | 500                                     | Size of the Nfft buffer                                                                                                               |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | post_process                  | bool                                 | true                                    | Perform post processing                                                                                                               |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| init_GinvG0_buffers           | void                                 | --                                      | Init Ginv * G0 / G0 * Ginv buffers for local vertex measurement                                                                       |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | det_init_size                 | int                                  | 1000                                    | The maximum size of the determinant matrix before a resize                                                                            |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -575,6 +601,10 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M4ph_iw               | bool                                 | false                                   | Measure M4ph(iw) NFFT                                                                                                                 |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_f4pp_loc_iw           | bool                                 | false                                   | Measure f4pp_loc(iw) NFFT                                                                                                             |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_f4ph_loc_iw           | bool                                 | false                                   | Measure f4ph_loc(iw) NFFT                                                                                                             |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iW_M4                       | int                                  | 32                                      | Number of positive bosonic Matsubara frequencies in M4                                                                                |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iw_M4                       | int                                  | 32                                      | Number of positive fermionic Matsubara frequencies in M4                                                                              |
@@ -613,6 +643,8 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | post_process                  | bool                                 | true                                    | Perform post processing                                                                                                               |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| init_GinvG0_buffers           | void                                 | --                                      | Init Ginv * G0 / G0 * Ginv buffers for local vertex measurement                                                                       |
++-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | det_init_size                 | int                                  | 1000                                    | The maximum size of the determinant matrix before a resize                                                                            |
 +-------------------------------+--------------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | det_n_operations_before_check | int                                  | 100                                     | Max number of ops before the test of deviation of the det, M^-1 is performed.                                                         |
@@ -626,6 +658,9 @@ c.add_method("""void prepare_G0_shift_iw (**triqs_ctint::params_t)""",
 """)
 
 c.add_method("""void post_process ()""",
+             doc = r"""""")
+
+c.add_method("""void init_GinvG0_buffers ()""",
              doc = r"""""")
 
 c.add_method("""std::string hdf5_format ()""",
@@ -770,6 +805,16 @@ c.add_member(c_name = "measure_M4ph_iw",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M4ph(iw) NFFT""")
+
+c.add_member(c_name = "measure_f4pp_loc_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure f4pp_loc(iw) NFFT""")
+
+c.add_member(c_name = "measure_f4ph_loc_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure f4ph_loc(iw) NFFT""")
 
 c.add_member(c_name = "n_iW_M4",
              c_type = "int",
@@ -1069,6 +1114,16 @@ c.add_member(c_name = "measure_M4ph_iw",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M4ph(iw) NFFT""")
+
+c.add_member(c_name = "measure_f4pp_loc_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure f4pp_loc(iw) NFFT""")
+
+c.add_member(c_name = "measure_f4ph_loc_iw",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure f4ph_loc(iw) NFFT""")
 
 c.add_member(c_name = "n_iW_M4",
              c_type = "int",
