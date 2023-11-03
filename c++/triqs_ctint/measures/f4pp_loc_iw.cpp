@@ -2,13 +2,13 @@
 #include <cmath>
 
 namespace triqs_ctint::measures {
-  f4pp_loc_iw::f4pp_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_iw_t const &GinvG01_iw_,
-                           g_iw_t const &GinvG02_iw_)
-     : params(params_), GinvG01_iw(GinvG01_iw_), GinvG02_iw(GinvG02_iw_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
+  f4pp_loc_iw::f4pp_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_iw_t const &GinvG0_iw_,
+                           g_iw_t const &G0Ginv_iw_)
+     : params(params_), GinvG0_iw(GinvG0_iw_), G0Ginv_iw(G0Ginv_iw_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh for temporary Matrix
-    mesh::imfreq iw_mesh_large{params.beta, Fermion, params.n_iW_M4 + params.n_iw_M4 + 1};
-    mesh::prod<imfreq, imfreq> M_mesh{iw_mesh_large, iw_mesh_large};
+    auto iw_mesh_large = mesh::imfreq{params.beta, Fermion, params.n_iW_M4 + params.n_iw_M4 + 1};
+    auto M_mesh        = iw_mesh_large * iw_mesh_large;
 
     // Initialize intermediate scattering matrix
     M = block_gf{M_mesh, params.gf_struct};
@@ -18,9 +18,9 @@ namespace triqs_ctint::measures {
     m         = make_block_gf(params.n_blocks(), m_bl);
 
     // Construct Matsubara mesh
-    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M4};
-    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M4};
-    mesh::prod<imfreq, imfreq, imfreq> f4pp_loc_iw_mesh{iW_mesh, iw_mesh, iw_mesh};
+    auto iW_mesh          = mesh::imfreq{params.beta, Boson, params.n_iW_M4};
+    auto iw_mesh          = mesh::imfreq{params.beta, Fermion, params.n_iw_M4};
+    auto f4pp_loc_iw_mesh = iW_mesh * iw_mesh * iw_mesh;
 
     // Init measurement container and capture view
     auto f4pp_loc_iw_bl  = gf<prod<imfreq, imfreq, imfreq>, tensor_valued<1>>{f4pp_loc_iw_mesh, {M[0].target_shape()[0]}};
@@ -55,25 +55,20 @@ namespace triqs_ctint::measures {
 
     // Calculate Ginv * G0 * M * G0 * Ginv
     m() = 0;
-
     for (int bl : range(params.n_blocks())) {
       int bl_size      = m[bl].target_shape()[0];
       auto &m_bl       = m[bl];
       auto const &M_bl = M[bl];
-      auto const &L_bl = GinvG01_iw[bl];
-      auto const &R_bl = GinvG02_iw[bl];
+      auto const &L_bl = GinvG0_iw[bl];
+      auto const &R_bl = G0Ginv_iw[bl];
 
-      for (auto iw1 : std::get<0>(m_bl.mesh()))
-        for (auto iw2 : std::get<1>(m_bl.mesh()))
-          for (int i : range(bl_size))
-            for (int j : range(bl_size))
-              for (int k : range(bl_size)) { m_bl[iw1, iw2](i) += L_bl[iw1.value()](i, j) * M_bl[iw1, iw2](j, k) * R_bl[iw2.value()](k, i); }
+      for (auto [iw1, iw2] : m_bl.mesh())
+        for (int i : range(bl_size))
+          for (int j : range(bl_size))
+            for (int k : range(bl_size)) { m_bl[iw1, iw2](i) += L_bl[iw1.value()](i, j) * M_bl[iw1, iw2](j, k) * R_bl[iw2.value()](k, i); }
     }
 
     // Calculate f4pp_loc
-    auto const &iW_mesh = std::get<0>(f4pp_loc_iw_(0, 0).mesh());
-    auto const &iw_mesh = std::get<1>(f4pp_loc_iw_(0, 0).mesh());
-
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
         int bl_size    = m[bl1].target_shape()[0];
@@ -81,13 +76,11 @@ namespace triqs_ctint::measures {
         auto const &m2 = m[bl2];
         auto &f4_loc   = f4pp_loc_iw_(bl1, bl2);
 
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (auto iwp : iw_mesh)
-              for (int i : range(bl_size)) {
-                f4_loc[iW, iw, iwp](i) += sign * m1[iW - iwp, iw.value()](i) * m2[iwp.value(), iW - iw](i);
-                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i) -= sign * m1[iwp.value(), iw.value()](i) * m2[iW - iwp, iW - iw](i); }
-              }
+        for (auto [iW, iw, iwp] : f4_loc.mesh())
+          for (int i : range(bl_size)) {
+            f4_loc[iW, iw, iwp](i) += sign * m1[iW - iwp, iw.value()](i) * m2[iwp.value(), iW - iw](i);
+            if (bl1 == bl2) { f4_loc[iW, iw, iwp](i) -= sign * m1[iwp.value(), iw.value()](i) * m2[iW - iwp, iW - iw](i); }
+          }
       }
   }
 

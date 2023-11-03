@@ -202,8 +202,8 @@ namespace triqs_ctint {
     return Fph_iw;
   }
 
-  chi4_loc_iw_t Fpp_loc_from_f4pp_loc(chi4_loc_iw_t::const_view_type f4pp_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
-                                      g_iw_t::const_view_type GinvG02_iw) {
+  chi4_loc_iw_t Fpp_loc_from_f4pp_loc(chi4_loc_iw_t::const_view_type f4pp_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG0_iw,
+                                      g_iw_t::const_view_type G0Ginv_iw) {
 
     // calculate Ginv * G0 * M * G0 * Ginv
     auto mb = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
@@ -214,8 +214,8 @@ namespace triqs_ctint {
       int bl_size      = m[bl].target_shape()[0];
       auto &m_bl       = m[bl];
       auto const &M_bl = M_iw[bl];
-      auto const &L_bl = GinvG01_iw[bl];
-      auto const &R_bl = GinvG02_iw[bl];
+      auto const &L_bl = GinvG0_iw[bl];
+      auto const &R_bl = G0Ginv_iw[bl];
 
       for (auto iw : m_bl.mesh())
         for (int i : range(bl_size))
@@ -225,9 +225,7 @@ namespace triqs_ctint {
 
     // calculate Fpp_loc
     auto Fpp_loc_iw     = chi4_loc_iw_t{f4pp_loc_iw};
-    auto const &iW_mesh = std::get<0>(Fpp_loc_iw(0, 0).mesh());
-    auto const &iw_mesh = std::get<1>(Fpp_loc_iw(0, 0).mesh());
-    auto const beta     = iW_mesh.beta();
+    auto const beta     = m[0].mesh().beta();
 
     for (int bl1 : range(M_iw.size()))
       for (int bl2 : range(M_iw.size())) {
@@ -236,20 +234,18 @@ namespace triqs_ctint {
         auto const &m2 = m[bl2];
         auto &F_loc    = Fpp_loc_iw(bl1, bl2);
 
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (auto iwp : iw_mesh)
-              for (int i : range(bl_size)) {
-                F_loc[iW, iw, iwp](i) -= beta * kronecker(iw, iW - iwp) * m1(iw)(i) * m2(iW - iw)(i);
-                if (bl1 == bl2) { F_loc[iW, iw, iwp](i) += beta * kronecker(iW - iwp, iW - iw) * m1(iw)(i) * m2(iW - iw)(i); }
-              }
+        for (auto [iW, iw, iwp] : F_loc.mesh())
+          for (int i : range(bl_size)) {
+            F_loc[iW, iw, iwp](i) -= beta * kronecker(iw, iW - iwp) * m1(iw)(i) * m2(iW - iw)(i);
+            if (bl1 == bl2) { F_loc[iW, iw, iwp](i) += beta * kronecker(iW - iwp, iW - iw) * m1(iw)(i) * m2(iW - iw)(i); }
+          }
       }
 
     return Fpp_loc_iw;
   }
 
-  chi4_loc_iw_t Fph_loc_from_f4ph_loc(chi4_loc_iw_t::const_view_type f4ph_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
-                                      g_iw_t::const_view_type GinvG02_iw) {
+  chi4_loc_iw_t Fph_loc_from_f4ph_loc(chi4_loc_iw_t::const_view_type f4ph_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG0_iw,
+                                      g_iw_t::const_view_type G0Ginv_iw) {
 
     // calculate Ginv * G0 * M * G0 * Ginv
     auto mb = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
@@ -260,8 +256,8 @@ namespace triqs_ctint {
       int bl_size      = m[bl].target_shape()[0];
       auto &m_bl       = m[bl];
       auto const &M_bl = M_iw[bl];
-      auto const &L_bl = GinvG01_iw[bl];
-      auto const &R_bl = GinvG02_iw[bl];
+      auto const &L_bl = GinvG0_iw[bl];
+      auto const &R_bl = G0Ginv_iw[bl];
 
       for (auto iw : m_bl.mesh())
         for (int i : range(bl_size))
@@ -271,24 +267,20 @@ namespace triqs_ctint {
 
     // calculate Fph_loc
     auto Fph_loc_iw     = chi4_loc_iw_t{f4ph_loc_iw};
-    auto const &iW_mesh = std::get<0>(Fph_loc_iw(0, 0).mesh());
-    auto const &iw_mesh = std::get<1>(Fph_loc_iw(0, 0).mesh());
-    auto const beta     = iW_mesh.beta();
+    auto const beta     = m[0].mesh().beta();
 
     for (int bl1 : range(M_iw.size()))
       for (int bl2 : range(M_iw.size())) {
-        int bl_size    = m[bl1].target_shape()[0];
-        auto const &m1 = m[bl1];
-        auto const &m2 = m[bl2];
-        auto &F_loc    = Fph_loc_iw(bl1, bl2);
+        int bl_size       = m[bl1].target_shape()[0];
+        auto const &m1    = m[bl1];
+        auto const &m2    = m[bl2];
+        auto const &F_loc = Fph_loc_iw(bl1, bl2);
 
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (auto iwp : iw_mesh)
-              for (int i : range(bl_size)) {
-                F_loc[iW, iw, iwp](i) -= beta * kronecker(iw, iW + iw) * m1(iw)(i) * m2(iW + iwp)(i);
-                if (bl1 == bl2) { F_loc[iW, iw, iwp](i) += beta * kronecker(iW + iw, iW + iwp) * m1(iw)(i) * m2(iW + iwp)(i); }
-              }
+        for (auto [iW, iw, iwp] : F_loc.mesh())
+          for (int i : range(bl_size)) {
+            F_loc[iW, iw, iwp](i) -= beta * kronecker(iw, iW + iw) * m1(iw)(i) * m2(iW + iwp)(i);
+            if (bl1 == bl2) { F_loc[iW, iw, iwp](i) += beta * kronecker(iW + iw, iW + iwp) * m1(iw)(i) * m2(iW + iwp)(i); }
+          }
       }
 
     return Fph_loc_iw;

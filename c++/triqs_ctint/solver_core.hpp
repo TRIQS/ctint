@@ -16,8 +16,8 @@ namespace triqs_ctint {
     g_iw_t G_iw;
 
     /// Buffers for local vertex measurement
-    g_iw_t GinvG01_iw; // Ginv * G0
-    g_iw_t GinvG02_iw; // G0 * Ginv
+    g_iw_t GinvG0_iw; // Ginv * G0
+    g_iw_t G0Ginv_iw; // G0 * Ginv
 
     /// The inverse of the noninteracting Green Function
     g_iw_t G0_iw_inv;
@@ -88,8 +88,8 @@ namespace triqs_ctint {
     // Init buffers for local vertex measurement from previous run
     void init_GinvG0_buffers() {
       auto const Ginv = inverse(G_iw);
-      GinvG01_iw      = Ginv * G0_shift_iw;
-      GinvG02_iw      = G0_shift_iw * Ginv;
+      GinvG0_iw       = Ginv * G0_shift_iw;
+      G0Ginv_iw       = G0_shift_iw * Ginv;
     }
 
     static std::string hdf5_format() { return "CTINT_SolverCore"; }
@@ -105,8 +105,8 @@ namespace triqs_ctint {
       h5_write(grp, "last_solve_params", s.last_solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);
       h5_write(grp, "G_iw", s.G_iw);
-      h5_write(grp, "GinvG01_iw", s.GinvG01_iw);
-      h5_write(grp, "GinvG02_iw", s.GinvG02_iw);
+      h5_write(grp, "GinvG0_iw", s.GinvG0_iw);
+      h5_write(grp, "G0Ginv_iw", s.G0Ginv_iw);
       h5_write(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
@@ -124,8 +124,8 @@ namespace triqs_ctint {
       h5_read(grp, "last_solve_params", s.last_solve_params);
       h5_read(grp, "G0_iw", s.G0_iw);
       h5_read(grp, "G_iw", s.G_iw);
-      h5_read(grp, "GinvG01_iw", s.GinvG01_iw);
-      h5_read(grp, "GinvG02_iw", s.GinvG02_iw);
+      h5_read(grp, "GinvG0_iw", s.GinvG0_iw);
+      h5_read(grp, "G0Ginv_iw", s.G0Ginv_iw);
       h5::try_read(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);
