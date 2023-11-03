@@ -2,8 +2,9 @@
 #include <cmath>
 
 namespace triqs_ctint::measures {
-  f4ph_loc_iw::f4ph_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
-     : params(params_), GinvG01_iw(results->GinvG01_iw), GinvG02_iw(results->GinvG02_iw), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
+  f4ph_loc_iw::f4ph_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_iw_t const &GinvG01_iw_,
+                           g_iw_t const &GinvG02_iw_)
+     : params(params_), GinvG01_iw(GinvG01_iw_), GinvG02_iw(GinvG02_iw_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
     // Construct Matsubara mesh
     mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M4};

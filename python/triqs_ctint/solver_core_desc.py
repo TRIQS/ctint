@@ -187,6 +187,16 @@ c.add_member(c_name = "Sigma_iw",
              read_only= True,
              doc = r"""Self-energy in Matsubara frequencies. Dependent on M_iw""")
 
+c.add_member(c_name = "GinvG01_iw",
+             c_type = "triqs_ctint::g_iw_t",
+             read_only= True,
+             doc = r"""Buffer Ginv * G0 for local vertex measurement""")
+
+c.add_member(c_name = "GinvG02_iw",
+             c_type = "triqs_ctint::g_iw_t",
+             read_only= True,
+             doc = r"""Buffer G0 * Ginv for local vertex measurement""")
+
 c.add_member(c_name = "M3pp_iw",
              c_type = "std::optional<chi3_iw_t>",
              read_only= True,

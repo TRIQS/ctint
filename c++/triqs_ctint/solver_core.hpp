@@ -12,6 +12,13 @@ namespace triqs_ctint {
     /// Noninteracting Green Function in Matsubara frequencies
     g_iw_t G0_iw;
 
+    /// Green function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
+    g_iw_t G_iw;
+
+    /// Buffers for local vertex measurement
+    g_iw_t GinvG01_iw; // Ginv * G0
+    g_iw_t GinvG02_iw; // G0 * Ginv
+
     /// The inverse of the noninteracting Green Function
     g_iw_t G0_iw_inv;
 
@@ -115,6 +122,9 @@ namespace triqs_ctint {
       h5_write(grp, "constr_params", s.constr_params);
       h5_write(grp, "last_solve_params", s.last_solve_params);
       h5_write(grp, "G0_iw", s.G0_iw);
+      h5_write(grp, "G_iw", s.G_iw);
+      h5_write(grp, "GinvG01_iw", s.GinvG01_iw);
+      h5_write(grp, "GinvG02_iw", s.GinvG02_iw);
       h5_write(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_write(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_write(grp, "G0_shift_tau", s.G0_shift_tau);
@@ -131,6 +141,9 @@ namespace triqs_ctint {
       h5_read(grp, "", s.result_set());
       h5_read(grp, "last_solve_params", s.last_solve_params);
       h5_read(grp, "G0_iw", s.G0_iw);
+      h5_read(grp, "G_iw", s.G_iw);
+      h5_read(grp, "GinvG01_iw", s.GinvG01_iw);
+      h5_read(grp, "GinvG02_iw", s.GinvG02_iw);
       h5::try_read(grp, "G0_iw_inv", s.G0_iw_inv);
       h5_read(grp, "G0_shift_iw", s.G0_shift_iw);
       h5_read(grp, "G0_shift_tau", s.G0_shift_tau);

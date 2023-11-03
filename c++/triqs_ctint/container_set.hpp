@@ -95,13 +95,6 @@ namespace triqs_ctint {
     /// The Fourier-transform of M_tau. Dependent on M_tau
     std::optional<g_iw_t> M_iw;
 
-    /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
-    g_iw_t G_iw;
-
-    /// Buffers to store Ginv * G0 / G0 * Ginv. Needed for local vertex measurement
-    g_iw_t GinvG01_iw; // Ginv * G0
-    g_iw_t GinvG02_iw; // G0 * Ginv
-
     /// Self-energy in Matsubara frequencies. Dependent on M_iw
     g_iw_t Sigma_iw;
 
@@ -229,9 +222,6 @@ namespace triqs_ctint {
       h5_write(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_write(grp, "chiAB_tau", c.chiAB_tau);
       h5_write(grp, "M_iw", c.M_iw);
-      h5_write(grp, "G_iw", c.G_iw);
-      h5_write(grp, "GinvG01_iw", c.GinvG01_iw);
-      h5_write(grp, "GinvG02_iw", c.GinvG02_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
@@ -297,9 +287,6 @@ namespace triqs_ctint {
       h5_read(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_read(grp, "chiAB_tau", c.chiAB_tau);
       h5_read(grp, "M_iw", c.M_iw);
-      h5_read(grp, "G_iw", c.G_iw);
-      h5_read(grp, "GinvG01_iw", c.GinvG01_iw);
-      h5_read(grp, "GinvG02_iw", c.GinvG02_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);

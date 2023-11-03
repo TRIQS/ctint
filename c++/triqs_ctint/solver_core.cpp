@@ -133,8 +133,8 @@ namespace triqs_ctint {
       if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
       if (params.measure_M4pp_iw) mc.add_measure(measures::M4pp_iw{params, qmc_config, &result_set()}, "M4pp_iw measure");
       if (params.measure_M4ph_iw) mc.add_measure(measures::M4ph_iw{params, qmc_config, &result_set()}, "M4ph_iw measure");
-      if (params.measure_f4pp_loc_iw) mc.add_measure(measures::f4pp_loc_iw{params, qmc_config, &result_set()}, "f4pp_loc_iw measure");
-      if (params.measure_f4ph_loc_iw) mc.add_measure(measures::f4ph_loc_iw{params, qmc_config, &result_set()}, "f4ph_loc_iw measure");
+      if (params.measure_f4pp_loc_iw) mc.add_measure(measures::f4pp_loc_iw{params, qmc_config, &result_set(), GinvG01_iw, GinvG02_iw}, "f4pp_loc_iw measure");
+      if (params.measure_f4ph_loc_iw) mc.add_measure(measures::f4ph_loc_iw{params, qmc_config, &result_set(), GinvG01_iw, GinvG02_iw}, "f4ph_loc_iw measure");
       if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
       if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
       if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");

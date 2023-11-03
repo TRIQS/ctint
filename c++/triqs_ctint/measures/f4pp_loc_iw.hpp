@@ -5,7 +5,8 @@
 
 namespace triqs_ctint::measures {
   struct f4pp_loc_iw {
-    f4pp_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
+    f4pp_loc_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_iw_t const &GinvG01_iw_,
+                g_iw_t const &GinvG02_iw_);
 
     // f4pp_loc_iw needs to be uncopyable due to nfft_buf_t
     f4pp_loc_iw(f4pp_loc_iw const &)            = delete;
