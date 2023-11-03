@@ -66,7 +66,7 @@ namespace triqs_ctint::measures {
               for (int k : range(bl_size)) { m_bl[iw1, iw2](i, i) += L_bl(iw1)(i, j) * M_bl[iw1, iw2](j, k) * R_bl(iw2)(k, i); }
     }
 
-    // Calculate f4pp_loc
+    // Calculate f4ph_loc
     auto const &iW_mesh = std::get<0>(f4ph_loc_iw_(0, 0).mesh());
     auto const &iw_mesh = std::get<1>(f4ph_loc_iw_(0, 0).mesh());
 

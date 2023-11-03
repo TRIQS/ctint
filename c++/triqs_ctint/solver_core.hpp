@@ -95,17 +95,17 @@ namespace triqs_ctint {
 
       for (int bl : range(G0_iw.size())) {
         int bl_size      = G0_iw[bl].target_shape()[0];
-        auto &m1         = GinvG01_iw[bl];
-        auto &m2         = GinvG02_iw[bl];
-        auto const &g0   = G0_iw[bl];
+        auto &g1         = GinvG01_iw[bl];
+        auto &g2         = GinvG02_iw[bl];
         auto const &ginv = Ginv[bl];
+        auto const &g0   = G0_iw[bl];
 
         for (auto iw : g0.mesh())
           for (auto i : range(bl_size))
             for (auto j : range(bl_size))
               for (auto k : range(bl_size)) {
-                m1[iw](i, j) += ginv[iw](i, k) * g0[iw](k, j);
-                m2[iw](i, j) += g0[iw](i, k) * ginv[iw](k, j);
+                g1[iw](i, j) += ginv[iw](i, k) * g0[iw](k, j);
+                g2[iw](i, j) += g0[iw](i, k) * ginv[iw](k, j);
               }
       }
     }
