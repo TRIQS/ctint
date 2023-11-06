@@ -22,7 +22,10 @@ namespace triqs_ctint::measures {
 
     // Initialize intermediate scattering matrix
     M = block_gf{M_mesh, params.gf_struct};
-    m = decltype(M){M}; // buffer for Ginv * G0 * M * G0 * Ginv
+
+    // Initialize buffer for Ginv * G0 * M * G0 * Ginv
+    auto m_bl = gf<prod<imfreq, imfreq>, tensor_valued<1>>{M_mesh, {M[0].target_shape()[0]}};
+    m         = make_block_gf(params.n_blocks(), m_bl);
 
     // Create nfft buffers
     for (int bl : range(params.n_blocks())) {
@@ -63,7 +66,7 @@ namespace triqs_ctint::measures {
         for (auto iw2 : std::get<1>(m_bl.mesh()))
           for (int i : range(bl_size))
             for (int j : range(bl_size))
-              for (int k : range(bl_size)) { m_bl[iw1, iw2](i, i) += L_bl(iw1)(i, j) * M_bl[iw1, iw2](j, k) * R_bl(iw2)(k, i); }
+              for (int k : range(bl_size)) { m_bl[iw1, iw2](i) += L_bl(iw1)(i, j) * M_bl[iw1, iw2](j, k) * R_bl(iw2)(k, i); }
     }
 
     // Calculate f4pp_loc
@@ -81,8 +84,8 @@ namespace triqs_ctint::measures {
           for (auto iw : iw_mesh)
             for (auto iwp : iw_mesh)
               for (int i : range(bl_size)) {
-                f4_loc[iW, iw, iwp](i, i, i, i) += sign * m1(iW - iwp, iw)(i, i) * m2(iwp, iW - iw)(i, i);
-                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i, i, i, i) -= sign * m1(iwp, iw)(i, i) * m2(iW - iwp, iW - iw)(i, i); }
+                f4_loc[iW, iw, iwp](i, i, i, i) += sign * m1(iW - iwp, iw)(i) * m2(iwp, iW - iw)(i);
+                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i, i, i, i) -= sign * m1(iwp, iw)(i) * m2(iW - iwp, iW - iw)(i); }
               }
       }
   }

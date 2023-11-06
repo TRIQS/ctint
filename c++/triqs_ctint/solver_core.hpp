@@ -88,26 +88,8 @@ namespace triqs_ctint {
     // Init buffers for local vertex measurement from previous run
     void init_GinvG0_buffers() {
       auto const Ginv = inverse(G_iw);
-      GinvG01_iw      = g_iw_t{G0_shift_iw};
-      GinvG02_iw      = g_iw_t{G0_shift_iw};
-      GinvG01_iw()    = 0;
-      GinvG02_iw()    = 0;
-
-      for (int bl : range(G0_shift_iw.size())) {
-        int bl_size      = G0_shift_iw[bl].target_shape()[0];
-        auto &g1         = GinvG01_iw[bl];
-        auto &g2         = GinvG02_iw[bl];
-        auto const &ginv = Ginv[bl];
-        auto const &g0   = G0_shift_iw[bl];
-
-        for (auto iw : g0.mesh())
-          for (auto i : range(bl_size))
-            for (auto j : range(bl_size))
-              for (auto k : range(bl_size)) {
-                g1[iw](i, j) += ginv[iw](i, k) * g0[iw](k, j);
-                g2[iw](i, j) += g0[iw](i, k) * ginv[iw](k, j);
-              }
-      }
+      GinvG01_iw      = Ginv * G0_shift_iw;
+      GinvG02_iw      = G0_shift_iw * Ginv;
     }
 
     static std::string hdf5_format() { return "CTINT_SolverCore"; }

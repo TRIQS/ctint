@@ -43,7 +43,7 @@ namespace triqs_ctint::measures {
 
     // Intermediate scattering matrix in the measurement of M4
     block_gf<prod<imfreq, imfreq>, matrix_valued> M;
-    block_gf<prod<imfreq, imfreq>, matrix_valued> m; // buffer for Ginv * G0 * M * G0 * Ginv
+    block_gf<prod<imfreq, imfreq>, tensor_valued<1>> m; // buffer for Ginv * G0 * M * G0 * Ginv
   };
 
 } // namespace triqs_ctint::measures
