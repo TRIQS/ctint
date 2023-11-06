@@ -203,12 +203,12 @@ namespace triqs_ctint {
   }
 
   chi4_loc_iw_t Fpp_loc_from_f4pp_loc(chi4_loc_iw_t::const_view_type f4pp_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
-                                  g_iw_t::const_view_type GinvG02_iw) {
+                                      g_iw_t::const_view_type GinvG02_iw) {
 
     // calculate Ginv * G0 * M * G0 * Ginv
-    auto m_bl = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
-    auto m    = make_block_gf(M_iw.size(), m_bl);
-    m()       = 0;
+    auto mb = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
+    auto m  = make_block_gf(M_iw.size(), mb);
+    m()     = 0;
 
     for (int bl : range(M_iw.size())) {
       int bl_size      = m[bl].target_shape()[0];
@@ -249,12 +249,12 @@ namespace triqs_ctint {
   }
 
   chi4_loc_iw_t Fph_loc_from_f4ph_loc(chi4_loc_iw_t::const_view_type f4ph_loc_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type GinvG01_iw,
-                                  g_iw_t::const_view_type GinvG02_iw) {
+                                      g_iw_t::const_view_type GinvG02_iw) {
 
     // calculate Ginv * G0 * M * G0 * Ginv
-    auto m_bl = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
-    auto m    = make_block_gf(M_iw.size(), m_bl);
-    m()       = 0;
+    auto mb = gf<imfreq, tensor_valued<1>>{M_iw[0].mesh(), {M_iw[0].target_shape()[0]}};
+    auto m  = make_block_gf(M_iw.size(), mb);
+    m()     = 0;
 
     for (int bl : range(M_iw.size())) {
       int bl_size      = m[bl].target_shape()[0];
