@@ -74,6 +74,9 @@ namespace triqs_ctint {
     G0_shift_tau     = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, tail));
 #endif
 
+    // init buffers for local vertex measurement from previous run
+    if (solve_params.measure_f4pp_loc_iw or solve_params.measure_f4ph_loc_iw) init_GinvG0_buffers();
+
     // Reset the containers
     container_set::operator=(container_set{});
 

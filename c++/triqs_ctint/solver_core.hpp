@@ -88,17 +88,17 @@ namespace triqs_ctint {
     // Init buffers for local vertex measurement from previous run
     void init_GinvG0_buffers() {
       auto const Ginv = inverse(G_iw);
-      GinvG01_iw      = g_iw_t{G0_iw};
-      GinvG02_iw      = g_iw_t{G0_iw};
+      GinvG01_iw      = g_iw_t{G0_shift_iw};
+      GinvG02_iw      = g_iw_t{G0_shift_iw};
       GinvG01_iw()    = 0;
       GinvG02_iw()    = 0;
 
-      for (int bl : range(G0_iw.size())) {
-        int bl_size      = G0_iw[bl].target_shape()[0];
+      for (int bl : range(G0_shift_iw.size())) {
+        int bl_size      = G0_shift_iw[bl].target_shape()[0];
         auto &g1         = GinvG01_iw[bl];
         auto &g2         = GinvG02_iw[bl];
         auto const &ginv = Ginv[bl];
-        auto const &g0   = G0_iw[bl];
+        auto const &g0   = G0_shift_iw[bl];
 
         for (auto iw : g0.mesh())
           for (auto i : range(bl_size))
