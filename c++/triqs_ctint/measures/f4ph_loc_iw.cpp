@@ -6,16 +6,6 @@ namespace triqs_ctint::measures {
                            g_iw_t const &GinvG02_iw_)
      : params(params_), GinvG01_iw(GinvG01_iw_), GinvG02_iw(GinvG02_iw_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()) {
 
-    // Construct Matsubara mesh
-    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M4};
-    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M4};
-    mesh::prod<imfreq, imfreq, imfreq> f4ph_loc_iw_mesh{iW_mesh, iw_mesh, iw_mesh};
-
-    // Init measurement container and capture view
-    results->f4ph_loc_iw = make_block2_gf(f4ph_loc_iw_mesh, params.gf_struct);
-    f4ph_loc_iw_.rebind(results->f4ph_loc_iw.value());
-    f4ph_loc_iw_() = 0;
-
     // Construct Matsubara mesh for temporary Matrix
     mesh::imfreq iw_mesh_large{params.beta, Fermion, params.n_iW_M4 + params.n_iw_M4 + 1};
     mesh::prod<imfreq, imfreq> M_mesh{iw_mesh_large, iw_mesh_large};
@@ -26,6 +16,17 @@ namespace triqs_ctint::measures {
     // Initialize buffer for Ginv * G0 * M * G0 * Ginv
     auto m_bl = gf<prod<imfreq, imfreq>, tensor_valued<1>>{M_mesh, {M[0].target_shape()[0]}};
     m         = make_block_gf(params.n_blocks(), m_bl);
+
+    // Construct Matsubara mesh
+    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M4};
+    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M4};
+    mesh::prod<imfreq, imfreq, imfreq> f4ph_loc_iw_mesh{iW_mesh, iw_mesh, iw_mesh};
+
+    // Init measurement container and capture view
+    auto f4ph_loc_iw_bl  = gf<prod<imfreq, imfreq, imfreq>, tensor_valued<1>>{f4ph_loc_iw_mesh, {M[0].target_shape()[0]}};
+    results->f4ph_loc_iw = make_block2_gf(params.n_blocks(), params.n_blocks(), f4ph_loc_iw_bl);
+    f4ph_loc_iw_.rebind(results->f4ph_loc_iw.value());
+    f4ph_loc_iw_() = 0;
 
     // Create nfft buffers
     for (int bl : range(params.n_blocks())) {
@@ -84,8 +85,8 @@ namespace triqs_ctint::measures {
           for (auto iw : iw_mesh)
             for (auto iwp : iw_mesh)
               for (int i : range(bl_size)) {
-                f4_loc[iW, iw, iwp](i, i, i, i) += sign * m1(iW + iw, iw)(i) * m2(iwp, iW + iwp)(i);
-                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i, i, i, i) -= sign * m1(iwp, iw)(i) * m2(iW + iw, iW + iwp)(i); }
+                f4_loc[iW, iw, iwp](i) += sign * m1(iW + iw, iw)(i) * m2(iwp, iW + iwp)(i);
+                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i) -= sign * m1(iwp, iw)(i) * m2(iW + iw, iW + iwp)(i); }
               }
       }
   }

@@ -52,10 +52,10 @@ namespace triqs_ctint {
     std::optional<chi4_iw_t> M4ph_iw;
 
     /// Building block for the full, local vertex function (pp channel) measured directly in Matsubara frequencies using NFFT
-    std::optional<chi4_iw_t> f4pp_loc_iw;
+    std::optional<chi4_loc_iw_t> f4pp_loc_iw;
 
     /// Building block for the full, local vertex function (ph channel) measured directly in Matsubara frequencies using NFFT
-    std::optional<chi4_iw_t> f4ph_loc_iw;
+    std::optional<chi4_loc_iw_t> f4ph_loc_iw;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT
     std::optional<chi3_iw_t> M3pp_iw_nfft;
@@ -117,10 +117,10 @@ namespace triqs_ctint {
     std::optional<chi4_iw_t> Fph_iw;
 
     /// The local two-particle vertex function (pp channel)
-    std::optional<chi4_iw_t> Fpp_loc_iw;
+    std::optional<chi4_loc_iw_t> Fpp_loc_iw;
 
     /// The local two-particle vertex function (ph channel)
-    std::optional<chi4_iw_t> Fph_loc_iw;
+    std::optional<chi4_loc_iw_t> Fph_loc_iw;
 
     /// The connected part of the two-particle Green function
     std::optional<chi4_iw_t> G2c_iw;

@@ -33,7 +33,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<prod<imfreq, imfreq, imfreq>, tensor_valued<4>> f4ph_loc_iw_;
+    block2_gf_view<prod<imfreq, imfreq, imfreq>, tensor_valued<1>> f4ph_loc_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;

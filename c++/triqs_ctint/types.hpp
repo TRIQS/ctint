@@ -141,6 +141,9 @@ namespace triqs_ctint {
   /// Container type of two-particle Green and Vertex functions in Matsubara frequencies
   using chi4_iw_t = block2_gf<prod<imfreq, imfreq, imfreq>, tensor_valued<4>>;
 
+  /// Container type of local two-particle Green and Vertex functions in Matsubara frequencies
+  using chi4_loc_iw_t = block2_gf<prod<imfreq, imfreq, imfreq>, tensor_valued<1>>;
+
   /// Container type of two-particle Green and Vertex functions in imaginary time
   using chi4_tau_t = block2_gf<prod<imtime, imtime, imtime>, tensor_valued<4>>;
 

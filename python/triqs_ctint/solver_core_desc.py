@@ -108,12 +108,12 @@ c.add_member(c_name = "M4ph_iw",
              doc = r"""Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
 
 c.add_member(c_name = "f4pp_loc_iw",
-             c_type = "std::optional<chi4_iw_t>",
+             c_type = "std::optional<chi4_loc_iw_t>",
              read_only= True,
              doc = r"""Building block for the full, local vertex function (pp channel) measured directly in Matsubara frequencies using NFFT""")
 
 c.add_member(c_name = "f4ph_loc_iw",
-             c_type = "std::optional<chi4_iw_t>",
+             c_type = "std::optional<chi4_loc_iw_t>",
              read_only= True,
              doc = r"""Building block for the full, local vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
 
@@ -228,12 +228,12 @@ c.add_member(c_name = "Fph_iw",
              doc = r"""The two-particle vertex function in the ph channel""")
 
 c.add_member(c_name = "Fpp_loc_iw",
-             c_type = "std::optional<chi4_iw_t>",
+             c_type = "std::optional<chi4_loc_iw_t>",
              read_only= True,
              doc = r"""The local two-particle vertex function in the pp channel""")
 
 c.add_member(c_name = "Fph_loc_iw",
-             c_type = "std::optional<chi4_iw_t>",
+             c_type = "std::optional<chi4_loc_iw_t>",
              read_only= True,
              doc = r"""The local two-particle vertex function in the ph channel""")
 
