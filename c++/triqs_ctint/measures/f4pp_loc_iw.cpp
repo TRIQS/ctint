@@ -67,7 +67,7 @@ namespace triqs_ctint::measures {
         for (auto iw2 : std::get<1>(m_bl.mesh()))
           for (int i : range(bl_size))
             for (int j : range(bl_size))
-              for (int k : range(bl_size)) { m_bl[iw1, iw2](i) += L_bl(iw1)(i, j) * M_bl[iw1, iw2](j, k) * R_bl(iw2)(k, i); }
+              for (int k : range(bl_size)) { m_bl[iw1, iw2](i) += L_bl[iw1.value()](i, j) * M_bl[iw1, iw2](j, k) * R_bl[iw2.value()](k, i); }
     }
 
     // Calculate f4pp_loc
@@ -85,8 +85,8 @@ namespace triqs_ctint::measures {
           for (auto iw : iw_mesh)
             for (auto iwp : iw_mesh)
               for (int i : range(bl_size)) {
-                f4_loc[iW, iw, iwp](i) += sign * m1(iW - iwp, iw)(i) * m2(iwp, iW - iw)(i);
-                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i) -= sign * m1(iwp, iw)(i) * m2(iW - iwp, iW - iw)(i); }
+                f4_loc[iW, iw, iwp](i) += sign * m1[iW - iwp, iw.value()](i) * m2[iwp.value(), iW - iw](i);
+                if (bl1 == bl2) { f4_loc[iW, iw, iwp](i) -= sign * m1[iwp.value(), iw.value()](i) * m2[iW - iwp, iW - iw](i); }
               }
       }
   }
