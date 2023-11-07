@@ -172,7 +172,7 @@ namespace triqs_ctint {
     std::vector<many_body_operator> chi_B_vec = {};
 
     /// Size of the Nfft buffer
-    int nfft_buf_size = 500;
+    int nfft_buf_size = 100000;
 
     /// Perform post processing
     bool post_process = true;
