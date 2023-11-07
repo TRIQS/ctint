@@ -4,10 +4,10 @@
 #include <array>
 #include <cmath>
 
-//#define NFFT_PRECISION_DOUBLE
-//#include "nfft3mp.h" // Multi Precision: Only available with nfft3.3.0+
+#include "finufft.h"
 
-#include "nfft3.h"
+#define CHECK_ERROR(err)                                                                                                                             \
+  if (err > 0) NDA_RUNTIME_ERROR << "Error in FINUFFT: " << err << "\n"
 
 namespace triqs::utility {
 
@@ -19,47 +19,55 @@ namespace triqs::utility {
 
     // Possible future extensions:
     //  -Bosonic Matsubaras
-    //  -Move plan initialization to do_nfft for memory gain in case of large buf_size (performance penalty?)
 
     /// Default constructor, creates unusable buffer!
     nfft_buf_t() = default;
 
     /// Constructor
-    nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, bool do_checks_ = false)
-       : fiw_arr(std::move(fiw_arr_)), buf_size(buf_size_), beta(beta_), do_checks(do_checks_) {
+    nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_)
+       : fiw_arr(std::move(fiw_arr_)),
+         niws(fiw_arr.shape()),
+         buf_size(buf_size_),
+         beta(beta_),
+         x_arr(Rank, buf_size),
+         fx_arr(buf_size),
+         fk_arr(fiw_arr.shape()) {
 
       // Capture frequency extents from fiw_arr and check that they are even ( i.e. fermionic matsubaras )
-      auto freq_extents = fiw_arr.shape();
-      std::vector<int> extents_int;
-      for (int n : freq_extents) {
+      for (int n : niws) {
         if (n % 2 != 0) NDA_RUNTIME_ERROR << " dimension with uneven frequency count not allowed in NFFT Buffer \n";
-        extents_int.push_back(n);
         common_factor *= (n / 2) % 2 ? -1 : 1; // Additional Minus sign for uneven Matsubara offset
       }
 
       // Init nfft_plan
-      plan_ptr = std::make_unique<nfft_plan>();
-      nfft_init(plan_ptr.get(), Rank, extents_int.data(), buf_size);
+      finufft_default_opts(&opts); // set default opts (must start with this)
+      opts.nthreads = 1;           // enforce single-thread
+      //opts.debug    = 1;                                       // print diagnostics or 2 prints some information about what finufft is doing
+      auto Ns = std::vector(niws.rbegin(), niws.rend()); // Reverse order for FINUFFT
+      CHECK_ERROR(finufft_makeplan(/*type =*/1, Rank, Ns.data(), /*iflag=*/1, /*ntrans =*/1, tol, &plan, &opts));
     }
 
     ~nfft_buf_t() {
       if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";
-      if (plan_ptr) nfft_finalize(plan_ptr.get());
+      if (plan) finufft_destroy(plan);
     }
 
     // nfft_buffer needs to be uncopyable, because nfft_plan contains raw pointers
     nfft_buf_t(nfft_buf_t const &)            = delete;
     nfft_buf_t(nfft_buf_t &&)                 = default;
     nfft_buf_t &operator=(nfft_buf_t const &) = delete;
-    nfft_buf_t &operator=(nfft_buf_t &&rhs) {
+    nfft_buf_t &operator=(nfft_buf_t &&rhs) noexcept {
       fiw_arr.rebind(rhs.fiw_arr);
-      plan_ptr = std::move(rhs.plan_ptr);
-
+      niws = rhs.niws;
+      std::swap(plan, rhs.plan);
       buf_size      = rhs.buf_size;
       beta          = rhs.beta;
-      do_checks     = rhs.do_checks;
       buf_counter   = rhs.buf_counter;
       common_factor = rhs.common_factor;
+      opts          = std::move(rhs.opts);
+      x_arr         = std::move(rhs.x_arr);
+      fx_arr        = std::move(rhs.fx_arr);
+      fk_arr        = std::move(rhs.fk_arr);
       return *this;
     }
 
@@ -75,18 +83,18 @@ namespace triqs::utility {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
 
       // Check if buffer has been properly initialized
-      if (!plan_ptr) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+      if (x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Write the set of shifted and normalized tau values (i. e. x values) to the NFFT buffer and sum taus
       double tau_sum = 0.0;
       for (int r = 0; r < Rank; ++r) {
         // Note: Nfft multi-arrays are stored in flattened arrays (c-order)
-        x_arr()[buf_counter * Rank + r] = tau_arr[r] / beta - 0.5; // \in [-0.5, 0.5) NOLINT
-        tau_sum += tau_arr[r];                                     // Sum all tau values
+        x_arr(r, buf_counter) = 2 * M_PI * (tau_arr[r] / beta - 0.5); // \in [-PI, PI)
+        tau_sum += tau_arr[r];                                        // Sum all tau values
       }
 
-      // Write f(x) to nfft_plan-> The prefactor accounts for the Pi/beta offset in fermionic Matsubaras
-      fx_arr()[buf_counter] = std::exp(dcomplex(0, M_PI * tau_sum / beta)) * ftau; // NOLINT
+      // Write f(x), The prefactor accounts for the Pi/beta offset in fermionic Matsubaras
+      fx_arr[buf_counter] = std::exp(dcomplex(0, M_PI * tau_sum / beta)) * ftau;
 
       ++buf_counter;
 
@@ -101,23 +109,25 @@ namespace triqs::utility {
     void flush() {
 
       // Check if buffer has been properly initialized
-      if (!plan_ptr) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+      if (x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
       // Don't do anything if buffer is empty
       if (is_empty()) return;
 
-      // Trivial initialization of the remaining points
-      for (int i = buf_counter; i < buf_size; ++i) {
-        fx_arr()[i] = 0.0;                                                                  // NOLINT
-        for (int r = 0; r < Rank; ++r) x_arr()[i * Rank + r] = -0.5 + double(i) / buf_size; // NOLINT
-      }
+      // Execute the transform
       do_nfft();
       buf_counter = 0;
     }
 
     private:
     // Triqs array to contain the final NFFT output in matsubara frequencies
-    array_view<dcomplex, Rank> fiw_arr;
+    nda::array_view<dcomplex, Rank> fiw_arr;
+
+    // Dimensions of the output array
+    std::array<int64_t, Rank> niws;
+
+    // Finufft plan
+    finufft_plan plan{nullptr};
 
     // Number of tau points for the nfft
     int buf_size;
@@ -125,26 +135,26 @@ namespace triqs::utility {
     // Inverse temperature of fiw_arr
     double beta;
 
-    // Switch for testing in nfft
-    bool do_checks;
-
-    // Nfft3 plan that allocates memory and performs NFFT transform
-    std::unique_ptr<nfft_plan> plan_ptr;
-
     // Counter for elements currently in the buffer
     int buf_counter = 0;
 
     // Common factor in container assignment
     int common_factor = 1;
 
-    // Get pointer to array containing x values for the NFFT transform
-    double *x_arr() { return plan_ptr->x; }
+    // FINUFFT options struct
+    finufft_opts opts{};
 
-    // Get pointer to array containing f(x) values for the NFFT transform
-    dcomplex *fx_arr() { return reinterpret_cast<dcomplex *>(plan_ptr->f); } // NOLINT
+    // Array containing x values for the NFFT transform
+    nda::array<double, 2> x_arr;
 
-    // Get pointer to array containing the NFFT output h(k)
-    const dcomplex *fk_arr() const { return reinterpret_cast<dcomplex *>(plan_ptr->f_hat); } // NOLINT
+    // Array containing f(x) values for the NFFT transform
+    nda::vector<dcomplex> fx_arr;
+
+    // Array containing the NFFT output h(k)
+    nda::array<dcomplex, Rank> fk_arr;
+
+    // Tolerance for the transformation
+    double tol = 1e-14;
 
     // Function to check whether buffer is filled
     bool is_full() const { return buf_counter >= buf_size; }
@@ -155,26 +165,24 @@ namespace triqs::utility {
     // Perform NFFT transform and accumulate inside fiw_arr
     void do_nfft() {
 
-// --- NFFT Library precomputation and checks
-#ifdef NFFT_OLD_API
-      if (plan_ptr->nfft_flags & PRE_ONE_PSI) nfft_precompute_one_psi(plan_ptr.get());
-#else
-      if (plan_ptr->flags & PRE_ONE_PSI) nfft_precompute_one_psi(plan_ptr.get());
-#endif
-      if (do_checks) { // Check validity of NFFT parameters
-        const char *error_str = nfft_check(plan_ptr.get());
-        if (error_str != nullptr) NDA_RUNTIME_ERROR << "Error in NFFT module: " << error_str << "\n";
-      }
+      static_assert(Rank < 4, "NFFT Implemented only for Ranks 1, 2 and 3");
 
       // Execute transform
-      nfft_adjoint(plan_ptr.get());
+      auto _ = nda::range::all;
+      if constexpr (Rank == 1) {
+        CHECK_ERROR(finufft_setpts(plan, buf_counter, x_arr(0, _).data(), nullptr, nullptr, 0, nullptr, nullptr, nullptr));
+      } else if constexpr (Rank == 2) {
+        CHECK_ERROR(finufft_setpts(plan, buf_counter, x_arr(1, _).data(), x_arr(0, _).data(), nullptr, 0, nullptr, nullptr, nullptr));
+      } else { // Rank == 3
+        CHECK_ERROR(finufft_setpts(plan, buf_counter, x_arr(2, _).data(), x_arr(1, _).data(), x_arr(0, _).data(), 0, nullptr, nullptr, nullptr));
+      }
+      CHECK_ERROR(finufft_execute(plan, fx_arr.data(), fk_arr.data()));
 
       // Accumulate results in fiw_arr. Care to normalize results afterwards
-      int count = 0;
-      for (auto fiw_itr = fiw_arr.begin(); fiw_itr != fiw_arr.end(); ++fiw_itr) {
-        int factor = common_factor * (sum(fiw_itr.indices()) % 2 ? -1 : 1);
-        *fiw_itr += fk_arr()[count] * factor; // NOLINT
-        ++count;
+      for (auto idx_tpl : fiw_arr.indices()) {
+        auto idx_sum = std::apply([](auto... idx) { return (idx + ... + 0); }, idx_tpl);
+        int factor   = common_factor * (idx_sum % 2 ? -1 : 1);
+        std::apply(fiw_arr, idx_tpl) += std::apply(fk_arr, idx_tpl) * factor;
       }
     }
   };

@@ -84,7 +84,7 @@ TEST(CtInt, Plaquette) { // NOLINT
   ps.measure_M4ph_iw    = true;
   ps.n_iw_M4            = 2;
   ps.n_iW_M4            = 2;
-  ps.nfft_buf_size      = 50;
+  ps.nfft_buf_size      = 100000;
   ps.measure_M3pp_iw    = true;
   ps.measure_M3ph_iw    = true;
   ps.measure_M3pp_tau   = true;
