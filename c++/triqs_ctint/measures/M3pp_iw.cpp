@@ -58,15 +58,15 @@ namespace triqs_ctint::measures {
         auto const &GM2 = GM[bl2];
         auto &M3pp_iw   = M3pp_iw_(bl1, bl2);
 
-        for (int i : range(bl1_size))
-          for (int j : range(bl1_size))
-            for (int k : range(bl2_size))
-              for (int l : range(bl2_size))
-                for (auto iW : iW_mesh)
-                  for (auto iw : iw_mesh)
-                    M3pp_iw[iW, iw](i, j, k, l) += sign
-                       * (GM1[matsubara_freq{iw}](j, i) * GM2[matsubara_freq{iW - iw}](l, k)
-                          - kronecker(bl1, bl2) * GM1[matsubara_freq{iw}](l, i) * GM2[matsubara_freq{iW - iw}](j, k));
+        for (auto iW : iW_mesh)
+          for (auto iw : iw_mesh)
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3pp_iw[iW, iw](i, j, k, l) += sign * GM1[iw.value()](j, i) * GM2[iW - iw](l, k);
+                    if (bl1 == bl2) { M3pp_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * GM2[iW - iw](j, k); }
+                  }
       }
   }
 
