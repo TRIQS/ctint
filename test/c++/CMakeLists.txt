@@ -41,4 +41,4 @@ foreach(test ${all_tests})
   endif()
 endforeach()
 
-target_link_libraries(nfft_buf nfft)
+target_link_libraries(nfft_buf finufft)

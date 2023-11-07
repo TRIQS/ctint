@@ -45,7 +45,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_equid = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer
-  nfft_buf_t<1> buf_equid(giw_nfft_equid.data()(range::all, 0, 0), buf_size, beta, true);
+  nfft_buf_t<1> buf_equid(giw_nfft_equid.data()(range::all, 0, 0), buf_size, beta);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   buf_equid.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -74,7 +74,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_multi = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer with size 4000 = 2 * buf_size / 5
-  nfft_buf_t<1> buf_multi(giw_nfft_multi.data()(range::all, 0, 0), 2 * buf_size / 5, beta, true);
+  nfft_buf_t<1> buf_multi(giw_nfft_multi.data()(range::all, 0, 0), 2 * buf_size / 5, beta);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   // Buffer performs multiple transforms as buf_size < n_tau
@@ -119,7 +119,7 @@ TEST_F(Nfft, Rng) { // NOLINT
   // nfft_buffer
   n_tau    = 1e+6;
   buf_size = n_tau;
-  nfft_buf_t<1> buf_rng(giw_nfft_rng.data()(range::all, 0, 0), buf_size, beta, true);
+  nfft_buf_t<1> buf_rng(giw_nfft_rng.data()(range::all, 0, 0), buf_size, beta);
 
   // Generate values at random tau points
   for (int i = 0; i < n_tau; ++i) {
@@ -150,7 +150,7 @@ TEST_F(Nfft, 2D) { // NOLINT
   auto giw_nfft_2d = gf<prod<imfreq, imfreq>>{{{beta, Fermion, n_iw}, {beta, Fermion, n_iw}}, shape};
 
   // nfft_buffer
-  nfft_buf_t<2> buf_2d(slice_target_to_scalar(giw_nfft_2d, 0, 0).data(), buf_size, beta, true);
+  nfft_buf_t<2> buf_2d(slice_target_to_scalar(giw_nfft_2d, 0, 0).data(), buf_size, beta);
 
   // ==== Generate 2d data with equidistant \tau-grids (care for weights at edges and corners)
   // Corner Points with weight 0.25

@@ -58,6 +58,15 @@ if(PythonSupport OR (NOT IS_SUBPROJECT AND Build_Documentation))
   )
 endif()
 
+# -- finufft --
+set(FINUFFT_USE_OPENMP OFF)
+external_dependency(finufft
+  GIT_REPO https://github.com/flatironinstitute/finufft
+  GIT_TAG v2.4.0
+  BUILD_ALWAYS
+  EXCLUDE_FROM_ALL
+)
+
 # -- GTest --
 external_dependency(GTest
   GIT_REPO https://github.com/google/googletest
