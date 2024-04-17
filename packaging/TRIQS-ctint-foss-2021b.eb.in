@@ -1,7 +1,7 @@
 easyblock = 'CMakeMake'
 
 name = 'TRIQS-ctint'
-version = '3.2.0'
+version = '@PROJECT_VERSION@'
 
 homepage = 'https://triqs.github.io/ctint/'
 description = """
