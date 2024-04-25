@@ -1,4 +1,15 @@
+# CPM Managed build dependencies
 include(external_dependency.cmake)
+include(DownloadCPM.cmake)
+
+# xtl
+CPMAddPackage("gh:xtensor-stack/xtl#0.8.0")
+
+# xsimd
+CPMAddPackage(
+  URI "gh:xtensor-stack/xsimd#13.2.0"
+  OPTIONS "ENABLE_XTL_COMPLEX ON"
+)
 
 # Add your dependencies with the function
 #

@@ -9,7 +9,6 @@
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
-
   /**
   * Measure of $M^4_{abcd}(\tau_a, \tau_b, \tau_c)$
   *
@@ -49,7 +48,8 @@ namespace triqs_ctint::measures {
     array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
+    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
+    block_gf<prod<imfreq, imfreq>, matrix_valued, M_layout> M;
   };
 
 } // namespace triqs_ctint::measures
