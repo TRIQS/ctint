@@ -1,5 +1,5 @@
 #include "./M4ph_iw.hpp"
-#include <cmath>
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -47,32 +47,12 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto const &iW_mesh = std::get<0>(M4ph_iw_(0, 0).mesh());
-    auto const &iw_mesh = std::get<1>(M4ph_iw_(0, 0).mesh());
-
-    for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
+    for (int bl1 : range(params.n_blocks())) { // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
-
-        int bl1_size   = M[bl1].target_shape()[0];
-        int bl2_size   = M[bl2].target_shape()[0];
-        auto const &M1 = M[bl1];
-        auto const &M2 = M[bl2];
-        auto &M4       = M4ph_iw_(bl1, bl2);
-
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (auto iwp : iw_mesh)
-              for (int i : range(bl1_size))
-                for (int j : range(bl1_size)) {
-                  auto M1val = M1[iW + iw, iw.value()](j, i);
-
-                  for (int k : range(bl2_size))
-                    for (int l : range(bl2_size)) {
-                      M4[iW, iw, iwp](i, j, k, l) += sign * M1val * M2[iwp.value(), iW + iwp](l, k);
-                      if (bl1 == bl2) { M4[iW, iw, iwp](i, j, k, l) -= sign * M1[iwp.value(), iw.value()](l, i) * M2[iW + iw, iW + iwp](j, k); }
-                    }
-                }
+        auto const bl2_size = M[bl2].target_shape()[0];
+        simd::iw4ph_accumulate(sign, M, M4ph_iw_, bl1, bl2, bl2_size);
       }
+    }
   }
 
   void M4ph_iw::collect_results(mpi::communicator const &comm) {
