@@ -74,7 +74,8 @@ class test_Gf_Base_Op(unittest.TestCase):
             n_terms = len(list(Hint))
             solve_params = {
                 'n_cycles': 1000,
-                'h_int' : Hint
+                'h_int' : Hint,
+                'n_s': 1
             }
             for i in range(10):
                 np.random.seed(i)
