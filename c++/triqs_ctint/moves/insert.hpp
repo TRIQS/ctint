@@ -28,7 +28,7 @@ namespace triqs_ctint::moves {
 
     /// Maximum perturbation order (<0 : unlimited)
     int max_order = -1;
-    
+
     /// Object that allows to delay determinant operations, necessary for multi-inserts/removes
     lazy_det_operation_t lazy_op = lazy_det_operation_t{&qmc_config->dets};
 

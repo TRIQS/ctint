@@ -39,7 +39,7 @@ namespace triqs_ctint::moves {
     // Flip spin in the vertex list
     for (auto const &this_vpos : vpos) {
       auto &v = qmc_config->vertex_lst[this_vpos];
-      v.s = 1 - v.s;
+      v.s     = 1 - v.s;
     }
 
     return 1.0; // no need for a correction of the sign
