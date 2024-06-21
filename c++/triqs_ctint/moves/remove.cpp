@@ -46,9 +46,8 @@ namespace triqs_ctint::moves {
     // Execute the removal move
     g_tau_scalar_t det_ratio = lazy_op.execute_try_remove();
 
-
     double remove_proposition_proba = 0.0;
-    if(max_order == -1 || qmc_config->perturbation_order() < max_order) {
+    if (max_order == -1 || qmc_config->perturbation_order() < max_order) {
       remove_proposition_proba = 1.0 / std::pow(qmc_config->perturbation_order(), n_removals);
     }
 
@@ -65,9 +64,7 @@ namespace triqs_ctint::moves {
     std::sort(vpos.begin(), vpos.end(), std::greater<>());
 
     // Remove the vertices from vertex_lst
-    for (auto &&this_vpos : vpos) {
-      qmc_config->vertex_lst.erase(begin(qmc_config->vertex_lst) + this_vpos);
-    }
+    for (auto &&this_vpos : vpos) { qmc_config->vertex_lst.erase(begin(qmc_config->vertex_lst) + this_vpos); }
 
     return 1.0; // no need for a correction of the sign
   }
