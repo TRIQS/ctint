@@ -63,7 +63,7 @@ namespace triqs_ctint {
 #ifdef GTAU_IS_COMPLEX
   using g_tau_t = block_gf<imtime, matrix_valued>;
 #else
-  using g_tau_t        = block_gf<imtime, matrix_real_valued>;
+  using g_tau_t = block_gf<imtime, matrix_real_valued>;
 #endif
 
   /// A const_view to a g_tau_t
@@ -96,7 +96,7 @@ namespace triqs_ctint {
 #ifdef INTERACTION_IS_COMPLEX
   using U_scalar_t = dcomplex;
 #else
-  using U_scalar_t     = double;
+  using U_scalar_t = double;
 #endif
 
   /// Type of the Monte-Carlo weight. Either double or dcomplex

@@ -28,9 +28,7 @@ namespace triqs_ctint::moves {
 
     // Lazy insert and capture the weight for the vertices
     U_scalar_t ratio = 1;
-    for (int i = 0; i < n_insertions; ++i) {
-      ratio *= single_insert();
-    }
+    for (int i = 0; i < n_insertions; ++i) { ratio *= single_insert(); }
 
     // Execute the insertion move
     g_tau_scalar_t const det_ratio = lazy_op.execute_try_insert();
@@ -52,7 +50,7 @@ namespace triqs_ctint::moves {
 
   void insert::reject() {
     for (int i = 0; i < n_insertions; ++i) qmc_config->vertex_lst.pop_back(); // remove the last insertions.
-    for (auto &d : qmc_config->dets) d.reject_last_try();                                   // reject the last try in all determinants
+    for (auto &d : qmc_config->dets) d.reject_last_try();                     // reject the last try in all determinants
   }
 
 } // namespace triqs_ctint::moves

@@ -14,12 +14,12 @@ namespace triqs_ctint::measures {
     // mc_sign_t det_static  = 0.0;
     //mc_sign_t det_dynamic = 0.0;
 
-      //if (params.sign_analysis) {
-      // - Get matrix for each block (qmc_config.dets[bl].matrix();)
-      // - Set elements for equal / non-equal times to zero in the matrix
-      // - Calculate det
-      // - Multiply dets and take the sign
-      //}
+    //if (params.sign_analysis) {
+    // - Get matrix for each block (qmc_config.dets[bl].matrix();)
+    // - Set elements for equal / non-equal times to zero in the matrix
+    // - Calculate det
+    // - Multiply dets and take the sign
+    //}
     ++count;
   }
 

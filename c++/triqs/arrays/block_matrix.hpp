@@ -153,8 +153,8 @@ namespace triqs {
       // Boost.Serialization
       friend class boost::serialization::access;
       template <class Archive> void serialize(Archive &ar, const unsigned int /* version */) {
-        ar &block_names;
-        ar &matrix_vec;
+        ar & block_names;
+        ar & matrix_vec;
       }
 
       static std::string hdf5_format() { return is_complex<T>::value ? "BlockMatrixComplex" : "BlockMatrix"; }

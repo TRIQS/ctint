@@ -34,8 +34,7 @@ namespace triqs_ctint::measures {
         // Push {tau, f(tau)} pair into nfft buffer
         auto &buf = buf_vec[b](cdag_j.u, c_i.u);
         buf.push_back({dtau}, Ginv * s * sign);
-      })
-        ;
+      });
     }
   }
 
