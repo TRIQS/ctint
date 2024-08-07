@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ unstable ]
+    branches: [ unstable, '[0-9]+.[0-9]+.x' ]
   pull_request:
-    branches: [ unstable ]
+    branches: [ unstable, '[0-9]+.[0-9]+.x' ]
   workflow_call:
   workflow_dispatch:
 
@@ -85,10 +85,15 @@ jobs:
     - name: Install homebrew dependencies
       if: matrix.os == 'macos-12'
       run: |
-        brew install gcc@11 llvm boost fftw hdf5 open-mpi openblas
+        brew install ccache gcc@12 llvm boost fftw hdf5 open-mpi openblas
         brew install wentzell/triqs/nfft
-        pip3 install mako numpy scipy mpi4py
-        pip3 install -r requirements.txt
+        mkdir $HOME/.venv
+        python3 -m venv $HOME/.venv/my_python
+        source $HOME/.venv/my_python/bin/activate
+        pip install mako numpy scipy mpi4py
+        pip install -r requirements.txt
+        echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+        echo "PATH=$PATH" >> $GITHUB_ENV
 
     - name: add clang cxxflags
       if: ${{ contains(matrix.cxx, 'clang') }}
