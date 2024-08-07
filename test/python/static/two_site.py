@@ -32,7 +32,7 @@ h_int = h_int_kanamori(block_names, orb_names,
                                [Up-3*J, 0      ]]), # Interaction for equal spins
                         array([[U,      U-2*J  ],
                                [U-2*J,  U      ]]),   # Interaction for opposite spins
-                        J,True)
+                        J,off_diag=True)
 
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
