@@ -24,8 +24,6 @@ namespace triqs_ctint::measures {
     /// Accumulate M_tau using binning
     void accumulate(mc_weight_t sign);
 
-    void accumulate_v2(mc_weight_t sign);
-
     /// Collect results and normalize
     void collect_results(mpi::communicator const &comm);
 

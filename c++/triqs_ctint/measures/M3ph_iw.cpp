@@ -1,4 +1,5 @@
 #include "./M3ph_iw.hpp"
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -84,7 +85,8 @@ namespace triqs_ctint::measures {
             buf_arrarr_MG(bl)(b_u, c_i.u).push_back({tau_j}, Ginv_ji * G0_ia);
           }
         }
-      });
+      })
+        ;
     }
 
     // Flush remaining points from all buffers
@@ -100,23 +102,24 @@ namespace triqs_ctint::measures {
     for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
 
-        int bl1_size     = M[bl1].target_shape()[0];
-        int bl2_size     = M[bl2].target_shape()[0];
-        auto const &M1   = M[bl1];
-        auto const &GMG2 = GMG(bl2);
-        auto const &GM1  = GM[bl1];
-        auto const &MG2  = MG(bl2);
-        auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
+        int bl1_size           = M[bl1].target_shape()[0];
+        int bl2_size           = M[bl2].target_shape()[0];
+        const bool equal_sizes = (bl1 == bl2);
+        auto const &M1         = M[bl1];
+        auto const &GMG2       = GMG(bl2);
+        auto const &GM1        = GM[bl1];
+        auto const &MG2        = MG(bl2);
+        auto &M3ph_iw          = M3ph_iw_(bl1, bl2);
 
         for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (int i : range(bl1_size))
-              for (int j : range(bl1_size))
-                for (int k : range(bl2_size))
-                  for (int l : range(bl2_size)) {
-                    M3ph_iw[iW, iw](i, j, k, l) += sign * M1[iW + iw, iw.value()](j, i) * GMG2(l, k);
-                    if (bl1 == bl2) { M3ph_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * MG2[iW + iw](j, k); }
-                  }
+          for (auto iw : iw_mesh) {
+            auto M3ph_view = M3ph_iw[iW, iw];
+            if (equal_sizes) {
+              process_vectorized_loop<true>(sign, bl1_size, bl2_size, M1[iW + iw, iw.value()], GM1[iw.value()], GMG2, MG2[iW + iw], M3ph_view);
+            } else {
+              process_vectorized_loop<false>(sign, bl1_size, bl2_size, M1[iW + iw, iw.value()], GM1[iw.value()], GMG2, MG2[iW + iw], M3ph_view);
+            }
+          }
       }
   }
 

@@ -1,4 +1,5 @@
 #include "./M4ph_iw.hpp"
+#include "./iw_accumulate.hpp"
 #include <cmath>
 
 namespace triqs_ctint::measures {
@@ -43,7 +44,8 @@ namespace triqs_ctint::measures {
       foreach (qmc_config.dets[bl],
                [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) { // Care for negative frequency in c transform (for M-objects)
                  buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({double(cdag_j.tau), params.beta - double(c_i.tau)}, -Ginv_ji);
-               });
+               })
+        ;
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
@@ -53,25 +55,25 @@ namespace triqs_ctint::measures {
     for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
 
-        int bl1_size   = M[bl1].target_shape()[0];
-        int bl2_size   = M[bl2].target_shape()[0];
-        auto const &M1 = M[bl1];
-        auto const &M2 = M[bl2];
-        auto &M4       = M4ph_iw_(bl1, bl2);
+        int bl1_size           = M[bl1].target_shape()[0];
+        int bl2_size           = M[bl2].target_shape()[0];
+        const bool equal_sizes = (bl1 == bl2);
+        auto const &M1         = M[bl1];
+        auto const &M2         = M[bl2];
+        auto &M4               = M4ph_iw_(bl1, bl2);
 
         for (auto iW : iW_mesh)
           for (auto iw : iw_mesh)
-            for (auto iwp : iw_mesh)
-              for (int i : range(bl1_size))
-                for (int j : range(bl1_size)) {
-                  auto M1val = M1[iW + iw, iw.value()](j, i);
-
-                  for (int k : range(bl2_size))
-                    for (int l : range(bl2_size)) {
-                      M4[iW, iw, iwp](i, j, k, l) += sign * M1val * M2[iwp.value(), iW + iwp](l, k);
-                      if (bl1 == bl2) { M4[iW, iw, iwp](i, j, k, l) -= sign * M1[iwp.value(), iw.value()](l, i) * M2[iW + iw, iW + iwp](j, k); }
-                    }
-                }
+            for (auto iwp : iw_mesh) {
+              auto M4_view = M4[iW, iw, iwp];
+              if (equal_sizes) {
+                process_vectorized_loop<true>(sign, bl1_size, bl2_size, M1[iW + iw, iw.value()], M1[iwp.value(), iw.value()],
+                                              M2[iwp.value(), iW + iwp], M2[iW + iw, iW + iwp], M4_view);
+              } else {
+                process_vectorized_loop<false>(sign, bl1_size, bl2_size, M1[iW + iw, iw.value()], M1[iwp.value(), iw.value()],
+                                               M2[iwp.value(), iW + iwp], M2[iW + iw, iW + iwp], M4_view);
+              }
+            }
       }
   }
 

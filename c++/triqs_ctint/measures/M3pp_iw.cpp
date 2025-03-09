@@ -1,4 +1,5 @@
 #include "./M3pp_iw.hpp"
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -41,7 +42,8 @@ namespace triqs_ctint::measures {
         foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv_ji) {
           auto G0_bj = G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))](b_u, cdag_j.u);
           buf_arrarr(bl)(b_u, c_i.u).push_back({params.beta - double(c_i.tau)}, G0_bj * Ginv_ji);
-        });
+        })
+          ;
     }
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
@@ -51,21 +53,29 @@ namespace triqs_ctint::measures {
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
 
-        int bl1_size    = GM[bl1].target_shape()[0];
-        int bl2_size    = GM[bl2].target_shape()[0];
-        auto const &GM1 = GM[bl1];
-        auto const &GM2 = GM[bl2];
-        auto &M3pp_iw   = M3pp_iw_(bl1, bl2);
+        int bl1_size           = GM[bl1].target_shape()[0];
+        int bl2_size           = GM[bl2].target_shape()[0];
+        const bool equal_sizes = (bl1 == bl2);
+        auto const &GM1        = GM[bl1];
+        auto const &GM2        = GM[bl2];
+        auto &M3pp_iw          = M3pp_iw_(bl1, bl2);
 
         for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (int i : range(bl1_size))
-              for (int j : range(bl1_size))
-                for (int k : range(bl2_size))
-                  for (int l : range(bl2_size)) {
-                    M3pp_iw[iW, iw](i, j, k, l) += sign * GM1[iw.value()](j, i) * GM2[iW - iw](l, k);
-                    if (bl1 == bl2) { M3pp_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * GM2[iW - iw](j, k); }
-                  }
+          for (auto iw : iw_mesh) {
+            auto M3pp_iw_view = M3pp_iw[iW, iw];
+            if (equal_sizes) {
+              process_vectorized_loop<true>(sign, bl1_size, bl2_size, GM1[iw.value()], GM1[iw.value()], GM2[iW - iw], GM2[iW - iw], M3pp_iw_view);
+            } else {
+              process_vectorized_loop<false>(sign, bl1_size, bl2_size, GM1[iw.value()], GM1[iw.value()], GM2[iW - iw], GM2[iW - iw], M3pp_iw_view);
+            }
+//            for (int i : range(bl1_size))
+//              for (int j : range(bl1_size))
+//                for (int k : range(bl2_size))
+//                  for (int l : range(bl2_size)) {
+//                    M3pp_iw[iW, iw](i, j, k, l) += sign * GM1[iw.value()](j, i) * GM2[iW - iw](l, k);
+//                    if (bl1 == bl2) { M3pp_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * GM2[iW - iw](j, k); }
+//                  }
+          }
       }
   }
 
