@@ -4,3 +4,4 @@ doc/cpp2rst_generated
 /cmake-build-debug/
 /build/
 /.idea/
+/cmake-build-release/
