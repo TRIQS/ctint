@@ -6,6 +6,7 @@ endforeach()
 
 # List of all tests
 set(all_tests
+  plaquette.cpp
   util.cpp
   gf_real_imag.cpp
   nfft_buf.cpp
