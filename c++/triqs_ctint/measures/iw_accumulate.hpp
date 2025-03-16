@@ -1,16 +1,15 @@
 #pragma once
 #include <nda/simd/simd.hpp>
-
 namespace triqs_ctint::measures {
 
   namespace {
     template <long outer_loop, long inner_loop, bool equal_sizes>
     static void _impl_process_vectorized_loop(const mc_weight_t sign, const long bl1_size, const long bl2_size,
-                                              const basic_array_view<const std::complex<double>, 2, C_layout> &M1_view_val,
-                                              const basic_array_view<const std::complex<double>, 2, C_layout> &M1_view_if,
-                                              const basic_array_view<const std::complex<double>, 2, C_layout> &M2_view,
-                                              const basic_array_view<const std::complex<double>, 2, C_layout> &M2_view_if,
-                                              basic_array_view<std::complex<double>, 4, C_stride_layout> &M4_view) {
+                                              const auto &M1_view_val,
+                                              const auto &M1_view_if,
+                                              const auto &M2_view,
+                                              const auto &M2_view_if,
+                                              auto &M4_view) {
 
       static_assert(outer_loop == 1, "outloop width 1 is supported.");
       static_assert(inner_loop == 1 or inner_loop == 2 or inner_loop == 4);
@@ -25,7 +24,7 @@ namespace triqs_ctint::measures {
       for (long i : range(bl1_size)) {
         for (long j : range(bl1_size)) {
           const auto M1val             = M1_view_val(j, i);
-          const simd_t M1val_sign_simd = simd_t(sign * M1_view_val(j, i));
+          const simd_t M1val_sign_simd(sign * M1val);
 
           long k = 0;
           for (; k + inner_simd_size <= bl2_size; k += inner_simd_size) {
@@ -53,13 +52,11 @@ namespace triqs_ctint::measures {
             }
             for (; l < bl2_size; ++l) {
               simd_t tmp = simd::gather<simd_t>(&M4_view(i, j, k, l), M4_view_stride);
-              simd_t tmp2;
-              tmp2.load_unaligned(&M2_view(l, k));
+              simd_t tmp2(&M2_view(l,k), simd_unaligned_memory_t);
               tmp = simd::fma_add(M1val_sign_simd, tmp2, tmp);
               if constexpr (equal_sizes) {
                 simd_t tmp3(M1_view_if(l, i));
-                simd_t tmp4;
-                tmp4.load_unaligned(&M2_view_if(j, k));
+                simd_t tmp4(&M2_view_if(j,k), simd_unaligned_memory_t);
                 tmp = simd::fma_nadd(tmp3 * sign, tmp4, tmp);
               }
               simd::scatter(tmp, &M4_view(i, j, k, l), M4_view_stride);
@@ -68,8 +65,7 @@ namespace triqs_ctint::measures {
           for (; k < bl2_size; ++k) {
             long l = 0;
             for (; l + inner_simd_size <= bl2_size; l += inner_simd_size) {
-              simd_t tmp;
-              tmp.load_unaligned(&M4_view(i, j, k, l));
+              simd_t tmp(&M4_view(i,j,k,l), simd_unaligned_memory_t);
               tmp = simd::fma_add(M1val_sign_simd, simd::gather<simd_t>(&M2_view(l, k), M2_view_stride), tmp);
               if constexpr (equal_sizes) {
                 tmp = simd::fma_nadd(simd::gather<simd_t>(&M1_view_if(l, i), M1_view_if_stride) * sign, simd_t(M2_view_if(j, k)), tmp);
@@ -87,11 +83,11 @@ namespace triqs_ctint::measures {
   } // namespace
   template <bool equal_sizes>
   static void process_vectorized_loop(const mc_weight_t sign, const long bl1_size, const long bl2_size,
-                                      const basic_array_view<const std::complex<double>, 2, C_layout> &M1_view_val,
-                                      const basic_array_view<const std::complex<double>, 2, C_layout> &M1_view_if,
-                                      const basic_array_view<const std::complex<double>, 2, C_layout> &M2_view,
-                                      const basic_array_view<const std::complex<double>, 2, C_layout> &M2_view_if,
-                                      basic_array_view<std::complex<double>, 4, C_stride_layout> &M4_view) {
+                                      const auto &M1_view_val,
+                                      const auto &M1_view_if,
+                                      const auto &M2_view,
+                                      const auto &M2_view_if,
+                                      auto &M4_view) {
     constexpr size_t max_width = native_simd<std::complex<double>>::size();
     if (bl2_size >= max_width or max_width == 1) { //NOLINT
       _impl_process_vectorized_loop<1, max_width, equal_sizes>(sign, bl1_size, bl2_size, M1_view_val, M1_view_if, M2_view, M2_view_if, M4_view);
