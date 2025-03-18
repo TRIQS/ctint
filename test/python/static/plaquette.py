@@ -6,7 +6,7 @@ from triqs.gf import *
 from h5 import *
 from triqs.operators import c, c_dag, n
 from triqs.utility.h5diff import h5diff
-from numpy import matrix, array
+from numpy import matrix, array, zeros
 
 test_name = "plaquette"
 
@@ -21,20 +21,41 @@ n_cyc = 50
 
 # --------- Define hopping matrix and interaction hamiltonian ----------
 
-hloc0_mat = -array(
-    [
-        [mu, t, 0, t],  #
-        [t, mu, t, 0],  #
-        [0, t, mu, t],  #
-        [t, 0, t, mu],  #
-    ]
-)
-h_int = sum(U * n("up", i) * n("dn", i) for i in range(4))
+Nx = 2
+Ny = 2
+n_orb = Nx * Ny
+
+hloc0_mat = zeros((n_orb, n_orb))
+
+for x in range(Nx):
+    for y in range(Ny):
+        i = x + Nx * y
+
+        # diagonal terms
+        hloc0_mat[i, i] -= mu
+
+        # hopping in x direction
+        if x + 1 < Nx:
+            j = (x + 1) + Nx * y
+            hloc0_mat[i, j] -= t
+        if 0 <= x - 1:
+            j = (x - 1) + Nx * y
+            hloc0_mat[i, j] -= t
+
+        # hopping in y direction
+        if y + 1 < Ny:
+            j = x + Nx * (y + 1)
+            hloc0_mat[i, j] -= t
+        if 0 <= y - 1:
+            j = x + Nx * (y - 1)
+            hloc0_mat[i, j] -= t
+
+h_int = sum(U * n("up", i) * n("dn", i) for i in range(n_orb))
 
 # --------- set up block structure ---------
 
 block_names = ["dn", "up"]
-gf_struct = [(bl, 4) for bl in block_names]
+gf_struct = [(bl, n_orb) for bl in block_names]
 
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
@@ -46,7 +67,15 @@ S = Solver(beta = beta,
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n - hloc0_mat)
 
 # --------- Solve! ----------
+n_terms = len(list(h_int))
+alpha = zeros((n_terms, 2, 2, 1))
+delta = 0.1
+for l in range(n_terms):
+    alpha[l,...,0] = array([[ 0.5 - delta, 0.0         ],
+                            [ 0.0        , 0.5 + delta ]])
 S.solve(h_int=h_int,
+        n_s = 1,
+        alpha = alpha,
         n_cycles = n_cyc,
         length_cycle = 50,
         n_warmup_cycles = 100,

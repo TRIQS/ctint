@@ -19,18 +19,45 @@ TEST(CtInt, Plaquette) { // NOLINT
 
   // --------- Define hopping matrix and interaction hamiltonian ----------
 
-  auto const hloc0_mat = -nda::matrix<double>{
-     {mu, t, 0, t},
-     {t, mu, t, 0},
-     {0, t, mu, t},
-     {t, 0, t, mu},
-  };
+  long const Nx    = 2;
+  long const Ny    = 2;
+  long const n_orb = Nx * Ny;
+  nda::matrix<double> hloc0_mat({n_orb, n_orb});
+  for (long x = 0; x < Nx; ++x) {
+    for (long y = 0; y < Ny; ++y) {
+      long const i = x + Nx * y;
 
-  many_body_operator h_int = U * n("up", 0) * n("dn", 0) + U * n("up", 1) * n("dn", 1) + U * n("up", 2) * n("dn", 2) + U * n("up", 3) * n("dn", 3);
+      // diagonal terms
+      hloc0_mat(i, i) -= mu;
+
+      // hopping in x direction
+      if (x + 1 < Nx) {
+        long const j = (x + 1) + Nx * y;
+        hloc0_mat(i, j) -= t;
+      }
+      if (0 <= x - 1) {
+        long const j = (x - 1) + Nx * y;
+        hloc0_mat(i, j) -= t;
+      }
+
+      // hopping in y direction
+      if (y + 1 < Ny) {
+        long const j = x + Nx * (y + 1);
+        hloc0_mat(i, j) -= t;
+      }
+      if (0 <= y - 1) {
+        long const j = x + Nx * (y - 1);
+        hloc0_mat(i, j) -= t;
+      }
+    }
+  }
+
+  many_body_operator h_int;
+  for (long i = 0; i < n_orb; ++i) { h_int += U * n("up", i) * n("dn", i); }
 
   // --------- set up block structure ---------
 
-  gf_struct_t gf_struct{{"dn", 4}, {"up", 4}};
+  gf_struct_t gf_struct{{"dn", n_orb}, {"up", n_orb}};
 
   // --------- Construct the ctint solver ----------
   constr_params_t pc;
@@ -48,15 +75,15 @@ TEST(CtInt, Plaquette) { // NOLINT
   }
 
   // --------- Solve! ----------
-  double const delta  = 0.1;
-  double const a_upup = 0.5 - delta;
-  double const a_dndn = 0.5 + delta;
-  alpha_t alpha(4, 2, 2, 1);
-  for (long i = 0; i < 4; ++i) { alpha(i, range::all, range::all, 0) = nda::matrix<double>{{a_upup, 0.}, {0., a_dndn}}; };
+  long n_terms = std::distance(h_int.begin(), h_int.end());
+  alpha_t alpha(n_terms, 2, 2, 1);
+  double const delta = 0.1;
+  for (long l = 0; l < n_terms; ++l) { alpha(l, range::all, range::all, 0) = nda::matrix<double>{{0.5 - delta, 0.}, {0., 0.5 + delta}}; };
 
   solve_params_t ps;
-  ps.alpha              = alpha;
   ps.h_int              = h_int;
+  ps.n_s                = 1;
+  ps.alpha              = alpha;
   ps.n_cycles           = n_cyc;
   ps.length_cycle       = 50;
   ps.n_warmup_cycles    = 100;
