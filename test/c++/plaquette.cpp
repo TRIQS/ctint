@@ -22,34 +22,21 @@ TEST(CtInt, Plaquette) { // NOLINT
   long const Nx    = 2;
   long const Ny    = 2;
   long const n_orb = Nx * Ny;
-  nda::matrix<double> hloc0_mat({n_orb, n_orb});
-  for (long x = 0; x < Nx; ++x) {
-    for (long y = 0; y < Ny; ++y) {
-      long const i = x + Nx * y;
 
-      // diagonal terms
-      hloc0_mat(i, i) -= mu;
+  auto hloc0_mat = nda::matrix<double>::zeros(n_orb, n_orb);
 
-      // hopping in x direction
-      if (x + 1 < Nx) {
-        long const j = (x + 1) + Nx * y;
-        hloc0_mat(i, j) -= t;
-      }
-      if (0 <= x - 1) {
-        long const j = (x - 1) + Nx * y;
-        hloc0_mat(i, j) -= t;
-      }
+  // diagonal terms
+  diagonal(hloc0_mat) -= mu;
 
-      // hopping in y direction
-      if (y + 1 < Ny) {
-        long const j = x + Nx * (y + 1);
-        hloc0_mat(i, j) -= t;
-      }
-      if (0 <= y - 1) {
-        long const j = x + Nx * (y - 1);
-        hloc0_mat(i, j) -= t;
-      }
-    }
+  auto hloc0_arr = reshape(hloc0_mat, Nx, Ny, Nx, Ny);
+  auto _         = nda::range::all;
+  for (long x : range(0, Nx - 1)) {
+    diagonal(hloc0_arr(x, _, x + 1, _)) -= t;
+    diagonal(hloc0_arr(x + 1, _, x, _)) -= t;
+  }
+  for (long y : range(0, Ny - 1)) {
+    diagonal(hloc0_arr(_, y, _, y + 1)) -= t;
+    diagonal(hloc0_arr(_, y + 1, _, y)) -= t;
   }
 
   many_body_operator h_int;

@@ -6,7 +6,7 @@ from triqs.gf import *
 from h5 import *
 from triqs.operators import c, c_dag, n
 from triqs.utility.h5diff import h5diff
-from numpy import matrix, array, zeros
+from numpy import matrix, array, zeros, diagonal, reshape, eye
 
 test_name = "plaquette"
 
@@ -27,28 +27,16 @@ n_orb = Nx * Ny
 
 hloc0_mat = zeros((n_orb, n_orb))
 
-for x in range(Nx):
-    for y in range(Ny):
-        i = x + Nx * y
+# diagonal terms
+hloc0_mat -= eye(n_orb)*mu
 
-        # diagonal terms
-        hloc0_mat[i, i] -= mu
-
-        # hopping in x direction
-        if x + 1 < Nx:
-            j = (x + 1) + Nx * y
-            hloc0_mat[i, j] -= t
-        if 0 <= x - 1:
-            j = (x - 1) + Nx * y
-            hloc0_mat[i, j] -= t
-
-        # hopping in y direction
-        if y + 1 < Ny:
-            j = x + Nx * (y + 1)
-            hloc0_mat[i, j] -= t
-        if 0 <= y - 1:
-            j = x + Nx * (y - 1)
-            hloc0_mat[i, j] -= t
+hloc0_arr = reshape(hloc0_mat, (Nx, Ny, Nx, Ny))
+for x in range(Nx - 1):
+    hloc0_arr[x, :, x + 1, :] -= t*eye(Ny)
+    hloc0_arr[x + 1, :, x, :] -= t*eye(Ny)
+for y in range(Ny - 1):
+    hloc0_arr[:, y, :, y + 1] -= t*eye(Nx)
+    hloc0_arr[:, y + 1, :, y] -= t*eye(Nx)
 
 h_int = sum(U * n("up", i) * n("dn", i) for i in range(n_orb))
 
