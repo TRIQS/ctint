@@ -1,6 +1,8 @@
 #pragma once
 #include <xsimd/xsimd.hpp>
 
+#include "./../types.hpp"
+
 #if defined(_MSC_VER)
 // For Microsoft Visual Studio
 #define RESTRICT __restrict
@@ -46,7 +48,7 @@ namespace triqs_ctint::measures {
     static_assert(!std::is_void_v<make_complex_sized_batch_t<double, min_width>>, "failed to create min_width complex batch");
     static_assert(!std::is_void_v<make_complex_sized_batch_t<double, max_width>>, "failed to create max_width complex batch");
 
-    template <auto bl1_batch, auto bl2_batch>
+    template <int bl1_batch, int bl2_batch>
     void process_inner_loop(mc_weight_t sign, const auto &M1a, const auto &M2a, const auto &M1b, const auto &M2b, auto &M4a, const auto bl1_size,
                             const auto bl2_size, const auto bl1, const auto bl2) {
       using batch1_t = make_complex_sized_batch_t<double, std::max(std::min(bl1_batch, max_width), min_width)>;
@@ -93,14 +95,15 @@ namespace triqs_ctint::measures {
       }
     }
 
-    template <auto bl1_batch, auto bl2_batch>
-    void iw4_accumulate_kernel(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2) {
-      auto const &iw_mesh = std::get<0>(M4_iw(0, 0).mesh());
-      auto const bl1_size = M[bl1].target_shape()[0];
-      auto const bl2_size = M[bl2].target_shape()[0];
-      auto const M1       = M[bl1];
-      auto const M2       = M[bl2];
-      auto &M4            = M4_iw(bl1, bl2);
+    const auto iw4_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
+                                                                        const auto bl2) {
+      //auto const &iw_mesh = std::get<0>(M4_iw(0, 0).mesh());
+      auto &[iw_mesh, _, _] = M4_iw(0, 0).mesh();
+      auto const M1         = M[bl1];
+      auto const M2         = M[bl2];
+      auto const bl1_size   = M1.target_shape()[0];
+      auto const bl2_size   = M2.target_shape()[0];
+      auto &M4              = M4_iw(bl1, bl2);
 
       for (const auto &iw1 : iw_mesh) {
         for (const auto &iw2 : iw_mesh) {
@@ -115,58 +118,60 @@ namespace triqs_ctint::measures {
           }
         }
       }
-    }
+    };
 
-    template <auto bl1_batch, auto bl2_batch>
-    void iw4ph_accumulate_kernel(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2) {
-      auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
-      auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
-      auto const bl1_size = M[bl1].target_shape()[0];
-      auto const bl2_size = M[bl2].target_shape()[0];
-      auto const M1       = M[bl1];
-      auto const M2       = M[bl2];
-      auto &M4            = M4_iw(bl1, bl2);
+    const auto iw4ph_accumulate_kernel =
+       []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2) {
+         //auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
+         //auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
+         auto const &[iW_mesh, iw_mesh, _] = M4_iw(0, 0).mesh();
+         auto const M1                     = M[bl1];
+         auto const M2                     = M[bl2];
+         auto const bl1_size               = M1.target_shape()[0];
+         auto const bl2_size               = M2.target_shape()[0];
+         auto &M4                          = M4_iw(bl1, bl2);
 
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          for (auto iwp : iw_mesh) {
-            const auto M1a = M1[iW + iw, iw.value()];
-            const auto M2a = M2[iwp.value(), iW + iwp];
-            const auto M1b = M1[iwp.value(), iw.value()];
-            const auto M2b = M2[iW + iw, iW + iwp];
-            auto M4a       = M4[iW, iw, iwp];
-            process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size, bl1, bl2);
-          }
-        }
-      }
-    }
+         for (auto iW : iW_mesh) {
+           for (auto iw : iw_mesh) {
+             for (auto iwp : iw_mesh) {
+               const auto M1a = M1[iW + iw, iw.value()];
+               const auto M2a = M2[iwp.value(), iW + iwp];
+               const auto M1b = M1[iwp.value(), iw.value()];
+               const auto M2b = M2[iW + iw, iW + iwp];
+               auto M4a       = M4[iW, iw, iwp];
+               process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size, bl1, bl2);
+             }
+           }
+         }
+       };
 
-    template <auto bl1_batch, auto bl2_batch>
-    void iw4pp_accumulate_kernel(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2) {
-      auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
-      auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
-      auto const bl1_size = M[bl1].target_shape()[0];
-      auto const bl2_size = M[bl2].target_shape()[0];
-      auto const M1       = M[bl1];
-      auto const M2       = M[bl2];
-      auto &M4            = M4_iw(bl1, bl2);
+    const auto iw4pp_accumulate_kernel =
+       []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2) {
+         //auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
+         //auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
+         auto const &[iW_mesh, iw_mesh, _] = M4_iw(0, 0).mesh();
+         auto const bl1_size               = M[bl1].target_shape()[0];
+         auto const bl2_size               = M[bl2].target_shape()[0];
+         auto const M1                     = M[bl1];
+         auto const M2                     = M[bl2];
+         auto &M4                          = M4_iw(bl1, bl2);
 
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          for (auto iwp : iw_mesh) {
-            const auto M1a = M1[iW - iwp, iw.value()];
-            const auto M2a = M2[iwp.value(), iW - iw];
-            const auto M1b = M1[iwp.value(), iw.value()];
-            const auto M2b = M2[iW - iwp, iW - iw];
-            auto M4a       = M4[iW, iw, iwp];
-            process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size, bl1, bl2);
-          }
-        }
-      }
-    }
+         for (auto iW : iW_mesh) {
+           for (auto iw : iw_mesh) {
+             for (auto iwp : iw_mesh) {
+               const auto M1a = M1[iW - iwp, iw.value()];
+               const auto M2a = M2[iwp.value(), iW - iw];
+               const auto M1b = M1[iwp.value(), iw.value()];
+               const auto M2b = M2[iW - iwp, iW - iw];
+               auto M4a       = M4[iW, iw, iwp];
+               process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size, bl1, bl2);
+             }
+           }
+         }
+       };
 
-    template <auto bl1_batch, auto bl2_batch>
-    void iw3pp_accumulate_kernel(mc_weight_t sign, const auto &GM, auto &M3_iw, const auto bl1, const auto bl2) {
+    const auto iw3pp_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &GM, auto &M3_iw, const auto bl1,
+                                                                          const auto bl2) {
       auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
       auto const bl1_size           = GM[bl1].target_shape()[0];
       auto const bl2_size           = GM[bl2].target_shape()[0];
@@ -182,11 +187,10 @@ namespace triqs_ctint::measures {
           process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1a, M2a, M4a, bl1_size, bl2_size, bl1, bl2);
         }
       }
-    }
+    };
 
-    template <auto bl1_batch, auto bl2_batch>
-    void iw3ph_accumulate_kernel(mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM, const auto &MG, auto &M3_iw, const auto bl1,
-                                 const auto bl2) {
+    const auto iw3ph_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM,
+                                                                          const auto &MG, auto &M3_iw, const auto bl1, const auto bl2) {
       auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
       auto const bl1_size           = M[bl1].target_shape()[0];
       auto const bl2_size           = M[bl2].target_shape()[0];
@@ -206,95 +210,48 @@ namespace triqs_ctint::measures {
           process_inner_loop<bl1_batch, bl2_batch>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size, bl1, bl2);
         }
       }
-    }
+    };
   } // namespace
 
   namespace simd {
 
-    void iw4_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) {
+    template <auto kernel> void kernel_dispatch(const auto bl2_size, auto &&...args) {
       // Dispatch to the correct SIMD instruction width based on the size of the blocks
       // It will try to use the widest SIMD instruction available for the given block sizes
       // TODO: fold expressions might be an option to simplify the code
       if (bl2_size >= 8) {
-        return iw4_accumulate_kernel<8, 8>(sign, M, M4_iw, bl1, bl2);
+        return kernel.template operator()<8, 8>(args...);
       } else if (bl2_size >= 4) {
-        return iw4_accumulate_kernel<8, 4>(sign, M, M4_iw, bl1, bl2);
+        return kernel.template operator()<8, 4>(args...);
       } else if (bl2_size >= 3) {
-        return iw4_accumulate_kernel<8, 2>(sign, M, M4_iw, bl1, bl2);
+        return kernel.template operator()<8, 2>(args...);
       } else if (bl2_size >= 2) {
-        return iw4_accumulate_kernel<4, 2>(sign, M, M4_iw, bl1, bl2);
+        return kernel.template operator()<4, 2>(args...);
       } else {
-        return iw4_accumulate_kernel<1, 1>(sign, M, M4_iw, bl1, bl2);
+        return kernel.template operator()<1, 1>(args...);
       }
+    }
+
+    void iw4_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) {
+      kernel_dispatch<iw4_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
     void iw4ph_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) {
-      // Dispatch to the correct SIMD instruction width based on the size of the blocks
-      // It will try to use the widest SIMD instruction available for the given block sizes
-      // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) {
-        return iw4ph_accumulate_kernel<8, 8>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 4) {
-        return iw4ph_accumulate_kernel<8, 4>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 3) {
-        return iw4ph_accumulate_kernel<8, 2>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 2) {
-        return iw4ph_accumulate_kernel<4, 2>(sign, M, M4_iw, bl1, bl2);
-      } else {
-        return iw4ph_accumulate_kernel<1, 1>(sign, M, M4_iw, bl1, bl2);
-      }
+      kernel_dispatch<iw4ph_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
     void iw4pp_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) {
-      // Dispatch to the correct SIMD instruction width based on the size of the blocks
-      // It will try to use the widest SIMD instruction available for the given block sizes
-      // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) {
-        return iw4pp_accumulate_kernel<8, 8>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 4) {
-        return iw4pp_accumulate_kernel<8, 4>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 3) {
-        return iw4pp_accumulate_kernel<8, 2>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 2) {
-        return iw4pp_accumulate_kernel<4, 2>(sign, M, M4_iw, bl1, bl2);
-      } else {
-        return iw4pp_accumulate_kernel<1, 1>(sign, M, M4_iw, bl1, bl2);
-      }
+      kernel_dispatch<iw4pp_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
     void iw3ph_accumulate(mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM, const auto &MG, auto &M4_iw, const auto bl1,
                           const auto bl2, const auto bl2_size) {
-      // Dispatch to the correct SIMD instruction width based on the size of the blocks
-      // It will try to use the widest SIMD instruction available for the given block sizes
-      // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) {
-        return iw3ph_accumulate_kernel<8, 8>(sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 4) {
-        return iw3ph_accumulate_kernel<8, 4>(sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 3) {
-        return iw3ph_accumulate_kernel<8, 2>(sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 2) {
-        return iw3ph_accumulate_kernel<4, 2>(sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
-      } else {
-        return iw3ph_accumulate_kernel<1, 1>(sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
-      }
+      kernel_dispatch<iw3ph_accumulate_kernel>(bl2_size, sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
     }
 
     void iw3pp_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) {
-      // Dispatch to the correct SIMD instruction width based on the size of the blocks
-      // It will try to use the widest SIMD instruction available for the given block sizes
-      // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) {
-        return iw3pp_accumulate_kernel<8, 8>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 4) {
-        return iw3pp_accumulate_kernel<8, 4>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 3) {
-        return iw3pp_accumulate_kernel<8, 2>(sign, M, M4_iw, bl1, bl2);
-      } else if (bl2_size >= 2) {
-        return iw3pp_accumulate_kernel<4, 2>(sign, M, M4_iw, bl1, bl2);
-      } else {
-        return iw3pp_accumulate_kernel<1, 1>(sign, M, M4_iw, bl1, bl2);
-      }
+      kernel_dispatch<iw3pp_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
+
   } // namespace simd
 } // namespace triqs_ctint::measures
