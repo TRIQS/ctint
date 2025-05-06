@@ -110,6 +110,12 @@ namespace triqs_ctint {
   /// A view to a block_matrix_t
   using block_matrix_v_t = std::vector<matrix_view<M_tau_scalar_t>>;
 
+  ///
+  using sample_t = std::pair<double, dcomplex>;
+
+  /// 
+  using block_sample_t = std::vector<nda::matrix<sample_t>>;
+
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;
 

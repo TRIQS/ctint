@@ -27,6 +27,9 @@ namespace triqs_ctint {
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
+    ///
+    std::optional<std::vector<block_sample_t>> M_tau_samples;
+
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
 
