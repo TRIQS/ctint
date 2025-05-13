@@ -4,6 +4,7 @@
 #include "./measures/histogram.hpp"
 #include "./measures/density.hpp"
 #include "./measures/M_tau.hpp"
+#include "./measures/M_tau_samples.hpp"
 #include "./measures/M_iw.hpp"
 #include "./measures/M4_iw.hpp"
 #include "./measures/M4pp_iw.hpp"

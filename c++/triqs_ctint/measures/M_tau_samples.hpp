@@ -29,7 +29,8 @@ namespace triqs_ctint::measures {
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
 
-    std::vector<block_sample_t> M_tau_samples_;
+    std::vector<nda::matrix<std::vector<double>>> &tau_samples;
+    std::vector<nda::matrix<std::vector<dcomplex>>> &weight_samples;
 
     // Matrix views for the hartree term accumulation
     std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;

@@ -41,6 +41,7 @@ S.solve(h_int=h_int,
         measure_histogram = True,
         measure_density = True,
         measure_M4_iw = True,
+        measure_M_tau_samples = True,
         n_iw_M4 = 5,
         nfft_buf_size = 50,
         measure_M3pp_tau = True,
@@ -57,6 +58,7 @@ S.solve(h_int=h_int,
         chi_A_vec = [n('up',0) + n('dn', 0)],
         chi_B_vec = [n('up',0) + n('dn', 0)],
         post_process = True )
+
 
 # -------- Save in archive ---------
 with HDFArchive("%s.out.h5"%test_name,'w') as arch:

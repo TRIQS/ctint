@@ -108,6 +108,12 @@ namespace triqs_ctint {
     /// Measure M(tau)
     bool measure_M_tau = true;
 
+    /// Measure M(tau) samples
+    bool measure_M_tau_samples = true;
+
+    /// N Cheb
+    long n_cheb_coeffs = 10;
+
     /// Measure M(iomega) using nfft
     bool measure_M_iw = false;
 

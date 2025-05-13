@@ -28,7 +28,9 @@ namespace triqs_ctint {
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
     ///
-    std::optional<std::vector<block_sample_t>> M_tau_samples;
+    std::vector<nda::matrix<std::vector<double>>> tau_samples = {};
+    ///
+    std::vector<nda::matrix<std::vector<dcomplex>>> weight_samples = {};
 
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;

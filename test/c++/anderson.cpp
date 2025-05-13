@@ -29,7 +29,7 @@ TEST(CtInt, Anderson) { // NOLINT
 
   // Construct Parameters
   constr_params_t pc;
-  pc.beta()    = 20.0;
+  pc.beta    = 20.0;
   pc.gf_struct = {{"up", 1}, {"down", 1}};
   pc.n_tau     = 10000;
   pc.n_iw      = 500;
@@ -54,6 +54,7 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.measure_histogram = true;
 
   ps.measure_M_tau = false;
+  ps.measure_M_tau_samples = true;
   ps.measure_M_iw  = false;
 
   //ps.measure_M4_iw  = true;
@@ -77,10 +78,10 @@ TEST(CtInt, Anderson) { // NOLINT
   solver_core S(pc);
 
   // set up hybridization delta(i\omega_n)
-  auto delta_w = gf<imfreq, matrix_valued>{{pc.beta(), Fermion, pc.n_iw}, make_shape(1, 1)};
+  auto delta_w = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
   delta_w()    = 0;
   for (int i : range(energ.size())) {
-    auto term = gf<imfreq, matrix_valued>{{pc.beta(), Fermion, pc.n_iw}, make_shape(1, 1)};
+    auto term = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
     term(iw_) << hopp[i] * hopp[i] / (iw_ - energ[i]);
     delta_w += term;
   }
