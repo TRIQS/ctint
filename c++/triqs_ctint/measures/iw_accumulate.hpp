@@ -288,11 +288,11 @@ namespace triqs_ctint::measures {
       // Dispatch to the correct SIMD instruction width based on the size of the blocks
       // It will try to use the widest SIMD instruction available for the given block sizes
       // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) { return kernel.template operator()<8, 8>(std::forward<decltype(args)>(args)...); }
-      if (bl2_size >= 4) { return kernel.template operator()<8, 4>(std::forward<decltype(args)>(args)...); }
-      if (bl2_size >= 3) { return kernel.template operator()<8, 2>(std::forward<decltype(args)>(args)...); }
-      if (bl2_size >= 2) { return kernel.template operator()<4, 2>(std::forward<decltype(args)>(args)...); }
-      return kernel.template operator()<1, 1>(std::forward<decltype(args)>(args)...);
+      if (bl2_size >= 8) { return kernel.template operator()<8, 8>(args ...); }
+      if (bl2_size >= 4) { return kernel.template operator()<8, 4>(args ...); }
+      if (bl2_size >= 3) { return kernel.template operator()<8, 2>(args ...); }
+      if (bl2_size >= 2) { return kernel.template operator()<4, 2>(args ...); }
+      return kernel.template operator()<1, 1>(args ...);
     }
 
     void iw4_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
