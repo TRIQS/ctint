@@ -74,6 +74,7 @@ namespace triqs_ctint::measures {
 
               // fused FMA + FNMA
               for (; idx < end; idx += simd_size) {
+
                 const auto m4  = batch_t::load_unaligned(M4_ptr + idx);
                 const auto m2a = batch_t::load_unaligned(M2a_ptr + idx);
                 const auto m1b = batch_t::load_unaligned(M1b_ptr + idx);
@@ -87,6 +88,7 @@ namespace triqs_ctint::measures {
             } else {
               // only FMA for M1a*M2a
               for (; idx < end; idx += simd_size) {
+
                 const auto m4     = batch_t::load_unaligned(M4_ptr + idx);
                 const auto m2a    = batch_t::load_unaligned(M2a_ptr + idx);
                 const auto result = xsimd::fma(M1a_v, m2a, m4);
@@ -151,20 +153,22 @@ namespace triqs_ctint::measures {
     template <int bl1_batch, int bl2_batch>
     void process_inner_loop(const mc_weight_t sign, const auto &M1a, const auto &M2a, const auto &M1b, const auto &M2b, auto &M4a,
                             const auto bl1_size, const auto bl2_size, const auto bl1, const auto bl2) noexcept {
-      if (bl1 == bl2)
+      if (bl1 == bl2) [[unlikely]] {
         if constexpr (bl1_batch == bl2_batch) {
           return process_inner_loop_fused<bl1_batch, true>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
         } else {
           return process_inner_loop_fallback<bl1_batch, bl2_batch, true>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
         }
-      if constexpr (bl1_batch == bl2_batch) {
-        return process_inner_loop_fused<bl1_batch, false>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
       } else {
-        return process_inner_loop_fallback<bl1_batch, bl2_batch, false>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
+        if constexpr (bl1_batch == bl2_batch) {
+          return process_inner_loop_fused<bl1_batch, false>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
+        } else {
+          return process_inner_loop_fallback<bl1_batch, bl2_batch, false>(sign, M1a, M2a, M1b, M2b, M4a, bl1_size, bl2_size);
+        }
       }
     }
 
-    constexpr auto iw4_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
+    constexpr auto iw4_accumulate_kernel = []<int bl1_batch, int bl2_batch>(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
                                                                             const auto bl2) noexcept {
       //auto const &iw_mesh = std::get<0>(M4_iw(0, 0).mesh());
       auto &[iw_mesh, _, _] = M4_iw(0, 0).mesh();
@@ -189,7 +193,7 @@ namespace triqs_ctint::measures {
       }
     };
 
-    constexpr auto iw4ph_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
+    constexpr auto iw4ph_accumulate_kernel = []<int bl1_batch, int bl2_batch>(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
                                                                               const auto bl2) noexcept {
       //auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
       //auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
@@ -214,7 +218,7 @@ namespace triqs_ctint::measures {
       }
     };
 
-    constexpr auto iw4pp_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
+    constexpr auto iw4pp_accumulate_kernel = []<int bl1_batch, int bl2_batch>(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1,
                                                                               const auto bl2) noexcept {
       //auto const &iW_mesh = std::get<0>(M4_iw(0, 0).mesh());
       //auto const &iw_mesh = std::get<1>(M4_iw(0, 0).mesh());
@@ -239,7 +243,7 @@ namespace triqs_ctint::measures {
       }
     };
 
-    constexpr auto iw3pp_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &GM, auto &M3_iw, const auto bl1,
+    constexpr auto iw3pp_accumulate_kernel = []<int bl1_batch, int bl2_batch>(const mc_weight_t sign, const auto &GM, auto &M3_iw, const auto bl1,
                                                                               const auto bl2) noexcept {
       auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
       auto const bl1_size           = GM[bl1].target_shape()[0];
@@ -258,7 +262,7 @@ namespace triqs_ctint::measures {
       }
     };
 
-    constexpr auto iw3ph_accumulate_kernel = []<int bl1_batch, int bl2_batch>(mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM,
+    constexpr auto iw3ph_accumulate_kernel = []<int bl1_batch, int bl2_batch>(const mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM,
                                                                               const auto &MG, auto &M3_iw, const auto bl1, const auto bl2) noexcept {
       auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
       auto const bl1_size           = M[bl1].target_shape()[0];
@@ -288,31 +292,31 @@ namespace triqs_ctint::measures {
       // Dispatch to the correct SIMD instruction width based on the size of the blocks
       // It will try to use the widest SIMD instruction available for the given block sizes
       // TODO: fold expressions might be an option to simplify the code
-      if (bl2_size >= 8) { return kernel.template operator()<8, 8>(args ...); }
-      if (bl2_size >= 4) { return kernel.template operator()<8, 4>(args ...); }
-      if (bl2_size >= 3) { return kernel.template operator()<8, 2>(args ...); }
-      if (bl2_size >= 2) { return kernel.template operator()<4, 2>(args ...); }
-      return kernel.template operator()<1, 1>(args ...);
+      if (bl2_size >= 8) { return kernel.template operator()<8, 8>(std::forward<decltype(args)>(args)...); }
+      if (bl2_size >= 4) { return kernel.template operator()<8, 4>(std::forward<decltype(args)>(args)...); }
+      if (bl2_size >= 3) { return kernel.template operator()<8, 2>(std::forward<decltype(args)>(args)...); }
+      if (bl2_size >= 2) { return kernel.template operator()<4, 2>(std::forward<decltype(args)>(args)...); }
+      return kernel.template operator()<1, 1>(std::forward<decltype(args)>(args)...);
     }
 
     void iw4_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw4_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
-    void iw4ph_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
+    void iw4ph_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw4ph_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
-    void iw4pp_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
+    void iw4pp_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw4pp_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
-    void iw3ph_accumulate(mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM, const auto &MG, auto &M4_iw, const auto bl1,
+    void iw3ph_accumulate(const mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM, const auto &MG, auto &M4_iw, const auto bl1,
                           const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw3ph_accumulate_kernel>(bl2_size, sign, M, GMG, GM, MG, M4_iw, bl1, bl2);
     }
 
-    void iw3pp_accumulate(mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
+    void iw3pp_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw3pp_accumulate_kernel>(bl2_size, sign, M, M4_iw, bl1, bl2);
     }
 
