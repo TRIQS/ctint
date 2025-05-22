@@ -26,7 +26,7 @@ namespace triqs::utility {
     /// Constructor
     nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_)
        : fiw_arr(std::move(fiw_arr_)),
-         niws(fiw_arr.shape()),
+         niws(nda::stdutil::make_std_array<int64_t>(fiw_arr.shape())),
          buf_size(buf_size_),
          beta(beta_),
          x_arr(Rank, buf_size),
