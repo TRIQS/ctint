@@ -1,4 +1,5 @@
 #include "./M3pp_iw.hpp"
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -48,24 +49,10 @@ namespace triqs_ctint::measures {
 
     auto [iW_mesh, iw_mesh] = M3pp_iw_(0, 0).mesh();
 
-    for (int bl1 : range(params.n_blocks()))
-      for (int bl2 : range(params.n_blocks())) {
-
-        int bl1_size    = GM[bl1].target_shape()[0];
-        int bl2_size    = GM[bl2].target_shape()[0];
-        auto const &GM1 = GM[bl1];
-        auto const &GM2 = GM[bl2];
-        auto &M3pp_iw   = M3pp_iw_(bl1, bl2);
-
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
-            for (int i : range(bl1_size))
-              for (int j : range(bl1_size))
-                for (int k : range(bl2_size))
-                  for (int l : range(bl2_size)) {
-                    M3pp_iw[iW, iw](i, j, k, l) += sign * GM1[iw.value()](j, i) * GM2[iW - iw](l, k);
-                    if (bl1 == bl2) { M3pp_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * GM2[iW - iw](j, k); }
-                  }
+    for (auto bl1 : range(params.n_blocks()))
+      for (auto bl2 : range(params.n_blocks())) {
+        auto const bl2_size = GM[bl2].target_shape()[0];
+        simd::iw3pp_accumulate(sign, GM, M3pp_iw_, bl1, bl2, bl2_size);
       }
   }
 

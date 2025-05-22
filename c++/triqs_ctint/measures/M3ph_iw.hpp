@@ -49,10 +49,13 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix in the measurement of M3ph
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
-    block_gf<imfreq, matrix_valued> GM;
-    block_gf<imfreq, matrix_valued> MG;
-    array<array<dcomplex, 2>, 1> GMG;
+    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
+    block_gf<prod<imfreq, imfreq>, matrix_valued, M_layout> M;
+    using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
+    block_gf<imfreq, matrix_valued, GM_layout> GM;
+    using MG_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
+    block_gf<imfreq, matrix_valued, MG_layout> MG;
+    array<array<dcomplex, 2, F_layout>, 1> GMG;
   };
 
 } // namespace triqs_ctint::measures

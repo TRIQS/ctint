@@ -2,6 +2,9 @@ file(GLOB_RECURSE sources *.cpp)
 add_library(${PROJECT_NAME}_c ${sources})
 add_library(${PROJECT_NAME}::${PROJECT_NAME}_c ALIAS ${PROJECT_NAME}_c)
 
+# if the compiler is clang add -fp-contract=fast to BUILD_INTERFACE
+target_compile_options(${PROJECT_NAME}_c PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-ffp-contract=fast>>)
+
 # Link against triqs and enable warnings
 target_link_libraries(${PROJECT_NAME}_c PUBLIC triqs PRIVATE $<BUILD_INTERFACE:${PROJECT_NAME}_warnings>)
 
@@ -29,7 +32,10 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING
 # ========= Additional Dependencies ==========
 
 target_link_libraries(${PROJECT_NAME}_c PRIVATE finufft)
-install(TARGETS finufft xsimd EXPORT triqs_ctint-targets)
+install(TARGETS finufft EXPORT triqs_ctint-targets)
+
+target_link_libraries(${PROJECT_NAME}_c PRIVATE xsimd)
+install(TARGETS xsimd EXPORT triqs_ctint-targets)
 
 # ========= Static Analyzer Checks ==========
 
