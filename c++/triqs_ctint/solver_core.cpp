@@ -169,8 +169,8 @@ namespace triqs_ctint {
     g_iw_t G0_shift_iw_inv = G0_iw_inv;
 
     // Assert compatibility between alpha tensor and h_int
-    long n_terms = std::distance(p.h_int.begin(), p.h_int.end());
-    if (p.alpha.shape() != std::array<long, 4>{n_terms, 2, 2, p.n_s})
+    long const n_terms = std::distance(p.h_int.begin(), p.h_int.end());
+    if (p.alpha.shape() != std::array<long, 4>{n_terms + (D0_iw ? 1 : 0) + (Jperp_iw ? 1 : 0), 2, 2, p.n_s})
       TRIQS_RUNTIME_ERROR << "Error: Alpha and h_int are incompatible: Different number of density-density terms \n";
 
     // Loop over static density-density interaction terms
@@ -198,21 +198,19 @@ namespace triqs_ctint {
 
     if (D0_iw) {
 
-      // External loop over blocks
-      for (int sig : range(p.n_blocks())) {
-
-        // Get Matrix Rank for block
-        int Rank = G0_iw[sig].target_shape()[0];
-        for (int i : range(Rank)) {
-
-          // Calculate and subtract term according to notes
-          TRIQS_RUNTIME_ERROR << "FIXME";
-          //dcomplex term = 0.0;
-          //for (int sigp : range(p.n_blocks()))
-          //for (int j : range(Rank))
-          //for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha_l[sigp](j, s); }
-          //auto g = slice_target_to_scalar(G0_shift_iw_inv[sig], i, i);
-          //g(iw_) << g(iw_) - term / p.n_s;
+      for (int bl1 : range(p.n_blocks())) {
+        int bl1_size = G0_iw[bl1].target_shape()[0];
+        for (int i : range(bl1_size)) {
+          dcomplex term = 0.0;
+          for (int bl2 : range(p.n_blocks())) {
+            int bl2_size = G0_iw[bl2].target_shape()[0];
+            for (int j : range(bl2_size)) {
+              for (int s : range(p.n_s)) {
+                term += ((*D0_iw)(bl1, bl2)[0](i, j) + (*D0_iw)(bl2, bl1)[0](j, i)) * p.alpha(n_terms, bl2, bl2, s);
+              }
+            }
+          }
+          G0_shift_iw_inv[bl1].data()(range(), i, i) -= term / p.n_s;
         }
       }
     }
