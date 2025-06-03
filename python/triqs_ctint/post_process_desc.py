@@ -44,7 +44,7 @@ module.add_function ("chi4_iw_t triqs_ctint::G2pp_from_G2ppc (chi4_iw_t::view_ty
 
 module.add_function ("chi4_iw_t triqs_ctint::G2ph_from_G2phc (chi4_iw_t::view_type G2phc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2phc_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2c (chi4_iw_t::view_type G2c_iw, g_iw_cv_t G_iw, gf_struct_t gf_struct)", doc = r"""Calculate the generalized ph susceptibility from G2c_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2phc (chi4_iw_t::view_type G2phc_iw, g_iw_cv_t G_iw, gf_struct_t gf_struct)", doc = r"""Calculate the generalized ph susceptibility from G2phc_iw and G_iw""")
 
 module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
 
