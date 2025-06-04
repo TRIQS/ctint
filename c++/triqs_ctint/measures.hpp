@@ -1,3 +1,8 @@
+// Copyright (c) 2017--present, The Simons Foundation
+// This file is part of TRIQS/ctint and is licensed under the terms of GPLv3 or later.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the root of this distribution for details.
+
 #include "./measures/average_sign.hpp"
 #include "./measures/average_k.hpp"
 #include "./measures/auto_corr_time.hpp"
