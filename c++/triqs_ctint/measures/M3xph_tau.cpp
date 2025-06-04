@@ -122,16 +122,16 @@ namespace triqs_ctint::measures {
         auto const &MG    = MG_vec[bl2];
         int bl2_size      = G0_tau[bl2].target_shape()[0];
         auto const &cdag2 = cdag_vec_M[bl2];
-        auto &M3xph_tau   = M3xph_tau_(bl1, bl2);
-        auto &M3xph_delta = M3xph_delta_(bl1, bl2);
+        auto &M3xph_tau_bl   = M3xph_tau_(bl1, bl2);
+        auto &M3xph_delta_bl = M3xph_delta_(bl1, bl2);
 
         // Direct term
         for (auto [i, j, k, l] : product_range(det1_size, bl1_size, bl2_size, det2_size)) {
           // Take care of equal-time peak separately
           if (c1[i].tau_pt == cdag2[l].tau_pt) {
-            M3xph_delta[c_vec_G0[bl1][i].tau_idx](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
+            M3xph_delta_bl[c_vec_G0[bl1][i].tau_idx](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
           } else {
-            M3xph_tau[c1[i].tau_idx, cdag2[l].tau_idx](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
+            M3xph_tau_bl[c1[i].tau_idx, cdag2[l].tau_idx](c1[i].u, j, k, cdag2[l].u) += sign * GM(j, i) * MG(l, k);
           }
         }
       }

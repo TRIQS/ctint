@@ -15,7 +15,7 @@ namespace triqs_ctint {
   std::pair<double, double> cyclic_difference(double tau1, double tau2) {
     // Assume tau1 > tau2 for the equal time case
     double dtau  = tau1 - tau2;
-    int nshifts  = std::floor(dtau / tau_t::beta);
+    int nshifts  = static_cast<int>(std::floor(dtau / tau_t::beta));
     double sign  = (nshifts % 2 == 0) ? 1.0 : -1.0;
     double value = dtau - nshifts * tau_t::beta;
     return std::make_pair(sign, value);
