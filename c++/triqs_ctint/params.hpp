@@ -59,7 +59,7 @@ namespace triqs_ctint {
     // ----------- QMC Specific -----------
 
     /// Number of auxiliary spins
-    int n_s = 1;
+    int n_s = 2;
 
     /// Alpha parameter
     alpha_t alpha;
@@ -68,7 +68,7 @@ namespace triqs_ctint {
     int n_cycles;
 
     /// Length of a MC cycles
-    int length_cycle = 50;
+    int length_cycle = 100;
 
     /// Number of warmup cycles
     int n_warmup_cycles = 5000;
@@ -80,7 +80,7 @@ namespace triqs_ctint {
     std::string random_name = "";
 
     /// Use double insertion
-    bool use_double_insertion = false;
+    bool use_double_insertion = true;
 
     /// Types of insertions to use
     std::vector<int> insertion_types = {};

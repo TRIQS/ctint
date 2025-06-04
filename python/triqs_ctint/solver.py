@@ -87,6 +87,11 @@ class Solver(SolverCore):
                      Note that in this Python Wrapper the alpha-tensor is optional.
                      If not given, it will be constructed from the density matrix of
                      the SC Hartree Fock solution.
+        delta : float (default 0.1)
+                     The value of the delta parameter used to construct the alpha tensor.
+                     The larger the value of delta, the better the Monte-Carlo sign,
+                     at the cost of a larger perturbation order.
+                     This parameter is only used if alpha is not given explicitly.
         """
 
         h_int = params_kw['h_int']
@@ -97,7 +102,7 @@ class Solver(SolverCore):
             mpi_print("Determine alpha-tensor from SC Hartree Fock solution")
 
             # Make sure that n_s parameter is compatible with automatic alpha
-            n_s = params_kw.get('n_s', 1)
+            n_s = params_kw.get('n_s', 2)
             if(all(any(s in bl for s in ['up', 'dn', 'do']) for bl, idxlst in gf_struct)):
                 assert n_s in [1, 2], "For spinfull systems the automatic alpha determination requires n_s to be either 1 or 2"
             else:

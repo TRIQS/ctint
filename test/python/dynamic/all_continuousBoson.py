@@ -61,7 +61,7 @@ S.D0_iw['up','dn'][0,0] << Function(lambda w : Dz_expr_reg(w, D))
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         n_cycles = n_cyc,
-        length_cycle = 50,
+        length_cycle = 100,
         n_warmup_cycles = 100,
         random_seed = 34788,
         measure_histogram = True,

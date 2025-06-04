@@ -47,7 +47,7 @@ S.Jperp_iw[0,0] << 0.5 * J**2*(inverse(iOmega_n-w0)-inverse(iOmega_n+w0))
 # --------- Solve! ----------
 S.solve(h_int=h_int,
         n_cycles = n_cyc,
-        length_cycle = 50,
+        length_cycle = 100,
         n_warmup_cycles = 100,
         random_seed = 34788,
         measure_histogram = True,

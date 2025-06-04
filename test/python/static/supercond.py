@@ -41,6 +41,7 @@ for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu_mat - D_mat);
 
 # --------- Solve! ----------
 S.solve(h_int=h_int,
+        n_s=1,
         n_cycles = n_cyc,
         length_cycle = 50,
         n_warmup_cycles = 100,
