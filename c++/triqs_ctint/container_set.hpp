@@ -105,13 +105,13 @@ namespace triqs_ctint {
     std::optional<chi4_iw_t> Fph_iw;
 
     /// The connected part of the two-particle Green function
-    std::optional<chi4_iw_t> G2c_iw;
+    std::optional<chi4_iw_t> G2_conn_iw;
 
     /// The connected part of the two-particle Green function (pp channel)
-    std::optional<chi4_iw_t> G2ppc_iw;
+    std::optional<chi4_iw_t> G2pp_conn_iw;
 
     /// The connected part of the two-particle Green function (ph channel)
-    std::optional<chi4_iw_t> G2phc_iw;
+    std::optional<chi4_iw_t> G2ph_conn_iw;
 
     /// The two-particle Green function
     std::optional<chi4_iw_t> G2_iw;
@@ -210,9 +210,9 @@ namespace triqs_ctint {
       h5_write(grp, "G2_iw", c.G2_iw);
       h5_write(grp, "G2pp_iw", c.G2pp_iw);
       h5_write(grp, "G2ph_iw", c.G2ph_iw);
-      h5_write(grp, "G2c_iw", c.G2c_iw);
-      h5_write(grp, "G2ppc_iw", c.G2ppc_iw);
-      h5_write(grp, "G2phc_iw", c.G2phc_iw);
+      h5_write(grp, "G2_conn_iw", c.G2_conn_iw);
+      h5_write(grp, "G2pp_conn_iw", c.G2pp_conn_iw);
+      h5_write(grp, "G2ph_conn_iw", c.G2ph_conn_iw);
       h5_write(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_write(grp, "chi2ph_iw", c.chi2ph_iw);
       h5_write(grp, "chi2pp_conn_tau_from_M3", c.chi2pp_conn_tau_from_M3);
@@ -269,9 +269,9 @@ namespace triqs_ctint {
       h5_read(grp, "G2_iw", c.G2_iw);
       h5_read(grp, "G2pp_iw", c.G2pp_iw);
       h5_read(grp, "G2ph_iw", c.G2ph_iw);
-      h5_read(grp, "G2c_iw", c.G2c_iw);
-      h5_read(grp, "G2ppc_iw", c.G2ppc_iw);
-      h5_read(grp, "G2phc_iw", c.G2phc_iw);
+      h5_read(grp, "G2_conn_iw", c.G2_conn_iw);
+      h5_read(grp, "G2pp_conn_iw", c.G2pp_conn_iw);
+      h5_read(grp, "G2ph_conn_iw", c.G2ph_conn_iw);
       h5_read(grp, "chi2pp_iw", c.chi2pp_iw);
       h5_read(grp, "chi2ph_iw", c.chi2ph_iw);
       h5_read(grp, "chi2pp_conn_tau_from_M3", c.chi2pp_conn_tau_from_M3);

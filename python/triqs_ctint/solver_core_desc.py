@@ -190,17 +190,17 @@ c.add_member(c_name = "Fph_iw",
              read_only= True,
              doc = r"""The two-particle vertex function (ph channel)""")
 
-c.add_member(c_name = "G2c_iw",
+c.add_member(c_name = "G2_conn_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The connected part of the two-particle Green function""")
 
-c.add_member(c_name = "G2ppc_iw",
+c.add_member(c_name = "G2pp_conn_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The connected part of the two-particle Green function (pp channel)""")
 
-c.add_member(c_name = "G2phc_iw",
+c.add_member(c_name = "G2ph_conn_iw",
              c_type = "std::optional<chi4_iw_t>",
              read_only= True,
              doc = r"""The connected part of the two-particle Green function (ph channel)""")

@@ -286,18 +286,18 @@ namespace triqs_ctint {
       }
     }
 
-    // Calculate G2c_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw and M_iw) G2c_iw = G2c_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
-    if (M4pp_iw and M_iw) G2ppc_iw = G2ppc_from_M4pp(M4pp_iw.value(), M_iw.value(), G0_shift_iw);
-    if (M4ph_iw and M_iw) G2phc_iw = G2phc_from_M4ph(M4ph_iw.value(), M_iw.value(), G0_shift_iw);
+    // Calculate G2_conn_iw, F_iw and G2_iw from M4_iw and M_iw
+    if (M4_iw and M_iw) G2_conn_iw = G2_conn_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M4pp_iw and M_iw) G2pp_conn_iw = G2pp_conn_from_M4pp(M4pp_iw.value(), M_iw.value(), G0_shift_iw);
+    if (M4ph_iw and M_iw) G2ph_conn_iw = G2ph_conn_from_M4ph(M4ph_iw.value(), M_iw.value(), G0_shift_iw);
 
-    if (G2c_iw and M_iw) F_iw = F_from_G2c(G2c_iw.value(), G_iw);
-    if (G2ppc_iw and M_iw) Fpp_iw = Fpp_from_G2ppc(G2ppc_iw.value(), G_iw);
-    if (G2phc_iw and M_iw) Fph_iw = Fph_from_G2phc(G2phc_iw.value(), G_iw);
+    if (G2_conn_iw and M_iw) F_iw = F_from_G2c(G2_conn_iw.value(), G_iw);
+    if (G2pp_conn_iw and M_iw) Fpp_iw = Fpp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw);
+    if (G2ph_conn_iw and M_iw) Fph_iw = Fph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw);
 
-    if (G2c_iw and M_iw) G2_iw = G2_from_G2c(G2c_iw.value(), G_iw);
-    if (G2ppc_iw and M_iw) G2pp_iw = G2pp_from_G2ppc(G2ppc_iw.value(), G_iw);
-    if (G2phc_iw and M_iw) G2ph_iw = G2ph_from_G2phc(G2phc_iw.value(), G_iw);
+    if (G2_conn_iw and M_iw) G2_iw = G2_from_G2c(G2_conn_iw.value(), G_iw);
+    if (G2pp_conn_iw and M_iw) G2pp_iw = G2pp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw);
+    if (G2ph_conn_iw and M_iw) G2ph_iw = G2ph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
     if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());

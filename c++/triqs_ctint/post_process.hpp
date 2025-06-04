@@ -5,28 +5,28 @@
 namespace triqs_ctint {
 
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
-  chi4_iw_t G2c_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2ppc_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2phc_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
 
-  /// Calculate the vertex function $F$ from G2c_iw and G_iw
-  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw);
-  /// Calculate the vertex function $Fpp$ from G2ppc_iw and G_iw
-  chi4_iw_t Fpp_from_G2ppc(chi4_iw_t::const_view_type G2ppc_iw, g_iw_cv_t G_iw);
-  /// Calculate the vertex function $Fph$ from G2phc_iw and G_iw
-  chi4_iw_t Fph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_cv_t G_iw);
+  /// Calculate the vertex function $F$ from G2_conn_iw and G_iw
+  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_cv_t G_iw);
+  /// Calculate the vertex function $Fpp$ from G2pp_conn_iw and G_iw
+  chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_cv_t G_iw);
+  /// Calculate the vertex function $Fph$ from G2ph_conn_iw and G_iw
+  chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
 
-  /// Calculate the two-particle Green function from G2c_iw and G_iw
-  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2c_iw, g_iw_cv_t G_iw);
-  /// Calculate the two-particle Green function from G2ppc_iw and G_iw
-  chi4_iw_t G2pp_from_G2ppc(chi4_iw_t::const_view_type G2ppc_iw, g_iw_cv_t G_iw);
-  /// Calculate the two-particle Green function from G2phc_iw and G_iw
-  chi4_iw_t G2ph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_cv_t G_iw);
+  /// Calculate the two-particle Green function from G2_conn_iw and G_iw
+  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_cv_t G_iw);
+  /// Calculate the two-particle Green function from G2pp_conn_iw and G_iw
+  chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_cv_t G_iw);
+  /// Calculate the two-particle Green function from G2ph_conn_iw and G_iw
+  chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
 
-  /// Calculate the generalized ph susceptibility from G2phc_iw and G_iw
-  chi4_iw_t chi_tilde_ph_from_G2phc(chi4_iw_t::const_view_type G2phc_iw, g_iw_cv_t G_iw, gf_struct_t const &gf_struct);
+  /// Calculate the generalized ph susceptibility from G2ph_conn_iw and G_iw
+  chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
 
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
   template <Chan_t Chan>
