@@ -84,7 +84,8 @@ jobs:
     - name: Install homebrew dependencies
       if: ${{ contains(matrix.os, 'macos') }}
       run: |
-        brew install ccache gcc@12 llvm boost fftw hdf5 open-mpi openblas
+        brew update
+        brew install ccache gcc llvm boost fftw hdf5 open-mpi openblas
         brew install wentzell/triqs/nfft
         mkdir $HOME/.venv
         python3 -m venv $HOME/.venv/my_python
