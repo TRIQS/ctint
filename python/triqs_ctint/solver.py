@@ -15,9 +15,9 @@ from scipy.optimize import root
 
 # print on master node
 def mpi_print(arg):
+    np.set_printoptions(precision=4)
     if mpi.is_master_node():
         po = np.get_printoptions()
-        np.set_printoptions(precision=4)
         print(arg)
         np.set_printoptions(**po)
 
