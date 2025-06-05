@@ -2,10 +2,10 @@
 
 .. _install:
 
-Install ctint
+Install CTINT
 *************
 
-Compiling ctint from source
+Compiling CTINT from source
 ===========================
 
 .. note:: To guarantee reproducibility in scientific calculations we strongly recommend the use of a stable `release <https://github.com/TRIQS/triqs/releases>`_ of both TRIQS and its applications.
@@ -44,7 +44,7 @@ Installation steps
 Version compatibility
 ---------------------
 
-Keep in mind that the version of ctint must be compatible with your TRIQS library version,
+Keep in mind that the version of ``ctint`` must be compatible with your TRIQS library version,
 see :ref:`TRIQS website <triqslibs:versions>`.
 In particular the Major and Minor Version numbers have to be the same.
 To use a particular version, go into the directory with the sources, and look at all available versions::
@@ -53,14 +53,14 @@ To use a particular version, go into the directory with the sources, and look at
 
 Checkout the version of the code that you want::
 
-     $ git checkout 2.1.0
+     $ git checkout 3.3.0
 
 and follow steps 2 to 4 above to compile the code.
 
 Custom CMake options
 --------------------
 
-The compilation of ctint can be configured using CMake-options::
+The compilation of ``ctint`` can be configured using CMake-options::
 
     cmake ../ctint.src -DOPTION1=value1 -DOPTION2=value2 ...
 
