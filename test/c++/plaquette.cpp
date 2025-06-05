@@ -66,8 +66,8 @@ TEST(CtInt, Plaquette) { // NOLINT
   alpha_t alpha(n_terms, 2, 2, 2);
   double const delta = 0.1;
   for (long l = 0; l < n_terms; ++l) {
-    alpha(l, _, _, 0) = nda::matrix{{0.5 - delta, 0.}, {0., 0.5 + delta}};
-    alpha(l, _, _, 1) = nda::matrix{{0.5 + delta, 0.}, {0., 0.5 - delta}};
+    alpha(l, _, _, 0) = nda::matrix<double>{{0.5 - delta, 0.}, {0., 0.5 + delta}};
+    alpha(l, _, _, 1) = nda::matrix<double>{{0.5 + delta, 0.}, {0., 0.5 - delta}};
   };
 
   // --------- Solve! ----------
