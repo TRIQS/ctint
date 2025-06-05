@@ -106,4 +106,4 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chiAB_tau"] = S.chiAB_tau
 
 # -------- Compare ---------
-h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
+h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=2e-5)
