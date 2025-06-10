@@ -189,6 +189,7 @@ namespace triqs_ctint {
       h5_write(grp, "histogram", c.histogram);
       h5_write(grp, "density", c.density);
       h5_write(grp, "M_tau", c.M_tau);
+      h5_write(grp, "curlyG", c.curlyG); // curlyG
       h5_write(grp, "M_hartree", c.M_hartree);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_write(grp, "M4_iw", c.M4_iw);
@@ -248,6 +249,7 @@ namespace triqs_ctint {
       h5_read(grp, "histogram", c.histogram);
       h5::try_read(grp, "density", c.density);
       h5_read(grp, "M_tau", c.M_tau);
+      h5_read(grp, "curlyG", c.curlyG);
       h5_read(grp, "M_hartree", c.M_hartree);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
       h5_read(grp, "M4_iw", c.M4_iw);

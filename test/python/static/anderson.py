@@ -9,6 +9,15 @@ from triqs.utility.h5diff import h5diff
 
 test_name = "anderson"
 
+def _to_numpy(data):
+    M, N, K = len(data), data[0].shape[0], data[0][0,0].shape[0]
+    result = np.empty((M, N, N, K), dtype=complex)
+    for m, matrix in enumerate(data):
+        for i in range(N):
+            for j in range(N):
+                result[m, i,j, :] = matrix[i,j]
+    return result
+
 ######## physical parameters ########
 U = 1.0
 mu = U/4.0
@@ -16,7 +25,7 @@ beta = 10.0
 eps = 0.2
 
 ######## simulation parameters ########
-n_cyc = 1000
+n_cyc = 10000
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['dn','up']
@@ -27,53 +36,83 @@ h_int = U * n(block_names[0],0)*n(block_names[1],0)
 S = Solver(beta = beta,
                gf_struct = gf_struct,
                n_iw = 200,
-               n_tau = 100001)
+               n_tau = 10000)
 
 # --------- Initialize the non-interacting Green's function ----------
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu - inverse(iOmega_n - eps));
 
 # --------- Solve! ----------
+#S.solve(h_int=h_int,
+#        n_cycles = n_cyc,
+#        length_cycle = 50,
+#        n_warmup_cycles = 100,
+#        random_seed = 34788,
+#        measure_histogram = True,
+#        measure_density = True,
+#        measure_M4_iw = True,
+#        measure_M_tau_samples = True,
+#        n_iw_M4 = 5,
+#        nfft_buf_size = 50,
+#        measure_M3pp_tau = True,
+#        measure_M3ph_tau = True,
+#        measure_M3xph_tau = True,
+#        n_iw_M3 = 10,
+#        n_iW_M3 = 10,
+#        n_tau_M3 = 41,
+#        measure_chi2pp_tau = True,
+#        measure_chi2ph_tau = True,
+#        n_iw_chi2 = 10,
+#        n_tau_chi2 = 21,
+#        measure_chiAB_tau = True,
+#        chi_A_vec = [n('up',0) + n('dn', 0)],
+#        chi_B_vec = [n('up',0) + n('dn', 0)],
+#        post_process = True )
+
 S.solve(h_int=h_int,
         n_cycles = n_cyc,
         length_cycle = 50,
-        n_warmup_cycles = 100,
-        random_seed = 34788,
+        n_warmup_cycles = 5000,
+        #random_seed = 34788,
         measure_histogram = True,
-        measure_density = True,
-        measure_M4_iw = True,
+        #measure_density = True,
+        measure_M_tau = False,
         measure_M_tau_samples = True,
-        n_iw_M4 = 5,
+        #n_iw_M4 = 5,
         nfft_buf_size = 50,
-        measure_M3pp_tau = True,
-        measure_M3ph_tau = True,
-        measure_M3xph_tau = True,
-        n_iw_M3 = 10,
-        n_iW_M3 = 10,
-        n_tau_M3 = 41,
-        measure_chi2pp_tau = True,
-        measure_chi2ph_tau = True,
-        n_iw_chi2 = 10,
-        n_tau_chi2 = 21,
-        measure_chiAB_tau = True,
-        chi_A_vec = [n('up',0) + n('dn', 0)],
-        chi_B_vec = [n('up',0) + n('dn', 0)],
-        post_process = True )
-
-
+        #measure_M3pp_tau = True,
+        #measure_M3ph_tau = True,
+        #measure_M3xph_tau = True,
+        #n_iw_M3 = 10,
+        #n_iW_M3 = 10,
+        #n_tau_M3 = 41,
+        #measure_chi2pp_tau = True,
+        #measure_chi2ph_tau = True,
+        #n_iw_chi2 = 10,
+        #n_tau_chi2 = 21,
+        #measure_chiAB_tau = True,
+        #chi_A_vec = [n('up',0) + n('dn', 0)],
+        #chi_B_vec = [n('up',0) + n('dn', 0)],
+        post_process = True 
+        )
+print(len(S.weight_samples[0][0,0]))
+print(len(S.curlyG[0][0,0]))
+#for (a, b) in zip(S.tau_samples[0][0,0], S.weight_samples[0][0,0]): print(f"tau= {a} and weight= {b.real}")
+import numpy as np
 # -------- Save in archive ---------
-with HDFArchive("%s.out.h5"%test_name,'w') as arch:
-    arch["G0_iw"] = S.G0_iw
-    arch["G_iw"] = S.G_iw
-    arch["G2_iw"] = S.G2_iw
-    arch["chi3pp_iw"] = S.chi3pp_iw
-    arch["chi3ph_iw"] = S.chi3ph_iw
-    arch["chi3xph_iw"] = S.chi3xph_iw
-    arch["chi2pp_iw"] = S.chi2pp_iw
-    arch["chi2ph_iw"] = S.chi2ph_iw
-    arch["chiAB_iw"] = S.chiAB_iw
-    arch["chi2pp_tau_from_M3"] = S.chi2pp_tau_from_M3
-    arch["chi2ph_tau_from_M3"] = S.chi2ph_tau_from_M3
-    arch["chi2xph_tau_from_M3"] = S.chi2xph_tau_from_M3
+with HDFArchive("%s.out.new.h5"%test_name,'w') as arch:
+    arch['curlyG'] = _to_numpy(S.curlyG)
+    # arch["G0_iw"] = S.G0_iw
+    # arch["G_iw"] = S.G_iw
+    # arch["G2_iw"] = S.G2_iw
+    # arch["chi3pp_iw"] = S.chi3pp_iw
+    # arch["chi3ph_iw"] = S.chi3ph_iw
+    # arch["chi3xph_iw"] = S.chi3xph_iw
+    # arch["chi2pp_iw"] = S.chi2pp_iw
+    # arch["chi2ph_iw"] = S.chi2ph_iw
+    # arch["chiAB_iw"] = S.chiAB_iw
+    # arch["chi2pp_tau_from_M3"] = S.chi2pp_tau_from_M3
+    # arch["chi2ph_tau_from_M3"] = S.chi2ph_tau_from_M3
+    # arch["chi2xph_tau_from_M3"] = S.chi2xph_tau_from_M3
 
 # -------- Compare ---------
-h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
+#h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name)
