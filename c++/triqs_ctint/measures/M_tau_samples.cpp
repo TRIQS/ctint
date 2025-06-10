@@ -41,7 +41,6 @@ namespace triqs_ctint::measures {
     }
   }
 
-  nda::array<double, 1> map_to_cheb_interval(nda::array_const_view<double, 1> x, double a, double b) { return (2 * x - (a + b)) / (b - a); }
   void M_tau_samples::collect_results(mpi::communicator const &comm) {
     // Collect results and normalize
 
@@ -67,7 +66,9 @@ namespace triqs_ctint::measures {
 
     // Post-processing by Christine and Jason would be here.
     // for now, hard code degree of Cheb
-    int p = 100;
+    auto p = params.n_cheb_coeffs;
+    // nda::array<double, 1> map_to_cheb_interval(nda::array_const_view<double, 1> x, double a, double b) { return (2 * x - (a + b)) / (b - a); }
+    auto map_to_cheb_interval = [a = 0, b = params.beta](auto const &x) { return nda::array<double, 1>{(2 * x - (a + b)) / (b - a)}; };
 
     for (auto bl : range(params.gf_struct.size())) {
       auto bl_size = params.gf_struct[bl].second;
@@ -75,15 +76,17 @@ namespace triqs_ctint::measures {
         for (auto j : range(bl_size)) {
           auto N      = tau_samples[bl](i, j).size();
           auto T_prev = nda::ones<double>(N);
+          auto weight = nda::basic_array_view{weight_samples[bl](i, j)};
+          auto tau    = nda::basic_array_view{tau_samples[bl](i, j)};
           //cheb_coeffs[0] = nda::dot(weight_samples[bl](i,j),T_prev)/M_PI;
-          curlyG[bl](i, j).push_back(nda::dot(nda::basic_array_view{weight_samples[bl](i, j)}, T_prev) / (M_PI));
-          auto T_curr = map_to_cheb_interval(nda::basic_array_view{tau_samples[bl](i, j)}, 0, params.beta);
-          curlyG[bl](i, j).push_back(nda::dot(nda::basic_array_view{weight_samples[bl](i, j)}, T_curr) / (M_PI * 2));
+          curlyG[bl](i, j).push_back(nda::dot(weight, T_prev) / (M_PI));
+          auto T_curr = map_to_cheb_interval(tau); //0, params.beta);
+          curlyG[bl](i, j).push_back(nda::dot(weight, T_curr) / (M_PI * 2));
           //cheb_coeffs[1] = nda::dot(weight_samples[bl](i,j),T_curr)/(M_PI*2);
 
           for (int k = 2; k < p + 1; k++) {
-            auto T_next = 2 * map_to_cheb_interval(nda::basic_array_view{tau_samples[bl](i, j)}, 0, params.beta) * T_curr - T_prev;
-            curlyG[bl](i, j).push_back(nda::dot(nda::basic_array_view{weight_samples[bl](i, j)}, T_next) / (M_PI * 2));
+            auto T_next = 2 * map_to_cheb_interval(tau) * T_curr - T_prev;
+            curlyG[bl](i, j).push_back(nda::dot(weight, T_next) / (M_PI * 2));
             T_prev = T_curr;
             T_curr = T_next;
           }
