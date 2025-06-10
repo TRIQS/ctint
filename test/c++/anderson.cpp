@@ -48,6 +48,7 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.max_time             = -1;
   ps.verbosity            = 3;
   ps.post_process         = true;
+  ps.n_cheb_coeffs        = 100;
   //ps.random_seed          = 34788 + mpi..;
   //ps.random_name          = "";
 

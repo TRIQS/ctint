@@ -75,6 +75,11 @@ c.add_member(c_name = "weight_samples",
              read_only= True,
              doc = r"""""")
 
+c.add_member(c_name = "curlyG",
+             c_type = "std::vector<nda::matrix<std::vector<dcomplex>>>",
+             read_only= True,
+             doc = r"""""")
+
 c.add_member(c_name = "M_hartree",
              c_type = "std::optional<block_matrix_t>",
              read_only= True,
