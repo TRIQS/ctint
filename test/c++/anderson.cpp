@@ -13,7 +13,7 @@ TEST(CtInt, Anderson) { // NOLINT
   // System Parameters
   double delta = 0.35;
   double U     = 1.0;
-  double mu    = U/2;
+  double mu    = U / 2;
 
   // Discrete bath energies and hoppings
   std::vector<double> energ = {-0.7, -0.15, 0.15, 0.7}; // Vertex Paper ( optimized for Beta=20 ) to fit box DOS
@@ -29,7 +29,7 @@ TEST(CtInt, Anderson) { // NOLINT
 
   // Construct Parameters
   constr_params_t pc;
-  pc.beta    = 20.0;
+  pc.beta      = 20.0;
   pc.gf_struct = {{"up", 1}, {"down", 1}};
   pc.n_tau     = 10000;
   pc.n_iw      = 500;
@@ -41,9 +41,9 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.h_int                = U * n("up", 0) * n("down", 0);
   ps.n_s                  = 2;
   ps.alpha                = alpha;
-  ps.n_cycles             = 1000;
-  ps.length_cycle         = 50;
-  ps.n_warmup_cycles      = 5000;
+  ps.n_cycles             = 10000;
+  ps.length_cycle         = 10;
+  ps.n_warmup_cycles      = 10000;
   ps.use_double_insertion = false;
   ps.max_time             = -1;
   ps.verbosity            = 3;
@@ -53,9 +53,9 @@ TEST(CtInt, Anderson) { // NOLINT
 
   ps.measure_histogram = true;
 
-  ps.measure_M_tau = false;
+  ps.measure_M_tau         = false;
   ps.measure_M_tau_samples = true;
-  ps.measure_M_iw  = false;
+  ps.measure_M_iw          = false;
 
   //ps.measure_M4_iw  = true;
   //ps.n_iw_M4        = 32;
@@ -92,6 +92,12 @@ TEST(CtInt, Anderson) { // NOLINT
 
   // Solve!
   S.solve(ps);
+
+  std::cout << "size= " << S.tau_samples[0](0, 0).size() << std::endl;
+  std::cout << "size= " << S.curlyG[0](0, 0).size() << std::endl;
+  // for (auto [a, b] : zip(S.tau_samples[0](0,0), S.weight_samples[0](0,0))){
+  //   std::cout << "dtau= " << a << " weight= " << b << std::endl;
+  // }
 
   auto archive = h5::file("anderson.out.h5", 'w');
   h5_write(archive, "S", S);

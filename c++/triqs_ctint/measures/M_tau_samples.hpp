@@ -3,9 +3,7 @@
 #include "../container_set.hpp"
 #include "triqs_ctint/types.hpp"
 
-
 namespace triqs_ctint::measures {
-
 
   /**
   * Measure of $M_{ab}(\tau)$
@@ -31,6 +29,7 @@ namespace triqs_ctint::measures {
 
     std::vector<nda::matrix<std::vector<double>>> &tau_samples;
     std::vector<nda::matrix<std::vector<dcomplex>>> &weight_samples;
+    std::vector<nda::matrix<std::vector<dcomplex>>> &curlyG;
 
     // Matrix views for the hartree term accumulation
     std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;

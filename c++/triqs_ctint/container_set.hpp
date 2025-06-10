@@ -31,6 +31,8 @@ namespace triqs_ctint {
     std::vector<nda::matrix<std::vector<double>>> tau_samples = {};
     ///
     std::vector<nda::matrix<std::vector<dcomplex>>> weight_samples = {};
+    ///
+    std::vector<nda::matrix<std::vector<dcomplex>>> curlyG = {};
 
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
