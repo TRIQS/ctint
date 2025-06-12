@@ -42,34 +42,9 @@ namespace triqs_ctint::measures {
   }
 
   void M_tau_samples::collect_results(mpi::communicator const &comm) {
-    // Collect results and normalize
 
-    Z = mpi::all_reduce(Z, comm);
-
-    double dtau = params.beta / params.n_tau;
-    for (auto b : range(params.gf_struct.size())) {
-      auto bl_size = params.gf_struct[b].second;
-      for (auto i : range(bl_size)) {
-        for (auto j : range(bl_size)) {
-          tau_samples[b](i, j)    = mpi::gather(tau_samples[b](i, j));
-          weight_samples[b](i, j) = mpi::gather(weight_samples[b](i, j));
-        }
-      }
-    }
-
-    // bl (orbital, orbital) [cheb coefficients]
-    // auto curlyG = std::vector<nda::matrix<std::vector<dcomplex>>>{};
-    //attempt at initializing dimensions of curlyG:
-    // for (auto [bl, bl_size] : params.gf_struct) { curlyG.emplace_back(nda::array<std::vector<dcomplex>, 2>(bl_size, bl_size)); }
-    // Normalize the weights or the results?
-    // nda::vector_view(weight_samples[bl](i,j)) /= (-Z*dtau*params.beta);
-
-    // Post-processing by Christine and Jason would be here.
-    // for now, hard code degree of Cheb
-    auto p = params.n_cheb_coeffs;
-    // nda::array<double, 1> map_to_cheb_interval(nda::array_const_view<double, 1> x, double a, double b) { return (2 * x - (a + b)) / (b - a); }
+    auto p                    = params.n_cheb_coeffs;
     auto map_to_cheb_interval = [a = 0, b = params.beta](auto const &x) { return nda::array<double, 1>{(2 * x - (a + b)) / (b - a)}; };
-
     for (auto bl : range(params.gf_struct.size())) {
       auto bl_size = params.gf_struct[bl].second;
       for (auto i : range(bl_size)) {
@@ -78,23 +53,33 @@ namespace triqs_ctint::measures {
           auto T_prev = nda::ones<double>(N);
           auto weight = nda::basic_array_view{weight_samples[bl](i, j)};
           auto tau    = nda::basic_array_view{tau_samples[bl](i, j)};
-          //cheb_coeffs[0] = nda::dot(weight_samples[bl](i,j),T_prev)/M_PI;
           curlyG[bl](i, j).push_back(nda::dot(weight, T_prev) / (M_PI));
           auto T_curr = map_to_cheb_interval(tau); //0, params.beta);
           curlyG[bl](i, j).push_back(nda::dot(weight, T_curr) / (M_PI * 2));
-          //cheb_coeffs[1] = nda::dot(weight_samples[bl](i,j),T_curr)/(M_PI*2);
-
           for (int k = 2; k < p + 1; k++) {
             auto T_next = 2 * map_to_cheb_interval(tau) * T_curr - T_prev;
             curlyG[bl](i, j).push_back(nda::dot(weight, T_next) / (M_PI * 2));
             T_prev = T_curr;
             T_curr = T_next;
           }
-
-          //       curlyG[bl](i,j) = cheb_coeffs;
         }
       }
     }
+
+    // Collect results and normalize
+    for (auto b : range(params.gf_struct.size())) {
+      auto bl_size = params.gf_struct[b].second;
+      for (auto i : range(bl_size)) {
+        for (auto j : range(bl_size)) {
+          tau_samples[b](i, j)    = mpi::gather(tau_samples[b](i, j));
+          weight_samples[b](i, j) = mpi::gather(weight_samples[b](i, j));
+          curlyG[b](i, j)         = mpi::reduce(curlyG[b](i, j), comm);
+        }
+      }
+    }
+
+    Z = mpi::all_reduce(Z, comm);
+
     for (auto &m : M_hartree_) {
       m = mpi::all_reduce(m, comm);
       m = m / (-Z * params.beta);
