@@ -52,18 +52,20 @@ namespace triqs_ctint::measures {
       for (auto i : range(bl_size)) {
         for (auto j : range(bl_size)) {
           N           = tau_samples[bl](i, j).size();
-          auto T_next = nda::array<double, 1>(N);
-          auto weight = nda::basic_array_view{weight_samples[bl](i, j)};
-          auto tau    = nda::basic_array_view{tau_samples[bl](i, j)};
-
+          auto T_next = nda::array<double, 1>(N); 
+          auto weight = nda::array_view<dcomplex,1>(weight_samples[bl](i, j));  
+          auto tau    = nda::array_view<double, 1>(tau_samples[bl](i, j));
+          auto tau_prime = map_to_cheb_interval(tau);
+          auto cheb_weight = 1.0/nda::sqrt(1.0-tau_prime*tau_prime);
+          weight *= cheb_weight;
           // Begin Chebyshev recurrence
           auto T_prev = nda::ones<double>(N);
-          curlyG[bl](i, j).push_back(nda::dot(weight, T_prev) / (M_PI));
-          auto T_curr = map_to_cheb_interval(tau); //0, params.beta);
-          curlyG[bl](i, j).push_back(nda::dot(weight, T_curr) / (M_PI / 2));
+          curlyG[bl](i, j).push_back(nda::dot(weight,T_prev) / (M_PI));
+          auto T_curr = tau_prime; //0, params.beta);
+          curlyG[bl](i, j).push_back(nda::dot(weight,T_curr) / (M_PI / 2));
           for (int k = 2; k < p + 1; k++) {
             T_next = 2 * map_to_cheb_interval(tau) * T_curr - T_prev;
-            curlyG[bl](i, j).push_back(nda::dot(weight, T_next) / (M_PI / 2));
+            curlyG[bl](i, j).push_back(nda::dot(weight,T_next) / (M_PI / 2));
             T_prev = T_curr;
             T_curr = T_next;
           }
