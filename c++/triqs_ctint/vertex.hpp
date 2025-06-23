@@ -11,25 +11,28 @@ namespace triqs_ctint {
 
   /**
    * A point in imaginary time, i.e. $\tau \in [0,\beta]$, but defined on a very fine grid.
-   * The position in the segment is given by an uint32_t, i.e. a very long integer.
+   * The position in the segment is given by an uint64_t, i.e. a very long integer.
    * This allows exact comparisons, which notoriously dangerous on floating point number.
    */
   struct tau_t {
 
-    /// Maximum value that can be stored inside a uint32_t
-    static constexpr uint32_t n_max = std::numeric_limits<uint32_t>::max();
+    /// Maximum value that can be stored inside a uint64_t
+    static constexpr uint64_t n_max = std::numeric_limits<uint64_t>::max();
 
     /// Inverse temperature associated with all $\tau$ points
     static double beta;
 
     /// $\tau$ value, represented as an integer on a very fine grid
-    uint32_t n = 0;
+    uint64_t n = 0;
 
     /// Get a random point in $[0,\beta[$
-    template <typename RNG> static tau_t get_random(RNG &rng) { return tau_t{rng(n_max)}; }
+    template <typename RNG> static tau_t get_random(RNG &rng) {
+      auto static rng64 = std::mt19937_64{rng(n_max)};
+      return tau_t{rng64()};
+    }
 
     /// Cast to corresponding double value in $[0,\beta]$
-    explicit operator double() const { return beta * double(n) / n_max; }
+    explicit operator double() const { return beta * double(n) / double(n_max); }
 
     // --- Comparison operators
     bool operator==(const tau_t &tau) const { return n == tau.n; }
