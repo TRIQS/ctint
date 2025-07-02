@@ -3,15 +3,6 @@
 The interaction-expansion solver
 ********************************
 
-.. sidebar:: ctint 3.1.0
-
-   This is the homepage of ctint v3.1.0.
-   For changes see the :ref:`changelog page <changelog>`.
-      
-      .. image:: _static/logo_github.png
-         :width: 75%
-         :align: center
-         :target: https://github.com/triqs/ctint
 
 The :ref:`TRIQS-based <triqslibs:welcome>` interaction-expansion solver
 allows to solve the generic problem of a **quantum impurity** embedded in a
@@ -22,11 +13,21 @@ Hamiltonian of the problem has the form
 .. math::
 
   \hat H  = \sum_{k,\alpha} \epsilon_{k,\alpha} c^\dagger_{k,\alpha} c_{k,\alpha} + \sum_{k,\alpha}
-            (V_{k,\alpha} c^\dagger_{k,\alpha} d_{\alpha} + h.c.) -
-            \mu \sum_\alpha d^\dagger_\alpha d_\alpha +
+            (V_{k,\alpha} c^\dagger_{k,\alpha} d_{\alpha} + h.c.)
+            - \mu \sum_\alpha d^\dagger_\alpha d_\alpha +
             \sum_{\alpha\beta} h_{\alpha\beta} d^\dagger_\alpha d_\beta +
             \frac{1}{2}\sum_{\alpha\beta\gamma\delta} U_{\alpha\beta\gamma\delta}
             d^\dagger_\alpha d^\dagger_\beta d_\delta d_\gamma.
+
+.. sidebar:: ctint |PROJECT_VERSION|
+
+   This is the homepage of ctint Version |PROJECT_VERSION|.
+   For changes see the :ref:`changelog page <changelog>`.
+      
+      .. image:: _static/logo_github.png
+         :width: 65%
+         :align: center
+         :target: https://github.com/triqs/ctint
 
 Here the operators :math:`c^\dagger` construct a fermion in the bath, while
 the operators :math:`d^\dagger` construct a fermion on the impurity.
@@ -45,10 +46,17 @@ so that the non-interacting Green's function of the impurity is:
 
 With the knowledge of :math:`G_0` and the matrix :math:`U_{\alpha\beta\gamma\delta}`,
 the quantum impurity solvers find the interacting Green's function :math:`G` of the
-problem.
+problem. Learn how to use it in the :ref:`documentation`.
 
-Learn how to use it in the :ref:`documentation`.
+.. image:: _static/logo_flatiron.png
+   :align: left
+   :width: 35%
+   :target: https://www.simonsfoundation.org/flatiron
 
+.. image:: _static/logo_simons.jpg
+   :align: right
+   :width: 35%
+   :target: https://www.simonsfoundation.org
     
 .. toctree::
    :maxdepth: 2

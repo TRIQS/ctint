@@ -45,10 +45,17 @@ source_suffix = '.rst'
 autosummary_generate = True
 autosummary_imported_members=False
 
-project = 'CTINT - A TRIQS Interaction Expansion Solver'
+project = 'TRIQS Interaction Expansion Solver'
 version = '@PROJECT_VERSION@'
 
-copyright = '2016-2018, N. Wentzell, T. Ayral, M. Ferrero, O. Parcollet'
+# this makes the current project version available as var in every rst file
+rst_epilog = """
+.. |PROJECT_VERSION| replace:: {version}
+""".format(
+version = version,
+)
+
+copyright = '2025--present, The Simons Foundation'
 
 mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=default"
 templates_path = ['@CMAKE_CURRENT_SOURCE_DIR@/_templates']
@@ -93,6 +100,11 @@ plot_html_show_formats = False
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3.11', None), 'triqslibs': ('https://triqs.github.io/triqs/latest', None)}
 
+# numpydoc options
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
+numpydoc_class_members_toctree = False
+
 # open links in new tab instead of same window
 from sphinx.writers.html import HTMLTranslator
 from docutils import nodes
@@ -128,7 +140,7 @@ class PatchedHTMLTranslator(HTMLTranslator):
         if 'target' in node:
             atts['target'] = node['target']
         self.body.append(self.starttag(node, 'a', '', **atts))
- 
+
         if node.get('secnumber'):
             self.body.append(('%s' + self.secnumber_suffix) %
                              '.'.join(map(str, node['secnumber'])))
