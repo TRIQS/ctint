@@ -123,6 +123,22 @@ namespace triqs_ctint {
     /// Measure M(tau)
     bool measure_M_tau = true;
 
+    /// Measure M(tau) cheb
+    bool measure_M_tau_cheb = false;
+
+    /// Measure M(tau) dlr
+    bool measure_M_iw_dlr = false;
+
+    /// N Cheb
+    long n_cheb_coeffs = 10;
+    ///
+    double w_max = 1;
+    ///
+    double eps = 1.e-5;
+
+    /// Maximum number of samples in M_tau_cheb buffer (default 229MB)
+    long sample_buffer_size = 10000000;
+
     /// Measure M(iomega) using nfft
     bool measure_M_iw = false;
 

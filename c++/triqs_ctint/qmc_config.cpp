@@ -16,6 +16,7 @@ namespace triqs_ctint {
       dets.back().set_n_operations_before_check(params.det_n_operations_before_check);
       dets.back().set_precision_warning(params.det_precision_warning);
       dets.back().set_precision_error(params.det_precision_error);
+      dets.back().set_n_operations_before_check(-1);
     }
   }
 

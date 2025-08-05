@@ -80,6 +80,26 @@ c.add_member(c_name = "M_tau",
              read_only= True,
              doc = r"""Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 
+c.add_member(c_name = "tau_samples",
+             c_type = "std::vector<nda::matrix<std::vector<double>>>",
+             read_only= True,
+             doc = r"""""")
+
+c.add_member(c_name = "weight_samples",
+             c_type = "std::vector<nda::matrix<std::vector<dcomplex>>>",
+             read_only= True,
+             doc = r"""""")
+
+c.add_member(c_name = "curlyG",
+             c_type = "std::vector<nda::array<dcomplex, 3>>",
+             read_only= True,
+             doc = r"""""")
+
+c.add_member(c_name = "M_iw_dlr",
+             c_type = "block_gf<dlr_imfreq, matrix_valued>",
+             read_only= True,
+             doc = r"""""")
+
 c.add_member(c_name = "M_hartree",
              c_type = "std::optional<block_matrix_t>",
              read_only= True,
@@ -428,6 +448,18 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M_tau                 | bool                            | true                                    | Measure M(tau)                                                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M_tau_cheb            | bool                            | false                                   | Measure M(tau) cheb                                                                                                                   |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M_iw_dlr              | bool                            | false                                   | Measure M(tau) dlr                                                                                                                    |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_cheb_coeffs                 | long                            | 10                                      | N Cheb                                                                                                                                |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| w_max                         | double                          | 1                                       |                                                                                                                                       |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| eps                           | double                          | 1.e-5                                   |                                                                                                                                       |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| sample_buffer_size            | long                            | 10000000                                | Maximum number of samples in M_tau_cheb buffer (default 229MB)                                                                        |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M_iw                  | bool                            | false                                   | Measure M(iomega) using nfft                                                                                                          |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M4_iw                 | bool                            | false                                   | Measure M4(iw) NFFT                                                                                                                   |
@@ -601,6 +633,36 @@ c.add_member(c_name = "measure_M_tau",
              c_type = "bool",
              initializer = """ true """,
              doc = r"""Measure M(tau)""")
+
+c.add_member(c_name = "measure_M_tau_cheb",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M(tau) cheb""")
+
+c.add_member(c_name = "measure_M_iw_dlr",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M(tau) dlr""")
+
+c.add_member(c_name = "n_cheb_coeffs",
+             c_type = "long",
+             initializer = """ 10 """,
+             doc = r"""N Cheb""")
+
+c.add_member(c_name = "w_max",
+             c_type = "double",
+             initializer = """ 1 """,
+             doc = r"""""")
+
+c.add_member(c_name = "eps",
+             c_type = "double",
+             initializer = """ 1.e-5 """,
+             doc = r"""""")
+
+c.add_member(c_name = "sample_buffer_size",
+             c_type = "long",
+             initializer = """ 10000000 """,
+             doc = r"""Maximum number of samples in M_tau_cheb buffer (default 229MB)""")
 
 c.add_member(c_name = "measure_M_iw",
              c_type = "bool",

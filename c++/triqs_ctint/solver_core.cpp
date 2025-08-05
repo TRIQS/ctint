@@ -61,7 +61,7 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Construct the generic Monte-Carlo solver
-    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity);
+    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity, /*rethrow_exception=*/false);
 
     // Capture random number generator
     auto &rng = mc.get_rng();
@@ -108,6 +108,8 @@ namespace triqs_ctint {
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
       if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
       if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
+      if (params.measure_M_tau_cheb) mc.add_measure(measures::M_tau_cheb{params, qmc_config, &result_set()}, "M_tau_cheb measure");
+      if (params.measure_M_iw_dlr) mc.add_measure(measures::M_iw_dlr{params, qmc_config, &result_set()}, "M_iw_dlr measure");
       if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
       if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
       if (params.measure_M4pp_iw) mc.add_measure(measures::M4pp_iw{params, qmc_config, &result_set()}, "M4pp_iw measure");
