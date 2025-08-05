@@ -7,11 +7,11 @@
 
 using namespace triqs_ctint;
 
-TEST(CtInt, Anderson) { // NOLINT
-  mpi::communicator world;
+int main(int argc, char *argv[]) {
+  mpi::environment env(argc, argv);
 
   // System Parameters
-  double U  = 1.0;
+  double U  = 2.0;
   double mu = U / 2;
 
   // Discrete bath energies and hoppings
@@ -35,35 +35,47 @@ TEST(CtInt, Anderson) { // NOLINT
 
   // Solve Parameters
   solve_params_t ps;
-  ps.h_int              = U * n("up", 0) * n("down", 0);
-  ps.n_s                = 2;
-  ps.alpha              = alpha;
-  ps.n_cycles           = 1000;
-  ps.length_cycle       = 100;
-  ps.n_warmup_cycles    = 100;
-  ps.random_seed        = 34788;
-  ps.measure_histogram  = true;
-  ps.measure_density    = true;
-  ps.measure_M4_iw      = true;
-  ps.n_iw_M4            = 5;
-  ps.nfft_buf_size      = 50;
-  ps.measure_M3pp_tau   = true;
-  ps.measure_M3ph_tau   = true;
-  ps.measure_M3xph_tau  = true;
-  ps.n_iw_M3            = 10;
-  ps.n_iW_M3            = 10;
-  ps.n_tau_M3           = 41;
-  ps.measure_chi2pp_tau = true;
-  ps.measure_chi2ph_tau = true;
-  ps.n_iw_chi2          = 10;
-  ps.n_tau_chi2         = 21;
+  ps.h_int                = U * n("up", 0) * n("down", 0);
+  ps.n_s                  = 2;
+  ps.alpha                = alpha;
+  ps.n_cycles             = 1000000;
+  ps.length_cycle         = 10;
+  ps.n_warmup_cycles      = 10000;
+  ps.use_double_insertion = false;
+  ps.max_time             = -1;
+  ps.post_process         = true;
+  ps.n_cheb_coeffs        = 50;
+
+  ps.measure_histogram = true;
+
+  ps.measure_M_tau      = false;
+  ps.measure_M_tau_cheb = true;
+  ps.measure_M_iw       = false;
+
+  //ps.measure_M4_iw  = true;
+  //ps.n_iw_M4        = 32;
+
+  //ps.measure_M3pp_iw  = true;
+  //ps.measure_M3ph_iw  = true;
+  //ps.n_iw_M3          = 64;
+
+  //ps.measure_M3pp_tau  = true;
+  //ps.measure_M3ph_tau  = true;
+  //ps.n_tau_M3           = 1000;
+
+  //ps.measure_chi2pp_tau  = true;
+  //ps.measure_chi2ph_tau  = true;
+  //ps.n_tau_chi2          = 1000;
+  //ps.n_iw_chi2           = 128;
+
+  ps.nfft_buf_size = 50;
 
   solver_core S(pc);
 
   // set up hybridization delta(i\omega_n)
   auto delta_w = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
   delta_w()    = 0;
-  for (int i : range(energ.size())) {
+  for (auto i : range(energ.size())) {
     auto term = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
     term(iw_) << hopp[i] * hopp[i] / (iw_ - energ[i]);
     delta_w += term;
@@ -76,8 +88,12 @@ TEST(CtInt, Anderson) { // NOLINT
   // Solve!
   S.solve(ps);
 
-  auto archive = h5::file("anderson.out.h5", 'w');
-  h5_write(archive, "S", S);
-}
+  //if (mpi::communicator{}.rank() == 0) {
+  //std::cout << "size= " << S.tau_samples[0](0, 0).size() << std::endl;
+  //std::cout << "size= " << S.curlyG[0](0, 0).size() << std::endl;
+  //for (auto [a, b] : zip(S.tau_samples[0](0, 0), S.weight_samples[0](0, 0))) { std::cout << "dtau= " << a << " weight= " << b << std::endl; }
 
-MAKE_MAIN;
+  //auto archive = h5::file("anderson.out.h5", 'w');
+  //h5_write(archive, "S", S);
+  //}
+}
