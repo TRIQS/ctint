@@ -9,6 +9,10 @@ namespace triqs_ctint {
 
     std::vector<vertex_factory_t> vertex_factories;
 
+    int const n_terms = std::distance(params.h_int.begin(), params.h_int.end());
+    bool const use_D = static_cast<bool>(D0_iw);
+    bool const use_Jperp = static_cast<bool>(Jperp_iw);
+
     // ------------ Create Vertex Factory for Static Interactions --------------
     {
       std::vector<vertex_idx_t> indices;
@@ -44,7 +48,7 @@ namespace triqs_ctint {
     } // clean temporaries
 
     // ------------ Create Vertex Factory for Dynamic Density-Density Interactions --------------
-    if (D0_iw) {
+    if (use_D) {
 
       std::vector<vertex_idx_t> indices;
 #ifdef INTERACTION_IS_COMPLEX
@@ -80,14 +84,14 @@ namespace triqs_ctint {
         }
 
       if (indices.size() > 0) {
-        auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), D0_tau_lst = std::move(D0_tau_lst), &rng] {
+        auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), D0_tau_lst = std::move(D0_tau_lst), &rng, n_terms] {
           int n             = rng(indices.size());
           tau_t t           = tau_t::get_random(rng);
           tau_t tp          = tau_t::get_random(rng);
           auto [sig, dtau]  = cyclic_difference(t, tp);
           int s             = rng(n_s);
           double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
-          return vertex_t{indices[n], t, t, tp, tp, -D0_tau_lst[n](dtau) / n_s, prop_proba, true, s};
+          return vertex_t{indices[n], t, t, tp, tp, -D0_tau_lst[n](dtau) / n_s, prop_proba, n_terms, s};
         };
 
         vertex_factories.emplace_back(l);
@@ -95,7 +99,7 @@ namespace triqs_ctint {
     }
 
     // ------------ Create Vertex Factory for Dynamic Spin-Spin Interactions --------------
-    if (Jperp_iw) {
+    if (use_Jperp) {
 
       std::vector<vertex_idx_t> indices;
 #ifdef INTERACTION_IS_COMPLEX
@@ -129,13 +133,13 @@ namespace triqs_ctint {
         }
 
       if (indices.size() > 0) {
-        auto l = [beta = params.beta, indices = std::move(indices), Jperp_tau_lst = std::move(Jperp_tau_lst), &rng] {
+        auto l = [beta = params.beta, indices = std::move(indices), Jperp_tau_lst = std::move(Jperp_tau_lst), &rng, n_terms, use_D] {
           int n             = rng(indices.size());
           tau_t t           = tau_t::get_random(rng);
           tau_t tp          = tau_t::get_random(rng);
           auto [sig, dtau]  = cyclic_difference(t, tp);
           double prop_proba = 1.0 / (beta * beta * indices.size());
-          return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](dtau) / 2.0, prop_proba}; // We add two identical terms above -> Divide by 2
+          return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](dtau) / 2.0, prop_proba, n_terms + use_D}; // We add two identical terms above -> Divide by 2
         };
 
         vertex_factories.emplace_back(l);

@@ -172,6 +172,8 @@ class Solver(SolverCore):
     def find_alpha_from_self_consistent_HF(self, solve_params):
         # --------- Determine the alpha tensor from SC Hartree Fock ----------
         mpi_print("Determine alpha-tensor")
+        assert not (self.constr_params['use_D'] or self.constr_params['use_Jperp']), \
+            "Automatic determination of alpha tensor does not work with D0_iw or Jperp_iw"
 
         gf_struct = self.constr_params['gf_struct']
         h_int = solve_params['h_int']
@@ -273,12 +275,14 @@ class Solver(SolverCore):
 
     def trivial_alpha(self, solve_params):
         gf_struct = self.constr_params['gf_struct']
+        use_D = self.constr_params['use_D']
+        use_Jperp = self.constr_params['use_Jperp']
         h_int = solve_params['h_int']
         n_terms = len(list(h_int))
         delta = solve_params.pop('delta', [0.5 + 1e-2, 1e-2])
 
         assert solve_params['n_s'] == 2
-        alpha = np.zeros((n_terms, 2, 2, 2))
+        alpha = np.zeros((n_terms + int(use_D) + int(use_Jperp), 2, 2, 2))
         for l, (term, coeff) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self.indices_from_quartic_term(term, gf_struct)
 
@@ -308,6 +312,17 @@ class Solver(SolverCore):
                 assert False, "Pair-hopping terms are not yet treated"
             else:
                 assert False, "I don't know this type of term"
+
+        if use_D:
+            # F.F. Assaad, T.C. Lang, Phys. Rev. B 76, 035116 (2007) -- Eq. (36)
+            alpha_s = lambda s: np.array([[ 0.5 + s*delta[0], 0.0              ],
+                                          [ 0.0             , 0.5 + s*delta[0] ]])
+            alpha[n_terms,...,0] = alpha_s(+1)
+            alpha[n_terms,...,1] = alpha_s(-1)
+
+        if use_Jperp:
+            alpha[n_terms + int(use_D),...,0] = 0.0
+            alpha[n_terms + int(use_D),...,1] = 0.0
 
         return alpha
 
