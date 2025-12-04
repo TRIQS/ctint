@@ -37,6 +37,12 @@ namespace triqs_ctint {
     return lower_bound(d->size(), [d](int n) { return d->get_y(n); }, cdag);
   }
 
+  // Sort a list and return the parity of the number of swaps.
+  template <typename Iterator> static double parity_sort(Iterator begin, Iterator end) {
+    std::size_t n_swaps = bubble_sort(begin, end);
+    return 2.0 * int{n_swaps % 2 == 0} - 1.0;
+  }
+
   g_tau_scalar_t lazy_det_operation_t::one_block::execute_try_insert(det_t *d) {
 
     if (c_lst.size() != cdag_lst.size()) TRIQS_RUNTIME_ERROR << "Trying to insert unequal number of c and c_dag operators into block!";
@@ -56,17 +62,10 @@ namespace triqs_ctint {
       if ((pos_c + pos_cdag) % 2) prefactor *= -1.0;
       return d->try_insert(pos_c, pos_cdag, c_lst[0], cdag_lst[0]) * prefactor;
     } else {
-      // Sort, since operators have to be inserted in order
-      auto const predicate = [&prefactor](auto const &lhs, auto const &rhs) {
-        bool const result = std::less<>{}(lhs, rhs);
-        if (!result) {
-          // if not ordered, operators are swapped with minus sign
-          prefactor *= -1.0;
-        }
-        return result;
-      };
-      std::stable_sort(c_lst.begin(), c_lst.end(), predicate);
-      std::stable_sort(cdag_lst.begin(), cdag_lst.end(), predicate);
+      // Sort, since operators have to be inserted in order.
+      // If not ordered, operators are swapped with minus sign
+      prefactor *= parity_sort(c_lst.begin(), c_lst.end());
+      prefactor *= parity_sort(cdag_lst.begin(), cdag_lst.end());
 
       // Calculate the insertion positions
       std::vector<long> pos_c(c_count);
@@ -100,17 +99,10 @@ namespace triqs_ctint {
       if ((pos_c + pos_cdag) % 2) prefactor *= -1.0;
       return d->try_remove(pos_c, pos_cdag) * prefactor;
     } else {
-      // Sort, since operators have to be inserted in order
-      auto const predicate = [&prefactor](auto const &lhs, auto const &rhs) {
-        bool const result = std::less<>{}(lhs, rhs);
-        if (!result) {
-          // if not ordered, operators are swapped with minus sign
-          prefactor *= -1.0;
-        }
-        return result;
-      };
-      std::stable_sort(c_lst.begin(), c_lst.end(), predicate);
-      std::stable_sort(cdag_lst.begin(), cdag_lst.end(), predicate);
+      // Sort, since operators have to be inserted in order.
+      // If not ordered, operators are swapped with minus sign
+      prefactor *= parity_sort(c_lst.begin(), c_lst.end());
+      prefactor *= parity_sort(cdag_lst.begin(), cdag_lst.end());
 
       // Calculate the removal positions
       std::vector<long> pos_c(c_count);
