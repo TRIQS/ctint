@@ -39,7 +39,7 @@ namespace triqs_ctint {
 
   // Sort a list and return the parity of the number of swaps.
   static double parity_sort(auto begin, auto end) {
-    std::size_t n_swaps = bubble_sort(begin, end);
+    std::size_t n_swaps = insertion_sort(begin, end);
     return (n_swaps % 2 == 0) ? 1.0 : -1.0;
   }
 
