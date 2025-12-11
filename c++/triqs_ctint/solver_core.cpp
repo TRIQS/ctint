@@ -267,7 +267,7 @@ namespace triqs_ctint {
         //M3pp_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(-iw_, -(iW_ - iw_))(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(-iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw) {
+      if (M_iw && density) {
         chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
         chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw, density.value());
@@ -291,7 +291,7 @@ namespace triqs_ctint {
            << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw) {
+      if (M_iw && density) {
         chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
         chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw, density.value());
@@ -315,7 +315,7 @@ namespace triqs_ctint {
            << M3xph_ferm_iw(bl1_, bl2_)(iW_ + iw_, -iw_)(i_, j_, k_, l_) + M3xph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw) {
+      if (M_iw && density) {
         chi2xph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::XPH>(M3xph_tau.value(), M3xph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
                                                                   M_hartree.value(), G0_shift_tau);
         chi2xph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::XPH>(chi2xph_conn_tau_from_M3.value(), G_iw, density.value());
@@ -338,12 +338,12 @@ namespace triqs_ctint {
     if (G2ph_conn_iw and M_iw) G2ph_iw = G2ph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw);
 
     // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw and M_iw) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3ph_iw and M_iw) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3xph_iw and M_iw) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3pp_iw_nfft and M_iw)
+    if (M3pp_iw and M_iw and density) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3ph_iw and M_iw and density) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3xph_iw and M_iw and density) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    if (M3pp_iw_nfft and M_iw and density)
       chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3ph_iw_nfft and M_iw)
+    if (M3ph_iw_nfft and M_iw and density)
       chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau
