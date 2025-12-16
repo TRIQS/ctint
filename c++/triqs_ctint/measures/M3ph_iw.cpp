@@ -16,9 +16,8 @@ namespace triqs_ctint::measures {
        G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
-    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M3};
     mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    mesh::prod<imfreq, imfreq> M3ph_iw_mesh{iW_mesh, iw_mesh};
+    mesh::prod<imfreq, imfreq> M3ph_iw_mesh{iw_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
@@ -26,10 +25,9 @@ namespace triqs_ctint::measures {
     M3ph_iw_() = 0;
 
     // Initialize intermediate scattering matrix
-    mesh::imfreq iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
-    M  = block_gf{mesh::prod<imfreq, imfreq>{iw_mesh_large, iw_mesh}, params.gf_struct};
+    M  = block_gf{mesh::prod<imfreq, imfreq>{iw_mesh, iw_mesh}, params.gf_struct};
     GM = block_gf{iw_mesh, params.gf_struct};
-    MG = block_gf{iw_mesh_large, params.gf_struct};
+    MG = block_gf{iw_mesh, params.gf_struct};
 
     auto init_target_func = [&](int bl) {
       int bl_size = GM[bl].target_shape()[0];
@@ -100,7 +98,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr_MG)
       for (auto &buf : buf_arr) buf.flush();
 
-    auto [iW_mesh, iw_mesh] = M3ph_iw_(0, 0).mesh();
+    auto [iw_mesh, _] = M3ph_iw_(0, 0).mesh();
 
     for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
       for (int bl2 : range(params.n_blocks())) {
@@ -113,14 +111,14 @@ namespace triqs_ctint::measures {
         auto const &MG2  = MG(bl2);
         auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
 
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
+        for (auto iw1 : iw_mesh)
+          for (auto iw2 : iw_mesh)
             for (int i : range(bl1_size))
               for (int j : range(bl1_size))
                 for (int k : range(bl2_size))
                   for (int l : range(bl2_size)) {
-                    M3ph_iw[iW, iw](i, j, k, l) += sign * M1[iW + iw, iw.value()](j, i) * GMG2(l, k);
-                    if (bl1 == bl2) { M3ph_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * MG2[iW + iw](j, k); }
+                    M3ph_iw[iw1, iw2](i, j, k, l) += sign * M1[iw2, iw1](j, i) * GMG2(l, k);
+                    if (bl1 == bl2) { M3ph_iw[iw1, iw2](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
                   }
       }
   }

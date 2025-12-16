@@ -11,9 +11,8 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
     // Construct Matsubara mesh
-    mesh::imfreq iW_mesh{params.beta, Boson, params.n_iW_M3};
     mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    mesh::prod<imfreq, imfreq> M3pp_iw_mesh{iW_mesh, iw_mesh};
+    mesh::prod<imfreq, imfreq> M3pp_iw_mesh{iw_mesh, iw_mesh};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
@@ -21,8 +20,7 @@ namespace triqs_ctint::measures {
     M3pp_iw_() = 0;
 
     // Initialize intermediate scattering matrix
-    mesh::imfreq iw_mesh_large{params.beta, Fermion, params.n_iw_M3 + params.n_iW_M3};
-    GM = block_gf{iw_mesh_large, params.gf_struct};
+    GM = block_gf{iw_mesh, params.gf_struct};
 
     // Create nfft buffers
     for (int b : range(params.n_blocks())) {
@@ -51,7 +49,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto [iW_mesh, iw_mesh] = M3pp_iw_(0, 0).mesh();
+    auto [iw_mesh, _] = M3pp_iw_(0, 0).mesh();
 
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
@@ -62,14 +60,14 @@ namespace triqs_ctint::measures {
         auto const &GM2 = GM[bl2];
         auto &M3pp_iw   = M3pp_iw_(bl1, bl2);
 
-        for (auto iW : iW_mesh)
-          for (auto iw : iw_mesh)
+        for (auto iw1 : iw_mesh)
+          for (auto iw2 : iw_mesh)
             for (int i : range(bl1_size))
               for (int j : range(bl1_size))
                 for (int k : range(bl2_size))
                   for (int l : range(bl2_size)) {
-                    M3pp_iw[iW, iw](i, j, k, l) += sign * GM1[iw.value()](j, i) * GM2[iW - iw](l, k);
-                    if (bl1 == bl2) { M3pp_iw[iW, iw](i, j, k, l) -= sign * GM1[iw.value()](l, i) * GM2[iW - iw](j, k); }
+                    M3pp_iw[iw1, iw2](i, j, k, l) += sign * GM1[iw1](j, i) * GM2[iw2](l, k);
+                    if (bl1 == bl2) { M3pp_iw[iw1, iw2](i, j, k, l) -= sign * GM1[iw1](l, i) * GM2[iw2](j, k); }
                   }
       }
   }
