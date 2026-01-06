@@ -79,7 +79,7 @@ namespace triqs_ctint::measures {
           auto ws  = nda::array_view<dcomplex, 1>(weight_samples[bl](i, j));
           auto tmp = nda::array_view<double, 1>(tau_samples[bl](i, j));
           auto ts  = nda::array<dcomplex, 1>(tmp);
-          for (auto iw : dlr_mesh) { M_iw_dlr_[bl][iw](i, j) += nda::dot(ws, nda::exp(iw * ts)); }
+          for (auto iw : dlr_mesh) { M_iw_dlr_[bl][iw](i, j) += nda::linalg::dot(ws, nda::exp(iw * ts)); }
 
           // Clear the samples after processing
           weight_samples[bl](i, j).clear();

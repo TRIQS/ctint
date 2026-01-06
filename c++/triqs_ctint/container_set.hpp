@@ -50,6 +50,12 @@ namespace triqs_ctint {
     ///
     block_gf<dlr_imfreq, matrix_valued> M_iw_dlr = {};
 
+    /// Green function on DLR Matsubara mesh computed from M_iw_dlr
+    block_gf<dlr_imfreq, matrix_valued> G_iw_dlr = {};
+
+    /// Self-energy on DLR Matsubara mesh computed from M_iw_dlr
+    block_gf<dlr_imfreq, matrix_valued> Sigma_iw_dlr = {};
+
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
 
@@ -228,6 +234,11 @@ namespace triqs_ctint {
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
       h5_write(grp, "Sigma_iw", c.Sigma_iw);
+      if (c.M_iw_dlr.size() > 0) {
+        h5_write(grp, "M_iw_dlr", c.M_iw_dlr);
+        h5_write(grp, "G_iw_dlr", c.G_iw_dlr);
+        h5_write(grp, "Sigma_iw_dlr", c.Sigma_iw_dlr);
+      }
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
       h5_write(grp, "M3xph_iw", c.M3xph_iw);
@@ -291,6 +302,9 @@ namespace triqs_ctint {
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
       h5_read(grp, "Sigma_iw", c.Sigma_iw);
+      h5::try_read(grp, "M_iw_dlr", c.M_iw_dlr);
+      h5::try_read(grp, "G_iw_dlr", c.G_iw_dlr);
+      h5::try_read(grp, "Sigma_iw_dlr", c.Sigma_iw_dlr);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
       h5::try_read(grp, "M3xph_iw", c.M3xph_iw);

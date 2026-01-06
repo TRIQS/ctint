@@ -100,6 +100,16 @@ c.add_member(c_name = "M_iw_dlr",
              read_only= True,
              doc = r"""""")
 
+c.add_member(c_name = "G_iw_dlr",
+             c_type = "block_gf<dlr_imfreq, matrix_valued>",
+             read_only= True,
+             doc = r"""Green function on DLR Matsubara mesh""")
+
+c.add_member(c_name = "Sigma_iw_dlr",
+             c_type = "block_gf<dlr_imfreq, matrix_valued>",
+             read_only= True,
+             doc = r"""Self-energy on DLR Matsubara mesh""")
+
 c.add_member(c_name = "M_hartree",
              c_type = "std::optional<block_matrix_t>",
              read_only= True,

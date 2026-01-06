@@ -61,7 +61,7 @@ namespace triqs_ctint {
     container_set::operator=(container_set{});
 
     // Construct the generic Monte-Carlo solver
-    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity, /*rethrow_exception=*/false);
+    triqs::mc_tools::mc_generic<mc_weight_t> mc(params.random_name, params.random_seed, params.verbosity);
 
     // Capture random number generator
     auto &rng = mc.get_rng();
@@ -245,6 +245,36 @@ namespace triqs_ctint {
     if (M_iw) {
       G_iw     = G0_shift_iw + G0_shift_iw * M_iw.value() * G0_shift_iw;
       Sigma_iw = inverse(G0_iw) - inverse(G_iw); // Careful, dont use shifted Gf here
+    }
+
+    // Calculate G_iw_dlr and Sigma_iw_dlr from M_iw_dlr
+    if (M_iw_dlr.size() > 0 && M_iw_dlr[0].mesh().size() > 0) {
+      auto const &dlr_mesh = M_iw_dlr[0].mesh();
+
+      // Evaluate G0_shift and G0 on DLR mesh
+      auto G0_shift_iw_dlr = block_gf{dlr_mesh, p.gf_struct};
+      auto G0_iw_dlr       = block_gf{dlr_mesh, p.gf_struct};
+      for (int bl = 0; bl < p.n_blocks(); ++bl) {
+        for (auto iw : dlr_mesh) {
+          G0_shift_iw_dlr[bl][iw] = G0_shift_iw[bl](iw);
+          G0_iw_dlr[bl][iw]       = G0_iw[bl](iw);
+        }
+      }
+
+      // Allocate result containers
+      G_iw_dlr     = block_gf{dlr_mesh, p.gf_struct};
+      Sigma_iw_dlr = block_gf{dlr_mesh, p.gf_struct};
+
+      // Add Hartree contribution to M_iw_dlr
+      if (M_hartree) {
+        for (auto [M_bl, M_hartree_bl] : zip(M_iw_dlr, M_hartree.value())) M_bl(iw_) << M_bl[iw_] + M_hartree_bl;
+      }
+
+      // G = G0_shift + G0_shift * M * G0_shift
+      G_iw_dlr = G0_shift_iw_dlr + G0_shift_iw_dlr * M_iw_dlr * G0_shift_iw_dlr;
+
+      // Sigma = G0^{-1} - G^{-1}
+      Sigma_iw_dlr = inverse(G0_iw_dlr) - inverse(G_iw_dlr);
     }
 
     // Calculate M3_iw from M3_tau
