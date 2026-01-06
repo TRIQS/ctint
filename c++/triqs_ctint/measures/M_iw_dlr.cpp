@@ -31,6 +31,12 @@ namespace triqs_ctint::measures {
         }
       }
     }
+
+    // Initialize M_hartree if not already set (by M_tau measurement)
+    if (!results->M_hartree) {
+      results->M_hartree = make_block_vector<M_tau_scalar_t>(params.gf_struct);
+      for (auto &m : results->M_hartree.value()) M_hartree_.push_back(m);
+    }
   }
 
   void M_iw_dlr::accumulate(mc_weight_t sign) {
@@ -43,7 +49,10 @@ namespace triqs_ctint::measures {
       // Loop over every index pair (x,y) in the determinant matrix[b]
       foreach (qmc_config.dets[bl], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
         // Check for the equal-time case
-        if (c_i.tau != cdag_j.tau) { // Ignore M_hartree Contributions
+        if (c_i.tau == cdag_j.tau) {
+          // Accumulate Hartree term (only if M_tau is not handling it)
+          if (!M_hartree_.empty()) M_hartree_[bl](cdag_j.u, c_i.u) += Ginv * sign;
+        } else {
           auto &ts_ij = tau_samples[bl](cdag_j.u, c_i.u);
           auto &ws_ij = weight_samples[bl](cdag_j.u, c_i.u);
 
@@ -68,6 +77,12 @@ namespace triqs_ctint::measures {
     // Collect results and normalize
     mpi::all_reduce_in_place(M_iw_dlr_, comm);
     M_iw_dlr_ /= (-Z * params.beta);
+
+    // Normalize M_hartree (only if M_iw_dlr is responsible for it)
+    for (auto &m : M_hartree_) {
+      m = mpi::all_reduce(m, comm);
+      m = m / (-Z * params.beta);
+    }
   }
 
   void M_iw_dlr::convert_samples_to_dlr() {
