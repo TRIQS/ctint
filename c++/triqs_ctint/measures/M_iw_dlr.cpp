@@ -17,7 +17,7 @@ namespace triqs_ctint::measures {
        weight_samples(results->weight_samples),
        M_iw_dlr_(results->M_iw_dlr) {
 
-    M_iw_dlr_              = block_gf{mesh::dlr_imfreq{params.beta, Fermion, params.w_max, params.eps}, params.gf_struct};
+    M_iw_dlr_              = block_gf{mesh::dlr_imfreq{params.beta, Fermion, params.w_max, params.eps, true}, params.gf_struct};
     auto n_matrix_elements = 0;
     for (auto [bl, bl_size] : params.gf_struct) n_matrix_elements += bl_size * bl_size;
 

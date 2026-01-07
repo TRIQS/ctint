@@ -11,7 +11,7 @@ using namespace triqs::utility;
 namespace triqs_ctint::measures {
 
   chiAB_tau::chiAB_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.w_max, params_.eps} {
+     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.w_max, params_.eps, true} {
 
     if (params.chi_A_vec.empty() or params.chi_B_vec.empty())
       TRIQS_RUNTIME_ERROR << " Empty operator vector detected in chiAB measurement \n";
