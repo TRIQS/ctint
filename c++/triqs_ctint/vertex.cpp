@@ -30,7 +30,7 @@ namespace triqs_ctint {
 #ifdef DEBUG_CTINT
     if (tau < 0.0 or tau_t::beta < tau) TRIQS_RUNTIME_ERROR << " Tau-value outside [0,beta) interval not allowed in make_tau_t\n";
 #endif
-    return tau_t{uint32_t(tau_t::n_max / tau_t::beta * tau)};
+    return tau_t{uint64_t(tau_t::n_max / tau_t::beta * tau)};
   }
 
   std::ostream &operator<<(std::ostream &os, vertex_idx_t const &v) {
