@@ -105,6 +105,8 @@ TEST(CtInt, Plaquette) { // NOLINT
   ps.measure_chiAB_tau  = true;
   ps.chi_A_vec          = {n("up", 0) + n("dn", 0)};
   ps.chi_B_vec          = {n("up", 0) + n("dn", 0)};
+  ps.w_max              = 10.0;
+  ps.eps                = 1e-10;
   ps.post_process       = false;
 
   S.solve(ps);

@@ -186,7 +186,7 @@ c.add_member(c_name = "chi2ph_tau",
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained by operator insertion""")
 
 c.add_member(c_name = "chiAB_tau",
-             c_type = "std::optional<gf<imtime>>",
+             c_type = "std::optional<gf<dlr_imtime>>",
              read_only= True,
              doc = r"""The correlation function $\chi_AB$ in imaginary times""")
 
@@ -319,11 +319,6 @@ c.add_member(c_name = "chi2xph_iw_from_M3",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau""")
-
-c.add_member(c_name = "chiAB_iw",
-             c_type = "std::optional<gf<imfreq>>",
-             read_only= True,
-             doc = r"""The correlation function $\chi_AB$ in imaginary frequencies""")
 
 c.add_member(c_name = "chi3pp_iw",
              c_type = "std::optional<chi3_iw_t>",

@@ -85,6 +85,8 @@ S.solve(h_int=h_int,
         measure_chiAB_tau = True,
         chi_A_vec = [n('up',0) + n('dn', 0)],
         chi_B_vec = [n('up',0) + n('dn', 0)],
+        w_max = 10.0,
+        eps = 1e-10,
         post_process = False )
 
 # -------- Save in archive ---------
