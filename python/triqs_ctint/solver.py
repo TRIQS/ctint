@@ -136,9 +136,9 @@ class Solver(SolverCore):
                     Sig_HF[bl3][u4, u3] += coef * G_dens[bl1][u2, u1]
 
                     # # Consider cross terms for equal blocks
-                    # if bl1 == bl3:
-                        # Sig_HF[bl1][u4, u1] -= coef * G_dens[bl3][u2, u3]
-                        # Sig_HF[bl3][u2, u3] -= coef * G_dens[bl1][u4, u1]
+                    if bl1 == bl3:
+                        Sig_HF[bl1][u4, u1] -= coef * G_dens[bl3][u2, u3]
+                        Sig_HF[bl3][u2, u3] -= coef * G_dens[bl1][u4, u1]
             
                 Sig_HF_ordered = [[bl, Sig_HF[bl]] for bl, idx_lst in gf_struct]
                 return Sig_HF_flat - flatten(Sig_HF_ordered)
