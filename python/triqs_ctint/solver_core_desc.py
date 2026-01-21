@@ -106,14 +106,14 @@ c.add_member(c_name = "M4ph_iw",
              doc = r"""Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT""")
 
 c.add_member(c_name = "M3pp_iw_nfft",
-             c_type = "std::optional<chi3_iw_t>",
+             c_type = "std::optional<chi3_dlr2d_iw_t>",
              read_only= True,
-             doc = r"""Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT""")
+             doc = r"""Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT on DLR2D grid""")
 
 c.add_member(c_name = "M3ph_iw_nfft",
-             c_type = "std::optional<chi3_iw_t>",
+             c_type = "std::optional<chi3_dlr2d_iw_t>",
              read_only= True,
-             doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT""")
+             doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT on DLR2D grid""")
 
 c.add_member(c_name = "M3pp_tau",
              c_type = "std::optional<chi3_tau_t>",
@@ -311,14 +311,14 @@ c.add_member(c_name = "chi3xph_iw",
              doc = r"""The equal time correlator $\chi_3$ in the particle-hole-cross channel in Matsubara frequencies""")
 
 c.add_member(c_name = "chi3pp_iw_nfft",
-             c_type = "std::optional<chi3_iw_t>",
+             c_type = "std::optional<chi3_dlr2d_iw_t>",
              read_only= True,
-             doc = r"""The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement""")
+             doc = r"""The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid""")
 
 c.add_member(c_name = "chi3ph_iw_nfft",
-             c_type = "std::optional<chi3_iw_t>",
+             c_type = "std::optional<chi3_dlr2d_iw_t>",
              read_only= True,
-             doc = r"""The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement""")
+             doc = r"""The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid""")
 
 c.add_member(c_name = "G0_iw",
              c_type = "g_iw_t",
@@ -447,6 +447,10 @@ c.add_method("""void solve (**solve_params_t)""",
 | n_iw_M3                       | int                             | 64                                      | Number of positive fermionic Matsubara frequencies in M3                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iW_M3                       | int                             | 32                                      | Number of positive bosonic Matsubara frequencies in M3                                                                                |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| dlr_wmax_M3                   | double                          | 1.0                                     | DLR energy cutoff w_max (= Lambda / beta) for M3                                                                                      |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| dlr_eps_M3                    | double                          | 1e-10                                   | DLR error tolerance epsilon for M3                                                                                                    |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3pp_tau              | bool                            | false                                   | Measure M3pp(tau)                                                                                                                     |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -651,6 +655,16 @@ c.add_member(c_name = "n_iW_M3",
              c_type = "int",
              initializer = """ 32 """,
              doc = r"""Number of positive bosonic Matsubara frequencies in M3""")
+
+c.add_member(c_name = "dlr_wmax_M3",
+             c_type = "double",
+             initializer = """ 1.0 """,
+             doc = r"""DLR energy cutoff w_max (= Lambda / beta) for M3""")
+
+c.add_member(c_name = "dlr_eps_M3",
+             c_type = "double",
+             initializer = """ 1e-10 """,
+             doc = r"""DLR error tolerance epsilon for M3""")
 
 c.add_member(c_name = "measure_M3pp_tau",
              c_type = "bool",

@@ -15,16 +15,16 @@ namespace triqs_ctint::measures {
        buf_arrarr_MG(params_.n_blocks()),
        G0_tau(std::move(G0_tau_)) {
 
-    // Construct Matsubara mesh
-    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    mesh::prod<imfreq, imfreq> M3ph_iw_mesh{iw_mesh, iw_mesh};
+    // Construct DLR2D Matsubara mesh
+    mesh::dlr2d_imfreq M3ph_iw_mesh{params.beta, params.dlr_wmax_M3, params.dlr_eps_M3, mesh::PH};
 
     // Init measurement container and capture view
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
     M3ph_iw_.rebind(results->M3ph_iw_nfft.value());
     M3ph_iw_() = 0;
 
-    // Initialize intermediate scattering matrix
+    // Initialize intermediate scattering matrices on regular imfreq mesh
+    mesh::imfreq iw_mesh{params.beta, Fermion, M3ph_iw_mesh.max_n() + 1};
     M  = block_gf{mesh::prod<imfreq, imfreq>{iw_mesh, iw_mesh}, params.gf_struct};
     GM = block_gf{iw_mesh, params.gf_struct};
     MG = block_gf{iw_mesh, params.gf_struct};
@@ -98,9 +98,7 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr_MG)
       for (auto &buf : buf_arr) buf.flush();
 
-    auto [iw_mesh, _] = M3ph_iw_(0, 0).mesh();
-
-    for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
+    for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
 
         int bl1_size     = M[bl1].target_shape()[0];
@@ -111,15 +109,18 @@ namespace triqs_ctint::measures {
         auto const &MG2  = MG(bl2);
         auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
 
-        for (auto iw1 : iw_mesh)
-          for (auto iw2 : iw_mesh)
-            for (int i : range(bl1_size))
-              for (int j : range(bl1_size))
-                for (int k : range(bl2_size))
-                  for (int l : range(bl2_size)) {
-                    M3ph_iw[iw1, iw2](i, j, k, l) += sign * M1[iw2, iw1](j, i) * GMG2(l, k);
-                    if (bl1 == bl2) { M3ph_iw[iw1, iw2](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
-                  }
+        // Single loop over DLR2D mesh points
+        for (auto mp : M3ph_iw.mesh()) {
+          auto [iw1, iw2] = mp.value(); // matsubara_freq pair
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size)) {
+                  // Note: PH channel uses transposed access M1[iw2, iw1]
+                  M3ph_iw[mp](i, j, k, l) += sign * M1[iw2, iw1](j, i) * GMG2(l, k);
+                  if (bl1 == bl2) { M3ph_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
+                }
+        }
       }
   }
 

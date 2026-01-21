@@ -40,7 +40,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<prod<imfreq, imfreq>, tensor_valued<4>> M3ph_iw_;
+    chi3_dlr2d_iw_v_t M3ph_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;

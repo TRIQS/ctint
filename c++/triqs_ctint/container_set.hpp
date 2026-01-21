@@ -56,11 +56,11 @@ namespace triqs_ctint {
     /// Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4ph_iw;
 
-    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT
-    std::optional<chi3_iw_t> M3pp_iw_nfft;
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> M3pp_iw_nfft;
 
-    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT
-    std::optional<chi3_iw_t> M3ph_iw_nfft;
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> M3ph_iw_nfft;
 
     /// Building block for the fermion boson vertex (pp channel) in imaginary time
     std::optional<chi3_tau_t> M3pp_tau;
@@ -181,11 +181,11 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_3$ in the particle-hole-cross channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3xph_iw;
 
-    /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement
-    std::optional<chi3_iw_t> chi3pp_iw_nfft;
+    /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> chi3pp_iw_nfft;
 
-    /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement
-    std::optional<chi3_iw_t> chi3ph_iw_nfft;
+    /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> chi3ph_iw_nfft;
 
     /// Function that writes all containers to hdf5 file
     friend void h5_write(h5::group h5group, std::string subgroup_name, container_set const &c) {

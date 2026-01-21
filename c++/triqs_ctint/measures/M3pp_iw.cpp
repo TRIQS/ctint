@@ -10,16 +10,16 @@ namespace triqs_ctint::measures {
   M3pp_iw::M3pp_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_)
      : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
-    // Construct Matsubara mesh
-    mesh::imfreq iw_mesh{params.beta, Fermion, params.n_iw_M3};
-    mesh::prod<imfreq, imfreq> M3pp_iw_mesh{iw_mesh, iw_mesh};
+    // Construct DLR2D Matsubara mesh
+    mesh::dlr2d_imfreq M3pp_iw_mesh{params.beta, params.dlr_wmax_M3, params.dlr_eps_M3, mesh::PP};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
     M3pp_iw_.rebind(results->M3pp_iw_nfft.value());
     M3pp_iw_() = 0;
 
-    // Initialize intermediate scattering matrix
+    // Initialize intermediate scattering matrix on regular imfreq mesh
+    mesh::imfreq iw_mesh{params.beta, Fermion, M3pp_iw_mesh.max_n() + 1};
     GM = block_gf{iw_mesh, params.gf_struct};
 
     // Create nfft buffers
@@ -49,8 +49,6 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto [iw_mesh, _] = M3pp_iw_(0, 0).mesh();
-
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
 
@@ -60,15 +58,17 @@ namespace triqs_ctint::measures {
         auto const &GM2 = GM[bl2];
         auto &M3pp_iw   = M3pp_iw_(bl1, bl2);
 
-        for (auto iw1 : iw_mesh)
-          for (auto iw2 : iw_mesh)
-            for (int i : range(bl1_size))
-              for (int j : range(bl1_size))
-                for (int k : range(bl2_size))
-                  for (int l : range(bl2_size)) {
-                    M3pp_iw[iw1, iw2](i, j, k, l) += sign * GM1[iw1](j, i) * GM2[iw2](l, k);
-                    if (bl1 == bl2) { M3pp_iw[iw1, iw2](i, j, k, l) -= sign * GM1[iw1](l, i) * GM2[iw2](j, k); }
-                  }
+        // Single loop over DLR2D mesh points
+        for (auto mp : M3pp_iw.mesh()) {
+          auto [iw1, iw2] = mp.value(); // matsubara_freq pair
+          for (int i : range(bl1_size))
+            for (int j : range(bl1_size))
+              for (int k : range(bl2_size))
+                for (int l : range(bl2_size)) {
+                  M3pp_iw[mp](i, j, k, l) += sign * GM1[iw1](j, i) * GM2[iw2](l, k);
+                  if (bl1 == bl2) { M3pp_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * GM2[iw2](j, k); }
+                }
+        }
       }
   }
 

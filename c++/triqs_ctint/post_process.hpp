@@ -33,6 +33,110 @@ namespace triqs_ctint {
   /// Calculate the generalized ph susceptibility from G2ph_conn_iw and G_iw
   chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
 
+  /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw (DLR2D version)
+  template <Chan_t Chan>
+  chi3_dlr2d_iw_t chi3_from_M3(chi3_dlr2d_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+                               block_matrix_t const &M_hartree) {
+
+    double beta  = M_iw[0].mesh().beta();
+    int n_blocks = M_iw.size();
+
+    // Verify that input Green's function meshes cover all DLR2D frequencies
+    long n_iw_G0 = static_cast<long>(G0_iw[0].mesh().size()) / 2;
+    long max_n   = M3_iw(0, 0).mesh().max_n();
+    if (max_n >= n_iw_G0)
+      TRIQS_RUNTIME_ERROR << "chi3_from_M3: G0_iw mesh (n_iw=" << n_iw_G0
+                          << ") does not cover all DLR2D mesh frequencies (max_n=" << max_n << ")";
+
+    // Connected part of M3
+    chi3_dlr2d_iw_t M3_iw_conn = M3_iw;
+
+    // Connected part of chi3
+    chi3_dlr2d_iw_t chi3_iw = M3_iw;
+    chi3_iw()               = 0.;
+
+    // Temporary quantities
+    g_iw_t GM   = G0_iw * M_iw;
+    g_iw_t MG   = M_iw * G0_iw;
+    g_iw_t GMG  = G0_iw * M_iw * G0_iw;
+    g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks)) {
+
+        // Capture block-sizes
+        int bl1_size = M3_iw(bl1, bl2).target_shape()[0];
+        int bl2_size = M3_iw(bl1, bl2).target_shape()[2];
+
+        if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
+
+          // Loop over DLR2D mesh points
+          for (auto mp : M3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3_iw_conn(bl1, bl2)[mp](i, j, k, l) =
+                       M3_iw(bl1, bl2)[mp](i, j, k, l) - GM[bl1][iw1](j, i) * GM[bl2][iw2](l, k) + kronecker(bl1, bl2) * GM[bl1][iw1](l, i) * GM[bl2][iw2](j, k);
+                  }
+          }
+
+          for (auto mp : chi3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    for (int m : range(bl1_size))
+                      for (int n : range(bl2_size))
+                        chi3_iw(bl1, bl2)[mp](i, j, k, l) += G0_iw[bl1][iw1](m, i) * G0_iw[bl2][iw2](n, k) * M3_iw_conn(bl1, bl2)[mp](m, j, n, l);
+                    // Disconnected part
+                    chi3_iw(bl1, bl2)[mp](i, j, k, l) +=
+                       G_iw[bl1][iw1](j, i) * G_iw[bl2][iw2](l, k) - kronecker(bl1, bl2) * G_iw[bl1][iw1](l, i) * G_iw[bl2][iw2](j, k);
+                  }
+          }
+
+        } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
+
+          auto km_GMG = make_zero_tail(GMG, 3);
+          for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+          auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
+          auto dens_GMG = density(GMG, tail_GMG);
+
+          // Loop over DLR2D mesh points
+          for (auto mp : M3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3_iw_conn(bl1, bl2)[mp](i, j, k, l) = M3_iw(bl1, bl2)[mp](i, j, k, l)
+                       - beta * kronecker(iw1.n, iw2.n) * M_iw[bl1][iw1](j, i) * dens_GMG[bl2](l, k)
+                       + kronecker(bl1, bl2) * GM[bl1][iw1](l, i) * MG[bl2][iw2](j, k);
+                  }
+          }
+
+          for (auto mp : chi3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    for (int m : range(bl1_size))
+                      for (int n : range(bl1_size))
+                        chi3_iw(bl1, bl2)[mp](i, j, k, l) += G0_iw[bl1][iw1](m, i) * G0_iw[bl1][iw2](j, n) * M3_iw_conn(bl1, bl2)[mp](m, n, k, l);
+                    // Disconnected part
+                    chi3_iw(bl1, bl2)[mp](i, j, k, l) +=
+                       beta * kronecker(iw1.n, iw2.n) * G_iw[bl1][iw1](j, i) * dens_G[bl2](l, k) - kronecker(bl1, bl2) * G_iw[bl1][iw1](l, i) * G_iw[bl2][iw2](j, k);
+                  }
+          }
+        }
+      }
+
+    return chi3_iw;
+  }
+
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
   template <Chan_t Chan>
   chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
