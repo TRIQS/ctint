@@ -143,9 +143,9 @@ class Solver(SolverCore):
                 Sig_HF_ordered = [[bl, Sig_HF[bl]] for bl, idx_lst in gf_struct]
                 return Sig_HF_flat - flatten(Sig_HF_ordered)
             
-            # Invoke the root finder
+            # Invoke the root finder (use broyden1 to match diagmc behavior)
             Sig_HF_init = [[bl, np.zeros((bl_size, bl_size))] for bl, bl_size in gf_struct]
-            root_finder = root(f, flatten(Sig_HF_init))
+            root_finder = root(f, flatten(Sig_HF_init), method='broyden1')
             
             # Now calculate alpha from the Hartree Fock solution
             delta = params_kw.pop('delta', 0.1)
