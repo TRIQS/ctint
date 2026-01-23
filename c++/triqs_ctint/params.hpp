@@ -148,7 +148,7 @@ namespace triqs_ctint {
     /// DLR energy cutoff w_max (= Lambda / beta) for M3
     double dlr_wmax_M3 = 1.0;
     /// DLR error tolerance epsilon for M3
-    double dlr_eps_M3 = 1e-10;
+    double dlr_eps_M3 = 1e-6;
 
     /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;
@@ -177,6 +177,9 @@ namespace triqs_ctint {
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 100000;
+
+    /// Tolerance for the NFFT transform
+    double nfft_tol = 1e-8;
 
     /// Perform post processing
     bool post_process = true;

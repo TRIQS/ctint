@@ -71,6 +71,7 @@ namespace triqs_ctint {
     h5_write(grp, "chi_A_vec", sp.chi_A_vec);
     h5_write(grp, "chi_B_vec", sp.chi_B_vec);
     h5_write(grp, "nfft_buf_size", sp.nfft_buf_size);
+    h5_write(grp, "nfft_tol", sp.nfft_tol);
     h5_write(grp, "post_process", sp.post_process);
     h5_write(grp, "det_init_size", sp.det_init_size);
     h5_write(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
@@ -118,6 +119,7 @@ namespace triqs_ctint {
     h5_read(grp, "chi_A_vec", sp.chi_A_vec);
     h5_read(grp, "chi_B_vec", sp.chi_B_vec);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
+    h5::try_read(grp, "nfft_tol", sp.nfft_tol);
     h5_read(grp, "post_process", sp.post_process);
     h5::try_read(grp, "det_init_size", sp.det_init_size);
     h5::try_read(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
