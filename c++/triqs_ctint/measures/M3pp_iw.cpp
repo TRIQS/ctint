@@ -22,6 +22,12 @@ namespace triqs_ctint::measures {
     mesh::imfreq iw_mesh{params.beta, Fermion, M3pp_iw_mesh.max_n() + 1};
     GM = block_gf{iw_mesh, params.gf_struct};
 
+    // Initialize full-mesh container for verification
+    mesh::prod<imfreq, imfreq> full_mesh{iw_mesh, iw_mesh};
+    results->M3pp_iw_nfft_full = make_block2_gf(full_mesh, params.gf_struct);
+    M3pp_iw_full_.rebind(results->M3pp_iw_nfft_full.value());
+    M3pp_iw_full_() = 0;
+
     // Create nfft buffers
     for (int b : range(params.n_blocks())) {
       auto init_target_func = [&](int i, int j) {
@@ -69,6 +75,18 @@ namespace triqs_ctint::measures {
                   if (bl1 == bl2) { M3pp_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * GM2[iw2](j, k); }
                 }
         }
+
+        // Full-mesh accumulation for verification
+        auto &M3pp_full = M3pp_iw_full_(bl1, bl2);
+        for (auto iw1 : GM1.mesh())
+          for (auto iw2 : GM2.mesh())
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3pp_full[iw1, iw2](i, j, k, l) += sign * GM1[iw1](j, i) * GM2[iw2](l, k);
+                    if (bl1 == bl2) { M3pp_full[iw1, iw2](i, j, k, l) -= sign * GM1[iw1](l, i) * GM2[iw2](j, k); }
+                  }
       }
   }
 
@@ -77,6 +95,10 @@ namespace triqs_ctint::measures {
     Z        = mpi::all_reduce(Z, comm);
     M3pp_iw_ = mpi::all_reduce(M3pp_iw_, comm);
     M3pp_iw_ = M3pp_iw_ / Z;
+
+    // Collect and normalize full-mesh container
+    M3pp_iw_full_ = mpi::all_reduce(M3pp_iw_full_, comm);
+    M3pp_iw_full_ = M3pp_iw_full_ / Z;
   }
 
 } // namespace triqs_ctint::measures

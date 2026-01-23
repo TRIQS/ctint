@@ -42,6 +42,9 @@ namespace triqs_ctint::measures {
     // Container for the accumulation
     chi3_dlr2d_iw_v_t M3ph_iw_;
 
+    // Full-mesh accumulation for verification
+    chi3_iw_v_t M3ph_iw_full_;
+
     // The average sign
     mc_weight_t Z = 0.0;
 

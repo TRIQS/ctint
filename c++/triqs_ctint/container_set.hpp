@@ -187,6 +187,12 @@ namespace triqs_ctint {
     /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid
     std::optional<chi3_dlr2d_iw_t> chi3ph_iw_nfft;
 
+    /// Full-mesh reference for DLR2D verification (pp channel)
+    std::optional<chi3_iw_t> M3pp_iw_nfft_full;
+
+    /// Full-mesh reference for DLR2D verification (ph channel)
+    std::optional<chi3_iw_t> M3ph_iw_nfft_full;
+
     /// Function that writes all containers to hdf5 file
     friend void h5_write(h5::group h5group, std::string subgroup_name, container_set const &c) {
       auto grp = h5group.create_group(subgroup_name);
@@ -247,6 +253,8 @@ namespace triqs_ctint {
       h5_write(grp, "chi3xph_iw", c.chi3xph_iw);
       h5_write(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
       h5_write(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
+      h5_write(grp, "M3pp_iw_nfft_full", c.M3pp_iw_nfft_full);
+      h5_write(grp, "M3ph_iw_nfft_full", c.M3ph_iw_nfft_full);
     }
 
     /// Function that reads all containers from hdf5 file
@@ -316,6 +324,8 @@ namespace triqs_ctint {
       h5_read(grp, "chi3xph_iw", c.chi3xph_iw);
       h5_read(grp, "chi3pp_iw_nfft", c.chi3pp_iw_nfft);
       h5_read(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
+      h5_read(grp, "M3pp_iw_nfft_full", c.M3pp_iw_nfft_full);
+      h5_read(grp, "M3ph_iw_nfft_full", c.M3ph_iw_nfft_full);
     }
   };
 
