@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$
   *
-  * $M^3$ is the essential building block for the fermion-boson verticies
+  * $M^3$ is the essential building block for the fermion-boson vertices
   */
   struct M3ph_iw {
 
@@ -26,7 +26,7 @@ namespace triqs_ctint::measures {
     M3ph_iw &operator=(M3ph_iw const &) = delete;
     M3ph_iw &operator=(M3ph_iw &&)      = delete;
 
-    /// Accumulate M_tau using binning
+    /// Accumulate M3ph measurement
     void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
@@ -53,11 +53,22 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix in the measurement of M3ph
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
-    block_gf<imfreq, matrix_valued> GM;
-    block_gf<imfreq, matrix_valued> MG;
+    // Intermediate scattering matrices stored as raw arrays per block
+    nda::array<nda::array<dcomplex, 3>, 1> M_data;  // shape (n_mesh_points, bl_size, bl_size)
+    nda::array<nda::array<dcomplex, 3>, 1> GM_data; // shape (n_unique_n1, bl_size, bl_size)
+    nda::array<nda::array<dcomplex, 3>, 1> MG_data; // shape (n_unique_n2, bl_size, bl_size)
     array<array<dcomplex, 2>, 1> GMG;
+
+    // Target Matsubara frequencies for non-uniform NFFT/DFT
+    nda::array<mesh::matsubara_freq, 2> target_mf_2d; // shape (2, n_mesh_points) for M
+    nda::array<mesh::matsubara_freq, 2> target_mf_n1; // shape (1, n_unique_n1) for GM
+    nda::array<mesh::matsubara_freq, 2> target_mf_n2; // shape (1, n_unique_n2) for MG
+
+    // Index maps: Matsubara n -> index in data arrays
+    std::vector<long> n1_to_idx;
+    std::vector<long> n2_to_idx;
+    long n1_idx_offset = 0;
+    long n2_idx_offset = 0;
   };
 
 } // namespace triqs_ctint::measures

@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$
   *
-  * $M^3$ is the essential building block for the fermion-boson verticies
+  * $M^3$ is the essential building block for the fermion-boson vertices
   */
   struct M3pp_iw {
 
@@ -26,7 +26,7 @@ namespace triqs_ctint::measures {
     M3pp_iw &operator=(M3pp_iw const &) = delete;
     M3pp_iw &operator=(M3pp_iw &&)      = delete;
 
-    /// Accumulate M_tau using binning
+    /// Accumulate M3pp measurement
     void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
@@ -51,8 +51,15 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix in the measurement of M3pp
-    block_gf<imfreq, matrix_valued> GM;
+    // Intermediate scattering matrix stored as raw arrays per block: shape (n_unique, bl_size, bl_size)
+    nda::array<nda::array<dcomplex, 3>, 1> GM_data;
+
+    // Target Matsubara frequencies for type 3 NFFT: shape (1, n_unique)
+    nda::array<mesh::matsubara_freq, 2> target_mf_1d;
+
+    // Matsubara n -> index in GM_data (with offset)
+    std::vector<long> n_to_idx;
+    long n_idx_offset = 0;
   };
 
 } // namespace triqs_ctint::measures

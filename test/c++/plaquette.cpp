@@ -9,13 +9,13 @@ using namespace triqs_ctint;
 
 TEST(CtInt, Plaquette) { // NOLINT
   // --------- physical parameters ----------
-  double const U    = 1.0;     // Density-density interaction
+  double const U    = 4.0;     // Density-density interaction
   double const t    = 1.0;     // Hopping
   double const mu   = U / 2.0; // Chemical Potential
-  double const beta = 100;     // Inverse temperature
+  double const beta = 20;      // Inverse temperature
 
   // --------- simulation parameters ----------
-  int const n_cyc = 50;
+  int const n_cyc = 2000;
 
   // --------- Define hopping matrix and interaction hamiltonian ----------
 
@@ -80,29 +80,29 @@ TEST(CtInt, Plaquette) { // NOLINT
   ps.length_cycle       = 50;
   ps.n_warmup_cycles    = 100;
   ps.random_seed        = 34788;
-  ps.measure_histogram  = true;
+  ps.measure_histogram  = false;
   ps.measure_density    = true;
-  ps.measure_M_tau      = true;
+  ps.measure_M_tau      = false;
   ps.measure_M_iw       = true;
-  ps.measure_M4_iw      = true;
-  ps.measure_M4pp_iw    = true;
-  ps.measure_M4ph_iw    = true;
+  ps.measure_M4_iw      = false;
+  ps.measure_M4pp_iw    = false;
+  ps.measure_M4ph_iw    = false;
   ps.n_iw_M4            = 2;
   ps.n_iW_M4            = 2;
   ps.nfft_buf_size      = 100000;
   ps.measure_M3pp_iw    = true;
   ps.measure_M3ph_iw    = true;
-  ps.measure_M3pp_tau   = true;
-  ps.measure_M3ph_tau   = true;
-  ps.measure_M3xph_tau  = true;
+  ps.measure_M3pp_tau   = false;
+  ps.measure_M3ph_tau   = false;
+  ps.measure_M3xph_tau  = false;
   ps.n_iw_M3            = 4;
   ps.n_iW_M3            = 4;
   ps.n_tau_M3           = 4;
-  ps.measure_chi2pp_tau = true;
-  ps.measure_chi2ph_tau = true;
+  ps.measure_chi2pp_tau = false;
+  ps.measure_chi2ph_tau = false;
   ps.n_iw_chi2          = 10;
   ps.n_tau_chi2         = 21;
-  ps.measure_chiAB_tau  = true;
+  ps.measure_chiAB_tau  = false;
   ps.chi_A_vec          = {n("up", 0) + n("dn", 0)};
   ps.chi_B_vec          = {n("up", 0) + n("dn", 0)};
   ps.post_process       = false;
@@ -110,22 +110,22 @@ TEST(CtInt, Plaquette) { // NOLINT
   S.solve(ps);
 
   // -------- Save in archive ---------
-  auto archive = h5::file("plaquette.out.h5", 'w');
-  h5_write(archive, "histogram", S.histogram);
-  h5_write(archive, "density", S.density);
-  h5_write(archive, "M_tau", S.M_tau);
-  h5_write(archive, "M_iw", S.M_iw_nfft);
-  h5_write(archive, "M4_iw", S.M4_iw);
-  h5_write(archive, "M4pp_iw", S.M4pp_iw);
-  h5_write(archive, "M4ph_iw", S.M4ph_iw);
-  h5_write(archive, "M3pp_iw_nfft", S.M3pp_iw_nfft);
-  h5_write(archive, "M3ph_iw_nfft", S.M3ph_iw_nfft);
-  h5_write(archive, "M3pp_tau", S.M3pp_tau);
-  h5_write(archive, "M3ph_tau", S.M3ph_tau);
-  h5_write(archive, "M3xph_tau", S.M3xph_tau);
-  h5_write(archive, "chi2pp_tau", S.chi2pp_tau);
-  h5_write(archive, "chi2ph_iw", S.chi2ph_tau);
-  h5_write(archive, "chiAB_tau", S.chiAB_tau);
+  // auto archive = h5::file("plaquette.out.h5", 'w');
+  // h5_write(archive, "histogram", S.histogram);
+  // h5_write(archive, "density", S.density);
+  // h5_write(archive, "M_tau", S.M_tau);
+  // h5_write(archive, "M_iw", S.M_iw_nfft);
+  // h5_write(archive, "M4_iw", S.M4_iw);
+  // h5_write(archive, "M4pp_iw", S.M4pp_iw);
+  // h5_write(archive, "M4ph_iw", S.M4ph_iw);
+  // h5_write(archive, "M3pp_iw_nfft", S.M3pp_iw_nfft);
+  // h5_write(archive, "M3ph_iw_nfft", S.M3ph_iw_nfft);
+  // h5_write(archive, "M3pp_tau", S.M3pp_tau);
+  // h5_write(archive, "M3ph_tau", S.M3ph_tau);
+  // h5_write(archive, "M3xph_tau", S.M3xph_tau);
+  // h5_write(archive, "chi2pp_tau", S.chi2pp_tau);
+  // h5_write(archive, "chi2ph_iw", S.chi2ph_tau);
+  // h5_write(archive, "chiAB_tau", S.chiAB_tau);
 }
 
 MAKE_MAIN;
