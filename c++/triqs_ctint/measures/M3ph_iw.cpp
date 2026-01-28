@@ -31,8 +31,7 @@ namespace triqs_ctint::measures {
     M3ph_iw_() = 0;
 
     // Collect unique w1 (for GM) and w2 (for MG) and build 2D target for M
-    auto mf_less = [](mesh::matsubara_freq const &a, mesh::matsubara_freq const &b) { return a.n < b.n; };
-    std::set<mesh::matsubara_freq, decltype(mf_less)> unique_w1_set(mf_less), unique_w2_set(mf_less);
+    std::set<mesh::matsubara_freq> unique_w1_set, unique_w2_set;
     // push_back uses {tau_j, beta-tau_i}: dim 0 targets w2, dim 1 targets w1
     target_mf_2d.reserve(n_mesh_points);
     for (auto [w1, w2] : M3ph_iw_mesh) {
@@ -43,17 +42,16 @@ namespace triqs_ctint::measures {
     // Build 1D target matsubara_freq vectors and index maps for GM (w1) and MG (w2)
     std::tie(target_mf_n1, n1_idx_offset, n1_to_idx) = build_index_map(unique_w1_set);
     std::tie(target_mf_n2, n2_idx_offset, n2_to_idx) = build_index_map(unique_w2_set);
-    auto n_un1 = target_mf_n1.size(), n_un2 = target_mf_n2.size();
 
     // Initialize data arrays, GMG, and NFFT buffers
 
-    for (int bl : range(params.n_blocks())) {
-      int bl_size = params.gf_struct[bl].second;
-      GMG(bl)     = array<dcomplex, 2>(bl_size, bl_size);
+    for (auto bl : range(params.n_blocks())) {
+      auto bl_size = params.gf_struct[bl].second;
+      GMG(bl)      = array<dcomplex, 2>(bl_size, bl_size);
 
       M_data(bl).resize(n_mesh_points, bl_size, bl_size);
-      GM_data(bl).resize(n_un1, bl_size, bl_size);
-      MG_data(bl).resize(n_un2, bl_size, bl_size);
+      GM_data(bl).resize(target_mf_n1.size(), bl_size, bl_size);
+      MG_data(bl).resize(target_mf_n2.size(), bl_size, bl_size);
 
       // M: rank 2 type 3 NFFT
       auto init_func_M = [&](int i, int j) {
