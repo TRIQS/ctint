@@ -219,16 +219,17 @@ TEST_F(Nfft, Type3_Analytical_1D) { // NOLINT
   std::vector<int> n_indices = {0, 1, 3, 5, 10, 20, 50, 99, -1, -3, -10, -50, -100};
   int64_t n_targets          = n_indices.size();
 
-  // Build target matsubara_freq array
-  nda::array<mesh::matsubara_freq, 2> target_mf(1, n_targets);
-  for (int64_t k = 0; k < n_targets; ++k) target_mf(0, k) = mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion);
+  // Build target matsubara_freq vector
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
 
   // Output vector
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
   // Type 3 nfft buffer
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -262,8 +263,9 @@ TEST_F(Nfft, Type3_Random_1D) { // NOLINT
   // Non-uniform target frequencies
   std::vector<int> n_indices = {0, 2, 7, -4, -15, 30};
   int64_t n_targets          = n_indices.size();
-  nda::array<mesh::matsubara_freq, 2> target_mf(1, n_targets);
-  for (int64_t k = 0; k < n_targets; ++k) target_mf(0, k) = mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion);
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
 
   // Generate random tau values and strengths
   std::vector<double> taus(n_tau);
@@ -276,14 +278,14 @@ TEST_F(Nfft, Type3_Random_1D) { // NOLINT
   // Type 3 nfft buffer
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) buf.push_back({taus[i]}, vals[i]);
   buf.flush();
 
   // Brute-force reference: f_k = sum_j c_j * exp(i * omega_k * tau_j)
   for (int64_t k = 0; k < n_targets; ++k) {
-    double omega_k = std::imag(dcomplex(target_mf(0, k)));
+    double omega_k = std::imag(dcomplex(target_mf[k]));
     dcomplex ref   = 0;
     for (int j = 0; j < n_tau; ++j) ref += vals[j] * std::exp(dcomplex(0, omega_k * taus[j]));
     EXPECT_LT(std::abs(fiw_out(k) - ref), 1e-10 * std::abs(ref) + 1e-10) << "Failed at k=" << k;
@@ -301,19 +303,16 @@ TEST_F(Nfft, Type3_Analytical_2D) { // NOLINT
   std::vector<int> n2_list = {0, 2, -3, 10};
   int64_t n_targets        = n1_list.size() * n2_list.size();
 
-  nda::array<mesh::matsubara_freq, 2> target_mf(2, n_targets);
-  int64_t idx = 0;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
   for (int n1 : n1_list)
-    for (int n2 : n2_list) {
-      target_mf(0, idx) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
-      target_mf(1, idx) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-      ++idx;
-    }
+    for (int n2 : n2_list)
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
 
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -329,7 +328,7 @@ TEST_F(Nfft, Type3_Analytical_2D) { // NOLINT
   fiw_out *= beta * beta / (n_tau - 1) / (n_tau - 1);
 
   // Compare against exact G(iw1, iw2) = 1/(iw1 - 1) * 1/(iw2 - 1)
-  idx = 0;
+  int64_t idx = 0;
   for (int n1 : n1_list)
     for (int n2 : n2_list) {
       dcomplex iw1   = dcomplex(0, (2 * n1 + 1) * M_PI / beta);
@@ -355,15 +354,16 @@ TEST_F(Nfft, Type3_vs_Type1_1D) { // NOLINT
 
   // Type 3 buffer targeting all uniform Matsubara frequencies omega_n = (2n+1)*pi/beta, n = -n_iw,...,n_iw-1
   int64_t n_targets = 2 * n_iw;
-  nda::array<mesh::matsubara_freq, 2> target_mf(1, n_targets);
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
   for (int64_t k = 0; k < n_targets; ++k) {
-    int n           = static_cast<int>(k) - n_iw;
-    target_mf(0, k) = mesh::matsubara_freq(n, beta, mesh::Fermion);
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
   }
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -397,20 +397,18 @@ TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
   // Type 3: all (omega_n1, omega_n2) pairs for n1,n2 in [-small_niw, small_niw)
   int64_t n_per_dim = 2 * small_niw;
   int64_t n_targets = n_per_dim * n_per_dim;
-  nda::array<mesh::matsubara_freq, 2> target_mf(2, n_targets);
-  int64_t idx = 0;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
   for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
     for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
-      int n1            = static_cast<int>(k1) - small_niw;
-      int n2            = static_cast<int>(k2) - small_niw;
-      target_mf(0, idx) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
-      target_mf(1, idx) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-      ++idx;
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
     }
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -424,7 +422,7 @@ TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
 
   // Compare: type 3 output stored in row-major order (k1, k2) matches type 1 grid indexing
   auto type1_data = slice_target_to_scalar(giw_type1, 0, 0).data();
-  idx             = 0;
+  int64_t idx     = 0;
   for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
     for (int64_t k2 = 0; k2 < n_per_dim; ++k2) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2)), 1e-10); }
 }
@@ -447,23 +445,21 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
   // Type 3: all (omega_n1, omega_n2, omega_n3) triples
   int64_t n_per_dim = 2 * small_niw;
   int64_t n_targets = n_per_dim * n_per_dim * n_per_dim;
-  nda::array<mesh::matsubara_freq, 2> target_mf(3, n_targets);
-  int64_t idx = 0;
+  std::vector<std::array<mesh::matsubara_freq, 3>> target_mf;
+  target_mf.reserve(n_targets);
   for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
     for (int64_t k2 = 0; k2 < n_per_dim; ++k2)
       for (int64_t k3 = 0; k3 < n_per_dim; ++k3) {
-        int n1            = static_cast<int>(k1) - small_niw;
-        int n2            = static_cast<int>(k2) - small_niw;
-        int n3            = static_cast<int>(k3) - small_niw;
-        target_mf(0, idx) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
-        target_mf(1, idx) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-        target_mf(2, idx) = mesh::matsubara_freq(n3, beta, mesh::Fermion);
-        ++idx;
+        int n1 = static_cast<int>(k1) - small_niw;
+        int n2 = static_cast<int>(k2) - small_niw;
+        int n3 = static_cast<int>(k3) - small_niw;
+        target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion),
+                             mesh::matsubara_freq(n3, beta, mesh::Fermion)});
       }
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<3> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<3> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -478,7 +474,7 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
 
   // Compare
   auto type1_data = slice_target_to_scalar(giw_type1, 0, 0).data();
-  idx             = 0;
+  int64_t idx     = 0;
   for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
     for (int64_t k2 = 0; k2 < n_per_dim; ++k2)
       for (int64_t k3 = 0; k3 < n_per_dim; ++k3) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2, k3)), 1e-10); }
@@ -494,16 +490,17 @@ TEST_F(Nfft, Direct_Analytical_1D) { // NOLINT
   std::vector<int> n_indices = {0, 1, 3, 5, 10, 20, 50, 99, -1, -3, -10, -50, -100};
   int64_t n_targets          = n_indices.size();
 
-  // Build target matsubara_freq array
-  nda::array<mesh::matsubara_freq, 2> target_mf(1, n_targets);
-  for (int64_t k = 0; k < n_targets; ++k) target_mf(0, k) = mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion);
+  // Build target matsubara_freq vector
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
 
   // Output vector
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
   // Direct buffer
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::direct);
+  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::direct);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -536,19 +533,16 @@ TEST_F(Nfft, Direct_Analytical_2D) { // NOLINT
   std::vector<int> n2_list = {0, 2, -3, 10};
   int64_t n_targets        = n1_list.size() * n2_list.size();
 
-  nda::array<mesh::matsubara_freq, 2> target_mf(2, n_targets);
-  int64_t idx = 0;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
   for (int n1 : n1_list)
-    for (int n2 : n2_list) {
-      target_mf(0, idx) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
-      target_mf(1, idx) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-      ++idx;
-    }
+    for (int n2 : n2_list)
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
 
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::direct);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -564,7 +558,7 @@ TEST_F(Nfft, Direct_Analytical_2D) { // NOLINT
   fiw_out *= beta * beta / (n_tau - 1) / (n_tau - 1);
 
   // Compare against exact G(iw1, iw2) = 1/(iw1 - 1) * 1/(iw2 - 1)
-  idx = 0;
+  int64_t idx = 0;
   for (int n1 : n1_list)
     for (int n2 : n2_list) {
       dcomplex iw1   = dcomplex(0, (2 * n1 + 1) * M_PI / beta);
@@ -586,21 +580,22 @@ TEST_F(Nfft, Direct_vs_Type3_1D) { // NOLINT
 
   // Target all uniform Matsubara frequencies
   int64_t n_targets = 2 * n_iw;
-  nda::array<mesh::matsubara_freq, 2> target_mf(1, n_targets);
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
   for (int64_t k = 0; k < n_targets; ++k) {
-    int n           = static_cast<int>(k) - n_iw;
-    target_mf(0, k) = mesh::matsubara_freq(n, beta, mesh::Fermion);
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
   }
 
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<1> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::direct);
+  nfft_buf_t<1> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -629,26 +624,24 @@ TEST_F(Nfft, Direct_vs_Type3_2D) { // NOLINT
   // Build 2D target
   int64_t n_per_dim = 2 * small_niw;
   int64_t n_targets = n_per_dim * n_per_dim;
-  nda::array<mesh::matsubara_freq, 2> target_mf(2, n_targets);
-  int64_t idx = 0;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
   for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
     for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
-      int n1            = static_cast<int>(k1) - small_niw;
-      int n2            = static_cast<int>(k2) - small_niw;
-      target_mf(0, idx) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
-      target_mf(1, idx) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-      ++idx;
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
     }
 
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -677,22 +670,22 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
   mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH};
   int64_t n_targets = dlr2d_mesh.size();
 
-  nda::array<mesh::matsubara_freq, 2> target_mf(2, n_targets);
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
   for (long d = 0; d < n_targets; ++d) {
-    auto [n1, n2]   = dlr2d_mesh.to_index(d);
-    target_mf(0, d) = mesh::matsubara_freq(n2, beta, mesh::Fermion);
-    target_mf(1, d) = mesh::matsubara_freq(n1, beta, mesh::Fermion);
+    auto [n1, n2] = dlr2d_mesh.to_index(d);
+    target_mf.push_back({mesh::matsubara_freq(n2, beta, mesh::Fermion), mesh::matsubara_freq(n1, beta, mesh::Fermion)});
   }
 
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, nda::array<mesh::matsubara_freq, 2>{target_mf}, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;

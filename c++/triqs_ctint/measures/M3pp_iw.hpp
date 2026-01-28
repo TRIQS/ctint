@@ -54,8 +54,8 @@ namespace triqs_ctint::measures {
     // Intermediate scattering matrix stored as raw arrays per block: shape (n_unique, bl_size, bl_size)
     nda::array<nda::array<dcomplex, 3>, 1> GM_data;
 
-    // Target Matsubara frequencies for type 3 NFFT: shape (1, n_unique)
-    nda::array<mesh::matsubara_freq, 2> target_mf_1d;
+    // Target Matsubara frequencies for type 3 NFFT
+    std::vector<mesh::matsubara_freq> target_mf_1d;
 
     // Matsubara n -> index in GM_data (with offset)
     std::vector<long> n_to_idx;

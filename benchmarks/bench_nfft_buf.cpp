@@ -27,8 +27,8 @@ struct MeshData {
   int64_t n_mesh_points;
   int64_t max_n;
   int64_t n_un1;
-  nda::array<matsubara_freq, 2> target_mf_2d; // (2, n_mesh_points) for M
-  nda::array<matsubara_freq, 2> target_mf_n1; // (1, n_un1) for GM
+  std::vector<std::array<matsubara_freq, 2>> target_mf_2d; // for M (rank-2)
+  std::vector<matsubara_freq> target_mf_n1;                // for GM (rank-1)
 
   MeshData() {
     dlr2d_imfreq mesh{beta, dlr_wmax, dlr_eps, PH};
@@ -45,31 +45,29 @@ struct MeshData {
     n_un1 = static_cast<int64_t>(unique_n1.size());
 
     // 2D target matsubara_freq for M (rank-2)
-    target_mf_2d.resize(2, n_mesh_points);
+    target_mf_2d.reserve(n_mesh_points);
     for (long d = 0; d < n_mesh_points; ++d) {
-      auto [n1, n2]      = mesh.to_index(d);
-      target_mf_2d(0, d) = matsubara_freq(n2, beta, Fermion);
-      target_mf_2d(1, d) = matsubara_freq(n1, beta, Fermion);
+      auto [n1, n2] = mesh.to_index(d);
+      target_mf_2d.push_back({matsubara_freq(n2, beta, Fermion), matsubara_freq(n1, beta, Fermion)});
     }
 
     // 1D target matsubara_freq for GM (rank-1)
-    target_mf_n1.resize(1, n_un1);
-    for (int64_t k = 0; k < n_un1; ++k) { target_mf_n1(0, k) = matsubara_freq(unique_n1[k], beta, Fermion); }
+    target_mf_n1.reserve(n_un1);
+    for (int64_t k = 0; k < n_un1; ++k) target_mf_n1.push_back(matsubara_freq(unique_n1[k], beta, Fermion));
   }
 };
 
 // Shared mesh data for M_iw pattern (pure DLR mesh), initialized once
 struct DLRMeshData {
   int64_t n_dlr_pts;
-  nda::array<matsubara_freq, 2> target_mf; // (1, n_dlr_pts)
+  std::vector<matsubara_freq> target_mf;
 
   DLRMeshData() {
     dlr_imfreq mesh{beta, Fermion, dlr_wmax, dlr_eps};
     n_dlr_pts = mesh.size();
 
-    target_mf.resize(1, n_dlr_pts);
-    int64_t idx = 0;
-    for (auto w : mesh) target_mf(0, idx++) = w;
+    target_mf.reserve(n_dlr_pts);
+    for (auto w : mesh) target_mf.push_back(w);
   }
 };
 
@@ -125,7 +123,7 @@ static void BM_Nfft_Rank1_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{md.target_mf_n1}, buf_size, nfft_type_t::type3, tol};
+  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, md.target_mf_n1, buf_size, nfft_type_t::type3, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -185,7 +183,7 @@ static void BM_Nfft_Rank2_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{md.target_mf_2d}, buf_size, nfft_type_t::type3, tol};
+  nfft_buf_t<2> buf{nda::array_view<dcomplex, 1>{output}, md.target_mf_2d, buf_size, nfft_type_t::type3, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -215,7 +213,7 @@ static void BM_Nfft_Rank1_Direct(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{md.target_mf_n1}, buf_size, nfft_type_t::direct};
+  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, md.target_mf_n1, buf_size, nfft_type_t::direct};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -243,7 +241,7 @@ static void BM_Nfft_Rank2_Direct(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{md.target_mf_2d}, buf_size, nfft_type_t::direct};
+  nfft_buf_t<2> buf{nda::array_view<dcomplex, 1>{output}, md.target_mf_2d, buf_size, nfft_type_t::direct};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -274,7 +272,7 @@ static void BM_Nfft_M_iw_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{dlr_md.target_mf}, buf_size, nfft_type_t::type3, tol};
+  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, dlr_md.target_mf, buf_size, nfft_type_t::type3, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -302,7 +300,7 @@ static void BM_Nfft_M_iw_Direct(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, nda::array<matsubara_freq, 2>{dlr_md.target_mf}, buf_size, nfft_type_t::direct};
+  nfft_buf_t<1> buf{nda::array_view<dcomplex, 1>{output}, dlr_md.target_mf, buf_size, nfft_type_t::direct};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);

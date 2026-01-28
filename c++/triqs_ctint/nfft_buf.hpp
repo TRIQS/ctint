@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <span>
+#include <vector>
 
 #include <triqs/mesh/matsubara_freq.hpp>
 
@@ -23,6 +25,14 @@ namespace triqs::utility {
   using dcomplex = std::complex<double>;
 
   enum class nfft_type_t { type1, type3, direct };
+
+  // Helper to convert vector<T> to vector<array<T, 1>> for Rank=1 convenience constructor
+  inline std::vector<std::array<mesh::matsubara_freq, 1>> to_array_vector(std::vector<mesh::matsubara_freq> const &v) {
+    std::vector<std::array<mesh::matsubara_freq, 1>> result;
+    result.reserve(v.size());
+    for (auto const &mf : v) result.push_back({mf});
+    return result;
+  }
 
   template <int Rank> struct nfft_buf_t {
 
@@ -56,24 +66,23 @@ namespace triqs::utility {
     }
 
     /// Non-uniform target constructor: type3 (FINUFFT) or direct DFT
-    /// target_mf: shape (Rank, n_targets) with Matsubara frequency points
+    /// target_mf: vector of target frequency points (each point is an array of Rank matsubara_freq)
     /// type: nfft_type_t::type3 or nfft_type_t::direct
-    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, nda::array<mesh::matsubara_freq, 2> target_mf_, int buf_size_, nfft_type_t type,
-               double tol_ = 1e-15)
+    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_,
+               nfft_type_t type, double tol_ = 1e-15)
        : nfft_type(type),
          fiw_vec(std::move(fiw_vec_)),
          buf_size(buf_size_),
-         n_targets(target_mf_.shape(1)),
+         n_targets(static_cast<int64_t>(target_mf_.size())),
          x_arr(Rank, buf_size_),
          fx_arr(buf_size_),
          tol(tol_) {
-      if (target_mf_.shape(0) != Rank) NDA_RUNTIME_ERROR << "target_mf must have shape (Rank, n_targets)\n";
 
       if (type == nfft_type_t::type3) {
         // Extract frequencies from matsubara_freq for FINUFFT type 3
         s_arr.resize(Rank, n_targets);
         for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf_(r, d)));
+          for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf_[d][r]));
         fk_vec.resize(n_targets);
         finufft_default_opts(&opts);
         opts.nthreads = 1;
@@ -81,16 +90,16 @@ namespace triqs::utility {
 
       } else if (type == nfft_type_t::direct) {
         // Extract integer indices and beta from matsubara_freq
-        beta = target_mf_(0, 0).beta;
+        beta = target_mf_[0][0].beta;
         target_n.resize(Rank, n_targets);
         for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_(r, d).n;
+          for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_[d][r].n;
         // Compute min/range per dimension for power table addressing
         for (int r = 0; r < Rank; ++r) {
-          auto row        = target_n(r, nda::range::all);
-          auto [mn, mx]   = std::ranges::minmax_element(row);
-          n_min_arr[r]    = *mn;
-          n_range_arr[r]  = *mx - *mn + 1;
+          auto row       = target_n(r, nda::range::all);
+          auto [mn, mx]  = std::ranges::minmax_element(row);
+          n_min_arr[r]   = *mn;
+          n_range_arr[r] = *mx - *mn + 1;
         }
         // Preallocate power tables
         for (int r = 0; r < Rank; ++r) pow_tbl[r].resize(n_range_arr[r]);
@@ -104,6 +113,12 @@ namespace triqs::utility {
         NDA_RUNTIME_ERROR << "nfft_buf_t: only type3 and direct supported with target frequencies\n";
       }
     }
+
+    /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
+    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_, nfft_type_t type,
+               double tol_ = 1e-15)
+      requires(Rank == 1)
+       : nfft_buf_t(std::move(fiw_vec_), to_array_vector(target_mf_), buf_size_, type, tol_) {}
 
     ~nfft_buf_t() {
       if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";

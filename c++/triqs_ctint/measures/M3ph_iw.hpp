@@ -60,9 +60,9 @@ namespace triqs_ctint::measures {
     array<array<dcomplex, 2>, 1> GMG;
 
     // Target Matsubara frequencies for non-uniform NFFT/DFT
-    nda::array<mesh::matsubara_freq, 2> target_mf_2d; // shape (2, n_mesh_points) for M
-    nda::array<mesh::matsubara_freq, 2> target_mf_n1; // shape (1, n_unique_n1) for GM
-    nda::array<mesh::matsubara_freq, 2> target_mf_n2; // shape (1, n_unique_n2) for MG
+    std::vector<std::array<mesh::matsubara_freq, 2>> target_mf_2d; // for M (rank 2)
+    std::vector<mesh::matsubara_freq> target_mf_n1;                // for GM (rank 1)
+    std::vector<mesh::matsubara_freq> target_mf_n2;                // for MG (rank 1)
 
     // Index maps: Matsubara n -> index in data arrays
     std::vector<long> n1_to_idx;

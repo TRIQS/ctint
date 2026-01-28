@@ -51,8 +51,8 @@ namespace triqs_ctint::measures {
     // Intermediate data arrays for each block. M_data[bl](iw_idx, a, b)
     nda::array<nda::array<dcomplex, 3>, 1> M_data;
 
-    // Target matsubara frequencies for type-3 NFFT, shape (1, n_dlr_pts)
-    nda::array<mesh::matsubara_freq, 2> target_mf;
+    // Target matsubara frequencies for type-3 NFFT
+    std::vector<mesh::matsubara_freq> target_mf;
 
     // Container of nfft_buffers. buf_vec[block_idx](a,b)
     std::vector<array<nfft_buf_t<1>, 2>> buf_vec;

@@ -27,11 +27,9 @@ namespace triqs_ctint::measures {
       unique_w_set.insert(w1);
       unique_w_set.insert(w2);
     }
-    std::vector<mesh::matsubara_freq> unique_w(unique_w_set.begin(), unique_w_set.end());
-    int64_t n_unique = unique_w.size();
-
-    // Build target matsubara_freq array and index map
-    build_index_map(unique_w, target_mf_1d, n_idx_offset, n_to_idx);
+    // Build target matsubara_freq vector and index map
+    std::tie(target_mf_1d, n_idx_offset, n_to_idx) = build_index_map(unique_w_set);
+    auto n_unique = static_cast<int64_t>(target_mf_1d.size());
 
     // Initialize GM_data arrays and create type 3 NFFT buffers
     GM_data.resize(params.n_blocks());

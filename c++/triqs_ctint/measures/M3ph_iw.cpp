@@ -15,7 +15,11 @@ namespace triqs_ctint::measures {
        buf_arrarr(params_.n_blocks()),
        buf_arrarr_GM(params_.n_blocks()),
        buf_arrarr_MG(params_.n_blocks()),
-       G0_tau(std::move(G0_tau_)) {
+       G0_tau(std::move(G0_tau_)),
+       M_data(params.n_blocks()),
+       GM_data(params.n_blocks()),
+       MG_data(params.n_blocks()),
+       GMG(params.n_blocks()) {
 
     // Construct DLR2D Matsubara mesh
     mesh::dlr2d_imfreq M3ph_iw_mesh{params.beta, params.dlr_wmax_M3, params.dlr_eps_M3, mesh::PH};
@@ -30,32 +34,22 @@ namespace triqs_ctint::measures {
     auto mf_less = [](mesh::matsubara_freq const &a, mesh::matsubara_freq const &b) { return a.n < b.n; };
     std::set<mesh::matsubara_freq, decltype(mf_less)> unique_w1_set(mf_less), unique_w2_set(mf_less);
     // push_back uses {tau_j, beta-tau_i}: dim 0 targets w2, dim 1 targets w1
-    target_mf_2d.resize(2, n_mesh_points);
-    long d = 0;
+    target_mf_2d.reserve(n_mesh_points);
     for (auto [w1, w2] : M3ph_iw_mesh) {
       unique_w1_set.insert(w1);
       unique_w2_set.insert(w2);
-      target_mf_2d(0, d) = w2;
-      target_mf_2d(1, d) = w1;
-      ++d;
+      target_mf_2d.push_back({w2, w1});
     }
-    std::vector<mesh::matsubara_freq> unique_w1(unique_w1_set.begin(), unique_w1_set.end());
-    std::vector<mesh::matsubara_freq> unique_w2(unique_w2_set.begin(), unique_w2_set.end());
-    int64_t n_un1 = unique_w1.size(), n_un2 = unique_w2.size();
-
-    // Build 1D target matsubara_freq and index maps for GM (w1) and MG (w2)
-    build_index_map(unique_w1, target_mf_n1, n1_idx_offset, n1_to_idx);
-    build_index_map(unique_w2, target_mf_n2, n2_idx_offset, n2_to_idx);
+    // Build 1D target matsubara_freq vectors and index maps for GM (w1) and MG (w2)
+    std::tie(target_mf_n1, n1_idx_offset, n1_to_idx) = build_index_map(unique_w1_set);
+    std::tie(target_mf_n2, n2_idx_offset, n2_to_idx) = build_index_map(unique_w2_set);
+    auto n_un1 = target_mf_n1.size(), n_un2 = target_mf_n2.size();
 
     // Initialize data arrays, GMG, and NFFT buffers
-    M_data.resize(params.n_blocks());
-    GM_data.resize(params.n_blocks());
-    MG_data.resize(params.n_blocks());
-    GMG.resize(params.n_blocks());
 
     for (int bl : range(params.n_blocks())) {
       int bl_size = params.gf_struct[bl].second;
-      GMG(bl) = array<dcomplex, 2>(bl_size, bl_size);
+      GMG(bl)     = array<dcomplex, 2>(bl_size, bl_size);
 
       M_data(bl).resize(n_mesh_points, bl_size, bl_size);
       GM_data(bl).resize(n_un1, bl_size, bl_size);

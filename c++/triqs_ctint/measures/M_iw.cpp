@@ -21,10 +21,9 @@ namespace triqs_ctint::measures {
     M_iw_.rebind(results->M_iw_nfft.value());
     M_iw_() = 0;
 
-    // Build target matsubara_freq array, shape (1, n_dlr_pts)
-    target_mf.resize(1, n_dlr_pts);
-    int64_t idx = 0;
-    for (auto w : M_iw_mesh) target_mf(0, idx++) = w;
+    // Build target matsubara_freq vector
+    target_mf.reserve(n_dlr_pts);
+    for (auto w : M_iw_mesh) target_mf.push_back(w);
 
     // Initialize M_data arrays and create type 3 NFFT buffers
     for (int bl : range(params.n_blocks())) {
