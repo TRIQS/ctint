@@ -229,7 +229,7 @@ TEST_F(Nfft, Type3_Analytical_1D) { // NOLINT
   fiw_out = 0;
 
   // Type 3 nfft buffer
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -278,7 +278,7 @@ TEST_F(Nfft, Type3_Random_1D) { // NOLINT
   // Type 3 nfft buffer
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) buf.push_back({taus[i]}, vals[i]);
   buf.flush();
@@ -312,7 +312,7 @@ TEST_F(Nfft, Type3_Analytical_2D) { // NOLINT
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -363,7 +363,7 @@ TEST_F(Nfft, Type3_vs_Type1_1D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -408,7 +408,7 @@ TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -459,7 +459,7 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<3> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<3> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -500,7 +500,7 @@ TEST_F(Nfft, Direct_Analytical_1D) { // NOLINT
   fiw_out = 0;
 
   // Direct buffer
-  nfft_buf_t<1> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::direct);
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::direct);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -542,7 +542,7 @@ TEST_F(Nfft, Direct_Analytical_2D) { // NOLINT
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(nda::array_view<dcomplex, 1>{fiw_out}, target_mf, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, nfft_type_t::direct);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -590,12 +590,12 @@ TEST_F(Nfft, Direct_vs_Type3_1D) { // NOLINT
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<1> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
+  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -636,12 +636,12 @@ TEST_F(Nfft, Direct_vs_Type3_2D) { // NOLINT
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -680,12 +680,12 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(nda::array_view<dcomplex, 1>{fiw_type3}, target_mf, buf_size, nfft_type_t::type3);
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(nda::array_view<dcomplex, 1>{fiw_direct}, target_mf, buf_size, nfft_type_t::direct);
+  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
