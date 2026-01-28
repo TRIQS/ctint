@@ -21,21 +21,19 @@ namespace triqs_ctint::measures {
     M3pp_iw_() = 0;
 
     // Collect all unique Matsubara frequencies from DLR2D mesh
-    auto mf_less = [](mesh::matsubara_freq const &a, mesh::matsubara_freq const &b) { return a.n < b.n; };
-    std::set<mesh::matsubara_freq, decltype(mf_less)> unique_w_set(mf_less);
+    std::set<mesh::matsubara_freq> unique_w_set;
     for (auto [w1, w2] : M3pp_iw_mesh) {
       unique_w_set.insert(w1);
       unique_w_set.insert(w2);
     }
     // Build target matsubara_freq vector and index map
     std::tie(target_mf_1d, n_idx_offset, n_to_idx) = build_index_map(unique_w_set);
-    auto n_unique = static_cast<int64_t>(target_mf_1d.size());
 
     // Initialize GM_data arrays and create type 3 NFFT buffers
     GM_data.resize(params.n_blocks());
-    for (int bl : range(params.n_blocks())) {
-      int bl_size = params.gf_struct[bl].second;
-      GM_data(bl).resize(n_unique, bl_size, bl_size);
+    for (auto bl : range(params.n_blocks())) {
+      auto bl_size = params.gf_struct[bl].second;
+      GM_data(bl).resize(target_mf_1d.size(), bl_size, bl_size);
       GM_data(bl) = 0;
 
       auto init_func = [&](int i, int j) {
