@@ -36,10 +36,9 @@ namespace triqs_ctint::measures {
       GM_data(bl).resize(target_mf_1d.size(), bl_size, bl_size);
       GM_data(bl) = 0;
 
-      auto init_func = [&](int i, int j) {
-        return nfft_buf_t<1>{GM_data(bl)(nda::range::all, i, j), target_mf_1d, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
-      };
-      buf_arrarr(bl) = array_adapter{std::array{bl_size, bl_size}, init_func};
+      buf_arrarr(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
+        return nfft_buf_t{GM_data(bl)(nda::range::all, i, j), target_mf_1d, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      }};
     }
   }
 

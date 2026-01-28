@@ -377,4 +377,18 @@ namespace triqs::utility {
       }
     }
   };
+
+  // Deduction guides for nfft_buf_t
+
+  // Type 1: deduce Rank from output array
+  template <int Rank>
+  nfft_buf_t(nda::array_view<dcomplex, Rank>, int, double, double) -> nfft_buf_t<Rank>;
+
+  // Type 3/direct: deduce Rank from target frequency array
+  template <std::size_t N>
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, nfft_type_t, double) -> nfft_buf_t<static_cast<int>(N)>;
+
+  // Convenience: vector<matsubara_freq> implies Rank=1
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, nfft_type_t, double) -> nfft_buf_t<1>;
+
 } // namespace triqs::utility

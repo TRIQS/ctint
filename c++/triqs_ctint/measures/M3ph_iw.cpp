@@ -53,23 +53,15 @@ namespace triqs_ctint::measures {
       GM_data(bl).resize(target_mf_n1.size(), bl_size, bl_size);
       MG_data(bl).resize(target_mf_n2.size(), bl_size, bl_size);
 
-      // M: rank 2 type 3 NFFT
-      auto init_func_M = [&](int i, int j) {
-        return nfft_buf_t<2>{M_data(bl)(nda::range::all, i, j), target_mf_2d, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
-      };
-      buf_arrarr(bl) = array_adapter{std::array{bl_size, bl_size}, init_func_M};
-
-      // GM: rank 1 type 3 NFFT
-      auto init_func_GM = [&](int i, int j) {
-        return nfft_buf_t<1>{GM_data(bl)(nda::range::all, i, j), target_mf_n1, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
-      };
-      buf_arrarr_GM(bl) = array_adapter{std::array{bl_size, bl_size}, init_func_GM};
-
-      // MG: rank 1 type 3 NFFT
-      auto init_func_MG = [&](int i, int j) {
-        return nfft_buf_t<1>{MG_data(bl)(nda::range::all, i, j), target_mf_n2, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
-      };
-      buf_arrarr_MG(bl) = array_adapter{std::array{bl_size, bl_size}, init_func_MG};
+      buf_arrarr(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
+        return nfft_buf_t{M_data(bl)(nda::range::all, i, j), target_mf_2d, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      }};
+      buf_arrarr_GM(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
+        return nfft_buf_t{GM_data(bl)(nda::range::all, i, j), target_mf_n1, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      }};
+      buf_arrarr_MG(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
+        return nfft_buf_t{MG_data(bl)(nda::range::all, i, j), target_mf_n2, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      }};
     }
   }
 
