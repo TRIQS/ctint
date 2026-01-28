@@ -44,8 +44,8 @@ namespace triqs_ctint {
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
 
-    /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
-    std::optional<g_iw_t> M_iw_nfft;
+    /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT on DLR grid
+    std::optional<g_dlr_iw_t> M_iw_nfft;
 
     /// Building block for the full vertex function measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4_iw;

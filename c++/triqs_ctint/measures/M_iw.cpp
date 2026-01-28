@@ -7,19 +7,41 @@
 
 namespace triqs_ctint::measures {
 
-  M_iw::M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
+  using triqs::utility::nfft_type_t;
+
+  M_iw::M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
+     : params(params_), qmc_config(qmc_config_), M_data(params_.n_blocks()) {
+
+    // Construct DLR Matsubara mesh
+    mesh::dlr_imfreq M_iw_mesh{params.beta, Fermion, params.dlr_wmax_M3, params.dlr_eps_M3};
+    int64_t n_dlr_pts = M_iw_mesh.size();
 
     // Init measurement container and capture view
-    results->M_iw_nfft = block_gf<imfreq>{{params.beta, Fermion, params.n_iw}, params.gf_struct};
+    results->M_iw_nfft = g_dlr_iw_t{M_iw_mesh, params.gf_struct};
     M_iw_.rebind(results->M_iw_nfft.value());
     M_iw_() = 0;
 
-    // Create nfft buffers
-    for (auto &b : M_iw_) {
-      // Helper function to initialize array<nfft_buf_t<1>, 2>
-      auto init_func = [&](int i, int j) { return nfft_buf_t<1>{b.data()(range::all, i, j), params.nfft_buf_size, params.beta}; };
-      // Initialize vector of array<nfft_buf_t<1>, 2>
-      buf_vec.emplace_back(array_adapter{b.target_shape(), init_func});
+    // Build target matsubara_freq array, shape (1, n_dlr_pts)
+    target_mf.resize(1, n_dlr_pts);
+    int64_t idx = 0;
+    for (auto w : M_iw_mesh) target_mf(0, idx++) = w;
+
+    // Initialize M_data arrays and create type 3 NFFT buffers
+    for (int bl : range(params.n_blocks())) {
+      int bl_size = params.gf_struct[bl].second;
+      M_data(bl).resize(n_dlr_pts, bl_size, bl_size);
+      M_data(bl) = 0;
+
+      auto init_func = [&](int i, int j) {
+        return nfft_buf_t<1>{M_data(bl)(nda::range::all, i, j), target_mf, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      };
+      buf_vec.emplace_back(array_adapter{std::array{bl_size, bl_size}, init_func});
+    }
+
+    // Initialize M_hartree if not already set (e.g. by M_tau measurement)
+    if (!results->M_hartree) {
+      results->M_hartree = make_block_vector<M_tau_scalar_t>(params.gf_struct);
+      for (auto &m : results->M_hartree.value()) M_hartree_.push_back(m);
     }
   }
 
@@ -27,31 +49,55 @@ namespace triqs_ctint::measures {
     // Accumulate sign
     Z += sign;
 
+    // Reset intermediate data
+    for (auto &m : M_data) m = 0;
+
     // Loop over blocks
-    // for (auto const & [D,M] : triqs::std::zip(qmc_config.dets, results->M_tau)) 	// C++17
     for (int b = 0; b < M_iw_.size(); ++b) {
       // Loop over every index pair (x,y) in the determinant matrix
-      // for (auto const & [x,y,Ginv] : D ) 	// C++17
       foreach (qmc_config.dets[b], [&](c_t const &c_i, cdag_t const &cdag_j, auto const &Ginv) {
-        // Absolut time-difference tau of the index pair
-        auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
+        // Handle equal-time case (Hartree term) separately
+        if (c_i.tau == cdag_j.tau) {
+          if (!M_hartree_.empty()) M_hartree_[b](cdag_j.u, c_i.u) += Ginv * sign;
+        } else {
+          // Absolut time-difference tau of the index pair
+          auto [s, dtau] = cyclic_difference(cdag_j.tau, c_i.tau);
 
-        // Push {tau, f(tau)} pair into nfft buffer
-        auto &buf = buf_vec[b](cdag_j.u, c_i.u);
-        buf.push_back({dtau}, Ginv * s * sign);
+          // Push {tau, f(tau)} pair into nfft buffer
+          auto &buf = buf_vec[b](cdag_j.u, c_i.u);
+          buf.push_back({dtau}, Ginv * s * sign);
+        }
       });
+    }
+
+    // Flush buffers and copy to M_iw_
+    for (auto &buf_arr : buf_vec)
+      for (auto &buf : buf_arr) buf.flush();
+
+    // Copy M_data to M_iw_
+    for (int bl : range(params.n_blocks())) {
+      int bl_size = params.gf_struct[bl].second;
+      auto &M_bl  = M_iw_[bl];
+      int64_t idx = 0;
+      for (auto mp : M_bl.mesh()) {
+        for (int i : range(bl_size))
+          for (int j : range(bl_size)) M_bl[mp](i, j) += M_data(bl)(idx, i, j);
+        ++idx;
+      }
     }
   }
 
   void M_iw::collect_results(mpi::communicator const &comm) {
-    // Flush remaining points in nfft buffers
-    for (auto &buf_arr : buf_vec)
-      for (auto &buf : buf_arr) buf.flush();
-
     // Collect results and normalize
     Z     = mpi::all_reduce(Z, comm);
     M_iw_ = mpi::all_reduce(M_iw_, comm);
     M_iw_ = M_iw_ / (-Z * params.beta);
+
+    // Normalize M_hartree (only if M_iw is responsible for it)
+    for (auto &m : M_hartree_) {
+      m = mpi::all_reduce(m, comm);
+      m = m / (-Z * params.beta);
+    }
   }
 
 } // namespace triqs_ctint::measures

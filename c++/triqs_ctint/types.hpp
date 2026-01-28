@@ -71,6 +71,15 @@ namespace triqs_ctint {
   /// A view to a g_iw_t
   using g_iw_v_t = g_iw_t::view_type;
 
+  /// Container type of one-particle Green and Vertex functions on DLR Matsubara frequencies
+  using g_dlr_iw_t = block_gf<mesh::dlr_imfreq, matrix_valued>;
+
+  /// A const_view to a g_dlr_iw_t
+  using g_dlr_iw_cv_t = g_dlr_iw_t::const_view_type;
+
+  /// A view to a g_dlr_iw_t
+  using g_dlr_iw_v_t = g_dlr_iw_t::view_type;
+
   /// The target_type of the intermediate scattering matrices
 #if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX
   using M_tau_target_t = matrix_valued;
