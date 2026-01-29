@@ -61,8 +61,8 @@ endif()
 # -- finufft --
 set(FINUFFT_USE_OPENMP OFF)
 external_dependency(finufft
-  GIT_REPO https://github.com/flatironinstitute/finufft
-  GIT_TAG v2.4.0
+  GIT_REPO https://github.com/Wentzell/finufft
+  GIT_TAG DLR2D
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )
