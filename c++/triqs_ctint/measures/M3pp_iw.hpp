@@ -51,15 +51,8 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix stored as raw arrays per block: shape (n_unique, bl_size, bl_size)
-    nda::array<nda::array<dcomplex, 3>, 1> GM_data;
-
-    // Target Matsubara frequencies for type 3 NFFT
-    std::vector<mesh::matsubara_freq> target_mf_1d;
-
-    // Matsubara n -> index in GM_data (with offset)
-    std::vector<long> n_to_idx;
-    long n_idx_offset = 0;
+    // Intermediate scattering matrix using type1 NFFT on uniform imfreq mesh
+    block_gf<imfreq, matrix_valued> GM;
   };
 
 } // namespace triqs_ctint::measures

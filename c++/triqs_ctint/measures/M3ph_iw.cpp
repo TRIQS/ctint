@@ -4,8 +4,6 @@
 // See LICENSE in the root of this distribution for details.
 
 #include "./M3ph_iw.hpp"
-#include "./M3_iw_utils.hpp"
-#include <set>
 
 namespace triqs_ctint::measures {
 
@@ -15,52 +13,38 @@ namespace triqs_ctint::measures {
        buf_arrarr(params_.n_blocks()),
        buf_arrarr_GM(params_.n_blocks()),
        buf_arrarr_MG(params_.n_blocks()),
-       G0_tau(std::move(G0_tau_)),
-       M_data(params.n_blocks()),
-       GM_data(params.n_blocks()),
-       MG_data(params.n_blocks()),
-       GMG(params.n_blocks()) {
+       G0_tau(std::move(G0_tau_)) {
 
     // Construct DLR2D Matsubara mesh
     mesh::dlr2d_imfreq M3ph_iw_mesh{params.beta, params.dlr_wmax_M3, params.dlr_eps_M3, mesh::PH};
-    int64_t n_mesh_points = M3ph_iw_mesh.size();
 
     // Init measurement container and capture view
     results->M3ph_iw_nfft = make_block2_gf(M3ph_iw_mesh, params.gf_struct);
     M3ph_iw_.rebind(results->M3ph_iw_nfft.value());
     M3ph_iw_() = 0;
 
-    // Collect unique w1 (for GM) and w2 (for MG) and build 2D target for M
-    std::set<mesh::matsubara_freq> unique_w1_set, unique_w2_set;
-    // push_back uses {tau_j, beta-tau_i}: dim 0 targets w2, dim 1 targets w1
-    target_mf_2d.reserve(n_mesh_points);
-    for (auto [w1, w2] : M3ph_iw_mesh) {
-      unique_w1_set.insert(w1);
-      unique_w2_set.insert(w2);
-      target_mf_2d.push_back({w2, w1});
-    }
-    // Build 1D target matsubara_freq vectors and index maps for GM (w1) and MG (w2)
-    std::tie(target_mf_n1, n1_idx_offset, n1_to_idx) = build_index_map(unique_w1_set);
-    std::tie(target_mf_n2, n2_idx_offset, n2_to_idx) = build_index_map(unique_w2_set);
+    // Initialize intermediate scattering matrices on regular imfreq mesh (for type1 NFFT)
+    mesh::imfreq iw_mesh{params.beta, Fermion, M3ph_iw_mesh.max_n() + 1};
+    M  = block_gf{mesh::prod<imfreq, imfreq>{iw_mesh, iw_mesh}, params.gf_struct};
+    GM = block_gf{iw_mesh, params.gf_struct};
+    MG = block_gf{iw_mesh, params.gf_struct};
 
-    // Initialize data arrays, GMG, and NFFT buffers
+    auto init_target_func = [&](int bl) {
+      int bl_size = GM[bl].target_shape()[0];
+      return array<dcomplex, 2>(bl_size, bl_size);
+    };
+    GMG = array_adapter{make_shape(params.n_blocks()), init_target_func};
 
+    // Create type1 nfft buffers that write to the block_gf data
     for (auto bl : range(params.n_blocks())) {
-      auto bl_size = params.gf_struct[bl].second;
-      GMG(bl)      = array<dcomplex, 2>(bl_size, bl_size);
-
-      M_data(bl).resize(n_mesh_points, bl_size, bl_size);
-      GM_data(bl).resize(target_mf_n1.size(), bl_size, bl_size);
-      MG_data(bl).resize(target_mf_n2.size(), bl_size, bl_size);
-
-      buf_arrarr(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
-        return nfft_buf_t{M_data(bl)(nda::range::all, i, j), target_mf_2d, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      buf_arrarr(bl) = array_adapter{M[bl].target_shape(), [&](int i, int j) {
+        return nfft_buf_t{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
       }};
-      buf_arrarr_GM(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
-        return nfft_buf_t{GM_data(bl)(nda::range::all, i, j), target_mf_n1, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      buf_arrarr_GM(bl) = array_adapter{GM[bl].target_shape(), [&](int i, int j) {
+        return nfft_buf_t{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
       }};
-      buf_arrarr_MG(bl) = array_adapter{std::array{bl_size, bl_size}, [&](int i, int j) {
-        return nfft_buf_t{MG_data(bl)(nda::range::all, i, j), target_mf_n2, params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+      buf_arrarr_MG(bl) = array_adapter{MG[bl].target_shape(), [&](int i, int j) {
+        return nfft_buf_t{slice_target_to_scalar(MG[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
       }};
     }
   }
@@ -71,9 +55,9 @@ namespace triqs_ctint::measures {
 
     // Reset intermediate scattering matrices
     for (auto &gmg : GMG) { gmg() = 0; }
-    for (auto &m : M_data) m = 0;
-    for (auto &gm : GM_data) gm = 0;
-    for (auto &mg : MG_data) mg = 0;
+    M()  = 0;
+    GM() = 0;
+    MG() = 0;
 
     double beta = params.beta;
 
@@ -105,24 +89,23 @@ namespace triqs_ctint::measures {
           auto const &cdag_j = det.get_y(col);
           auto Ginv_ji       = det.inverse_matrix(col, row);
           auto tau_j         = double(cdag_j.tau);
-          auto G0_btau_j     = G0_tau[bl][closest_mesh_pt(beta - tau_j)];
 
           // Fill M, Note: Minus sign from the shift of -tau_i
           buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({tau_j, beta - tau_i}, -Ginv_ji);
 
-          // Accumulate GM: sum_j G0(beta-tau_j)(b_u, u_j) * Ginv_ji
-          for (int b_u : range(bl_size)) gm_acc(b_u) += G0_btau_j(b_u, cdag_j.u) * Ginv_ji;
+          // Accumulate GM and fill GMG
+          for (int b_u : range(bl_size)) {
+            // Note: Minus sign from the shift of -tau_j
+            auto G0_bj = -G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, cdag_j.u);
+            gm_acc(b_u) += -G0_bj * Ginv_ji;
+            for (int abar_u : range(bl_size)) {
+              auto G0_ia = G0_tau_i(c_i.u, abar_u);
+              GMG(bl)(abar_u, b_u) += G0_bj * Ginv_ji * G0_ia;
+            }
+          }
 
           // Accumulate MG: sum over rows for this column and orbital
           mg_acc(col, c_i.u) += Ginv_ji * mg_g0_sum;
-
-          // Fill GMG
-          for (int abar_u : range(bl_size)) {
-            auto G0_ia = G0_tau_i(c_i.u, abar_u);
-            for (int b_u : range(bl_size))
-              // Note: Minus sign from the shift of -tau_j
-              GMG(bl)(abar_u, b_u) += -G0_btau_j(b_u, cdag_j.u) * Ginv_ji * G0_ia;
-          }
         }
 
         // Push accumulated GM once per (b_u, c_i.u) — replaces k_bl * bl_size pushes
@@ -149,22 +132,24 @@ namespace triqs_ctint::measures {
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
 
-        int bl1_size     = params.gf_struct[bl1].second;
-        int bl2_size     = params.gf_struct[bl2].second;
+        int bl1_size     = M[bl1].target_shape()[0];
+        int bl2_size     = M[bl2].target_shape()[0];
+        auto const &M1   = M[bl1];
         auto const &GMG2 = GMG(bl2);
+        auto const &GM1  = GM[bl1];
+        auto const &MG2  = MG[bl2];
         auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
 
         // Single loop over DLR2D mesh points
         for (auto mp : M3ph_iw.mesh()) {
-          auto [n1, n2] = mp.index();
-          auto gm_idx   = n1_to_idx[n1 + n1_idx_offset];
-          auto mg_idx   = n2_to_idx[n2 + n2_idx_offset];
+          auto [iw1, iw2] = mp.value(); // matsubara_freq pair
           for (int i : range(bl1_size))
             for (int j : range(bl1_size))
               for (int k : range(bl2_size))
                 for (int l : range(bl2_size)) {
-                  M3ph_iw[mp](i, j, k, l) += sign * M_data(bl1)(mp.data_index(), j, i) * GMG2(l, k);
-                  if (bl1 == bl2) { M3ph_iw[mp](i, j, k, l) -= sign * GM_data(bl1)(gm_idx, l, i) * MG_data(bl2)(mg_idx, j, k); }
+                  // Note: PH channel uses transposed access M1[iw2, iw1]
+                  M3ph_iw[mp](i, j, k, l) += sign * M1[iw2, iw1](j, i) * GMG2(l, k);
+                  if (bl1 == bl2) { M3ph_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
                 }
         }
       }
