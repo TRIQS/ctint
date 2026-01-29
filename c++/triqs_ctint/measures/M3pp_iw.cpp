@@ -31,35 +31,36 @@ namespace triqs_ctint::measures {
   }
 
   void M3pp_iw::accumulate(mc_weight_t sign) {
-    // Accumulate sign
     Z += sign;
 
     // Reset intermediate scattering matrix
     GM() = 0;
 
-    // Fill GM using explicit row-column loops to accumulate values before pushing to NFFT buffers:
-    // For fixed c_i (row), sum over all cdag_j (columns) before pushing once
+    // ═══════════════════════════════════════════════════════════════════════
+    // GM(b, i.u)[iw] — 1D NFFT at (beta-tau_i)
+    // For fixed row i: GM(b, i.u) = sum_j G0(beta-tau_j)(b, j.u) * Ginv(j,i)
+    // Accumulate over columns before pushing to reduce NFFT buffer operations
+    // ═══════════════════════════════════════════════════════════════════════
     for (int bl : range(params.n_blocks())) {
-      int bl_size = params.gf_struct[bl].second;
       auto &det   = qmc_config.dets[bl];
-      long k_bl   = det.size();
+      int bl_size = params.gf_struct[bl].second;
+      long k      = det.size();
 
       nda::array<dcomplex, 1> gm_acc(bl_size);
 
-      for (long row = 0; row < k_bl; ++row) {
+      for (long row = 0; row < k; ++row) {
         auto const &c_i = det.get_x(row);
-        auto tau_i      = double(c_i.tau);
-
-        gm_acc = 0;
-        for (long col = 0; col < k_bl; ++col) {
+        gm_acc          = 0;
+        for (long col = 0; col < k; ++col) {
           auto const &cdag_j = det.get_y(col);
+          auto G0_at_btau_j  = G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))];
           auto Ginv_ji       = det.inverse_matrix(col, row);
-          auto G0_btau_j     = G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))];
-          for (int b_u : range(bl_size)) gm_acc(b_u) += G0_btau_j(b_u, cdag_j.u) * Ginv_ji;
+          for (int b : range(bl_size))
+            gm_acc(b) += G0_at_btau_j(b, cdag_j.u) * Ginv_ji;
         }
-
-        // Push accumulated GM once per (b_u, c_i.u)
-        for (int b_u : range(bl_size)) buf_arrarr(bl)(b_u, c_i.u).push_back({params.beta - tau_i}, gm_acc(b_u));
+        // Push once per row
+        for (int b : range(bl_size))
+          buf_arrarr(bl)(b, c_i.u).push_back({params.beta - double(c_i.tau)}, gm_acc(b));
       }
     }
 
