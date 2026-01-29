@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), M_data(params_.n_blocks()) {
 
     // Construct DLR Matsubara mesh
-    mesh::dlr_imfreq M_iw_mesh{params.beta, Fermion, params.dlr_wmax_M3, params.dlr_eps_M3};
+    mesh::dlr_imfreq M_iw_mesh{params.beta, Fermion, params.dlr_wmax, params.dlr_eps};
     int64_t n_dlr_pts = M_iw_mesh.size();
 
     // Init measurement container and capture view

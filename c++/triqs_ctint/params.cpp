@@ -58,8 +58,8 @@ namespace triqs_ctint {
     h5_write(grp, "measure_M3ph_iw", sp.measure_M3ph_iw);
     h5_write(grp, "n_iw_M3", sp.n_iw_M3);
     h5_write(grp, "n_iW_M3", sp.n_iW_M3);
-    h5_write(grp, "dlr_wmax_M3", sp.dlr_wmax_M3);
-    h5_write(grp, "dlr_eps_M3", sp.dlr_eps_M3);
+    h5_write(grp, "dlr_wmax", sp.dlr_wmax);
+    h5_write(grp, "dlr_eps", sp.dlr_eps);
     h5_write(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_write(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_write(grp, "n_tau_M3", sp.n_tau_M3);
@@ -106,8 +106,8 @@ namespace triqs_ctint {
     h5_read(grp, "measure_M3ph_iw", sp.measure_M3ph_iw);
     h5_read(grp, "n_iw_M3", sp.n_iw_M3);
     h5_read(grp, "n_iW_M3", sp.n_iW_M3);
-    h5::try_read(grp, "dlr_wmax_M3", sp.dlr_wmax_M3);
-    h5::try_read(grp, "dlr_eps_M3", sp.dlr_eps_M3);
+    h5::try_read(grp, "dlr_wmax", sp.dlr_wmax);
+    h5::try_read(grp, "dlr_eps", sp.dlr_eps);
     h5_read(grp, "measure_M3pp_tau", sp.measure_M3pp_tau);
     h5_read(grp, "measure_M3ph_tau", sp.measure_M3ph_tau);
     h5_read(grp, "n_tau_M3", sp.n_tau_M3);

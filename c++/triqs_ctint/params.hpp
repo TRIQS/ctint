@@ -146,9 +146,9 @@ namespace triqs_ctint {
     /// Number of positive bosonic Matsubara frequencies in M3
     int n_iW_M3 = 32;
     /// DLR energy cutoff w_max (= Lambda / beta) for M3
-    double dlr_wmax_M3 = 1.0;
+    double dlr_wmax = 1.0;
     /// DLR error tolerance epsilon for M3
-    double dlr_eps_M3 = 1e-6;
+    double dlr_eps = 1e-6;
 
     /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;
