@@ -58,6 +58,16 @@ if(PythonSupport OR (NOT IS_SUBPROJECT AND Build_Documentation))
   )
 endif()
 
+# -- triqs_hartree_fock --
+if(PythonSupport)
+  external_dependency(triqs_hartree_fock
+    GIT_REPO https://github.com/TRIQS/hartree_fock
+    VERSION 3.3
+    GIT_TAG unstable
+    EXCLUDE_FROM_ALL
+  )
+endif()
+
 # -- finufft --
 set(FINUFFT_USE_OPENMP OFF)
 external_dependency(finufft

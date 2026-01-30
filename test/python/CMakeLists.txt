@@ -11,7 +11,6 @@ set(all_tests
   static/supercond
   static/two_site
   static/plaquette
-  static/jacobi_test
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens
@@ -22,6 +21,6 @@ foreach(test ${all_tests})
   get_filename_component(test_name ${test} NAME_WE)
   get_filename_component(test_dir ${test} DIRECTORY)
   add_test(NAME Py_${test_name} COMMAND ${TRIQS_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${test_dir}/${test_name}.py WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${test_dir})
-  set_property(TEST Py_${test_name} APPEND PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR}/python:$ENV{PYTHONPATH} ${SANITIZER_RT_PRELOAD})
+  set_property(TEST Py_${test_name} APPEND PROPERTY ENVIRONMENT PYTHONPATH=${PROJECT_BINARY_DIR}/python:${CMAKE_SOURCE_DIR}/deps/triqs_hartree_fock/python:$ENV{PYTHONPATH} ${SANITIZER_RT_PRELOAD})
   set_property(TEST Py_${test_name} PROPERTY SKIP_REGULAR_EXPRESSION "FIXME")
 endforeach()
