@@ -28,7 +28,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING
 
 # ========= Additional Dependencies ==========
 
-target_link_libraries(${PROJECT_NAME}_c PRIVATE finufft)
+target_link_libraries(${PROJECT_NAME}_c PUBLIC finufft xsimd poet::poet)
 install(TARGETS finufft xsimd EXPORT triqs_ctint-targets)
 
 # ========= Static Analyzer Checks ==========

@@ -59,10 +59,20 @@ if(PythonSupport OR (NOT IS_SUBPROJECT AND Build_Documentation))
 endif()
 
 # -- finufft --
+# Note: finufft will fetch xsimd v13.2.0 via CPM, which we use for ctint
 set(FINUFFT_USE_OPENMP OFF)
 external_dependency(finufft
   GIT_REPO https://github.com/Wentzell/finufft
   GIT_TAG DLR2D
+  BUILD_ALWAYS
+  EXCLUDE_FROM_ALL
+)
+
+# -- poet --
+set(POET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+external_dependency(poet
+  GIT_REPO https://github.com/DiamonDinoia/poet
+  GIT_TAG main
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )
