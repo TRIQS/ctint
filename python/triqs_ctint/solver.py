@@ -15,11 +15,9 @@ import numpy as np
 
 # print on master node
 def mpi_print(arg):
-    np.set_printoptions(precision=4)
     if mpi.is_master_node():
-        po = np.get_printoptions()
-        print(arg)
-        np.set_printoptions(**po)
+        with np.printoptions(precision=4):
+            print(arg)
 
 # === The SolverCore Wrapper
 
@@ -69,7 +67,7 @@ class Solver(SolverCore):
         bl1p, u1p = term[2][1]
         bl0p, u0p = term[3][1]
         assert bl0 == bl0p and bl1 == bl1p
-        return [bl0, bl1, u0, u0p, u1, u1p]
+        return (bl0, bl1, u0, u0p, u1, u1p)
 
     def find_alpha_from_HF_solver(self, solve_params):
         """
@@ -87,9 +85,6 @@ class Solver(SolverCore):
         delta = solve_params.pop('delta', [0.1, 0.1])
         n_s = solve_params.get('n_s', 2)
         assert n_s in [1, 2], "Solve parameter n_s has to be either 1 or 2 for automatic alpha mode"
-
-        def sign(a):
-            return 1 if a >= 0 else -1
 
         # The number of terms in h_int determines the leading dimension of alpha
         n_terms = len(list(h_int))
@@ -121,27 +116,21 @@ class Solver(SolverCore):
             tol=1e-10
         )
 
-        # Map HF density to alpha tensor (self-consistent values without delta shift)
-        alpha_sc = np.empty((n_terms, 3))
-        for n, (term, coeff) in enumerate(h_int):
-            bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
-            alpha_sc[n, 0] = hf_solver.density[bl0][u0p, u0]
-            alpha_sc[n, 1] = hf_solver.density[bl0][u0p, u1] * (bl0 == bl1)
-            alpha_sc[n, 2] = hf_solver.density[bl1][u1p, u1]
-
-        alpha_sc = mpi.bcast(alpha_sc, root=0)
-
-        # Apply delta shift for n_s spin components
+        # Build alpha tensor from HF density with delta shift for n_s spin components
         alpha = np.zeros((n_terms, 2, 2, n_s))
         for n, (term, coeff) in enumerate(h_int):
-            for _s in range(n_s):
-                s = 1 - 2 * _s
-                alpha[n, 0, 0, _s] = alpha_sc[n, 0] - sign(coeff) * s * delta[0]
-                alpha[n, 0, 1, _s] = alpha_sc[n, 1] + s * delta[1] * (abs(alpha_sc[n, 1]) > 1e-6)
-                alpha[n, 1, 0, _s] = alpha_sc[n, 1] + sign(coeff) * s * delta[1] * (abs(alpha_sc[n, 1]) > 1e-6)
-                alpha[n, 1, 1, _s] = alpha_sc[n, 2] + s * delta[0]
+            bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
+            n00 = hf_solver.density[bl0][u0p, u0]
+            n01 = hf_solver.density[bl0][u0p, u1] * (bl0 == bl1)
+            n11 = hf_solver.density[bl1][u1p, u1]
+            has_offdiag = abs(n01) > 1e-6
+            for s in range(n_s):
+                sgn = 1 - 2 * s # delta sign for each aux spin component
+                alpha[n, 0, 0, s] = n00 - np.sign(coeff) * sgn * delta[0]
+                alpha[n, 0, 1, s] = n01 + sgn * delta[1] * has_offdiag
+                alpha[n, 1, 0, s] = n01 + np.sign(coeff) * sgn * delta[1] * has_offdiag
+                alpha[n, 1, 1, s] = n11 + sgn * delta[0]
 
-        # Broadcast result (HF solver may have already done this, but ensure consistency)
         alpha = mpi.bcast(alpha, root=0)
 
         # Make sure to set n_s as provided by the user
@@ -158,19 +147,16 @@ class Solver(SolverCore):
         """
         gf_struct = self.constr_params['gf_struct']
 
-        def sign(a):
-            return 1 if a >= 0 else -1
-
         # Undo delta shift to get self-consistent alpha
         if alpha_prev.shape[-1] > 1:
             alpha_sc = np.mean(alpha_prev, axis=-1)
         else:
             alpha_sc = alpha_prev[..., 0].copy()
             # Undo the delta shift for n_s=1 case
-            for n, (term, coeff) in enumerate(h_int):
-                alpha_sc[n, 0, 0] -= -sign(coeff) * delta[0]
+            for n, (_, coeff) in enumerate(h_int):
+                alpha_sc[n, 0, 0] -= -np.sign(coeff) * delta[0]
                 alpha_sc[n, 0, 1] -= delta[1] * (abs(alpha_sc[n, 0, 1] - delta[1]) > 1e-6)
-                alpha_sc[n, 1, 0] -= sign(coeff) * delta[1] * (abs(alpha_sc[n, 1, 0] - delta[1]) > 1e-6)
+                alpha_sc[n, 1, 0] -= np.sign(coeff) * delta[1] * (abs(alpha_sc[n, 1, 0] - delta[1]) > 1e-6)
                 alpha_sc[n, 1, 1] -= delta[0]
 
         # Reset Sigma_HF to zero
@@ -201,33 +187,21 @@ class Solver(SolverCore):
         alpha = np.zeros((n_terms, 2, 2, 2))
         for l, (term, _) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
+            same_block = bl0 == bl1
+            diag_u = u0 == u0p and u1 == u1p
 
-            # on-site density-density
-            if bl0 != bl1 and u0 == u1 and u0p == u1p and u0 == u0p and u1 == u1p:
-                alpha_s = lambda s: np.array([[ 0.5 + s*delta[0], 0.0              ],
-                                              [ 0.0             , 0.5 - s*delta[0] ]])
-                alpha[l,...,0] = alpha_s(+1)
-                alpha[l,...,1] = alpha_s(-1)
-            # inter-site density-density "up-down"
-            elif bl0 != bl1 and u0 != u1 and u0p != u1p and u0 == u0p and u1 == u1p:
-                alpha_s = lambda s: np.array([[ 0.5 + s*delta[0], 0.0              ],
-                                              [ 0.0             , 0.5 - s*delta[0] ]])
-                alpha[l,...,0] = alpha_s(+1)
-                alpha[l,...,1] = alpha_s(-1)
-            # inter-site density-density "up-up" or "down-down"
-            elif bl0 == bl1 and u0 != u1 and u0p != u1p and u0 == u0p and u1 == u1p:
-                alpha_s = lambda s: np.array([[ 0.5 + s*delta[0],       s*delta[1] ],
-                                              [     - s*delta[1], 0.5 - s*delta[0] ]])
-                alpha[l,...,0] = alpha_s(+1)
-                alpha[l,...,1] = alpha_s(-1)
-            # spin-flip
-            elif bl0 != bl1 and u0 != u1 and u0p != u1p and u0 == u1p and u1 == u0p:
-                assert False, "Spin-flip terms are not yet treated"
-            # pair-hopping
-            elif bl0 != bl1 and u0 == u1 and u0p == u1p and u0 != u0p and u1 != u1p:
-                assert False, "Pair-hopping terms are not yet treated"
-            else:
-                assert False, "I don't know this type of term"
+            if not diag_u:
+                if not same_block and u0 == u1p and u1 == u0p:
+                    raise NotImplementedError("Spin-flip terms are not yet treated")
+                if not same_block and u0 == u1 and u0p == u1p:
+                    raise NotImplementedError("Pair-hopping terms are not yet treated")
+                raise ValueError("Unknown term type")
+
+            # density-density terms with diagonal u indices
+            use_offdiag = same_block and u0 != u1
+            d0, d1 = delta[0], delta[1] if use_offdiag else 0.0
+            alpha[l, ..., 0] = [[0.5 + d0,  d1], [-d1, 0.5 - d0]]
+            alpha[l, ..., 1] = [[0.5 - d0, -d1], [ d1, 0.5 + d0]]
 
         return alpha
 
@@ -256,14 +230,12 @@ class Solver(SolverCore):
 
         if 'alpha' not in solve_params:
 
-            # Parameters
+            # Normalize delta to a 2-element list
             delta = solve_params.get('delta', [0.1, 0.1])
-            try:
-                iter(delta) # check if delta is iterable
-                assert len(delta) == 2, "delta can only have two components"
-            except TypeError:
-                # catch the non-iterable case and convert to list
+            if np.isscalar(delta):
                 solve_params['delta'] = [delta, delta]
+            elif len(delta) != 2:
+                raise ValueError("delta must have exactly two components")
 
             alpha_mode = solve_params.pop('alpha_mode', "automatic")
             if alpha_mode == "automatic":
@@ -271,16 +243,13 @@ class Solver(SolverCore):
             elif alpha_mode == "trivial":
                 alpha = self.trivial_alpha(solve_params)
             else:
-                assert False, f"No such alpha_mode: {alpha_mode}"
+                raise ValueError(f"No such alpha_mode: {alpha_mode}")
 
             mpi_print(" --- Alpha Tensor : ")
-            if solve_params['n_s'] == 1:
-                mpi_print(str(alpha[...,0]))
-            else:
-                mpi_print("Alpha Tensor s = 1:")
-                mpi_print(str(alpha[...,0]))
-                mpi_print("Alpha Tensor s = 2:")
-                mpi_print(str(alpha[...,1]))
+            for s in range(solve_params['n_s']):
+                if solve_params['n_s'] > 1:
+                    mpi_print(f"Alpha Tensor s = {s + 1}:")
+                mpi_print(str(alpha[..., s]))
             solve_params['alpha'] = alpha
 
         solve_status = SolverCore.solve(self, **solve_params)
