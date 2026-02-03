@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <memory>
 #include <span>
 #include <vector>
 
@@ -22,6 +23,9 @@ namespace triqs::utility {
   inline void check_finufft(int err) {
     if (err > 0) NDA_RUNTIME_ERROR << "Error in FINUFFT: " << err << "\n";
   }
+
+  // RAII wrapper for finufft_plan (which is finufft_plan_s*)
+  using finufft_plan_ptr = std::unique_ptr<finufft_plan_s, decltype([](finufft_plan p) { if (p) finufft_destroy(p); })>;
 
   using nda::array_view;
   using dcomplex = std::complex<double>;
@@ -43,7 +47,19 @@ namespace triqs::utility {
     /// Default constructor, creates unusable buffer!
     nfft_buf_t() = default;
 
-    /// Type 1 constructor: non-uniform tau -> uniform Matsubara grid
+    /**
+     * Type 1 constructor: non-uniform tau -> uniform Matsubara grid
+     *
+     * Transforms scattered imaginary-time points to a regular Matsubara frequency grid.
+     * Use this when accumulating into a full frequency mesh (e.g., G(iω_n) or G(iω_n, iω_m)).
+     *
+     * @param fiw_arr_  Output array of shape (N_1, ..., N_Rank) representing the uniform
+     *                  Matsubara grid. Each dimension N_r must be even (fermionic frequencies).
+     *                  Results are accumulated into this array.
+     * @param buf_size_ Number of (tau, f(tau)) points to buffer before executing transform.
+     * @param beta_     Inverse temperature. All tau values must be in [0, beta).
+     * @param tol_      FINUFFT tolerance (default 1e-15).
+     */
     nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-15)
        : fiw_arr(std::move(fiw_arr_)),
          niws(nda::stdutil::make_std_array<int64_t>(fiw_arr.shape())),
@@ -64,12 +80,27 @@ namespace triqs::utility {
       finufft_default_opts(&opts); // set default opts (must start with this)
       opts.nthreads = 1;           // enforce single-thread
       auto Ns = std::vector(niws.rbegin(), niws.rend()); // Reverse order for FINUFFT
-      check_finufft(finufft_makeplan(/*type =*/1, Rank, Ns.data(), /*iflag=*/1, /*n_transf =*/1, tol, &plan, &opts));
+      finufft_plan raw_plan = nullptr;
+      check_finufft(finufft_makeplan(/*type =*/1, Rank, Ns.data(), /*iflag=*/1, /*n_transf =*/1, tol, &raw_plan, &opts));
+      plan.reset(raw_plan);
     }
 
-    /// Non-uniform target constructor: type3 (FINUFFT) or direct DFT
-    /// target_mf: vector of target frequency points (each point is an array of Rank matsubara_freq)
-    /// type: nfft_type_t::type3 or nfft_type_t::direct
+    /**
+     * Non-uniform target constructor: type3 (FINUFFT) or direct DFT
+     *
+     * Transforms scattered imaginary-time points to arbitrary (non-uniform) Matsubara frequencies.
+     * Use this when you only need specific frequency points (e.g., DLR nodes, sparse sampling).
+     *
+     * @param fiw_vec_    Output vector of length n_targets. Results are accumulated here.
+     * @param target_mf_  Vector of target frequency points. Each entry is an array of Rank
+     *                    matsubara_freq objects specifying one multi-dimensional frequency point.
+     *                    For Rank=2: target_mf_[d] = {iω_n, iν_m} gives the d-th target point.
+     * @param buf_size_   Number of (tau, f(tau)) points to buffer before executing transform.
+     * @param type        Transform algorithm:
+     *                    - nfft_type_t::type3: Use FINUFFT type 3 (good for many targets)
+     *                    - nfft_type_t::direct: Explicit DFT with SIMD (good for few targets)
+     * @param tol_        FINUFFT tolerance for type3 (default 1e-15). Ignored for direct.
+     */
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_,
                nfft_type_t type, double tol_ = 1e-15)
        : nfft_type(type),
@@ -88,7 +119,9 @@ namespace triqs::utility {
         fk_vec.resize(n_targets);
         finufft_default_opts(&opts);
         opts.nthreads = 1;
-        check_finufft(finufft_makeplan(3, Rank, nullptr, /*iflag=*/1, /*n_transf=*/1, tol, &plan, &opts));
+        finufft_plan raw_plan = nullptr;
+        check_finufft(finufft_makeplan(3, Rank, nullptr, /*iflag=*/1, /*n_transf=*/1, tol, &raw_plan, &opts));
+        plan.reset(raw_plan);
 
       } else if (type == nfft_type_t::direct) {
         // Extract integer indices and beta from matsubara_freq
@@ -116,7 +149,12 @@ namespace triqs::utility {
       }
     }
 
-    /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
+    /**
+     * Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
+     *
+     * Same as the non-uniform target constructor, but for single-frequency objects (Rank=1).
+     * Accepts a flat vector of matsubara_freq instead of vector<array<matsubara_freq, 1>>.
+     */
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_, nfft_type_t type,
                double tol_ = 1e-15)
       requires(Rank == 1)
@@ -124,36 +162,21 @@ namespace triqs::utility {
 
     ~nfft_buf_t() {
       if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";
-      if (plan) finufft_destroy(plan);
+      // plan automatically destroyed by unique_ptr
     }
 
-    // nfft_buffer needs to be uncopyable, because nfft_plan contains raw pointers
+    // nfft_buffer is move-only (unique_ptr member)
     nfft_buf_t(nfft_buf_t const &)            = delete;
-    nfft_buf_t(nfft_buf_t &&)                 = default;
     nfft_buf_t &operator=(nfft_buf_t const &) = delete;
+    nfft_buf_t(nfft_buf_t &&)                 = default;
     nfft_buf_t &operator=(nfft_buf_t &&rhs) noexcept {
-      nfft_type = rhs.nfft_type;
-      fiw_arr.rebind(rhs.fiw_arr);
-      fiw_vec.rebind(rhs.fiw_vec);
-      niws = rhs.niws;
-      std::swap(plan, rhs.plan);
-      buf_size      = rhs.buf_size;
-      beta          = rhs.beta;
-      buf_counter   = rhs.buf_counter;
-      common_factor = rhs.common_factor;
-      n_targets     = rhs.n_targets;
-      opts          = std::move(rhs.opts);
-      x_arr         = std::move(rhs.x_arr);
-      fx_arr        = std::move(rhs.fx_arr);
-      fk_arr        = std::move(rhs.fk_arr);
-      s_arr         = std::move(rhs.s_arr);
-      fk_vec        = std::move(rhs.fk_vec);
-      target_n      = std::move(rhs.target_n);
-      n_min_arr     = rhs.n_min_arr;
-      n_range_arr   = rhs.n_range_arr;
-      pow_tbl       = std::move(rhs.pow_tbl);
-      target_idx    = std::move(rhs.target_idx);
-      tol           = rhs.tol;
+      // Custom move assignment: array_view::operator= does deep copy,
+      // but we need to rebind views to point to the same underlying data.
+      // Leverage working move constructor via destroy + placement new.
+      if (this != &rhs) {
+        std::destroy_at(this);
+        std::construct_at(this, std::move(rhs));
+      }
       return *this;
     }
 
@@ -221,8 +244,8 @@ namespace triqs::utility {
     // Dimensions of the output array (type 1 only)
     std::array<int64_t, Rank> niws{};
 
-    // Finufft plan
-    finufft_plan plan{nullptr};
+    // Finufft plan (RAII-managed)
+    finufft_plan_ptr plan;
 
     // Number of tau points for the nfft
     int buf_size = 0;
@@ -299,17 +322,17 @@ namespace triqs::utility {
       auto n_tgt = tgt ? n_targets : int64_t{0};
       auto t = [&](int r) -> double * { return tgt ? (*tgt)(r, _).data() : nullptr; };
       if constexpr (Rank == 1)
-        check_finufft(finufft_setpts(plan, buf_counter, x_arr(0, _).data(), nullptr, nullptr, n_tgt, t(0), nullptr, nullptr));
+        check_finufft(finufft_setpts(plan.get(), buf_counter, x_arr(0, _).data(), nullptr, nullptr, n_tgt, t(0), nullptr, nullptr));
       else if constexpr (Rank == 2)
-        check_finufft(finufft_setpts(plan, buf_counter, x_arr(1, _).data(), x_arr(0, _).data(), nullptr, n_tgt, t(1), t(0), nullptr));
+        check_finufft(finufft_setpts(plan.get(), buf_counter, x_arr(1, _).data(), x_arr(0, _).data(), nullptr, n_tgt, t(1), t(0), nullptr));
       else // Rank == 3
-        check_finufft(finufft_setpts(plan, buf_counter, x_arr(2, _).data(), x_arr(1, _).data(), x_arr(0, _).data(), n_tgt, t(2), t(1), t(0)));
+        check_finufft(finufft_setpts(plan.get(), buf_counter, x_arr(2, _).data(), x_arr(1, _).data(), x_arr(0, _).data(), n_tgt, t(2), t(1), t(0)));
     }
 
     // Type 1: non-uniform tau -> uniform grid
     void do_nfft_type1() {
       set_pts();
-      check_finufft(finufft_execute(plan, fx_arr.data(), fk_arr.data()));
+      check_finufft(finufft_execute(plan.get(), fx_arr.data(), fk_arr.data()));
 
       // Accumulate results in fiw_arr. Care to normalize results afterwards
       for (auto idx_tpl : fiw_arr.indices()) {
@@ -322,7 +345,7 @@ namespace triqs::utility {
     // Type 3: non-uniform tau -> non-uniform target frequencies
     void do_nfft_type3() {
       set_pts(&s_arr);
-      check_finufft(finufft_execute(plan, fx_arr.data(), fk_vec.data()));
+      check_finufft(finufft_execute(plan.get(), fx_arr.data(), fk_vec.data()));
 
       fiw_vec += fk_vec;
     }
