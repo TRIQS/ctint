@@ -36,41 +36,33 @@ namespace triqs_ctint::measures {
     // Reset intermediate scattering matrix
     GM() = 0;
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // GM(b, i.u)[iw] — 1D NFFT at (beta-tau_i)
-    // For fixed row i: GM(b, i.u) = sum_j G0(beta-tau_j)(b, j.u) * Ginv(j,i)
-    // Accumulate over columns before pushing to reduce NFFT buffer operations
-    // ═══════════════════════════════════════════════════════════════════════
+    // Init intermediate scattering matrices
     for (int bl : range(params.n_blocks())) {
       auto &det   = qmc_config.dets[bl];
-      int bl_size = params.gf_struct[bl].second;
+      int bl_size = GM[bl].target_shape()[0];
       long k      = det.size();
 
-      nda::array<dcomplex, 1> gm_acc(bl_size);
+      auto arr_GM = nda::zeros<dcomplex>(bl_size, bl_size, k);
 
-      for (long row = 0; row < k; ++row) {
-        auto const &c_i = det.get_x(row);
-        gm_acc          = 0;
-        for (long col = 0; col < k; ++col) {
-          auto const &cdag_j = det.get_y(col);
-          auto G0_at_btau_j  = G0_tau[bl][closest_mesh_pt(params.beta - double(cdag_j.tau))];
-          auto Ginv_ji       = det.inverse_matrix(col, row);
-          for (int b : range(bl_size))
-            gm_acc(b) += G0_at_btau_j(b, cdag_j.u) * Ginv_ji;
+      for (long i = 0; i < k; ++i) {
+        auto &[tau_i, u_i, _, _] = det.get_x(i);
+        for (long j = 0; j < k; ++j) {
+          auto &[tau_j, u_j, _, _] = det.get_y(j);
+          auto G0_bj               = G0_tau[bl][closest_mesh_pt(params.beta - tau_j)];
+          auto Ginv_ji             = det.inverse_matrix(j, i);
+          for (int b_u : range(bl_size)) arr_GM(b_u, u_i, i) += G0_bj(b_u, u_j) * Ginv_ji;
         }
-        // Push once per row
-        for (int b : range(bl_size))
-          buf_arrarr(bl)(b, c_i.u).push_back({params.beta - double(c_i.tau)}, gm_acc(b));
       }
-    }
 
-    // Flush all buffers
-    for (auto &buf_arr : buf_arrarr)
-      for (auto &buf : buf_arr) buf.flush();
+      for (int m : range(bl_size))
+        for (int n : range(bl_size))
+          for (long i = 0; i < k; ++i) buf_arrarr(bl)(m, n).push_back({params.beta - det.get_x(i).tau}, arr_GM(m, n, i));
+
+      for (auto &buf : buf_arrarr(bl)) buf.flush();
+    }
 
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
-
         int bl1_size     = GM[bl1].target_shape()[0];
         int bl2_size     = GM[bl2].target_shape()[0];
         auto const &GM1  = GM[bl1];

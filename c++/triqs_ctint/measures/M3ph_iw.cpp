@@ -37,15 +37,18 @@ namespace triqs_ctint::measures {
 
     // Create type1 nfft buffers that write to the block_gf data
     for (auto bl : range(params.n_blocks())) {
-      buf_arrarr(bl) = array_adapter{M[bl].target_shape(), [&](int i, int j) {
-        return nfft_buf_t{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
-      }};
-      buf_arrarr_GM(bl) = array_adapter{GM[bl].target_shape(), [&](int i, int j) {
-        return nfft_buf_t{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
-      }};
-      buf_arrarr_MG(bl) = array_adapter{MG[bl].target_shape(), [&](int i, int j) {
-        return nfft_buf_t{slice_target_to_scalar(MG[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
-      }};
+      buf_arrarr(bl) =
+         array_adapter{M[bl].target_shape(), [&](int i, int j) {
+                         return nfft_buf_t{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+                       }};
+      buf_arrarr_GM(bl) =
+         array_adapter{GM[bl].target_shape(), [&](int i, int j) {
+                         return nfft_buf_t{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+                       }};
+      buf_arrarr_MG(bl) =
+         array_adapter{MG[bl].target_shape(), [&](int i, int j) {
+                         return nfft_buf_t{slice_target_to_scalar(MG[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+                       }};
     }
   }
 
@@ -54,95 +57,56 @@ namespace triqs_ctint::measures {
 
     // Reset all accumulators
     for (auto &gmg : GMG) gmg() = 0;
-    M() = 0;
+    M()  = 0;
     GM() = 0;
     MG() = 0;
 
     double beta = params.beta;
 
+    // Init intermediate scattering matrices
     for (int bl : range(params.n_blocks())) {
       auto &det   = qmc_config.dets[bl];
-      int bl_size = params.gf_struct[bl].second;
+      int bl_size = GM[bl].target_shape()[0];
       long k      = det.size();
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // Phase 1: M(j.u, i.u)[iw1, iw2] — 2D NFFT at (tau_j, beta-tau_i)
-      // Cannot reduce push_backs: each (i,j) pair has unique (tau_i, tau_j)
-      // ═══════════════════════════════════════════════════════════════════════
-      for (long row = 0; row < k; ++row) {
-        auto const &c_i = det.get_x(row);
-        double tau_i    = double(c_i.tau);
-        for (long col = 0; col < k; ++col) {
-          auto const &cdag_j = det.get_y(col);
-          // Note: Minus sign from the shift of -tau_i
-          buf_arrarr(bl)(cdag_j.u, c_i.u).push_back({double(cdag_j.tau), beta - tau_i}, -det.inverse_matrix(col, row));
-        }
-      }
+      auto arr_GM = nda::zeros<dcomplex>(bl_size, bl_size, k);
+      auto arr_MG = nda::zeros<dcomplex>(bl_size, bl_size, k);
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // Phase 2: GMG(a, b) — no NFFT, direct accumulation
-      // GMG(a,b) = sum_{i,j} G0(beta-tau_j)(b,j.u) * Ginv(j,i) * G0(tau_i)(i.u,a)
-      // ═══════════════════════════════════════════════════════════════════════
-      for (long row = 0; row < k; ++row) {
-        auto const &c_i  = det.get_x(row);
-        auto G0_at_tau_i = G0_tau[bl][closest_mesh_pt(double(c_i.tau))];
-        for (long col = 0; col < k; ++col) {
-          auto const &cdag_j   = det.get_y(col);
-          auto G0_at_btau_j    = G0_tau[bl][closest_mesh_pt(beta - double(cdag_j.tau))];
-          auto Ginv_ji         = det.inverse_matrix(col, row);
-          for (int a : range(bl_size))
-            for (int b : range(bl_size))
+      for (long i = 0; i < k; ++i) {
+        auto &[tau_i, u_i, _, _] = det.get_x(i);
+        for (long j = 0; j < k; ++j) {
+          auto &[tau_j, u_j, _, _] = det.get_y(j);
+
+          auto Ginv_ji = det.inverse_matrix(j, i);
+
+          // Fill M, Note: Minus sign from the shift of -tau_i
+          buf_arrarr(bl)(u_j, u_i).push_back({tau_j, beta - tau_i}, -Ginv_ji);
+
+          //Fill GMG, GM, MG
+          for (int abar_u : range(bl_size)) {
+            auto G0_ia = G0_tau[bl][closest_mesh_pt(double(tau_i))](u_i, abar_u);
+            for (int b_u : range(bl_size)) {
               // Note: Minus sign from the shift of -tau_j
-              GMG(bl)(a, b) += (-G0_at_btau_j(b, cdag_j.u)) * Ginv_ji * G0_at_tau_i(c_i.u, a);
+              auto G0_bj = -G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, u_j);
+              GMG(bl)(abar_u, b_u) += G0_bj * Ginv_ji * G0_ia;
+              // Note: Minus sign from the shift of -tau_i
+              arr_GM(b_u, u_i, i) += -G0_bj * Ginv_ji;
+              arr_MG(b_u, u_i, j) += Ginv_ji * G0_ia;
+            }
+          }
         }
       }
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // Phase 3: GM(b, i.u)[iw] — 1D NFFT at (beta-tau_i)
-      // For fixed row i: GM(b, i.u) = sum_j G0(beta-tau_j)(b, j.u) * Ginv(j,i)
-      // Original code had factor bl_size from sum over abar_u index
-      // ═══════════════════════════════════════════════════════════════════════
-      nda::array<dcomplex, 1> gm_acc(bl_size);
-      for (long row = 0; row < k; ++row) {
-        auto const &c_i = det.get_x(row);
-        gm_acc          = 0;
-        for (long col = 0; col < k; ++col) {
-          auto const &cdag_j = det.get_y(col);
-          auto G0_at_btau_j  = G0_tau[bl][closest_mesh_pt(beta - double(cdag_j.tau))];
-          auto Ginv_ji       = det.inverse_matrix(col, row);
-          for (int b : range(bl_size))
-            // Note: Minus sign from the shift of -tau_j
-            gm_acc(b) += (-G0_at_btau_j(b, cdag_j.u)) * Ginv_ji;
+      for (auto m : range(bl_size)) {
+        for (auto n : range(bl_size)) {
+          for (long p = 0; p < k; ++p) {
+            buf_arrarr_GM(bl)(m, n).push_back({beta - det.get_x(p).tau}, arr_GM(m, n, p));
+            buf_arrarr_MG(bl)(m, n).push_back({det.get_y(p).tau}, arr_MG(m, n, p));
+          }
         }
-        // Push once per row; bl_size factor from original abar_u summation
-        // Note: Minus sign from the shift of -tau_i
-        for (int b : range(bl_size))
-          buf_arrarr_GM(bl)(b, c_i.u).push_back({beta - double(c_i.tau)}, -double(bl_size) * gm_acc(b));
-      }
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // Phase 4: MG(b, i.u)[iw] — 1D NFFT at (tau_j)
-      // For fixed col j: MG(b, i.u) = sum_i Ginv(j,i) * sum_a G0(tau_i)(i.u, a)
-      // ═══════════════════════════════════════════════════════════════════════
-      nda::array<dcomplex, 2> mg_acc(k, bl_size);
-      mg_acc = 0;
-      for (long row = 0; row < k; ++row) {
-        auto const &c_i  = det.get_x(row);
-        auto G0_at_tau_i = G0_tau[bl][closest_mesh_pt(double(c_i.tau))];
-        dcomplex g0_row_sum = 0;
-        for (int a : range(bl_size)) g0_row_sum += G0_at_tau_i(c_i.u, a);
-        for (long col = 0; col < k; ++col)
-          mg_acc(col, c_i.u) += det.inverse_matrix(col, row) * g0_row_sum;
-      }
-      for (long col = 0; col < k; ++col) {
-        double tau_j = double(det.get_y(col).tau);
-        for (int u_i : range(bl_size))
-          for (int b : range(bl_size))
-            buf_arrarr_MG(bl)(b, u_i).push_back({tau_j}, mg_acc(col, u_i));
       }
     }
 
-    // Flush all buffers
+    // Flush remaining points from all buffers
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush();
     for (auto &buf_arr : buf_arrarr_GM)
@@ -152,7 +116,6 @@ namespace triqs_ctint::measures {
 
     for (int bl1 : range(params.n_blocks()))
       for (int bl2 : range(params.n_blocks())) {
-
         int bl1_size     = M[bl1].target_shape()[0];
         int bl2_size     = M[bl2].target_shape()[0];
         auto const &M1   = M[bl1];
