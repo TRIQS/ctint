@@ -352,95 +352,87 @@ namespace triqs::utility {
 
     // Direct DFT: exploits Matsubara structure exp(i*omega_n*tau) = z^(2n+1)
     void do_direct() {
-      // Get raw pointers for inner loop (avoid bounds checking)
-      dcomplex *fiw_ptr = fiw_vec.data();
-      long const *idx_ptr = target_idx.data();
+      using cbatch                    = xsimd::batch<dcomplex>;
+      using rbatch                    = xsimd::batch<double>;
+      using ibatch                    = xsimd::batch<int64_t>;
+      constexpr std::size_t simd_size = cbatch::size;
 
-      // Precompute invariants
-      double const pi_over_beta = M_PI / beta;
-      std::array<long, Rank> abs_n_min;
-      std::array<bool, Rank> n_min_positive;
-      for (int r = 0; r < Rank; ++r) {
-        abs_n_min[r] = std::abs(n_min_arr[r]);
-        n_min_positive[r] = n_min_arr[r] >= 0;
-      }
+      double const pi_over_beta    = M_PI / beta;
+      int64_t const n_targets_simd = n_targets - (n_targets % static_cast<int64_t>(simd_size));
+      dcomplex *fiw_ptr            = fiw_vec.data();
 
-      // Phase 1: Build power tables for all buffer elements
-      // Loop order: r outer, j inner for contiguous x_arr access
+      // Phase 1: Build power tables pow_tbl[r](j,i) = z^(2*(n_min+i)+1)
       for (int r = 0; r < Rank; ++r) {
-        auto pow_r = pow_tbl[r](nda::range::all, nda::range::all);
-        long const n_range_r = n_range_arr[r];
-        long const abs_n_min_r = abs_n_min[r];
-        bool const n_min_pos_r = n_min_positive[r];
+        long const n_range      = n_range_arr[r];
+        long const n_range_simd = n_range - (n_range % static_cast<long>(simd_size));
+        long const abs_n_min    = std::abs(n_min_arr[r]);
+        bool const n_min_neg    = n_min_arr[r] < 0;
 
         for (int j = 0; j < buf_counter; ++j) {
-          double theta = pi_over_beta * x_arr(r, j);
-          dcomplex z{std::cos(theta), std::sin(theta)};
-          dcomplex z2 = z * z;
+          double const theta = pi_over_beta * x_arr(r, j);
+          dcomplex const z{std::cos(theta), std::sin(theta)};
+          dcomplex const z2 = z * z;
 
-          // Compute z^(2*n_min+1) = z * z2^n_min, using conj(z2) = 1/z2 since |z|=1
-          dcomplex zp  = z;
-          dcomplex z2n = n_min_pos_r ? z2 : std::conj(z2);
-          for (long i = 0; i < abs_n_min_r; ++i) zp *= z2n;
+          // Compute z^(2*n_min+1) via binary exponentiation
+          dcomplex zp = z, base = n_min_neg ? std::conj(z2) : z2;
+          for (long exp = abs_n_min; exp > 0; exp >>= 1) {
+            if (exp & 1) zp *= base;
+            base *= base;
+          }
 
-          pow_r(j, 0) = zp;
-          for (long i = 1; i < n_range_r; ++i) {
-            zp *= z2;
-            pow_r(j, i) = zp;
+          // Fill geometric sequence: pow_row[i] = zp * z2^i using SIMD
+          dcomplex *pow_row = &pow_tbl[r](j, 0);
+          alignas(cbatch::arch_type::alignment()) std::array<dcomplex, simd_size> mult_arr;
+          dcomplex z2_pow = 1.0;
+          for (std::size_t k = 0; k < simd_size; ++k) {
+            mult_arr[k] = z2_pow;
+            z2_pow *= z2;
+          }
+          cbatch const mult(cbatch::load_aligned(mult_arr.data()));
+          cbatch const stride(z2_pow);
+          cbatch zp_vec(zp);
+
+          for (long i = 0; i < n_range_simd; i += simd_size) {
+            (zp_vec * mult).store_unaligned(pow_row + i);
+            zp_vec *= stride;
+          }
+          for (long i = n_range_simd; i < n_range; ++i) {
+            pow_row[i] = zp_vec.get(0);
+            zp_vec *= cbatch(z2);
           }
         }
       }
 
-      // Phase 2: Accumulate using precomputed powers
+      // Phase 2: Accumulate f(tau) * product_r(pow_tbl[r][j][idx[r][d]]) into output
+      std::array<long const *, Rank> idx_ptr;
+      poet::static_for<0, Rank>([&](auto r) { idx_ptr[r] = target_idx.data() + r * n_targets; });
+
       for (int j = 0; j < buf_counter; ++j) {
-        dcomplex fj = fx_arr[j];
-        if constexpr (Rank == 1) {
-          for (int64_t d = 0; d < n_targets; ++d) {
-            fiw_ptr[d] += fj * pow_tbl[0](j, idx_ptr[d] >> 1);
-          }
-        } else { // Rank >= 2
-          using cbatch                    = xsimd::batch<dcomplex>;
-          using rbatch                    = xsimd::batch<double>;
-          using ibatch                    = xsimd::batch<int64_t>;
-          constexpr std::size_t simd_size = cbatch::size;
+        cbatch const fj(fx_arr[j]);
 
-          // Prepare index pointers and power table base pointers for this j
-          std::array<long const *, Rank> idx_arr;
-          std::array<dcomplex const *, Rank> pow_row;
-          std::array<double const *, Rank> pow_as_double;
+        std::array<double const *, Rank> pow_ptr;
+        poet::static_for<0, Rank>([&](auto r) {
+          pow_ptr[r] = reinterpret_cast<double const *>(&pow_tbl[r](j, 0));
+        });
+
+        // SIMD loop with gather
+        for (int64_t d = 0; d < n_targets_simd; d += simd_size) {
+          cbatch pow_prod;
           poet::static_for<0, Rank>([&](auto r) {
-            idx_arr[r] = idx_ptr + r * n_targets;
-            pow_row[r] = &pow_tbl[r](j, 0);
-            pow_as_double[r] = reinterpret_cast<double const *>(pow_row[r]);
+            auto idx = ibatch::load_unaligned(idx_ptr[r] + d);
+            cbatch pow_val(rbatch::gather(pow_ptr[r], idx), rbatch::gather(pow_ptr[r], idx + 1));
+            pow_prod = (r == 0) ? pow_val : pow_prod * pow_val;
           });
+          xsimd::fma(fj, pow_prod, cbatch::load_unaligned(fiw_ptr + d)).store_unaligned(fiw_ptr + d);
+        }
 
-          int64_t const n_targets_simd = n_targets & (-simd_size);
-
-          for (int64_t d = 0; d < n_targets_simd; d += simd_size) {
-            // Gather powers from all dimensions using static_for
-            std::array<cbatch, Rank> pow_vals;
-            poet::static_for<0, Rank>([&](auto r) {
-              auto idx_batch = ibatch::load_unaligned(idx_arr[r] + d);
-              auto pow_real  = rbatch::gather(pow_as_double[r], idx_batch);
-              auto pow_imag  = rbatch::gather(pow_as_double[r], idx_batch + 1);
-              pow_vals[r]    = cbatch(pow_real, pow_imag);
-            });
-
-            cbatch pow_prod = pow_vals[0];
-            poet::static_for<1, Rank>([&](auto r) { pow_prod *= pow_vals[r]; });
-
-            // Load fiw, compute: fiw += fj * prod(pow_vals), and store
-            auto fiw_vals = cbatch::load_unaligned(fiw_ptr + d);
-            fiw_vals      = xsimd::fma(cbatch(fj), pow_prod, fiw_vals);
-            fiw_vals.store_unaligned(fiw_ptr + d);
-          }
-
-          // Scalar remainder
-          for (int64_t d = n_targets_simd; d < n_targets; ++d) {
-            dcomplex prod = pow_row[0][idx_arr[0][d] >> 1];
-            poet::static_for<1, Rank>([&](auto r) { prod *= pow_row[r][idx_arr[r][d] >> 1]; });
-            fiw_ptr[d] += fj * prod;
-          }
+        // Scalar remainder
+        for (int64_t d = n_targets_simd; d < n_targets; ++d) {
+          dcomplex prod = 1.0;
+          poet::static_for<0, Rank>([&](auto r) {
+            prod *= reinterpret_cast<dcomplex const *>(pow_ptr[r])[idx_ptr[r][d] >> 1];
+          });
+          fiw_ptr[d] += fx_arr[j] * prod;
         }
       }
     }
