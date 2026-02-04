@@ -53,8 +53,11 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrices using type1 NFFT on uniform imfreq mesh
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
+    // Intermediate scattering matrix M on DLR2D mesh (type3 NFFT)
+    block_gf<dlr2d_imfreq, matrix_valued> M;
+    std::vector<std::array<mesh::matsubara_freq, 2>> target_mf_M;
+
+    // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
     block_gf<imfreq, matrix_valued> GM;
     block_gf<imfreq, matrix_valued> MG;
     array<array<dcomplex, 2>, 1> GMG;

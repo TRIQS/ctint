@@ -23,9 +23,19 @@ namespace triqs_ctint::measures {
     M3ph_iw_.rebind(results->M3ph_iw_nfft.value());
     M3ph_iw_() = 0;
 
-    // Initialize intermediate scattering matrices on regular imfreq mesh (for type1 NFFT)
+    // Initialize M on DLR2D mesh (type3 NFFT targets only DLR nodes)
+    M = block_gf{M3ph_iw_mesh, params.gf_struct};
+
+    // Build target frequencies for type3 NFFT
+    // PH channel uses M[iw2, iw1] (transposed access), so targets are {iw2, iw1}
+    target_mf_M.reserve(M3ph_iw_mesh.size());
+    for (auto mp : M3ph_iw_mesh) {
+      auto [iw1, iw2] = mp.value();
+      target_mf_M.push_back({iw2, iw1});
+    }
+
+    // Initialize GM, MG on uniform imfreq mesh (for type1 NFFT)
     mesh::imfreq iw_mesh{params.beta, Fermion, M3ph_iw_mesh.max_n() + 1};
-    M  = block_gf{mesh::prod<imfreq, imfreq>{iw_mesh, iw_mesh}, params.gf_struct};
     GM = block_gf{iw_mesh, params.gf_struct};
     MG = block_gf{iw_mesh, params.gf_struct};
 
@@ -35,11 +45,12 @@ namespace triqs_ctint::measures {
     };
     GMG = array_adapter{make_shape(params.n_blocks()), init_target_func};
 
-    // Create type1 nfft buffers that write to the block_gf data
+    // Create nfft buffers: type3 for M (DLR2D targets), type1 for GM/MG (uniform grid)
     for (auto bl : range(params.n_blocks())) {
       buf_arrarr(bl) =
          array_adapter{M[bl].target_shape(), [&](int i, int j) {
-                         return nfft_buf_t{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+                         return nfft_buf_t<2>{slice_target_to_scalar(M[bl], i, j).data(), target_mf_M,
+                                              params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
                        }};
       buf_arrarr_GM(bl) =
          array_adapter{GM[bl].target_shape(), [&](int i, int j) {
@@ -124,15 +135,15 @@ namespace triqs_ctint::measures {
         auto const &MG2  = MG[bl2];
         auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
 
-        // Single loop over DLR2D mesh points
+        // Single loop over DLR2D mesh points (M and M3ph_iw share the same mesh)
         for (auto mp : M3ph_iw.mesh()) {
           auto [iw1, iw2] = mp.value(); // matsubara_freq pair
           for (int i : range(bl1_size))
             for (int j : range(bl1_size))
               for (int k : range(bl2_size))
                 for (int l : range(bl2_size)) {
-                  // Note: PH channel uses transposed access M1[iw2, iw1]
-                  M3ph_iw[mp](i, j, k, l) += sign * M1[iw2, iw1](j, i) * GMG2(l, k);
+                  // M1 is on same DLR2D mesh with transposed target ordering {iw2, iw1}
+                  M3ph_iw[mp](i, j, k, l) += sign * M1[mp](j, i) * GMG2(l, k);
                   if (bl1 == bl2) { M3ph_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
                 }
         }
