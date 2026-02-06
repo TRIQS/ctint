@@ -88,18 +88,20 @@ class Solver(SolverCore):
         # The number of terms in h_int determines the leading dimension of alpha
         n_terms = len(list(h_int))
 
-        # Create HF solver instance
+        # Create HF solver instance with same DLR parameters as ctint
+        dlr_wmax = self.constr_params['dlr_wmax']
+        dlr_eps = self.constr_params['dlr_eps']
         hf_solver = HFSolver(
             gf_struct=gf_struct,
             beta=beta,
-            n_iw=500,
+            w_max=dlr_wmax,
+            eps=dlr_eps,
             dc=False,
             force_real=True
         )
 
-        # Copy G0_iw to the HF solver (convert DLR -> regular imfreq)
-        for bl, g_bl in hf_solver.G0_iw:
-            g_bl << make_gf_imfreq(make_gf_dlr(self.G0_iw[bl]), len(g_bl.mesh) // 2)
+        # Copy G0_iw to the HF solver (same DLR mesh)
+        hf_solver.G0_iw << self.G0_iw
 
         # Initialize Sigma_HF from previous alpha if available
         if self.last_solve_params is not None:
