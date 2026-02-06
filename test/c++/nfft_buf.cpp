@@ -2,6 +2,7 @@
 #include <random>
 #include <triqs/gfs.hpp>
 #include <triqs/mesh.hpp>
+#include <triqs/mesh/matsubara_freq.hpp>
 #include <triqs/test_tools/gfs.hpp>
 
 using namespace triqs::utility;
@@ -206,6 +207,498 @@ TEST_F(Nfft, 2D) { // NOLINT
   // h5_write(h5file "arr_nfft_2d", giw_nfft_2d.data());
   // h5_write(h5file "arr_fftw_2d", giw_fftw_2d.data());
   // h5_write(h5file "arr_exact_2d", giw_exact_2d.data());
+}
+
+/********************* TYPE 3: Analytical 1D ********************/
+TEST_F(Nfft, Type3_Analytical_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  // Non-uniform target frequencies: a subset of Matsubara frequencies
+  std::vector<int> n_indices = {0, 1, 3, 5, 10, 20, 50, 99, -1, -3, -10, -50, -100};
+  int64_t n_targets          = n_indices.size();
+
+  // Build target matsubara_freq vector
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
+
+  // Output vector
+  nda::vector<dcomplex> fiw_out(n_targets);
+  fiw_out = 0;
+
+  // Type 3 nfft buffer
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
+
+  // Generate equidistant tau data with trapezoidal weights
+  buf.push_back({0.0}, 0.5 * f_tau(0.0));
+  for (int i = 1; i < n_tau - 1; ++i) {
+    double tau = beta * i / (n_tau - 1);
+    buf.push_back({tau}, f_tau(tau));
+  }
+  buf.push_back({beta - 1e-10}, 0.5 * f_tau(beta - 1e-10));
+  buf.flush();
+
+  // Normalize
+  fiw_out *= beta / (n_tau - 1);
+
+  // Compare against exact G(iw) = 1/(iw - 1)
+  for (int64_t k = 0; k < n_targets; ++k) {
+    dcomplex iw    = dcomplex(0, (2 * n_indices[k] + 1) * M_PI / beta);
+    dcomplex exact = 1.0 / (iw - 1.0);
+    EXPECT_LT(std::abs(fiw_out(k) - exact), 1e-4) << "Failed at n=" << n_indices[k];
+  }
+}
+
+/********************* TYPE 3: Random 1D with brute-force check ********************/
+TEST_F(Nfft, Type3_Random_1D) { // NOLINT
+
+  int n_tau    = 5000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(42);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Non-uniform target frequencies
+  std::vector<int> n_indices = {0, 2, 7, -4, -15, 30};
+  int64_t n_targets          = n_indices.size();
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
+
+  // Generate random tau values and strengths
+  std::vector<double> taus(n_tau);
+  std::vector<dcomplex> vals(n_tau);
+  for (int i = 0; i < n_tau; ++i) {
+    taus[i] = dist(gen) * beta;
+    vals[i] = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+  }
+
+  // Type 3 nfft buffer
+  nda::vector<dcomplex> fiw_out(n_targets);
+  fiw_out = 0;
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) buf.push_back({taus[i]}, vals[i]);
+  buf.flush();
+
+  // Brute-force reference: f_k = sum_j c_j * exp(i * omega_k * tau_j)
+  for (int64_t k = 0; k < n_targets; ++k) {
+    double omega_k = std::imag(dcomplex(target_mf[k]));
+    dcomplex ref   = 0;
+    for (int j = 0; j < n_tau; ++j) ref += vals[j] * std::exp(dcomplex(0, omega_k * taus[j]));
+    EXPECT_LT(std::abs(fiw_out(k) - ref), 1e-10 * std::abs(ref) + 1e-10) << "Failed at k=" << k;
+  }
+}
+
+/********************* TYPE 3: Analytical 2D ********************/
+TEST_F(Nfft, Type3_Analytical_2D) { // NOLINT
+
+  int n_tau    = 601;
+  int buf_size = n_tau * n_tau;
+
+  // Non-uniform 2D target frequencies: subset of (omega_i, omega_j) pairs
+  std::vector<int> n1_list = {0, 1, 5, -1, -5};
+  std::vector<int> n2_list = {0, 2, -3, 10};
+  int64_t n_targets        = n1_list.size() * n2_list.size();
+
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int n1 : n1_list)
+    for (int n2 : n2_list)
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+
+  nda::vector<dcomplex> fiw_out(n_targets);
+  fiw_out = 0;
+
+  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, nfft_type_t::type3);
+
+  // 2D equidistant tau with trapezoidal weights
+  auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
+  for (int i = 0; i < n_tau; ++i) {
+    double tau_i = (i == n_tau - 1) ? beta - 1e-10 : beta * i / (n_tau - 1);
+    for (int j = 0; j < n_tau; ++j) {
+      double tau_j = (j == n_tau - 1) ? beta - 1e-10 : beta * j / (n_tau - 1);
+      buf.push_back({tau_i, tau_j}, weight(i, n_tau) * weight(j, n_tau) * f_tau(tau_i) * f_tau(tau_j));
+    }
+  }
+  buf.flush();
+
+  fiw_out *= beta * beta / (n_tau - 1) / (n_tau - 1);
+
+  // Compare against exact G(iw1, iw2) = 1/(iw1 - 1) * 1/(iw2 - 1)
+  int64_t idx = 0;
+  for (int n1 : n1_list)
+    for (int n2 : n2_list) {
+      dcomplex iw1   = dcomplex(0, (2 * n1 + 1) * M_PI / beta);
+      dcomplex iw2   = dcomplex(0, (2 * n2 + 1) * M_PI / beta);
+      dcomplex exact = 1.0 / (iw1 - 1.0) / (iw2 - 1.0);
+      EXPECT_LT(std::abs(fiw_out(idx) - exact), 1e-2) << "Failed at n1=" << n1 << " n2=" << n2;
+      ++idx;
+    }
+}
+
+/********************* TYPE 3 vs TYPE 1: Consistency 1D ********************/
+TEST_F(Nfft, Type3_vs_Type1_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(123);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Type 1 buffer with 2*n_iw uniform Matsubara frequencies
+  auto giw_type1 = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
+  nfft_buf_t<1> buf1(giw_type1.data()(range::all, 0, 0), buf_size, beta);
+
+  // Type 3 buffer targeting all uniform Matsubara frequencies omega_n = (2n+1)*pi/beta, n = -n_iw,...,n_iw-1
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) {
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
+  }
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Push same random data to both
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau}, fv);
+    buf3.push_back({tau}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  // Compare outputs
+  auto type1_data = giw_type1.data()(range::all, 0, 0);
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - type1_data(k)), 1e-10); }
+}
+
+/********************* TYPE 3 vs TYPE 1: Consistency 2D ********************/
+TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
+
+  int small_niw = 10;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+
+  std::default_random_engine gen(456);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Type 1: 2D uniform grid
+  auto giw_type1 = gf<prod<imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
+  nfft_buf_t<2> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta);
+
+  // Type 3: all (omega_n1, omega_n2) pairs for n1,n2 in [-small_niw, small_niw)
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+    }
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau1, tau2}, fv);
+    buf3.push_back({tau1, tau2}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  // Compare: type 3 output stored in row-major order (k1, k2) matches type 1 grid indexing
+  auto type1_data = slice_target_to_scalar(giw_type1, 0, 0).data();
+  int64_t idx     = 0;
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2)), 1e-10); }
+}
+
+/********************* TYPE 3 vs TYPE 1: Consistency 3D ********************/
+TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
+
+  int small_niw = 5;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+
+  std::default_random_engine gen(789);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Type 1: 3D uniform grid
+  auto giw_type1 =
+     gf<prod<imfreq, imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
+  nfft_buf_t<3> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta);
+
+  // Type 3: all (omega_n1, omega_n2, omega_n3) triples
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 3>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2)
+      for (int64_t k3 = 0; k3 < n_per_dim; ++k3) {
+        int n1 = static_cast<int>(k1) - small_niw;
+        int n2 = static_cast<int>(k2) - small_niw;
+        int n3 = static_cast<int>(k3) - small_niw;
+        target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion),
+                             mesh::matsubara_freq(n3, beta, mesh::Fermion)});
+      }
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<3> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    double tau3 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau1, tau2, tau3}, fv);
+    buf3.push_back({tau1, tau2, tau3}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  // Compare
+  auto type1_data = slice_target_to_scalar(giw_type1, 0, 0).data();
+  int64_t idx     = 0;
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2)
+      for (int64_t k3 = 0; k3 < n_per_dim; ++k3) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2, k3)), 1e-10); }
+}
+
+/********************* DIRECT: Analytical 1D ********************/
+TEST_F(Nfft, Direct_Analytical_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  // Non-uniform target frequencies: a subset of Matsubara frequencies
+  std::vector<int> n_indices = {0, 1, 3, 5, 10, 20, 50, 99, -1, -3, -10, -50, -100};
+  int64_t n_targets          = n_indices.size();
+
+  // Build target matsubara_freq vector
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
+
+  // Output vector
+  nda::vector<dcomplex> fiw_out(n_targets);
+  fiw_out = 0;
+
+  // Direct buffer
+  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, nfft_type_t::direct);
+
+  // Generate equidistant tau data with trapezoidal weights
+  buf.push_back({0.0}, 0.5 * f_tau(0.0));
+  for (int i = 1; i < n_tau - 1; ++i) {
+    double tau = beta * i / (n_tau - 1);
+    buf.push_back({tau}, f_tau(tau));
+  }
+  buf.push_back({beta - 1e-10}, 0.5 * f_tau(beta - 1e-10));
+  buf.flush();
+
+  // Normalize
+  fiw_out *= beta / (n_tau - 1);
+
+  // Compare against exact G(iw) = 1/(iw - 1)
+  for (int64_t k = 0; k < n_targets; ++k) {
+    dcomplex iw    = dcomplex(0, (2 * n_indices[k] + 1) * M_PI / beta);
+    dcomplex exact = 1.0 / (iw - 1.0);
+    EXPECT_LT(std::abs(fiw_out(k) - exact), 1e-4) << "Failed at n=" << n_indices[k];
+  }
+}
+
+/********************* DIRECT: Analytical 2D ********************/
+TEST_F(Nfft, Direct_Analytical_2D) { // NOLINT
+
+  int n_tau    = 601;
+  int buf_size = n_tau * n_tau;
+
+  // Non-uniform 2D target frequencies: subset of (omega_i, omega_j) pairs
+  std::vector<int> n1_list = {0, 1, 5, -1, -5};
+  std::vector<int> n2_list = {0, 2, -3, 10};
+  int64_t n_targets        = n1_list.size() * n2_list.size();
+
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int n1 : n1_list)
+    for (int n2 : n2_list)
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+
+  nda::vector<dcomplex> fiw_out(n_targets);
+  fiw_out = 0;
+
+  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, nfft_type_t::direct);
+
+  // 2D equidistant tau with trapezoidal weights
+  auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
+  for (int i = 0; i < n_tau; ++i) {
+    double tau_i = (i == n_tau - 1) ? beta - 1e-10 : beta * i / (n_tau - 1);
+    for (int j = 0; j < n_tau; ++j) {
+      double tau_j = (j == n_tau - 1) ? beta - 1e-10 : beta * j / (n_tau - 1);
+      buf.push_back({tau_i, tau_j}, weight(i, n_tau) * weight(j, n_tau) * f_tau(tau_i) * f_tau(tau_j));
+    }
+  }
+  buf.flush();
+
+  fiw_out *= beta * beta / (n_tau - 1) / (n_tau - 1);
+
+  // Compare against exact G(iw1, iw2) = 1/(iw1 - 1) * 1/(iw2 - 1)
+  int64_t idx = 0;
+  for (int n1 : n1_list)
+    for (int n2 : n2_list) {
+      dcomplex iw1   = dcomplex(0, (2 * n1 + 1) * M_PI / beta);
+      dcomplex iw2   = dcomplex(0, (2 * n2 + 1) * M_PI / beta);
+      dcomplex exact = 1.0 / (iw1 - 1.0) / (iw2 - 1.0);
+      EXPECT_LT(std::abs(fiw_out(idx) - exact), 1e-2) << "Failed at n1=" << n1 << " n2=" << n2;
+      ++idx;
+    }
+}
+
+/********************* DIRECT vs TYPE 3: Consistency 1D ********************/
+TEST_F(Nfft, Direct_vs_Type3_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(111);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Target all uniform Matsubara frequencies
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) {
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
+  }
+
+  // Type 3 buffer
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct buffer
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
+
+  // Push same random data to both
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  // Compare outputs
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10); }
+}
+
+/********************* DIRECT vs TYPE 3: Consistency 2D ********************/
+TEST_F(Nfft, Direct_vs_Type3_2D) { // NOLINT
+
+  int small_niw = 10;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+
+  std::default_random_engine gen(222);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Build 2D target
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+    }
+
+  // Type 3 buffer
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct buffer
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufd.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  // Compare
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10); }
+}
+
+/********************* DIRECT vs TYPE 3: DLR2D mesh ********************/
+TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
+
+  int n_tau    = 5000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(333);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Build DLR2D mesh and extract target matsubara_freq
+  mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH};
+  int64_t n_targets = dlr2d_mesh.size();
+
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (long d = 0; d < n_targets; ++d) {
+    auto [n1, n2] = dlr2d_mesh.to_index(d);
+    target_mf.push_back({mesh::matsubara_freq(n2, beta, mesh::Fermion), mesh::matsubara_freq(n1, beta, mesh::Fermion)});
+  }
+
+  // Type 3 buffer
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct buffer
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufd.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  // Compare
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10); }
 }
 
 MAKE_MAIN;

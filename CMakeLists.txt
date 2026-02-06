@@ -89,6 +89,9 @@ if(Build_Tests)
   enable_testing()
 endif()
 
+# Benchmarks
+option(Build_Benchs "Build benchmarks" OFF)
+
 # ############
 # Global Compilation Settings
 
@@ -142,6 +145,11 @@ add_subdirectory(c++/${PROJECT_NAME})
 # Tests
 if(Build_Tests)
   add_subdirectory(test)
+endif()
+
+# Benchmarks
+if(NOT IS_SUBPROJECT AND Build_Benchs AND NOT ASAN AND NOT UBSAN)
+  add_subdirectory(benchmarks)
 endif()
 
 # Python
