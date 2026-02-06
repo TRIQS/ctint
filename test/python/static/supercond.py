@@ -33,8 +33,8 @@ h_int = -U * n(block_names[0],0)*n(block_names[0],1)
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,
-               n_tau = 100001)
+               n_tau = 100001,
+               dlr_wmax = 10.0)
 
 # --------- Initialize the non-interacting Green's function ----------
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu_mat - D_mat);

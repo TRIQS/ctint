@@ -37,8 +37,8 @@ h_int = h_int_kanamori(block_names, orb_names,
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,
-               n_tau = 100001)
+               n_tau = 100001,
+               dlr_wmax = 10.0)
 
 # --------- Initialize the non-interacting Green's function ----------
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n + mu - inverse(iOmega_n - eps));

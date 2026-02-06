@@ -25,11 +25,10 @@ h_int = U * n(block_names[0],0)*n(block_names[1],0)
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 200,
                n_tau = 100001,
+               dlr_wmax = 10.0,
                use_Jperp = True,
-               n_tau_dynamical_interactions = 2000,
-               n_iw_dynamical_interactions = 200)
+               n_tau_dynamical_interactions = 2000)
 
 # --------- Initialize the non-interacting Green's function ----------
 semicirc = S.G0_iw[block_names[0]].copy()

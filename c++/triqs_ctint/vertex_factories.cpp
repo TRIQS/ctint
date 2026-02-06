@@ -9,8 +9,8 @@
 namespace triqs_ctint {
 
   std::vector<vertex_factory_t> make_vertex_factories(params_t const &params, triqs::mc_tools::random_generator &rng,
-                                                      std::optional<block2_gf_const_view<imfreq, matrix_valued>> D0_iw,
-                                                      std::optional<gf_const_view<imfreq, matrix_valued>> Jperp_iw) {
+                                                      std::optional<block2_gf_const_view<mesh::dlr_imfreq, matrix_valued>> D0_iw,
+                                                      std::optional<gf_const_view<mesh::dlr_imfreq, matrix_valued>> Jperp_iw) {
 
     std::vector<vertex_factory_t> vertex_factories;
 
@@ -58,17 +58,16 @@ namespace triqs_ctint {
       std::vector<gf<imtime, scalar_real_valued>> D0_tau_lst;
 #endif
 
-      auto tau_mesh = mesh::imtime{params.beta, Boson, params.n_tau_dynamical_interactions};
-      auto D0_tau   = make_gf_from_fourier(*D0_iw, tau_mesh, make_zero_tail(*D0_iw, 2));
-
-      // Loop over block indices
-      for (int bl1 : range((*D0_iw).size1()))
-        for (int bl2 : range((*D0_iw).size1())) {
+      // Convert DLR D0_iw -> D0_tau via DLR coefficients and loop over block indices
+      int n_bl = (*D0_iw).size1();
+      for (int bl1 : range(n_bl))
+        for (int bl2 : range(n_bl)) {
+          auto D0_tau_bl = make_gf_imtime(make_gf_dlr((*D0_iw)(bl1, bl2)), params.n_tau_dynamical_interactions);
 
           // Loop over non-block indices
-          for (int a = 0; a < D0_tau(bl1, bl2).target_shape()[0]; a++)
-            for (int b = 0; b < D0_tau(bl1, bl2).target_shape()[1]; b++) {
-              auto d = slice_target_to_scalar(D0_tau(bl1, bl2), a, b);
+          for (int a = 0; a < D0_tau_bl.target_shape()[0]; a++)
+            for (int b = 0; b < D0_tau_bl.target_shape()[1]; b++) {
+              auto d = slice_target_to_scalar(D0_tau_bl, a, b);
 
               // Add Vertex generator only if d is non-zero
               if (max_norm(d) > 1e-10) {
@@ -111,8 +110,8 @@ namespace triqs_ctint {
 
       if (params.n_blocks() != 2) TRIQS_RUNTIME_ERROR << "Jperp requires exactly two blocks corresponding to the spins";
 
-      auto tau_mesh  = mesh::imtime{params.beta, Boson, params.n_tau_dynamical_interactions};
-      auto Jperp_tau = make_gf_from_fourier(*Jperp_iw, tau_mesh, make_zero_tail(*Jperp_iw, 2));
+      // Convert DLR Jperp_iw -> Jperp_tau via DLR coefficients
+      auto Jperp_tau = make_gf_imtime(make_gf_dlr(*Jperp_iw), params.n_tau_dynamical_interactions);
 
       // Loop over non-block indices
       for (int a = 0; a < Jperp_tau.target_shape()[0]; a++)

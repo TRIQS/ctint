@@ -9,7 +9,7 @@
 
 namespace triqs_ctint {
 
-  chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_reg_iw_t::const_view_type M_iw, g_reg_iw_t::const_view_type G0_iw) {
 
     chi4_iw_t G2_conn_iw = M4_iw; // FIXME Product Ranges with += Lazy Expressions
 
@@ -46,7 +46,7 @@ namespace triqs_ctint {
     return G2_conn_iw;
   }
 
-  chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_reg_iw_t::const_view_type M_iw, g_reg_iw_t::const_view_type G0_iw) {
 
     chi4_iw_t G2pp_conn_iw = M4pp_iw; // FIXME Product Ranges with += Lazy Expressions
 
@@ -83,7 +83,7 @@ namespace triqs_ctint {
     return G2pp_conn_iw;
   }
 
-  chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_t::const_view_type M_iw, g_iw_t::const_view_type G0_iw) {
+  chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_reg_iw_t::const_view_type M_iw, g_reg_iw_t::const_view_type G0_iw) {
 
     chi4_iw_t G2ph_conn_iw = M4ph_iw; // FIXME Product Ranges with += Lazy Expressions
 
@@ -120,12 +120,12 @@ namespace triqs_ctint {
     return G2ph_conn_iw;
   }
 
-  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
 
     // Temporary quantities
-    g_iw_t Ginv = inverse(G_iw);
+    g_reg_iw_t Ginv = inverse(G_iw);
 
     // Calculate vertex function F
     chi4_iw_t F_iw = G2_conn_iw; // FIXME Product Ranges with += Lazy Expressions
@@ -149,12 +149,12 @@ namespace triqs_ctint {
     return F_iw;
   }
 
-  chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
 
     // Temporary quantities
-    g_iw_t Ginv = inverse(G_iw);
+    g_reg_iw_t Ginv = inverse(G_iw);
 
     // Calculate vertex function F
     chi4_iw_t Fpp_iw = G2pp_conn_iw; // FIXME Product Ranges with += Lazy Expressions
@@ -178,12 +178,12 @@ namespace triqs_ctint {
     return Fpp_iw;
   }
 
-  chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
 
     // Temporary quantities
-    g_iw_t Ginv = inverse(G_iw);
+    g_reg_iw_t Ginv = inverse(G_iw);
 
     // Calculate vertex function F
     chi4_iw_t Fph_iw = G2ph_conn_iw; // FIXME Product Ranges with += Lazy Expressions
@@ -207,7 +207,7 @@ namespace triqs_ctint {
     return Fph_iw;
   }
 
-  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
     double beta  = G_iw[0].mesh().beta();
@@ -224,7 +224,7 @@ namespace triqs_ctint {
     return G2_iw;
   }
 
-  chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
     double beta  = G_iw[0].mesh().beta();
@@ -241,7 +241,7 @@ namespace triqs_ctint {
     return G2pp_iw;
   }
 
-  chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_t::const_view_type G_iw) {
+  chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_t::const_view_type G_iw) {
 
     int n_blocks = G_iw.size();
     double beta  = G_iw[0].mesh().beta();
@@ -258,7 +258,7 @@ namespace triqs_ctint {
     return G2ph_iw;
   }
 
-  chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw) {
+  chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw) {
 
     int n_blocks = G_iw.size();
     double beta  = G_iw[0].mesh().beta();

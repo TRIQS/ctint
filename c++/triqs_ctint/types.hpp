@@ -60,14 +60,17 @@ namespace triqs_ctint {
   /// Scalar type of g_tau
   using g_tau_scalar_t = g_tau_t::g_t::scalar_t;
 
-  /// Container type of one-particle Green and Vertex functions in Matsubara frequencies
-  using g_iw_t = block_gf<imfreq, matrix_valued>;
+  /// Container type of one-particle Green and Vertex functions on DLR Matsubara frequencies
+  using g_iw_t    = block_gf<mesh::dlr_imfreq, matrix_valued>;
+  using g_dlr_iw_t = g_iw_t; // explicit alias used by M_iw measurement
 
-  /// A const_view to a g_iw_t
-  using g_iw_cv_t = g_iw_t::const_view_type;
+  /// Container type on DLR Matsubara frequencies (view types)
+  using g_dlr_iw_cv_t = g_iw_t::const_view_type;
+  using g_dlr_iw_v_t  = g_iw_t::view_type;
 
-  /// A view to a g_iw_t
-  using g_iw_v_t = g_iw_t::view_type;
+  /// Container type of one-particle Green and Vertex functions on regular Matsubara frequencies (for post-processing)
+  using g_reg_iw_t    = block_gf<imfreq, matrix_valued>;
+  using g_reg_iw_cv_t = g_reg_iw_t::const_view_type;
 
   /// The target_type of the intermediate scattering matrices
 #if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX

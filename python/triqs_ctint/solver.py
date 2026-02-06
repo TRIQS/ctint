@@ -36,8 +36,10 @@ class Solver(SolverCore):
                     list of pairs, each containing the name of the
                     Green's function block as a string and the size of that block.
                     For example: ``[ ('up', 3), ('down', 3) ]``.
-        n_iw : integer, optional
-               Number of Matsubara frequencies used for the Green's functions.
+        dlr_wmax : float
+               DLR bandwidth cutoff w_max (= Lambda / beta).
+        dlr_eps : float, optional
+               DLR error tolerance epsilon. Default: 1e-10
         n_tau : integer, optional
                Number of imaginary time points used for the Green's functions.
         use_D : bool, optional
@@ -46,8 +48,6 @@ class Solver(SolverCore):
                Use dynamic spin-spin interaction given via S.Jperp[i,j]
         n_tau_dynamical_interactions : int, optional
                Number of tau pts for D0_tau and jperp_tau (Default 10001)
-        n_iw_dynamical_interactions : int, optional
-               Number of matsubara freqs for D0_iw and jperp_iw (Default 200)
         """
         constr_params['gf_struct'] = fix_gf_struct_type(constr_params['gf_struct'])
 
@@ -80,7 +80,6 @@ class Solver(SolverCore):
 
         gf_struct = self.constr_params['gf_struct']
         beta = self.constr_params['beta']
-        n_iw = self.constr_params['n_iw']
         h_int = solve_params['h_int']
         delta = solve_params.pop('delta', [0.1, 0.1])
         n_s = solve_params.get('n_s', 2)
@@ -93,13 +92,14 @@ class Solver(SolverCore):
         hf_solver = HFSolver(
             gf_struct=gf_struct,
             beta=beta,
-            n_iw=n_iw,
+            n_iw=500,
             dc=False,
             force_real=True
         )
 
-        # Copy G0_iw to the HF solver
-        hf_solver.G0_iw << self.G0_iw
+        # Copy G0_iw to the HF solver (convert DLR -> regular imfreq)
+        for bl, g_bl in hf_solver.G0_iw:
+            g_bl << make_gf_imfreq(make_gf_dlr(self.G0_iw[bl]), len(g_bl.mesh) // 2)
 
         # Initialize Sigma_HF from previous alpha if available
         if self.last_solve_params is not None:

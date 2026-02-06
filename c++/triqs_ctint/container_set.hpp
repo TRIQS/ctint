@@ -44,8 +44,8 @@ namespace triqs_ctint {
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
 
-    /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT
-    std::optional<g_iw_t> M_iw_nfft;
+    /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT on DLR grid
+    std::optional<g_dlr_iw_t> M_iw_nfft;
 
     /// Building block for the full vertex function measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4_iw;
@@ -97,8 +97,11 @@ namespace triqs_ctint {
     /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
     g_iw_t G_iw;
 
-    /// Self-energy in Matsubara frequencies. Dependent on M_iw
-    g_iw_t Sigma_iw;
+    /// Dynamic self-energy in Matsubara frequencies (DLR, decays to zero). Dependent on M_iw
+    g_iw_t Sigma_dyn_iw;
+
+    /// Static (Hartree) part of the self-energy. Sigma = Sigma_dyn + Sigma_hartree
+    std::optional<block_matrix_t> Sigma_hartree;
 
     /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3pp_iw;
@@ -217,7 +220,8 @@ namespace triqs_ctint {
       h5_write(grp, "chiAB_tau", c.chiAB_tau);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
-      h5_write(grp, "Sigma_iw", c.Sigma_iw);
+      h5_write(grp, "Sigma_dyn_iw", c.Sigma_dyn_iw);
+      h5_write(grp, "Sigma_hartree", c.Sigma_hartree);
       h5_write(grp, "M3pp_iw", c.M3pp_iw);
       h5_write(grp, "M3ph_iw", c.M3ph_iw);
       h5_write(grp, "M3xph_iw", c.M3xph_iw);
@@ -279,7 +283,8 @@ namespace triqs_ctint {
       h5_read(grp, "chiAB_tau", c.chiAB_tau);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
-      h5_read(grp, "Sigma_iw", c.Sigma_iw);
+      h5::try_read(grp, "Sigma_dyn_iw", c.Sigma_dyn_iw);
+      h5::try_read(grp, "Sigma_hartree", c.Sigma_hartree);
       h5_read(grp, "M3pp_iw", c.M3pp_iw);
       h5_read(grp, "M3ph_iw", c.M3ph_iw);
       h5::try_read(grp, "M3xph_iw", c.M3xph_iw);

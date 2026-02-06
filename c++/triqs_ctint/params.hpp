@@ -15,8 +15,11 @@ namespace triqs_ctint {
     /// Number of tau points for gf<imtime, matrix_valued>
     int n_tau = 5001;
 
-    /// Number of Matsubara frequencies for gf<imfreq, matrix_valued>
-    int n_iw = 500;
+    /// DLR bandwidth cutoff w_max (= Lambda / beta) for single-particle quantities
+    double dlr_wmax;
+
+    /// DLR error tolerance epsilon for single-particle quantities
+    double dlr_eps = 1e-10;
 
     /// Inverse temperature
     double beta;
@@ -32,9 +35,6 @@ namespace triqs_ctint {
 
     /// Number of tau pts for D0_tau and jperp_tau
     int n_tau_dynamical_interactions = this->n_tau;
-
-    /// Number of matsubara freqs for D0_iw and jperp_iw
-    int n_iw_dynamical_interactions = this->n_iw;
 
     /// Number of block indeces for the Green function
     int n_blocks() const { return gf_struct.size(); }
@@ -151,7 +151,6 @@ namespace triqs_ctint {
     int n_iw_M3 = 64;
     /// Number of positive bosonic Matsubara frequencies in M3
     int n_iW_M3 = 32;
-
     /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;
     /// Measure M3ph(tau)
@@ -179,6 +178,9 @@ namespace triqs_ctint {
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 100000;
+
+    /// Tolerance for the NFFT transform
+    double nfft_tol = 1e-8;
 
     /// Perform post processing
     bool post_process = true;

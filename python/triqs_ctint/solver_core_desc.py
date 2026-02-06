@@ -87,9 +87,9 @@ c.add_member(c_name = "M_hartree",
              doc = r"""Hartree-term of M_tau""")
 
 c.add_member(c_name = "M_iw_nfft",
-             c_type = "std::optional<g_iw_t>",
+             c_type = "std::optional<g_dlr_iw_t>",
              read_only= True,
-             doc = r"""Same as M_tau, but measured directly in Matsubara frequencies using NFFT""")
+             doc = r"""Same as M_tau, but measured directly in Matsubara frequencies using NFFT on DLR grid""")
 
 c.add_member(c_name = "M4_iw",
              c_type = "std::optional<chi4_iw_t>",
@@ -171,10 +171,15 @@ c.add_member(c_name = "G_iw",
              read_only= True,
              doc = r"""Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw""")
 
-c.add_member(c_name = "Sigma_iw",
+c.add_member(c_name = "Sigma_dyn_iw",
              c_type = "g_iw_t",
              read_only= True,
-             doc = r"""Self-energy in Matsubara frequencies. Dependent on M_iw""")
+             doc = r"""Dynamic self-energy in Matsubara frequencies (DLR, decays to zero). Dependent on M_iw""")
+
+c.add_member(c_name = "Sigma_hartree",
+             c_type = "std::optional<block_matrix_t>",
+             read_only= True,
+             doc = r"""Static (Hartree) part of the self-energy. Sigma = Sigma_dyn + Sigma_hartree""")
 
 c.add_member(c_name = "M3pp_iw",
              c_type = "std::optional<chi3_iw_t>",
@@ -332,14 +337,14 @@ c.add_member(c_name = "G0_iw_inv",
              doc = r"""The inverse of the noninteracting Green Function""")
 
 c.add_member(c_name = "D0_iw",
-             c_type = "std::optional<block2_gf<imfreq, matrix_valued>>",
+             c_type = "std::optional<block2_gf<mesh::dlr_imfreq, matrix_valued>>",
              read_only= True,
-             doc = r"""Dynamic density-density interaction in Matsubara frequencies""")
+             doc = r"""Dynamic density-density interaction in Matsubara frequencies (DLR mesh)""")
 
 c.add_member(c_name = "Jperp_iw",
-             c_type = "std::optional<gf<imfreq, matrix_valued>>",
+             c_type = "std::optional<gf<mesh::dlr_imfreq, matrix_valued>>",
              read_only= True,
-             doc = r"""Dynamic spin-spin interaction in Matsubara frequencies""")
+             doc = r"""Dynamic spin-spin interaction in Matsubara frequencies (DLR mesh)""")
 
 c.add_member(c_name = "G0_shift_iw",
              c_type = "g_iw_t",
@@ -370,7 +375,9 @@ c.add_constructor("""(**constr_params_t)""", doc = r"""Construct a CTINT solver
 +==============================+=============+===========+================================================================+
 | n_tau                        | int         | 5001      | Number of tau points for gf<imtime, matrix_valued>             |
 +------------------------------+-------------+-----------+----------------------------------------------------------------+
-| n_iw                         | int         | 500       | Number of Matsubara frequencies for gf<imfreq, matrix_valued>  |
+| dlr_wmax                     | double      | --        | DLR bandwidth cutoff w_max (= Lambda / beta)                   |
++------------------------------+-------------+-----------+----------------------------------------------------------------+
+| dlr_eps                      | double      | 1e-10     | DLR error tolerance epsilon                                    |
 +------------------------------+-------------+-----------+----------------------------------------------------------------+
 | beta                         | double      | --        | Inverse temperature                                            |
 +------------------------------+-------------+-----------+----------------------------------------------------------------+
@@ -381,8 +388,6 @@ c.add_constructor("""(**constr_params_t)""", doc = r"""Construct a CTINT solver
 | use_Jperp                    | bool        | false     | Switch for dynamic spin-spin interaction                       |
 +------------------------------+-------------+-----------+----------------------------------------------------------------+
 | n_tau_dynamical_interactions | int         | n_tau     | Number of tau pts for D0_tau and jperp_tau                     |
-+------------------------------+-------------+-----------+----------------------------------------------------------------+
-| n_iw_dynamical_interactions  | int         | n_iw      | Number of matsubara freqs for D0_iw and jperp_iw               |
 +------------------------------+-------------+-----------+----------------------------------------------------------------+
 """)
 
@@ -506,19 +511,19 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 +===============================+=================================+=========================================+=======================================================================================================================================+
 | n_tau                         | int                             | 5001                                    | Number of tau points for gf<imtime, matrix_valued>                                                                                    |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw                          | int                             | 500                                     | Number of Matsubara frequencies for gf<imfreq, matrix_valued>                                                                         |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | beta                          | double                          | --                                      | Inverse temperature                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | gf_struct                     | gf_struct_t                     | --                                      | block structure of the gf                                                                                                             |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| dlr_wmax                      | double                          | --                                      | DLR bandwidth cutoff w_max (= Lambda / beta)                                                                                          |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| dlr_eps                       | double                          | 1e-10                                   | DLR error tolerance epsilon                                                                                                           |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | use_D                         | bool                            | false                                   | Switch for dynamic density-density interaction                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | use_Jperp                     | bool                            | false                                   | Switch for dynamic spin-spin interaction                                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_tau_dynamical_interactions  | int                             | n_tau                                   | Number of tau pts for D0_tau and jperp_tau                                                                                            |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw_dynamical_interactions   | int                             | n_iw                                    | Number of matsubara freqs for D0_iw and jperp_iw                                                                                      |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | h_int                         | many_body_operator              | --                                      | Interaction Hamiltonian                                                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -901,11 +906,6 @@ c.add_member(c_name = "n_tau",
              initializer = """ 5001 """,
              doc = r"""Number of tau points for gf<imtime, matrix_valued>""")
 
-c.add_member(c_name = "n_iw",
-             c_type = "int",
-             initializer = """ 500 """,
-             doc = r"""Number of Matsubara frequencies for gf<imfreq, matrix_valued>""")
-
 c.add_member(c_name = "beta",
              c_type = "double",
              initializer = """  """,
@@ -915,6 +915,16 @@ c.add_member(c_name = "gf_struct",
              c_type = "gf_struct_t",
              initializer = """  """,
              doc = r"""block structure of the gf""")
+
+c.add_member(c_name = "dlr_wmax",
+             c_type = "double",
+             initializer = """  """,
+             doc = r"""DLR bandwidth cutoff w_max (= Lambda / beta)""")
+
+c.add_member(c_name = "dlr_eps",
+             c_type = "double",
+             initializer = """ 1e-10 """,
+             doc = r"""DLR error tolerance epsilon""")
 
 c.add_member(c_name = "use_D",
              c_type = "bool",
@@ -930,11 +940,6 @@ c.add_member(c_name = "n_tau_dynamical_interactions",
              c_type = "int",
              initializer = """ res.n_tau """,
              doc = r"""Number of tau pts for D0_tau and jperp_tau""")
-
-c.add_member(c_name = "n_iw_dynamical_interactions",
-             c_type = "int",
-             initializer = """ res.n_iw """,
-             doc = r"""Number of matsubara freqs for D0_iw and jperp_iw""")
 
 c.add_member(c_name = "h_int",
              c_type = "many_body_operator",
@@ -1200,11 +1205,6 @@ c.add_member(c_name = "n_tau",
              initializer = """ 5001 """,
              doc = r"""Number of tau points for gf<imtime, matrix_valued>""")
 
-c.add_member(c_name = "n_iw",
-             c_type = "int",
-             initializer = """ 500 """,
-             doc = r"""Number of Matsubara frequencies for gf<imfreq, matrix_valued>""")
-
 c.add_member(c_name = "beta",
              c_type = "double",
              initializer = """  """,
@@ -1214,6 +1214,16 @@ c.add_member(c_name = "gf_struct",
              c_type = "gf_struct_t",
              initializer = """  """,
              doc = r"""block structure of the gf""")
+
+c.add_member(c_name = "dlr_wmax",
+             c_type = "double",
+             initializer = """  """,
+             doc = r"""DLR bandwidth cutoff w_max (= Lambda / beta)""")
+
+c.add_member(c_name = "dlr_eps",
+             c_type = "double",
+             initializer = """ 1e-10 """,
+             doc = r"""DLR error tolerance epsilon""")
 
 c.add_member(c_name = "use_D",
              c_type = "bool",
@@ -1229,11 +1239,6 @@ c.add_member(c_name = "n_tau_dynamical_interactions",
              c_type = "int",
              initializer = """ res.n_tau """,
              doc = r"""Number of tau pts for D0_tau and jperp_tau""")
-
-c.add_member(c_name = "n_iw_dynamical_interactions",
-             c_type = "int",
-             initializer = """ res.n_iw """,
-             doc = r"""Number of matsubara freqs for D0_iw and jperp_iw""")
 
 module.add_converter(c)
 

@@ -49,7 +49,6 @@ int main() { // NOLINT
   constr_params_t pc;
   pc.beta      = beta;
   pc.gf_struct = gf_struct;
-  pc.n_iw      = 100;
   pc.n_tau     = 201;
 
   solver_core S(pc);

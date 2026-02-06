@@ -20,11 +20,11 @@ namespace triqs_ctint {
     /// The inverse of the noninteracting Green Function
     g_iw_t G0_iw_inv;
 
-    /// Dynamic density-density interaction in Matsubara frequencies
-    std::optional<block2_gf<imfreq, matrix_valued>> D0_iw;
+    /// Dynamic density-density interaction in Matsubara frequencies (DLR mesh)
+    std::optional<block2_gf<mesh::dlr_imfreq, matrix_valued>> D0_iw;
 
-    /// Dynamic spin-spin interaction in Matsubara frequencies
-    std::optional<gf<imfreq, matrix_valued>> Jperp_iw;
+    /// Dynamic spin-spin interaction in Matsubara frequencies (DLR mesh)
+    std::optional<gf<mesh::dlr_imfreq, matrix_valued>> Jperp_iw;
 
     /**
      * Construct a CTINT solver

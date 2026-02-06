@@ -26,41 +26,41 @@ using namespace triqs_ctint;
 """)
 
 
-module.add_function ("chi4_iw_t triqs_ctint::G2_conn_from_M4 (chi4_iw_t::view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4_iw and M_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2_conn_from_M4 (chi4_iw_t::view_type M4_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4_iw and M_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::G2pp_conn_from_M4pp (chi4_iw_t::view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2pp_conn_from_M4pp (chi4_iw_t::view_type M4pp_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::G2ph_conn_from_M4ph (chi4_iw_t::view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2ph_conn_from_M4ph (chi4_iw_t::view_type M4ph_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw)", doc = r"""Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2_conn_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::F_from_G2c (chi4_iw_t::view_type G2_conn_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`F` from G2c_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::Fpp_from_G2pp_conn (chi4_iw_t::view_type G2ppc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`Fpp` from G2ppc_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::Fpp_from_G2pp_conn (chi4_iw_t::view_type G2ppc_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`Fpp` from G2ppc_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::Fph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`Fph` from G2phc_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::Fph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the vertex function :math:`Fph` from G2phc_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2_conn_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2c_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2_from_G2c (chi4_iw_t::view_type G2_conn_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2c_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::G2pp_from_G2pp_conn (chi4_iw_t::view_type G2ppc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2ppc_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2pp_from_G2pp_conn (chi4_iw_t::view_type G2ppc_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2ppc_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::G2ph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2phc_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::G2ph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the two-particle Green function from G2phc_iw and G_iw""")
 
-module.add_function ("chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_iw_cv_t G_iw)", doc = r"""Calculate the generalized ph susceptibility from G2phc_iw and G_iw""")
+module.add_function ("chi4_iw_t triqs_ctint::chi_tilde_ph_from_G2ph_conn (chi4_iw_t::view_type G2phc_iw, g_reg_iw_cv_t G_iw)", doc = r"""Calculate the generalized ph susceptibility from G2phc_iw and G_iw""")
 
-module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
+module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
 
-module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
+module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PP (chi2_tau_cv_t chi2_conn_tau, g_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
+module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PP (chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PH (chi2_tau_cv_t chi2_conn_tau, g_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
+module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PH (chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
 
 module.add_function ("gf<imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PP (chi2_tau_cv_t chi2pp_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
 module.add_function ("gf<imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PH (chi2_tau_cv_t chi2ph_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PP (chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
+module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PP (chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PH (chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
+module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PH (chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
 
 
 

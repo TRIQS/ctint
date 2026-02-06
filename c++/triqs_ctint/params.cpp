@@ -10,25 +10,25 @@ namespace triqs_ctint {
   void h5_write(h5::group h5group, std::string subgroup_name, constr_params_t const &cp) {
     auto grp = h5group.create_group(subgroup_name);
     h5_write(grp, "n_tau", cp.n_tau);
-    h5_write(grp, "n_iw", cp.n_iw);
+    h5_write(grp, "dlr_wmax", cp.dlr_wmax);
+    h5_write(grp, "dlr_eps", cp.dlr_eps);
     h5_write(grp, "beta", cp.beta);
     h5_write(grp, "gf_struct", cp.gf_struct);
     h5_write(grp, "use_D", cp.use_D);
     h5_write(grp, "use_Jperp", cp.use_Jperp);
     h5_write(grp, "n_tau_dynamical_interactions", cp.n_tau_dynamical_interactions);
-    h5_write(grp, "n_iw_dynamical_interactions", cp.n_iw_dynamical_interactions);
   }
 
   void h5_read(h5::group h5group, std::string subgroup_name, constr_params_t &cp) {
     auto grp = h5group.open_group(subgroup_name);
     h5_read(grp, "n_tau", cp.n_tau);
-    h5_read(grp, "n_iw", cp.n_iw);
+    h5::try_read(grp, "dlr_wmax", cp.dlr_wmax);
+    h5::try_read(grp, "dlr_eps", cp.dlr_eps);
     h5_read(grp, "beta", cp.beta);
     h5_read_gf_struct(grp, "gf_struct", cp.gf_struct);
     h5_read(grp, "use_D", cp.use_D);
     h5_read(grp, "use_Jperp", cp.use_Jperp);
     h5_read(grp, "n_tau_dynamical_interactions", cp.n_tau_dynamical_interactions);
-    h5_read(grp, "n_iw_dynamical_interactions", cp.n_iw_dynamical_interactions);
   }
 
   void h5_write(h5::group h5group, std::string subgroup_name, solve_params_t const &sp) {
@@ -71,6 +71,7 @@ namespace triqs_ctint {
     h5_write(grp, "chi_A_vec", sp.chi_A_vec);
     h5_write(grp, "chi_B_vec", sp.chi_B_vec);
     h5_write(grp, "nfft_buf_size", sp.nfft_buf_size);
+    h5_write(grp, "nfft_tol", sp.nfft_tol);
     h5_write(grp, "post_process", sp.post_process);
     h5_write(grp, "det_init_size", sp.det_init_size);
     h5_write(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);
@@ -117,6 +118,7 @@ namespace triqs_ctint {
     h5_read(grp, "chi_A_vec", sp.chi_A_vec);
     h5_read(grp, "chi_B_vec", sp.chi_B_vec);
     h5_read(grp, "nfft_buf_size", sp.nfft_buf_size);
+    h5::try_read(grp, "nfft_tol", sp.nfft_tol);
     h5_read(grp, "post_process", sp.post_process);
     h5::try_read(grp, "det_init_size", sp.det_init_size);
     h5::try_read(grp, "det_n_operations_before_check", sp.det_n_operations_before_check);

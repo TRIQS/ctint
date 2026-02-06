@@ -10,32 +10,32 @@
 namespace triqs_ctint {
 
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
-  chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
-  chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw);
+  chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
 
   /// Calculate the vertex function $F$ from G2_conn_iw and G_iw
-  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_cv_t G_iw);
   /// Calculate the vertex function $Fpp$ from G2pp_conn_iw and G_iw
-  chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_cv_t G_iw);
   /// Calculate the vertex function $Fph$ from G2ph_conn_iw and G_iw
-  chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
   /// Calculate the two-particle Green function from G2_conn_iw and G_iw
-  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_cv_t G_iw);
   /// Calculate the two-particle Green function from G2pp_conn_iw and G_iw
-  chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_cv_t G_iw);
   /// Calculate the two-particle Green function from G2ph_conn_iw and G_iw
-  chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
   /// Calculate the generalized ph susceptibility from G2ph_conn_iw and G_iw
-  chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_iw_cv_t G_iw);
+  chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
   /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
   template <Chan_t Chan>
-  chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
+  chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
 
     double beta  = M_iw[0].mesh().beta();
     int n_blocks = M_iw.size();
@@ -48,10 +48,10 @@ namespace triqs_ctint {
     chi3_iw()         = 0.;
 
     // Temporary quantities
-    g_iw_t GM   = G0_iw * M_iw;
-    g_iw_t MG   = M_iw * G0_iw;
-    g_iw_t GMG  = G0_iw * M_iw * G0_iw;
-    g_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
+    g_reg_iw_t GM   = G0_iw * M_iw;
+    g_reg_iw_t MG   = M_iw * G0_iw;
+    g_reg_iw_t GMG  = G0_iw * M_iw * G0_iw;
+    g_reg_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
 
     for (int bl1 : range(n_blocks))
       for (int bl2 : range(n_blocks)) {
@@ -121,7 +121,7 @@ namespace triqs_ctint {
   }
 
   // Calculate the $\chi_2$ function from the building blocks chi2_conn_tau and M_iw
-  template <Chan_t Chan> chi2_tau_t chi2_from_chi2_conn(chi2_tau_cv_t chi2_tau_conn, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
+  template <Chan_t Chan> chi2_tau_t chi2_from_chi2_conn(chi2_tau_cv_t chi2_tau_conn, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
 
     double beta  = G_iw[0].mesh().beta();
     int n_blocks = G_iw.size();
@@ -208,15 +208,15 @@ namespace triqs_ctint {
 
   /// Calculate M3_conn from M3
   template <Chan_t Chan>
-  chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t const &M_hartree) {
+  chi3_tau_t M3_conn_from_M3(chi3_tau_t M3_tau, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t const &M_hartree) {
 
     double beta  = M_tau[0].mesh().beta();
     int n_blocks = M_tau.size();
 
     // Temporary quantities
-    g_iw_t GM_iw  = G0_iw * M_iw;
-    g_iw_t MG_iw  = M_iw * G0_iw;
-    g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
+    g_reg_iw_t GM_iw  = G0_iw * M_iw;
+    g_reg_iw_t MG_iw  = M_iw * G0_iw;
+    g_reg_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
 
     auto km_GM = make_zero_tail(GM_iw, 2);
     for (auto [km_bl, M_hartree_bl] : zip(km_GM, M_hartree)) km_bl(1, ellipsis()) = M_hartree_bl;
@@ -299,7 +299,7 @@ namespace triqs_ctint {
 
   /// Calculate the chi2_conn from M3
   template <Chan_t Chan>
-  chi2_tau_t chi2_conn_from_M3(chi3_tau_cv_t M3, chi2_tau_t M3_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+  chi2_tau_t chi2_conn_from_M3(chi3_tau_cv_t M3, chi2_tau_t M3_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
 
     double beta  = G0_tau[0].mesh().beta();
@@ -324,7 +324,7 @@ namespace triqs_ctint {
     M3_conn()          = M3_conn() * dtau_M3 * dtau_M3;
 
     // Calculate the density of GMG
-    g_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
+    g_reg_iw_t GMG_iw = G0_iw * M_iw * G0_iw;
     auto km       = make_zero_tail(GMG_iw, 3);
     for (auto [km_bl, M_hartree_bl] : zip(km, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
     auto tail     = fit_hermitian_tail(GMG_iw, km).first;
@@ -508,18 +508,18 @@ namespace triqs_ctint {
   }
 
   // For wrapping purposes
-  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+  inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G,
                                    block_matrix_t const &M_hartree) {
     return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
-  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+  inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G,
                                    block_matrix_t const &M_hartree) {
     return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
-  inline chi2_tau_t chi2_from_chi2_conn_PP(chi2_tau_cv_t chi2_conn_tau, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
+  inline chi2_tau_t chi2_from_chi2_conn_PP(chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
     return chi2_from_chi2_conn<Chan_t::PP>(chi2_conn_tau, G_iw, dens_G);
   }
-  inline chi2_tau_t chi2_from_chi2_conn_PH(chi2_tau_cv_t chi2_conn_tau, g_iw_cv_t G_iw, block_matrix_t const &dens_G) {
+  inline chi2_tau_t chi2_from_chi2_conn_PH(chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
     return chi2_from_chi2_conn<Chan_t::PH>(chi2_conn_tau, G_iw, dens_G);
   }
   inline gf<imtime, matrix_valued> chiAB_from_chi2_PP(chi2_tau_cv_t chi2pp_tau, gf_struct_t const &gf_struct,
@@ -532,11 +532,11 @@ namespace triqs_ctint {
                                                       std::vector<many_body_operator> const &B_op_vec) {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
-  inline chi2_tau_t chi2_conn_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+  inline chi2_tau_t chi2_conn_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                          block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
     return chi2_conn_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);
   }
-  inline chi2_tau_t chi2_conn_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_iw_cv_t M_iw, g_iw_cv_t G0_iw, g_tau_cv_t M_tau,
+  inline chi2_tau_t chi2_conn_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                          block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
     return chi2_conn_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);
   }

@@ -39,11 +39,20 @@ namespace triqs_ctint::measures {
     // The Monte-Carlo configuration
     qmc_config_t const &qmc_config;
 
-    // Container for the accumulation
-    block_gf_view<imfreq, matrix_valued> M_iw_;
+    // Container for the accumulation on DLR mesh
+    g_dlr_iw_v_t M_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;
+
+    // Matrix views for the Hartree term accumulation (equal-time contribution)
+    std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;
+
+    // Intermediate data arrays for each block. M_data[bl](iw_idx, a, b)
+    nda::array<nda::array<dcomplex, 3>, 1> M_data;
+
+    // Target matsubara frequencies for type-3 NFFT
+    std::vector<mesh::matsubara_freq> target_mf;
 
     // Container of nfft_buffers. buf_vec[block_idx](a,b)
     std::vector<array<nfft_buf_t<1>, 2>> buf_vec;

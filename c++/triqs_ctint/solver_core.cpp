@@ -19,19 +19,25 @@ namespace triqs_ctint {
     // Set inverse temperature for all $\tau$ points
     tau_t::beta = p.beta;
 
-    // Allocate essential QMC containers
-    G0_iw     = block_gf<imfreq>{{p.beta, Fermion, p.n_iw}, p.gf_struct};
-    G0_iw_inv = G0_iw;
-    G_iw      = G0_iw;
-    Sigma_iw  = G0_iw;
+    // Allocate essential QMC containers on DLR mesh (symmetrize=true for hermiticity checks)
+    G0_iw        = g_iw_t{{p.beta, Fermion, p.dlr_wmax, p.dlr_eps, true}, p.gf_struct};
+    G0_iw_inv    = G0_iw;
+    G_iw         = G0_iw;
+    Sigma_dyn_iw = G0_iw;
 
-    // Allocate containers for dynamical density-density interaction
-    if (p.use_D) D0_iw = make_block2_gf<imfreq, matrix_valued>({p.beta, Boson, p.n_iw_dynamical_interactions}, p.gf_struct);
+    // Allocate containers for dynamical density-density interaction (DLR bosonic mesh)
+    if (p.use_D) {
+      auto D_mesh = mesh::dlr_imfreq{p.beta, Boson, p.dlr_wmax, p.dlr_eps, true};
+      auto bl_sz  = p.gf_struct[0].second;
+      auto bl     = p.block_names();
+      auto g0     = gf<mesh::dlr_imfreq, matrix_valued>{D_mesh, make_shape(bl_sz, bl_sz)};
+      D0_iw       = block2_gf<mesh::dlr_imfreq, matrix_valued>{{bl, bl}, std::vector(bl.size(), std::vector(bl.size(), g0))};
+    }
 
-    // Allocate containers for dynamical spin-spin interaction
+    // Allocate containers for dynamical spin-spin interaction (DLR bosonic mesh)
     if (p.use_Jperp) {
       auto [bl, bl_size] = p.gf_struct[0];
-      Jperp_iw           = gf<imfreq, matrix_valued>{{p.beta, Boson, p.n_iw_dynamical_interactions}, make_shape(bl_size, bl_size)};
+      Jperp_iw = gf<mesh::dlr_imfreq, matrix_valued>{{p.beta, Boson, p.dlr_wmax, p.dlr_eps, true}, make_shape(bl_size, bl_size)};
     }
   }
 
@@ -62,21 +68,12 @@ namespace triqs_ctint {
     // Prepare shifted non-interacting Green function for QMC
     prepare_G0_shift_iw(params);
 
-    // --- Calculate G0_shift_tau from G0_shift_iw
-    // Known high-frequency moments of G0_shift_iw are assumed to be {0,1}
-    auto km = make_zero_tail(G0_shift_iw, 2);
-    for (auto &km_bl : km) matrix_view<dcomplex>{km_bl(1, ellipsis())} = 1.0;
-    auto tau_mesh = mesh::imtime{params.beta, Fermion, params.n_tau};
+    // --- Calculate G0_shift_tau from G0_shift_iw via DLR
+    auto G0_shift_dlr = make_gf_dlr(G0_shift_iw);
 #ifdef GTAU_IS_COMPLEX
-    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
-    G0_shift_tau     = make_gf_from_fourier(G0_shift_iw, tau_mesh, tail);
+    G0_shift_tau = make_gf_imtime(G0_shift_dlr, params.n_tau);
 #else
-    if (!is_gf_real_in_tau(G0_shift_iw, 1e-8)) {
-      std::cerr << "WARNING: Assuming real G(tau), but found violation |G(iw) - G*(-iw)| > 1e-8. Making it real in tau.\n";
-      G0_shift_iw = make_real_in_tau(G0_shift_iw);
-    }
-    auto [tail, err] = fit_hermitian_tail(G0_shift_iw, km);
-    G0_shift_tau     = real(make_gf_from_fourier(G0_shift_iw, tau_mesh, tail));
+    G0_shift_tau = real(make_gf_imtime(G0_shift_dlr, params.n_tau));
 #endif
 
     // Reset the containers
@@ -234,19 +231,61 @@ namespace triqs_ctint {
       std::cout << "\n"
                    "Post-processing ... \n";
 
-    // Calculate M_iw from M_tau (Cast from matrix_real_valued to matrix_valued)
-    // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
-    if (M_tau) {
-      M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw));
-      M_iw = make_hermitian(M_iw.value());
-      for (auto [M_bl, M_hartree_bl] : zip(M_iw.value(), M_hartree.value())) M_bl(iw_) << M_bl[iw_] + M_hartree_bl;
+    // --- Determine M_iw (M_dyn only, no Hartree) from either NFFT or FT of M_tau
+    if (M_iw_nfft) {
+      M_iw = g_iw_t{M_iw_nfft.value()}; // Direct DLR measurement (M_dyn only)
+    } else if (M_tau) {
+      // DLR fit of M_tau gives M_dyn only (continuous part, no equal-time delta)
+      // Cast from M_tau_target_t (possibly matrix_real_valued) to matrix_valued for DLR fit
+      auto const &mt = *M_tau;
+      std::vector<gf<imtime, matrix_valued>> gf_vec;
+      for (int b = 0; b < mt.size(); ++b) gf_vec.emplace_back(mt[b]);
+      auto M_tau_cast = block_gf<imtime, matrix_valued>{mt.block_names(), std::move(gf_vec)};
+      auto M_dlr      = fit_gf_dlr(M_tau_cast, p.dlr_wmax, p.dlr_eps, true);
+      M_iw            = g_iw_t{make_gf_dlr_imfreq(M_dlr)};
     }
 
-    // Calculate G_iw and Sigma_iw from M_iw
+    // Helper: build M_full = M_dyn + M_hartree (add constant Hartree term to each DLR point)
+    auto make_M_full = [&]() {
+      g_iw_t M_full = M_iw.value();
+      for (auto [M_bl, M_h_bl] : zip(M_full, M_hartree.value()))
+        for (long d = 0; d < M_bl.mesh().size(); ++d) M_bl.data()(d, ellipsis()) += M_h_bl;
+      return M_full;
+    };
+
+    // --- Calculate G_iw and Sigma decomposition from M_iw
     if (M_iw) {
-      G_iw     = G0_shift_iw + G0_shift_iw * M_iw.value() * G0_shift_iw;
-      Sigma_iw = inverse(G0_iw) - inverse(G_iw); // Careful, dont use shifted Gf here
+      // Re-initialize G_iw and Sigma_dyn_iw (were reset by container_set::operator=)
+      G_iw         = G0_shift_iw;
+      Sigma_dyn_iw = G0_shift_iw;
+
+      auto M_full = make_M_full();
+
+      // G_iw = G0_shift + G0_shift * M_full * G0_shift (Dyson equation at DLR points)
+      for (auto [G_bl, G0_bl, M_bl] : zip(G_iw, G0_shift_iw, M_full))
+        for (auto iw : G_bl.mesh()) G_bl[iw] = G0_bl[iw] + G0_bl[iw] * M_bl[iw] * G0_bl[iw];
+
+      // Sigma_dyn = G0_shift^{-1} - G^{-1} - M_hartree (decays to zero)
+      auto G0_shift_iw_inv = inverse(G0_shift_iw);
+      auto G_iw_inv        = inverse(G_iw);
+      for (auto [S_bl, G0s_bl, Gi_bl, M_h_bl] : zip(Sigma_dyn_iw, G0_shift_iw_inv, G_iw_inv, M_hartree.value()))
+        for (auto iw : S_bl.mesh()) S_bl[iw] = G0s_bl[iw] - Gi_bl[iw] - M_h_bl;
+
+      // Sigma_hartree = Sigma_alpha + M_hartree = (G0^{-1} - G0_shift^{-1}) + M_hartree
+      Sigma_hartree = make_block_vector<M_tau_scalar_t>(p.gf_struct);
+      for (int bl : range(p.n_blocks())) {
+        Sigma_hartree.value()[bl] = real(matrix<dcomplex>(G0_iw_inv[bl].data()(0, ellipsis()) - G0_shift_iw_inv[bl].data()(0, ellipsis())))
+                                    + M_hartree.value()[bl];
+      }
     }
+
+    // --- Convert DLR quantities to regular imfreq for higher-order post-processing
+    int n_iw_pp = std::max({p.n_iw_M4 + p.n_iW_M4, p.n_iw_M3 + p.n_iW_M3, p.n_iw_chi2}) + 10;
+    g_reg_iw_t G0_shift_iw_reg = make_gf_imfreq(G0_shift_iw, n_iw_pp);
+
+    std::optional<g_reg_iw_t> M_iw_reg;
+    if (M_iw) M_iw_reg = make_gf_imfreq(make_M_full(), n_iw_pp);
+    g_reg_iw_t G_iw_reg = make_gf_imfreq(G_iw, n_iw_pp);
 
     // Calculate M3_iw from M3_tau
     if (M3pp_tau) {
@@ -261,16 +300,12 @@ namespace triqs_ctint {
         // Shift from fermionic to mixed particle-particle frequency notation
         M3pp_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_)
            << M3pp_ferm_iw(bl1_, bl2_)(iw_, iW_ - iw_)(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
-
-        //// CAUTION! The both times should be fourier transformed with e^{-iwt}
-        //// We correct this with an overall minus sign for both frequencies
-        //M3pp_iw.value()(bl1_, bl2_)(iW_, iw_)(i_, j_, k_, l_) << M3pp_ferm_iw(bl1_, bl2_)(-iw_, -(iW_ - iw_))(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(-iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw && density) {
-        chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
+      if (M_iw_reg && density) {
+        chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
-        chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw, density.value());
+        chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw_reg, density.value());
         auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
         chi2pp_iw_from_M3       = make_gf_from_fourier(chi2pp_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2pp_tau_from_M3.value()));
       }
@@ -291,10 +326,10 @@ namespace triqs_ctint {
            << M3ph_ferm_iw(bl1_, bl2_)(-iw_, iW_ + iw_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw && density) {
-        chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
+      if (M_iw_reg && density) {
+        chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
                                                                 M_hartree.value(), G0_shift_tau);
-        chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw, density.value());
+        chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw_reg, density.value());
         auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
         chi2ph_iw_from_M3       = make_gf_from_fourier(chi2ph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2ph_tau_from_M3.value()));
       }
@@ -315,36 +350,36 @@ namespace triqs_ctint {
            << M3xph_ferm_iw(bl1_, bl2_)(iW_ + iw_, -iw_)(i_, j_, k_, l_) + M3xph_del_iW(bl1_, bl2_)(iW_)(i_, j_, k_, l_);
       }
 
-      if (M_iw && density) {
-        chi2xph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::XPH>(M3xph_tau.value(), M3xph_delta.value(), M_iw.value(), G0_shift_iw, M_tau.value(),
+      if (M_iw_reg && density) {
+        chi2xph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::XPH>(M3xph_tau.value(), M3xph_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
                                                                   M_hartree.value(), G0_shift_tau);
-        chi2xph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::XPH>(chi2xph_conn_tau_from_M3.value(), G_iw, density.value());
+        chi2xph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::XPH>(chi2xph_conn_tau_from_M3.value(), G_iw_reg, density.value());
         auto iw_mesh             = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
         chi2xph_iw_from_M3       = make_gf_from_fourier(chi2xph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2xph_tau_from_M3.value()));
       }
     }
 
-    // Calculate G2_conn_iw, F_iw and G2_iw from M4_iw and M_iw
-    if (M4_iw and M_iw) G2_conn_iw = G2_conn_from_M4(M4_iw.value(), M_iw.value(), G0_shift_iw);
-    if (M4pp_iw and M_iw) G2pp_conn_iw = G2pp_conn_from_M4pp(M4pp_iw.value(), M_iw.value(), G0_shift_iw);
-    if (M4ph_iw and M_iw) G2ph_conn_iw = G2ph_conn_from_M4ph(M4ph_iw.value(), M_iw.value(), G0_shift_iw);
+    // Calculate G2_conn_iw, F_iw and G2_iw from M4_iw and M_iw (using regular imfreq quantities)
+    if (M4_iw and M_iw_reg) G2_conn_iw = G2_conn_from_M4(M4_iw.value(), M_iw_reg.value(), G0_shift_iw_reg);
+    if (M4pp_iw and M_iw_reg) G2pp_conn_iw = G2pp_conn_from_M4pp(M4pp_iw.value(), M_iw_reg.value(), G0_shift_iw_reg);
+    if (M4ph_iw and M_iw_reg) G2ph_conn_iw = G2ph_conn_from_M4ph(M4ph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg);
 
-    if (G2_conn_iw and M_iw) F_iw = F_from_G2c(G2_conn_iw.value(), G_iw);
-    if (G2pp_conn_iw and M_iw) Fpp_iw = Fpp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw);
-    if (G2ph_conn_iw and M_iw) Fph_iw = Fph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw);
+    if (G2_conn_iw and M_iw_reg) F_iw = F_from_G2c(G2_conn_iw.value(), G_iw_reg);
+    if (G2pp_conn_iw and M_iw_reg) Fpp_iw = Fpp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw_reg);
+    if (G2ph_conn_iw and M_iw_reg) Fph_iw = Fph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw_reg);
 
-    if (G2_conn_iw and M_iw) G2_iw = G2_from_G2c(G2_conn_iw.value(), G_iw);
-    if (G2pp_conn_iw and M_iw) G2pp_iw = G2pp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw);
-    if (G2ph_conn_iw and M_iw) G2ph_iw = G2ph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw);
+    if (G2_conn_iw and M_iw_reg) G2_iw = G2_from_G2c(G2_conn_iw.value(), G_iw_reg);
+    if (G2pp_conn_iw and M_iw_reg) G2pp_iw = G2pp_from_G2pp_conn(G2pp_conn_iw.value(), G_iw_reg);
+    if (G2ph_conn_iw and M_iw_reg) G2ph_iw = G2ph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw_reg);
 
-    // Calculate chi3_iw from M3_iw and M_iw
-    if (M3pp_iw and M_iw and density) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3ph_iw and M_iw and density) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3xph_iw and M_iw and density) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3pp_iw_nfft and M_iw and density)
-      chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
-    if (M3ph_iw_nfft and M_iw and density)
-      chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw.value(), G0_shift_iw, density.value(), M_hartree.value());
+    // Calculate chi3_iw from M3_iw and M_iw (using regular imfreq quantities)
+    if (M3pp_iw and M_iw_reg and density) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3ph_iw and M_iw_reg and density) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3xph_iw and M_iw_reg and density) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3pp_iw_nfft and M_iw_reg and density)
+      chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3ph_iw_nfft and M_iw_reg and density)
+      chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau
     auto iw_mesh = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};

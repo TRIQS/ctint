@@ -48,8 +48,8 @@ gf_struct = [(bl, n_orb) for bl in block_names]
 # --------- Construct the ctint solver ----------
 S = Solver(beta = beta,
                gf_struct = gf_struct,
-               n_iw = 100,
-               n_tau = 201)
+               n_tau = 201,
+               dlr_wmax = 10.0)
 
 # --------- Initialize the non-interacting Green's function ----------
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n - hloc0_mat)

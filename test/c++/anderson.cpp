@@ -29,7 +29,7 @@ TEST(CtInt, Anderson) { // NOLINT
   pc.beta      = 20.0;
   pc.gf_struct = {{"up", 1}, {"down", 1}};
   pc.n_tau     = 10000;
-  pc.n_iw      = 500;
+  pc.dlr_wmax  = 10.0;
   pc.use_D     = false;
   pc.use_Jperp = false;
 
@@ -60,18 +60,12 @@ TEST(CtInt, Anderson) { // NOLINT
 
   solver_core S(pc);
 
-  // set up hybridization delta(i\omega_n)
-  auto delta_w = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
-  delta_w()    = 0;
-  for (int i : range(energ.size())) {
-    auto term = gf<imfreq, matrix_valued>{{pc.beta, Fermion, pc.n_iw}, make_shape(1, 1)};
-    term(iw_) << hopp[i] * hopp[i] / (iw_ - energ[i]);
-    delta_w += term;
+  // set up non-interacting Green function g0(i\omega_n) on DLR mesh
+  for (auto &&g_bl : S.G0_iw()) {
+    g_bl(iw_) << iw_ + mu;
+    for (int i : range(energ.size())) { g_bl(iw_) << g_bl(iw_) - hopp[i] * hopp[i] / (iw_ - energ[i]); }
+    g_bl = inverse(g_bl);
   }
-
-  // set up non-interacting Green function g0(i\omega_n)
-  S.G0_iw()[0](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
-  S.G0_iw()[1](iw_) << 1.0 / (iw_ + mu + (-1.0) * delta_w(iw_));
 
   // Solve!
   S.solve(ps);
