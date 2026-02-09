@@ -29,7 +29,7 @@ namespace triqs_ctint {
     template <typename RNG> static tau_t get_random(RNG &rng) { return tau_t{rng(n_max)}; }
 
     /// Cast to corresponding double value in $[0,\beta]$
-    explicit operator double() const { return beta * double(n) / n_max; }
+    operator double() const { return beta * double(n) / n_max; }
 
     // --- Comparison operators
     bool operator==(const tau_t &tau) const { return n == tau.n; }
