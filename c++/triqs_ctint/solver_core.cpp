@@ -234,7 +234,7 @@ namespace triqs_ctint {
     // Calculate M_iw from M_tau (Cast from matrix_real_valued to matrix_valued)
     // Set known_moments to zero, in order to avoid tau-derivative fitting in M_tau
     if (M_tau) {
-      M_iw = make_gf_from_fourier(block_gf<imtime, matrix_valued>{*M_tau}, G0_iw[0].mesh(), make_zero_tail(G0_iw));
+      M_iw = make_gf_from_fourier(*M_tau, G0_iw[0].mesh(), make_zero_tail(G0_iw));
       M_iw = make_hermitian(M_iw.value());
       for (auto [M_bl, M_hartree_bl] : zip(M_iw.value(), M_hartree.value())) M_bl(iw_) << M_bl[iw_] + M_hartree_bl;
     }
