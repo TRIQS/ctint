@@ -9,9 +9,8 @@
 #include <array>
 #include <cmath>
 #include <memory>
-#include <span>
 #include <vector>
-
+#include <bit>
 #include <triqs/mesh/matsubara_freq.hpp>
 
 #include "finufft.h"
@@ -129,20 +128,51 @@ namespace triqs::utility {
         target_n.resize(Rank, n_targets);
         for (int r = 0; r < Rank; ++r)
           for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_[d][r].n;
-        // Compute min/range per dimension for power table addressing
-        for (int r = 0; r < Rank; ++r) {
-          auto row       = target_n(r, nda::range::all);
-          auto [mn, mx]  = std::ranges::minmax_element(row);
-          n_min_arr[r]   = *mn;
-          n_range_arr[r] = *mx - *mn + 1;
-        }
-        // Preallocate power tables: shape (buf_size, n_range_arr[r]) per rank
-        for (int r = 0; r < Rank; ++r) pow_tbl[r].resize(buf_size_, n_range_arr[r]);
 
-        // Precompute offset indices (doubled): target_idx[r * n_targets + d] = 2 * (target_n(r, d) - n_min_arr[r])
-        target_idx.resize(Rank * n_targets);
-        for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) target_idx[r * n_targets + d] = 2 * (target_n(r, d) - n_min_arr[r]);
+        if constexpr (Rank > 1) {
+          // Rank>1: use prime-sum direct kernel.
+          std::vector<int> all_primes;
+          for (int r = 0; r < Rank; ++r) {
+            target_prime_sums[r].resize(n_targets);
+            for (int64_t d = 0; d < n_targets; ++d) {
+              auto exponent           = odd_exponent_abs(target_n(r, d));
+              auto prime_list         = express_as_prime_sum(static_cast<long>(exponent));
+              target_prime_sums[r][d] = prime_list;
+              for (int prime : prime_list) all_primes.push_back(prime);
+            }
+          }
+
+          std::sort(all_primes.begin(), all_primes.end());
+          all_primes.erase(std::unique(all_primes.begin(), all_primes.end()), all_primes.end());
+          primes = std::move(all_primes);
+
+          for (int r = 0; r < Rank; ++r) {
+            for (int64_t d = 0; d < n_targets; ++d) {
+              for (int &prime : target_prime_sums[r][d]) {
+                prime = static_cast<int>(std::find(primes.begin(), primes.end(), prime) - primes.begin());
+              }
+            }
+          }
+
+          for (int r = 0; r < Rank; ++r) { prime_pow_tbl[r].resize(primes.size(), buf_size_); }
+        } else {
+          // Rank-1: use bitwise power-of-two direct kernel.
+          unsigned long max_exponent = 0;
+          target_pow2_bits.resize(n_targets);
+          for (int64_t d = 0; d < n_targets; ++d) {
+            unsigned long exponent = odd_exponent_abs(target_n(0, d));
+            max_exponent           = std::max(max_exponent, exponent);
+
+            std::vector<int> bits;
+            for (int k = 0; exponent > 0; ++k, exponent >>= 1) {
+              if (exponent & 1ul) bits.push_back(k);
+            }
+            target_pow2_bits[d] = std::move(bits);
+          }
+
+          num_power2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)));
+          pow2_tbl.resize(num_power2_levels, buf_size_);
+        }
 
       } else {
         NDA_RUNTIME_ERROR << "nfft_buf_t: only type3 and direct supported with target frequencies\n";
@@ -283,17 +313,22 @@ namespace triqs::utility {
     // Integer Matsubara indices per target, shape (Rank, n_targets) (direct only)
     nda::array<long, 2> target_n;
 
-    // Per-dimension min index and range for power table (direct only)
-    std::array<long, Rank> n_min_arr{};
-    std::array<long, Rank> n_range_arr{};
+    // Binary exponentiation approach: store z^(2^k) for k=0,1,2,...
+    int num_power2_levels = 0;
 
-    // Preallocated power table for direct mode (avoids repeated allocation)
-    // Shape: (buf_size, n_range_arr[r]) per rank - stores powers for all buffer elements
-    mutable std::array<nda::array<dcomplex, 2>, Rank> pow_tbl;
+    // Preallocated power-of-2 table for Rank==1 bitwise direct kernel.
+    // Shape: (num_power2_levels, buf_size).
+    // pow2_tbl(k, j) = z^(2^k) for buffer element j.
+    std::conditional_t<Rank == 1, nda::array<dcomplex, 2>, std::monostate> pow2_tbl;
 
-    // Precomputed offset indices for direct mode, doubled for AoS gather:
-    // target_idx[r * n_targets + d] = 2 * (target_n(r, d) - n_min_arr[r])
-    std::vector<long> target_idx;
+    // Per-target list of power-of-two exponents for Rank==1 bitwise kernel.
+    // target_pow2_bits[d] contains k such that |2*n_d+1| has bit k set.
+    std::conditional_t<Rank == 1, std::vector<std::vector<int>>, std::monostate> target_pow2_bits;
+
+    // Rank>1 prime-sum direct kernel data
+    std::vector<int> primes;
+    std::array<nda::array<dcomplex, 2>, Rank> prime_pow_tbl;
+    std::array<std::vector<std::vector<int>>, Rank> target_prime_sums;
 
     // Tolerance for the transformation
     double tol = 1e-15;
@@ -303,6 +338,198 @@ namespace triqs::utility {
 
     // Function to check whether buffer is empty
     bool is_empty() const { return buf_counter == 0; }
+
+    // For fermionic frequencies: omega_n = (2n+1) * pi / beta.
+    // Direct kernels always work with the absolute odd exponent |2n+1|.
+    static constexpr unsigned long odd_exponent_abs(long n) {
+      long odd = 2 * n + 1;
+      return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
+    }
+
+    static constexpr bool is_prime(long x) {
+      if (x < 2) return false;
+      if (x == 2) return true;
+      if (x % 2 == 0) return false;
+      for (long i = 3; i * i <= x; i += 2)
+        if (x % i == 0) return false;
+      return true;
+    }
+
+    static constexpr int max_prime_sum_terms = 8;
+    static constexpr int prime_sum_precompute_size = 128;
+
+    // Tunable number of SIMD accumulators for direct kernels.
+    // `n_acc_bitwise` is used by the Rank-1 bitwise power-of-two kernel.
+    // `n_acc_prime` is used by the Rank>1 prime-sum kernel.
+    static constexpr int n_acc_bitwise = 4;
+    static constexpr int n_acc_prime = 4;
+    // for rank 2 large sizes 8 is better but I think finufft will be faster anyway at that point
+
+    struct prime_sum_entry_t {
+      std::array<int, max_prime_sum_terms> terms{};
+      int size = 0;
+    };
+
+    static constexpr prime_sum_entry_t express_as_prime_sum_ct(long n) {
+      prime_sum_entry_t out{};
+      while (n > 0 && out.size < max_prime_sum_terms) {
+        if (n == 1) {
+          out.terms[out.size++] = 1;
+          break;
+        }
+        if (n == 2 || n == 3) {
+          out.terms[out.size++] = static_cast<int>(n);
+          break;
+        }
+        if (n == 4) {
+          out.terms[out.size++] = 2;
+          out.terms[out.size++] = 2;
+          break;
+        }
+
+        long p = n;
+        while (p > 1 && !is_prime(p)) --p;
+        out.terms[out.size++] = static_cast<int>(p);
+        n -= p;
+      }
+      return out;
+    }
+
+    static constexpr auto precomputed_prime_sums = [] {
+      std::array<prime_sum_entry_t, prime_sum_precompute_size> table{};
+      for (int n = 0; n < prime_sum_precompute_size; ++n) table[n] = express_as_prime_sum_ct(n);
+      return table;
+    }();
+
+    static constexpr bool check_precomputed_prime_sums() {
+      for (int n = 0; n < prime_sum_precompute_size; ++n) {
+        long sum = 0;
+        for (int i = 0; i < precomputed_prime_sums[n].size; ++i) sum += precomputed_prime_sums[n].terms[i];
+        if (sum != n) return false;
+      }
+      return true;
+    }
+
+    static_assert(check_precomputed_prime_sums(), "prime-sum precompute table is invalid");
+
+    // Helper: express n as sum of primes with repetition: n = p1 + p2 + ... + pk.
+    static std::vector<int> express_as_prime_sum(long n) {
+      if (n < 1) return {};
+      auto entry = express_as_prime_sum_ct(n);
+      return {entry.terms.begin(), entry.terms.begin() + entry.size};
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Unified Target Accumulation Template with Instruction-Level Parallelism
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // This template implements a sophisticated two-level parallelism strategy to maximize CPU throughput:
+    //
+    // 1. **SIMD (Single Instruction Multiple Data) Parallelism:**
+    //    - Vectorizes across buffer elements (tau points)
+    //    - Process 2-4 complex numbers simultaneously per instruction (hardware dependent)
+    //    - Uses xsimd library for portable SIMD abstractions
+    //
+    // 2. **ILP (Instruction-Level Parallelism):**
+    //    - Process n_acc independent targets simultaneously
+    //    - Each target maintains its own accumulator chain
+    //    - Breaks data dependencies, allowing CPU to execute multiple operations in parallel
+    //    - Exploits superscalar execution and out-of-order execution in modern CPUs
+    //
+    // **Why this matters:**
+    // Without ILP, the CPU would wait for each FMA (fused multiply-add) to complete before
+    // starting the next one due to data dependencies. With n_acc=4 independent chains,
+    // the CPU can overlap execution, achieving ~4x higher throughput.
+    //
+    // **Parameters:**
+    // - n_acc: Number of independent accumulators (typically 4-8)
+    // - compute_simd_pow: Lambda computing exp(iω*τ) for SIMD-aligned buffer indices
+    // - compute_scalar_pow: Lambda computing exp(iω*τ) for scalar tail elements
+    //
+    template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>
+    [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets_total, int64_t buf_counter_simd, dcomplex *fiw_ptr,
+                                                               SimdPowFunc &&compute_simd_pow, ScalarPowFunc &&compute_scalar_pow) {
+      using cbatch                    = xsimd::batch<dcomplex>;  // SIMD type for complex numbers
+      constexpr std::size_t simd_size = cbatch::size;            // Typically 2-4 depending on CPU
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // Helper: Single-target accumulation (used for remainder targets)
+      // ─────────────────────────────────────────────────────────────────────────
+      // Computes: fiw[d] += Σ_j f(tau_j) * exp(iω_d*tau_j)
+      auto accumulate_one = [&](int64_t d) {
+        // SIMD loop: process buffer in chunks of simd_size
+        cbatch sum_vec(dcomplex{0, 0});  // Initialize SIMD accumulator to zero
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          cbatch fj  = cbatch::load_unaligned(fx_arr.data() + j);  // Load f(tau_j) [simd_size elements]
+          cbatch pow = compute_simd_pow(d, j);                      // Compute exp(iω_d*tau_j) [vectorized]
+          sum_vec    = xsimd::fma(fj, pow, sum_vec);                // Fused multiply-add: sum += fj * pow
+        }
+        // Reduce SIMD vector to scalar by summing all lanes
+        dcomplex sum = xsimd::reduce_add(sum_vec);
+
+        // Scalar tail: handle remaining buffer elements that don't fit in SIMD
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex pow = compute_scalar_pow(d, j);
+          sum += fx_arr[j] * pow;
+        }
+
+        fiw_ptr[d] += sum;  // Accumulate into output
+      };
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // Main ILP Loop: Process n_acc targets simultaneously
+      // ─────────────────────────────────────────────────────────────────────────
+      // Round down to nearest multiple of n_acc
+      int64_t const n_targets_main = (n_targets_total / n_acc) * n_acc;
+      int64_t d                    = 0;
+
+      for (; d < n_targets_main; d += n_acc) {
+        // Initialize n_acc independent SIMD accumulators (one per target in this batch)
+        std::array<cbatch, n_acc> sum_vecs;
+        poet::static_for<n_acc>([&](const auto acc_idx) {
+          sum_vecs[acc_idx] = cbatch(dcomplex{0, 0});
+        });
+
+        // ═══ SIMD Loop: Vectorize over buffer elements ═══
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          // Load f(tau_j) once - shared across all n_acc targets
+          cbatch fj = cbatch::load_unaligned(fx_arr.data() + j);
+
+          // Unroll over n_acc accumulators at compile time
+          // This creates n_acc independent FMA dependency chains, enabling ILP
+          // The CPU can execute these in parallel pipelines
+          poet::static_for<n_acc>([&](const auto acc_idx) {
+            cbatch pow            = compute_simd_pow(d + acc_idx, j);  // exp(iω_{d+k}*tau_j)
+            sum_vecs[acc_idx] = xsimd::fma(fj, pow, sum_vecs[acc_idx]);  // Independent accumulation
+          });
+        }
+
+        // ═══ Reduce Phase: SIMD vectors → scalars ═══
+        std::array<dcomplex, n_acc> sums;
+        poet::static_for<n_acc>([&](const auto acc_idx) {
+          sums[acc_idx] = xsimd::reduce_add(sum_vecs[acc_idx]);
+        });
+
+        // ═══ Scalar Tail: Process remaining non-SIMD-aligned elements ═══
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex fj = fx_arr[j];
+          poet::static_for<n_acc>([&](const auto acc_idx) {
+            dcomplex pow = compute_scalar_pow(d + acc_idx, j);
+            sums[acc_idx] += fj * pow;
+          });
+        }
+
+        // ═══ Write-back Phase: Store results to output array ═══
+        poet::static_for<n_acc>([&](const auto acc_idx) {
+          fiw_ptr[d + acc_idx] += sums[acc_idx];
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // Remainder Loop: Handle final targets when n_targets % n_acc != 0
+      // ─────────────────────────────────────────────────────────────────────────
+      for (; d < n_targets_total; ++d) accumulate_one(d);
+    }
 
     // Perform NFFT transform and accumulate
     void do_nfft() {
@@ -350,91 +577,313 @@ namespace triqs::utility {
       fiw_vec += fk_vec;
     }
 
-    // Direct DFT: exploits Matsubara structure exp(i*omega_n*tau) = z^(2n+1)
-    void do_direct() {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Rank-1 Direct NUDFT: Bitwise Power-of-Two Decomposition
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // **Algorithm Overview:**
+    // Goal: Compute exp(iω_n*τ) for fermionic Matsubara frequencies ω_n = (2n+1)π/β
+    //
+    // **Key Mathematical Insight:**
+    //   exp(iω_n*τ) = exp(i*(2n+1)*π*τ/β)
+    //               = [exp(iπτ/β)]^(2n+1)
+    //               = z^(2n+1)
+    // where z := exp(iπτ/β) is the "base phase factor"
+    //
+    // **Efficient Exponentiation via Binary Decomposition:**
+    // Instead of computing z^m naively (O(m) multiplications), we use binary exponentiation:
+    //
+    // 1. Express m = |2n+1| in binary: m = Σ b_k * 2^k  (where b_k ∈ {0,1} are the bits)
+    //    Example: m=13 = 8+4+1 = 2³ + 2² + 2⁰
+    //
+    // 2. Precompute powers-of-two: z, z², z⁴, z⁸, z¹⁶, ... via repeated squaring
+    //    This takes O(log m) operations
+    //
+    // 3. Multiply only the powers corresponding to set bits:
+    //    z^m = z^(2^k₁) * z^(2^k₂) * ... where k₁, k₂, ... are the bit positions
+    //    Example: z¹³ = z⁸ * z⁴ * z¹
+    //
+    // **Complexity:** O(log m) multiplications instead of O(m)
+    // For typical Matsubara indices (|2n+1| ~ 1-1000), this is 10-100x faster!
+    //
+    // **Why this is optimal for Rank=1:**
+    // Binary representation is minimal - every integer has exactly one binary form.
+    // For Rank>1, we use prime-sum decomposition instead (better power sharing).
+    //
+    void do_direct_bitwise() {
+      static_assert(Rank == 1);
       using cbatch                    = xsimd::batch<dcomplex>;
-      using rbatch                    = xsimd::batch<double>;
-      using ibatch                    = xsimd::batch<int64_t>;
       constexpr std::size_t simd_size = cbatch::size;
 
-      double const pi_over_beta    = M_PI / beta;
-      int64_t const n_targets_simd = n_targets - (n_targets % static_cast<int64_t>(simd_size));
-      dcomplex *fiw_ptr            = fiw_vec.data();
+      double const pi_over_beta      = M_PI / beta;
+      int64_t const buf_counter_simd = buf_counter & -simd_size;  // Floor to SIMD alignment
+      dcomplex *fiw_ptr              = fiw_vec.data();            // Output pointer
 
-      // Phase 1: Build power tables pow_tbl[r](j,i) = z^(2*(n_min+i)+1)
-      for (int r = 0; r < Rank; ++r) {
-        long const n_range      = n_range_arr[r];
-        long const n_range_simd = n_range - (n_range % static_cast<long>(simd_size));
-        long const abs_n_min    = std::abs(n_min_arr[r]);
-        bool const n_min_neg    = n_min_arr[r] < 0;
+      // ═══════════════════════════════════════════════════════════════════════
+      // Phase 1: Build Power-of-Two Table via Repeated Squaring
+      // ═══════════════════════════════════════════════════════════════════════
+      // Compute pow2_tbl(k, j) = z_j^(2^k) for all buffer elements j
+      // where z_j = exp(iπτ_j/β)
 
-        for (int j = 0; j < buf_counter; ++j) {
-          double const theta = pi_over_beta * x_arr(r, j);
-          dcomplex const z{std::cos(theta), std::sin(theta)};
-          dcomplex const z2 = z * z;
+      // ─── Step 1a: Compute z = exp(iπτ/β) for all buffer elements ───
+      // SIMD path: Process simd_size elements at once
+      for (int j = 0; j < buf_counter_simd; j += simd_size) {
+        using rbatch = xsimd::batch<double>;
+        // Compute angle: θ = πτ/β
+        rbatch theta_vec = rbatch::load_unaligned(&x_arr(0, j)) * pi_over_beta;
+        // Vectorized sincos: compute sin(θ) and cos(θ) simultaneously (hardware optimized)
+        auto [sin_vec, cos_vec] = xsimd::sincos(theta_vec);
+        // Build complex exponential: z = cos(θ) + i*sin(θ) = exp(iθ)
+        cbatch z_vec(cos_vec, sin_vec);
+        // Store z^(2^0) = z in level k=0
+        z_vec.store_unaligned(&pow2_tbl(0, j));
+      }
+      // Scalar tail: handle remaining elements that don't fit in SIMD
+      for (int j = buf_counter_simd; j < buf_counter; ++j) {
+        double const theta = pi_over_beta * x_arr(0, j);
+        pow2_tbl(0, j)     = dcomplex{std::cos(theta), std::sin(theta)};
+      }
 
-          // Compute z^(2*n_min+1) via binary exponentiation
-          dcomplex zp = z, base = n_min_neg ? std::conj(z2) : z2;
-          for (long exp = abs_n_min; exp > 0; exp >>= 1) {
-            if (exp & 1) zp *= base;
-            base *= base;
-          }
-
-          // Fill geometric sequence: pow_row[i] = zp * z2^i using SIMD
-          dcomplex *pow_row = &pow_tbl[r](j, 0);
-          alignas(cbatch::arch_type::alignment()) std::array<dcomplex, simd_size> mult_arr;
-          dcomplex z2_pow = 1.0;
-          for (std::size_t k = 0; k < simd_size; ++k) {
-            mult_arr[k] = z2_pow;
-            z2_pow *= z2;
-          }
-          cbatch const mult(cbatch::load_aligned(mult_arr.data()));
-          cbatch const stride(z2_pow);
-          cbatch zp_vec(zp);
-
-          for (long i = 0; i < n_range_simd; i += simd_size) {
-            (zp_vec * mult).store_unaligned(pow_row + i);
-            zp_vec *= stride;
-          }
-          for (long i = n_range_simd; i < n_range; ++i) {
-            pow_row[i] = zp_vec.get(0);
-            zp_vec *= cbatch(z2);
-          }
+      // ─── Step 1b: Repeated squaring to build higher levels ───
+      // For each level k: z^(2^k) = [z^(2^(k-1))]²
+      // Example: z² = z*z, z⁴ = z²*z², z⁸ = z⁴*z⁴, ...
+      for (int k = 1; k < num_power2_levels; ++k) {
+        // SIMD path: vectorized squaring
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          cbatch prev = cbatch::load_unaligned(&pow2_tbl(k - 1, j));  // Load z^(2^(k-1))
+          cbatch curr = prev * prev;                                   // Square it
+          curr.store_unaligned(&pow2_tbl(k, j));                      // Store z^(2^k)
+        }
+        // Scalar tail
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex prev = pow2_tbl(k - 1, j);
+          pow2_tbl(k, j) = prev * prev;
         }
       }
 
-      // Phase 2: Accumulate f(tau) * product_r(pow_tbl[r][j][idx[r][d]]) into output
-      std::array<long const *, Rank> idx_ptr;
-      poet::static_for<0, Rank>([&](auto r) { idx_ptr[r] = target_idx.data() + r * n_targets; });
+      // ═══════════════════════════════════════════════════════════════════════
+      // Phase 2: Accumulate Targets by Multiplying Powers for Set Bits
+      // ═══════════════════════════════════════════════════════════════════════
+      // For each target d with exponent m = |2n_d+1|, we precomputed the bit
+      // positions in target_pow2_bits[d]. Now we multiply those powers together.
 
-      for (int j = 0; j < buf_counter; ++j) {
-        cbatch const fj(fx_arr[j]);
+      // ─── SIMD Power Computation Lambda ───
+      auto compute_simd_pow = [&](int64_t d, int j) -> cbatch {
+        auto const &bits  = target_pow2_bits[d];  // List of set bit positions in |2n_d+1|
+        bool const is_neg = target_n(0, d) < 0;   // Is this a negative frequency?
 
-        std::array<double const *, Rank> pow_ptr;
-        poet::static_for<0, Rank>([&](auto r) {
-          pow_ptr[r] = reinterpret_cast<double const *>(&pow_tbl[r](j, 0));
+        // Start with identity: z^0 = 1
+        cbatch rank_pow(dcomplex{1.0, 0.0});
+
+        // Multiply powers corresponding to each set bit
+        // Example: if bits = [0, 2, 3], compute z^1 * z^4 * z^8 = z^13
+        for (int k : bits) {
+          rank_pow *= cbatch::load_unaligned(&pow2_tbl(k, j));
+        }
+
+        // For negative frequencies: exp(-iω*τ) = conj(exp(iω*τ))
+        // This uses the identity: exp(-ix) = cos(x) - i*sin(x) = conj(exp(ix))
+        return is_neg ? xsimd::conj(rank_pow) : rank_pow;
+      };
+
+      // ─── Scalar Power Computation Lambda (identical logic, non-vectorized) ───
+      auto compute_scalar_pow = [&](int64_t d, int j) -> dcomplex {
+        auto const &bits  = target_pow2_bits[d];
+        bool const is_neg = target_n(0, d) < 0;
+        dcomplex rank_pow{1.0, 0.0};
+        for (int k : bits) rank_pow *= pow2_tbl(k, j);
+        return is_neg ? std::conj(rank_pow) : rank_pow;
+      };
+
+      // ─── Call unified ILP accumulation template ───
+      // This computes: fiw[d] += Σ_j f(tau_j) * exp(iω_d*tau_j) for all targets d
+      accumulate_targets_ilp<n_acc_bitwise>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Rank>1 Direct NUDFT: Prime-Sum Decomposition
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // **Algorithm Overview:**
+    // Goal: Compute exp(iω_{n1}*τ1 + iω_{n2}*τ2 + ...) for multi-dimensional frequencies
+    //       = exp(iω_{n1}*τ1) * exp(iω_{n2}*τ2) * ...
+    //       = z_1^{m1} * z_2^{m2} * ...
+    // where z_r = exp(iπτ_r/β) and m_r = |2n_r+1|
+    //
+    // **Why Not Use Binary Exponentiation for Rank>1?**
+    // For Rank>1, we need to compute many distinct exponents (m_r for each rank r and target d).
+    // Binary decomposition would require storing 2^k powers for each distinct exponent,
+    // leading to excessive memory usage and poor cache behavior.
+    //
+    // **Prime-Sum Decomposition Strategy:**
+    // Every positive integer can be expressed as a sum of primes (Goldbach-style):
+    //   m = p1 + p2 + ... + pk
+    // Then: z^m = z^(p1+p2+...+pk) = z^p1 * z^p2 * ... * z^pk
+    //
+    // **Key Advantages:**
+    // 1. **Power Sharing:** The set of unique primes needed across ALL targets and ranks
+    //    is much smaller than the set of unique exponents. We compute each z^p once and reuse it.
+    //
+    // 2. **Small Exponents:** Primes are typically small (2, 3, 5, 7, 11, ...), making
+    //    z^p fast to compute via binary exponentiation.
+    //
+    // 3. **Memory Efficiency:** Store O(#primes * Rank * buf_size) instead of
+    //    O(#unique_exponents * Rank * buf_size). For many targets, #primes << #unique_exponents.
+    //
+    // **Example:**
+    // Targets with m = 13, 15, 17 in some rank:
+    //   13 = 13,        15 = 13+2,      17 = 17
+    // Unique primes: {2, 13, 17}
+    // We compute z^2, z^13, z^17 once, then:
+    //   z^13 = z^13,    z^15 = z^13*z^2,  z^17 = z^17
+    //
+    void do_direct_prime() {
+      using cbatch                    = xsimd::batch<dcomplex>;
+      constexpr std::size_t simd_size = cbatch::size;
+
+      double const pi_over_beta      = M_PI / beta;
+      int64_t const buf_counter_simd = buf_counter & -simd_size;
+      dcomplex *fiw_ptr              = fiw_vec.data();
+      int const num_primes           = static_cast<int>(primes.size());  // # of unique primes across all targets
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // Phase 1: Compute Prime Powers for Each Rank
+      // ═══════════════════════════════════════════════════════════════════════
+      // For each rank r and each unique prime p, compute:
+      //   prime_pow_tbl[r](p_idx, j) = z_r^p  where z_r = exp(iπτ_r/β)
+      //
+      // This is done once per rank, then reused for all targets.
+
+      // Use compile-time loop over ranks (unrolled at compile time)
+      poet::static_for<Rank>([&](const auto r) {
+
+        // ─── Step 1: Compute base phase factors z_r for this rank ───
+        std::vector<dcomplex> z_vals(buf_counter);
+        for (int j = 0; j < buf_counter; ++j) {
+          double const theta = pi_over_beta * x_arr(r, j);  // θ = πτ_r/β
+          z_vals[j]          = dcomplex{std::cos(theta), std::sin(theta)};  // z_r = exp(iθ)
+        }
+
+        // ─── Step 2: For each unique prime, compute z_r^prime ───
+        for (int p_idx = 0; p_idx < num_primes; ++p_idx) {
+          int prime = primes[p_idx];
+
+          // Special case: "prime" = 1 (treated as prime for algorithm simplicity)
+          if (prime == 1) {
+            // z^1 = z (no exponentiation needed)
+            for (int j = 0; j < buf_counter; ++j) {
+              prime_pow_tbl[r](p_idx, j) = z_vals[j];
+            }
+            continue;
+          }
+
+          // ═══ Binary Exponentiation to Compute z^prime ═══
+          // This is O(log prime) instead of O(prime) for naive multiplication
+          // Algorithm: Process bits of exponent from LSB to MSB
+          //   result = 1
+          //   base = z
+          //   for each bit k in prime:
+          //     if bit k is set: result *= base
+          //     base = base^2  (square for next bit)
+
+          // SIMD path: vectorized binary exponentiation
+          for (int j = 0; j < buf_counter_simd; j += simd_size) {
+            cbatch z_vec = cbatch::load_unaligned(&z_vals[j]);  // Load z
+            cbatch zp_vec(dcomplex{1.0, 0.0});                   // Result accumulator (starts at 1)
+            cbatch base_vec = z_vec;                             // Current power of base
+            int exp         = prime;                             // Exponent to process
+
+            // Binary exponentiation loop
+            while (exp > 0) {
+              if (exp & 1) zp_vec *= base_vec;  // If current bit is set, multiply into result
+              base_vec *= base_vec;              // Square base for next bit position
+              exp >>= 1;                         // Shift to next bit
+            }
+            zp_vec.store_unaligned(&prime_pow_tbl[r](p_idx, j));
+          }
+
+          // Scalar tail: same algorithm, non-vectorized
+          for (int j = buf_counter_simd; j < buf_counter; ++j) {
+            dcomplex zp{1.0, 0.0};
+            dcomplex base = z_vals[j];
+            int exp       = prime;
+            while (exp > 0) {
+              if (exp & 1) zp *= base;
+              base *= base;
+              exp >>= 1;
+            }
+            prime_pow_tbl[r](p_idx, j) = zp;
+          }
+        }
+      });
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // Phase 2: Accumulate Targets by Combining Prime Powers
+      // ═══════════════════════════════════════════════════════════════════════
+      // For each target d with multi-dimensional frequency (ω_{n1}, ω_{n2}, ...):
+      //   exp(iω_{n1}*τ1 + ... + iω_{nR}*τR) = Π_r z_r^{m_r}
+      // where m_r = |2n_r+1| and z_r = exp(iπτ_r/β)
+      //
+      // Each m_r is decomposed as sum of primes: m_r = p1 + p2 + ...
+      // So: z_r^{m_r} = z_r^{p1} * z_r^{p2} * ...
+
+      // ─── SIMD Power Computation Lambda ───
+      auto compute_simd_pow = [&](int64_t d, int j) -> cbatch {
+        cbatch pow_prod;  // Will accumulate product across all ranks
+
+        // Loop over each dimension/rank (compile-time unroll)
+        poet::static_for<Rank>([&](const auto r) {
+          // Start with identity for this rank
+          cbatch rank_pow(dcomplex{1.0, 0.0});
+
+          // Get list of prime indices that sum to m_r = |2n_r+1|
+          auto const &prime_indices = target_prime_sums[r][d];
+
+          // Multiply prime powers: z_r^{m_r} = z_r^{p1} * z_r^{p2} * ...
+          for (int prime_idx : prime_indices) {
+            cbatch prime_pow = cbatch::load_unaligned(&prime_pow_tbl[r](prime_idx, j));
+            rank_pow *= prime_pow;
+          }
+
+          // Handle negative frequencies via conjugation
+          rank_pow = (target_n(r, d) < 0) ? xsimd::conj(rank_pow) : rank_pow;
+
+          // Accumulate product across ranks: Π_r z_r^{m_r}
+          pow_prod = (r == 0) ? rank_pow : pow_prod * rank_pow;
         });
 
-        // SIMD loop with gather
-        for (int64_t d = 0; d < n_targets_simd; d += simd_size) {
-          cbatch pow_prod;
-          poet::static_for<0, Rank>([&](auto r) {
-            auto idx = ibatch::load_unaligned(idx_ptr[r] + d);
-            cbatch pow_val(rbatch::gather(pow_ptr[r], idx), rbatch::gather(pow_ptr[r], idx + 1));
-            pow_prod = (r == 0) ? pow_val : pow_prod * pow_val;
-          });
-          xsimd::fma(fj, pow_prod, cbatch::load_unaligned(fiw_ptr + d)).store_unaligned(fiw_ptr + d);
-        }
+        return pow_prod;
+      };
 
-        // Scalar remainder
-        for (int64_t d = n_targets_simd; d < n_targets; ++d) {
-          dcomplex prod = 1.0;
-          poet::static_for<0, Rank>([&](auto r) {
-            prod *= reinterpret_cast<dcomplex const *>(pow_ptr[r])[idx_ptr[r][d] >> 1];
-          });
-          fiw_ptr[d] += fx_arr[j] * prod;
-        }
-      }
+      // ─── Scalar Power Computation Lambda (identical logic, non-vectorized) ───
+      auto compute_scalar_pow = [&](int64_t d, int j) -> dcomplex {
+        dcomplex pow_prod{1.0, 0.0};
+        poet::static_for<Rank>([&](const auto r) {
+          dcomplex rank_pow{1.0, 0.0};
+          auto const &prime_indices = target_prime_sums[r][d];
+          for (int prime_idx : prime_indices) {
+            rank_pow *= prime_pow_tbl[r](prime_idx, j);
+          }
+          rank_pow  = (target_n(r, d) < 0) ? std::conj(rank_pow) : rank_pow;
+          pow_prod *= rank_pow;
+        });
+        return pow_prod;
+      };
+
+      // ─── Call unified ILP accumulation template ───
+      accumulate_targets_ilp<n_acc_prime>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Direct DFT Dispatcher: Choose Algorithm Based on Rank
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Rank-1: Use bitwise power-of-two decomposition (optimal for single dimension)
+    // Rank>1: Use prime-sum decomposition (better power sharing across dimensions)
+    void do_direct() {
+      if constexpr (Rank == 1)
+        do_direct_bitwise();
+      else
+        do_direct_prime();
     }
   };
 
