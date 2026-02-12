@@ -89,9 +89,6 @@ if(Build_Tests)
   enable_testing()
 endif()
 
-# Benchmarks
-option(Build_Benchs "Build benchmarks" OFF)
-
 # ############
 # Global Compilation Settings
 
@@ -155,11 +152,6 @@ endif()
 # Python
 if(PythonSupport)
   add_subdirectory(python/${PROJECT_NAME})
-endif()
-
-# Benchmarks
-if(Build_Benchs AND NOT ASAN AND NOT UBSAN)
-  add_subdirectory(benchmarks)
 endif()
 
 # Docs
