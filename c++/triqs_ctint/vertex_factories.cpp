@@ -52,14 +52,19 @@ namespace triqs_ctint {
     if (D0_iw) {
 
       std::vector<vertex_idx_t> indices;
+      std::vector<int> labels;
 #ifdef INTERACTION_IS_COMPLEX
       std::vector<gf<imtime, scalar_valued>> D0_tau_lst;
 #else
       std::vector<gf<imtime, scalar_real_valued>> D0_tau_lst;
 #endif
 
+      // Deterministic vertex label offset: D0 labels start after h_int terms
+      long n_h_int = std::distance(params.h_int.begin(), params.h_int.end());
+
       // Convert DLR D0_iw -> D0_tau via DLR coefficients and loop over block indices
       int n_bl = (*D0_iw).size1();
+      int R    = (*D0_iw)(0, 0).target_shape()[0];
       for (int bl1 : range(n_bl))
         for (int bl2 : range(n_bl)) {
           auto D0_tau_bl = make_gf_imtime(make_gf_dlr((*D0_iw)(bl1, bl2)), params.n_tau_dynamical_interactions);
@@ -72,6 +77,7 @@ namespace triqs_ctint {
               // Add Vertex generator only if d is non-zero
               if (max_norm(d) > 1e-10) {
                 indices.push_back({bl1, a, bl1, a, bl2, b, bl2, b});
+                labels.push_back(n_h_int + bl1 * n_bl * R * R + bl2 * R * R + a * R + b);
 #ifdef INTERACTION_IS_COMPLEX
                 D0_tau_lst.emplace_back(d);
 #else
@@ -84,14 +90,15 @@ namespace triqs_ctint {
         }
 
       if (indices.size() > 0) {
-        auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), D0_tau_lst = std::move(D0_tau_lst), &rng] {
+        auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), labels = std::move(labels), D0_tau_lst = std::move(D0_tau_lst),
+                  &rng] {
           int n             = rng(indices.size());
           tau_t t           = tau_t::get_random(rng);
           tau_t tp          = tau_t::get_random(rng);
           auto [sig, dtau]  = cyclic_difference(t, tp);
           int s             = rng(n_s);
           double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
-          return vertex_t{indices[n], t, t, tp, tp, -D0_tau_lst[n](dtau) / n_s, prop_proba, true, s};
+          return vertex_t{indices[n], t, t, tp, tp, -D0_tau_lst[n](dtau) / n_s, prop_proba, labels[n], s};
         };
 
         vertex_factories.emplace_back(l);

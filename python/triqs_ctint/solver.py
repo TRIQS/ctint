@@ -118,8 +118,16 @@ class Solver(SolverCore):
             tol=1e-10
         )
 
+        # Determine number of D0 alpha entries
+        n_D0_total = 0
+        if self.constr_params['use_D']:
+            block_names = [bl for bl, _ in gf_struct]
+            n_bl = len(block_names)
+            R = gf_struct[0][1]
+            n_D0_total = n_bl * n_bl * R * R
+
         # Build alpha tensor from HF density with delta shift for n_s spin components
-        alpha = np.zeros((n_terms, 2, 2, n_s))
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, n_s))
         for n, (term, coeff) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             n00 = hf_solver.density[bl0][u0p, u0]
@@ -132,6 +140,18 @@ class Solver(SolverCore):
                 alpha[n, 0, 1, s] = n01 + sgn * delta[1] * has_offdiag
                 alpha[n, 1, 0, s] = n01 + np.sign(coeff) * sgn * delta[1] * has_offdiag
                 alpha[n, 1, 1, s] = n11 + sgn * delta[0]
+
+        # Fill D0 alpha entries with per-orbital diagonal densities
+        if n_D0_total > 0:
+            for ibl1, (bl1, _) in enumerate(gf_struct):
+                for ibl2, (bl2, _) in enumerate(gf_struct):
+                    for a in range(R):
+                        for b in range(R):
+                            d = ibl1 * n_bl * R * R + ibl2 * R * R + a * R + b
+                            for s in range(n_s):
+                                sgn = 1 - 2 * s
+                                alpha[n_terms + d, 0, 0, s] = hf_solver.density[bl1][a, a].real + sgn * delta[0]
+                                alpha[n_terms + d, 1, 1, s] = hf_solver.density[bl2][b, b].real + sgn * delta[0]
 
         alpha = mpi.bcast(alpha, root=0)
 
@@ -184,9 +204,17 @@ class Solver(SolverCore):
         h_int = solve_params['h_int']
         n_terms = len(list(h_int))
         delta = solve_params.pop('delta', [0.5 + 1e-2, 1e-2])
+        gf_struct = self.constr_params['gf_struct']
+
+        # Determine number of D0 alpha entries
+        n_D0_total = 0
+        if self.constr_params['use_D']:
+            n_bl = len(gf_struct)
+            R = gf_struct[0][1]
+            n_D0_total = n_bl * n_bl * R * R
 
         assert solve_params['n_s'] == 2
-        alpha = np.zeros((n_terms, 2, 2, 2))
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, 2))
         for l, (term, _) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             same_block = bl0 == bl1
@@ -204,6 +232,18 @@ class Solver(SolverCore):
             d0, d1 = delta[0], delta[1] if use_offdiag else 0.0
             alpha[l, ..., 0] = [[0.5 + d0,  d1], [-d1, 0.5 - d0]]
             alpha[l, ..., 1] = [[0.5 - d0, -d1], [ d1, 0.5 + d0]]
+
+        # Fill D0 alpha entries with trivial density (0.5) + delta shifts
+        if n_D0_total > 0:
+            for ibl1 in range(n_bl):
+                for ibl2 in range(n_bl):
+                    for a in range(R):
+                        for b in range(R):
+                            d = ibl1 * n_bl * R * R + ibl2 * R * R + a * R + b
+                            alpha[n_terms + d, 0, 0, 0] = 0.5 + delta[0]
+                            alpha[n_terms + d, 1, 1, 0] = 0.5 - delta[0]
+                            alpha[n_terms + d, 0, 0, 1] = 0.5 - delta[0]
+                            alpha[n_terms + d, 1, 1, 1] = 0.5 + delta[0]
 
         return alpha
 

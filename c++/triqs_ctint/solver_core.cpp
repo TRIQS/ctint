@@ -170,10 +170,17 @@ namespace triqs_ctint {
     // Container that will hold the inverse of the shifted Green function
     g_iw_t G0_shift_iw_inv = G0_iw_inv;
 
-    // Assert compatibility between alpha tensor and h_int
-    long n_terms = std::distance(p.h_int.begin(), p.h_int.end());
-    if (p.alpha.shape() != std::array<long, 4>{n_terms, 2, 2, p.n_s})
-      TRIQS_RUNTIME_ERROR << "Error: Alpha and h_int are incompatible: Different number of density-density terms \n";
+    // Assert compatibility between alpha tensor and h_int (+ D0 extension)
+    long n_h_int = std::distance(p.h_int.begin(), p.h_int.end());
+    long n_D0_total = 0;
+    if (D0_iw) {
+      long n_bl = p.n_blocks();
+      long R    = (*D0_iw)(0, 0).target_shape()[0];
+      n_D0_total = n_bl * n_bl * R * R;
+    }
+    if (p.alpha.shape() != std::array<long, 4>{n_h_int + n_D0_total, 2, 2, p.n_s})
+      TRIQS_RUNTIME_ERROR << "Alpha tensor shape " << p.alpha.shape() << " incompatible with h_int (" << n_h_int << " terms) + D0 (" << n_D0_total
+                          << " entries)\n";
 
     // Loop over static density-density interaction terms
     for (auto const &[n, term] : enumerate(p.h_int)) {
@@ -200,21 +207,34 @@ namespace triqs_ctint {
 
     if (D0_iw) {
 
-      // External loop over blocks
-      for (int sig : range(p.n_blocks())) {
+      int n_bl = p.n_blocks();
+      int R    = (*D0_iw)(0, 0).target_shape()[0];
 
-        // Get Matrix Rank for block
-        int Rank = G0_iw[sig].target_shape()[0];
-        for (int i : range(Rank)) {
+      // Extract per-orbital density from D0 alpha entries (averaged over aux spin s)
+      // D0 alpha label = n_h_int + sigp * n_bl * R * R + bl2 * R * R + j * R + b
+      // alpha[label, 0, 0, s] = density[sigp][j,j] + delta_shift(s)
+      // Averaging over s cancels the delta shift
+      std::vector<std::vector<double>> block_density(n_bl);
+      for (int sigp : range(n_bl)) {
+        block_density[sigp].resize(R, 0.0);
+        for (int j : range(R)) {
+          long label = n_h_int + sigp * n_bl * R * R + 0 * R * R + j * R + 0;
+          for (int s : range(p.n_s)) block_density[sigp][j] += p.alpha(label, 0, 0, s);
+          block_density[sigp][j] /= p.n_s;
+        }
+      }
 
-          // Calculate and subtract term according to notes
-          TRIQS_RUNTIME_ERROR << "FIXME";
-          //dcomplex term = 0.0;
-          //for (int sigp : range(p.n_blocks()))
-          //for (int j : range(Rank))
-          //for (int s : range(p.n_s)) { term += ((*D0_iw)(sig, sigp)[0](i, j) + (*D0_iw)(sigp, sig)[0](j, i)) * p.alpha_l[sigp](j, s); }
-          //auto g = slice_target_to_scalar(G0_shift_iw_inv[sig], i, i);
-          //g(iw_) << g(iw_) - term / p.n_s;
+      // Precompute D0 at iw=0 (static Hartree contribution) for all block pairs
+      std::vector<std::vector<matrix<dcomplex>>> D0_static(n_bl, std::vector<matrix<dcomplex>>(n_bl));
+      for (int b1 : range(n_bl))
+        for (int b2 : range(n_bl)) D0_static[b1][b2] = make_gf_imfreq(make_gf_dlr((*D0_iw)(b1, b2)), 1)(0);
+
+      for (int sig : range(n_bl)) {
+        for (int i : range(R)) {
+          dcomplex shift = 0.0;
+          for (int sigp : range(n_bl))
+            for (int j : range(R)) shift += (D0_static[sig][sigp](i, j) + D0_static[sigp][sig](j, i)) * block_density[sigp][j];
+          G0_shift_iw_inv[sig].data()(range::all, i, i) -= shift;
         }
       }
     }
