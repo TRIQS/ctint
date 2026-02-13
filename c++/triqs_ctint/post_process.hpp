@@ -9,134 +9,135 @@
 
 namespace triqs_ctint {
 
-  /**
-   * @brief Calculate the connected part of the two-particle Green's function \f$ G^{(2)} \f$.
-   * 
-   * @details Combines the measured building block \f$ M^{(4)} \f$ with the single-particle building
-   * block \f$ M \f$ and the non-interacting Green's function \f$ G_0 \f$ to form the connected
-   * two-particle Green's function.
-   *
-   * @param M4_iw The building block \f$ M^{(4)}(i\omega) \f$ for the full vertex.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @return The connected two-particle Green's function \f$ G^{(2)}_{conn}(i\omega) \f$.
-   */
+  /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
   chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
-
-  /**
-   * @brief Calculate the connected part of \f$ G^{(2)} \f$ in the particle-particle channel.
-   * 
-   * @details Combines the measured building block \f$ M^{(4)}_{pp} \f$ with the single-particle
-   * building block \f$ M \f$ and the non-interacting Green's function \f$ G_0 \f$ to form the
-   * connected two-particle Green's function in the particle-particle channel.
-   *
-   * @param M4pp_iw The building block \f$ M^{(4)}_{pp}(i\omega) \f$ in the particle-particle channel.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @return The connected two-particle Green's function \f$ G^{(2)}_{pp,conn}(i\omega) \f$.
-   */
+  /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
   chi4_iw_t G2pp_conn_from_M4pp(chi4_iw_t::const_view_type M4pp_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
-
-  /**
-   * @brief Calculate the connected part of \f$ G^{(2)} \f$ in the particle-hole channel.
-   * 
-   * @details Combines the measured building block \f$ M^{(4)}_{ph} \f$ with the single-particle
-   * building block \f$ M \f$ and the non-interacting Green's function \f$ G_0 \f$ to form the
-   * connected two-particle Green's function in the particle-hole channel.
-   *
-   * @param M4ph_iw The building block \f$ M^{(4)}_{ph}(i\omega) \f$ in the particle-hole channel.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @return The connected two-particle Green's function \f$ G^{(2)}_{ph,conn}(i\omega) \f$.
-   */
+  /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
   chi4_iw_t G2ph_conn_from_M4ph(chi4_iw_t::const_view_type M4ph_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
 
-  /**
-   * @brief Calculate the vertex function \f$ F \f$.
-   * 
-   * @details Amputates the external legs of the connected two-particle Green's function with the
-   * interacting Green's function \f$ G \f$ to obtain the full vertex function \f$ F \f$.
-   *
-   * @param G2_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{conn}(i\omega) \f$.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The vertex function \f$ F(i\omega) \f$.
-   */
+  /// Calculate the vertex function $F$ from G2_conn_iw and G_iw
   chi4_iw_t F_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_cv_t G_iw);
-
-  /**
-   * @brief Calculate the vertex function \f$ F \f$ in the particle-particle channel.
-   * 
-   * @details Amputates the external legs of the connected two-particle Green's function in the
-   * particle-particle channel with the interacting Green's function \f$ G \f$.
-   *
-   * @param G2pp_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{pp,conn}(i\omega) \f$ in the particle-particle channel.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The vertex function \f$ F_{pp}(i\omega) \f$.
-   */
+  /// Calculate the vertex function $Fpp$ from G2pp_conn_iw and G_iw
   chi4_iw_t Fpp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_cv_t G_iw);
-
-  /**
-   * @brief Calculate the vertex function \f$ F \f$ in the particle-hole channel.
-   * 
-   * @details Amputates the external legs of the connected two-particle Green's function in the
-   * particle-hole channel with the interacting Green's function \f$ G \f$.
-   *
-   * @param G2ph_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{ph,conn}(i\omega) \f$ in the particle-hole channel.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The vertex function \f$ F_{ph}(i\omega) \f$.
-   */
+  /// Calculate the vertex function $Fph$ from G2ph_conn_iw and G_iw
   chi4_iw_t Fph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
-  /**
-   * @brief Calculate the full two-particle Green's function \f$ G^{(2)} \f$.
-   * 
-   * @details Adds the disconnected contribution, built from the interacting Green's function
-   * \f$ G \f$, to the connected two-particle Green's function.
-   *
-   * @param G2_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{conn}(i\omega) \f$.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The full two-particle Green's function \f$ G^{(2)}(i\omega) \f$.
-   */
+  /// Calculate the two-particle Green function from G2_conn_iw and G_iw
   chi4_iw_t G2_from_G2c(chi4_iw_t::const_view_type G2_conn_iw, g_reg_iw_cv_t G_iw);
-
-  /**
-   * @brief Calculate the full \f$ G^{(2)} \f$ in the particle-particle channel.
-   * 
-   * @details Adds the disconnected contribution, built from the interacting Green's function
-   * \f$ G \f$, to the connected two-particle Green's function in the particle-particle channel.
-   *
-   * @param G2pp_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{pp,conn}(i\omega) \f$ in the particle-particle channel.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The full two-particle Green's function \f$ G^{(2)}_{pp}(i\omega) \f$.
-   */
+  /// Calculate the two-particle Green function from G2pp_conn_iw and G_iw
   chi4_iw_t G2pp_from_G2pp_conn(chi4_iw_t::const_view_type G2pp_conn_iw, g_reg_iw_cv_t G_iw);
-
-  /**
-   * @brief Calculate the full \f$ G^{(2)} \f$ in the particle-hole channel.
-   * 
-   * @details Adds the disconnected contribution, built from the interacting Green's function
-   * \f$ G \f$, to the connected two-particle Green's function in the particle-hole channel.
-   *
-   * @param G2ph_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{ph,conn}(i\omega) \f$ in the particle-hole channel.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The full two-particle Green's function \f$ G^{(2)}_{ph}(i\omega) \f$.
-   */
+  /// Calculate the two-particle Green function from G2ph_conn_iw and G_iw
   chi4_iw_t G2ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
-  /**
-   * @brief Calculate the generalized particle-hole susceptibility.
-   * 
-   * @details Forms the generalized particle-hole susceptibility \f$ \tilde\chi_{ph} \f$ from the
-   * connected two-particle Green's function in the particle-hole channel and the interacting
-   * Green's function \f$ G \f$.
-   *
-   * @param G2ph_conn_iw The connected two-particle Green's function \f$ G^{(2)}_{ph,conn}(i\omega) \f$ in the particle-hole channel.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @return The generalized particle-hole susceptibility \f$ \tilde\chi_{ph}(i\omega) \f$.
-   */
+  /// Calculate the generalized ph susceptibility from G2ph_conn_iw and G_iw
   chi4_iw_t chi_tilde_ph_from_G2ph_conn(chi4_iw_t::const_view_type G2ph_conn_iw, g_reg_iw_cv_t G_iw);
 
-  /// Calculate the \f$ \chi^{(3)} \f$ function from the building blocks \f$ M^{(3)} \f$ and \f$ M \f$.
+  /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw (DLR2D version)
+  template <Chan_t Chan>
+  chi3_dlr2d_iw_t chi3_from_M3(chi3_dlr2d_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G,
+                               block_matrix_t const &M_hartree) {
+
+    double beta  = M_iw[0].mesh().beta();
+    int n_blocks = M_iw.size();
+
+    // Verify that input Green's function meshes cover all DLR2D frequencies
+    long n_iw_G0 = static_cast<long>(G0_iw[0].mesh().size()) / 2;
+    long max_n   = M3_iw(0, 0).mesh().max_n();
+    if (max_n >= n_iw_G0)
+      TRIQS_RUNTIME_ERROR << "chi3_from_M3: G0_iw mesh (n_iw=" << n_iw_G0
+                          << ") does not cover all DLR2D mesh frequencies (max_n=" << max_n << ")";
+
+    // Connected part of M3
+    chi3_dlr2d_iw_t M3_iw_conn = M3_iw;
+
+    // Connected part of chi3
+    chi3_dlr2d_iw_t chi3_iw = M3_iw;
+    chi3_iw()               = 0.;
+
+    // Temporary quantities
+    g_reg_iw_t GM   = G0_iw * M_iw;
+    g_reg_iw_t MG   = M_iw * G0_iw;
+    g_reg_iw_t GMG  = G0_iw * M_iw * G0_iw;
+    g_reg_iw_t G_iw = G0_iw + G0_iw * M_iw * G0_iw;
+
+    for (int bl1 : range(n_blocks))
+      for (int bl2 : range(n_blocks)) {
+
+        // Capture block-sizes
+        int bl1_size = M3_iw(bl1, bl2).target_shape()[0];
+        int bl2_size = M3_iw(bl1, bl2).target_shape()[2];
+
+        if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
+
+          // Loop over DLR2D mesh points
+          for (auto mp : M3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3_iw_conn(bl1, bl2)[mp](i, j, k, l) =
+                       M3_iw(bl1, bl2)[mp](i, j, k, l) - GM[bl1][iw1](j, i) * GM[bl2][iw2](l, k) + kronecker(bl1, bl2) * GM[bl1][iw1](l, i) * GM[bl2][iw2](j, k);
+                  }
+          }
+
+          for (auto mp : chi3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    for (int m : range(bl1_size))
+                      for (int n : range(bl2_size))
+                        chi3_iw(bl1, bl2)[mp](i, j, k, l) += G0_iw[bl1][iw1](m, i) * G0_iw[bl2][iw2](n, k) * M3_iw_conn(bl1, bl2)[mp](m, j, n, l);
+                    // Disconnected part
+                    chi3_iw(bl1, bl2)[mp](i, j, k, l) +=
+                       G_iw[bl1][iw1](j, i) * G_iw[bl2][iw2](l, k) - kronecker(bl1, bl2) * G_iw[bl1][iw1](l, i) * G_iw[bl2][iw2](j, k);
+                  }
+          }
+
+        } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
+
+          auto km_GMG = make_zero_tail(GMG, 3);
+          for (auto [km_bl, M_hartree_bl] : zip(km_GMG, M_hartree)) km_bl(2, ellipsis()) = M_hartree_bl;
+          auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
+          auto dens_GMG = density(GMG, tail_GMG);
+
+          // Loop over DLR2D mesh points
+          for (auto mp : M3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    M3_iw_conn(bl1, bl2)[mp](i, j, k, l) = M3_iw(bl1, bl2)[mp](i, j, k, l)
+                       - beta * kronecker(iw1.n, iw2.n) * M_iw[bl1][iw1](j, i) * dens_GMG[bl2](l, k)
+                       + kronecker(bl1, bl2) * GM[bl1][iw1](l, i) * MG[bl2][iw2](j, k);
+                  }
+          }
+
+          for (auto mp : chi3_iw(bl1, bl2).mesh()) {
+            auto [iw1, iw2] = mp.value();
+            for (int i : range(bl1_size))
+              for (int j : range(bl1_size))
+                for (int k : range(bl2_size))
+                  for (int l : range(bl2_size)) {
+                    for (int m : range(bl1_size))
+                      for (int n : range(bl1_size))
+                        chi3_iw(bl1, bl2)[mp](i, j, k, l) += G0_iw[bl1][iw1](m, i) * G0_iw[bl1][iw2](j, n) * M3_iw_conn(bl1, bl2)[mp](m, n, k, l);
+                    // Disconnected part
+                    chi3_iw(bl1, bl2)[mp](i, j, k, l) +=
+                       beta * kronecker(iw1.n, iw2.n) * G_iw[bl1][iw1](j, i) * dens_G[bl2](l, k) - kronecker(bl1, bl2) * G_iw[bl1][iw1](l, i) * G_iw[bl2][iw2](j, k);
+                  }
+          }
+        }
+      }
+
+    return chi3_iw;
+  }
+
+  /// Calculate the $\chi_3$ function from the building blocks M3_iw and M_iw
   template <Chan_t Chan>
   chi3_iw_t chi3_from_M3(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G, block_matrix_t const &M_hartree) {
 
@@ -165,17 +166,17 @@ namespace triqs_ctint {
 
         if constexpr (Chan == Chan_t::PP) { // =====  Particle-particle channel
 
-          M3_iw_conn(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                - GM[bl1](iw_)(j_, i_) * GM[bl2](iW_ - iw_)(l_, k_) + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * GM[bl2](iW_ - iw_)(j_, k_);
+          M3_iw_conn(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                - GM[bl1](iw1_)(j_, i_) * GM[bl2](iw2_)(l_, k_) + kronecker(bl1, bl2) * GM[bl1](iw1_)(l_, i_) * GM[bl2](iw2_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl2_size))
-              chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ - iw_)(n, k_) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, j_, n, l_);
+              chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                    + G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw2_)(n, k_) * M3_iw_conn(bl1, bl2)(iw1_, iw2_)(m, j_, n, l_);
 
           // Disconnected part
-          chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                + G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ - iw_)(l_, k_) - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ - iw_)(j_, k_);
+          chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                + G_iw[bl1](iw1_)(j_, i_) * G_iw[bl2](iw2_)(l_, k_) - kronecker(bl1, bl2) * G_iw[bl1](iw1_)(l_, i_) * G_iw[bl2](iw2_)(j_, k_);
 
         } else if constexpr (Chan == Chan_t::PH) { // ===== Particle-hole channel
 
@@ -184,19 +185,19 @@ namespace triqs_ctint {
           auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
           auto dens_GMG = density(GMG, tail_GMG);
 
-          M3_iw_conn(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                - beta * kronecker(iW_) * M_iw[bl1](iw_)(j_, i_) * dens_GMG[bl2](l_, k_)
-                + kronecker(bl1, bl2) * GM[bl1](iw_)(l_, i_) * MG[bl2](iW_ + iw_)(j_, k_);
+          M3_iw_conn(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                - beta * kronecker(iw1_, iw2_) * M_iw[bl1](iw1_)(j_, i_) * dens_GMG[bl2](l_, k_)
+                + kronecker(bl1, bl2) * GM[bl1](iw1_)(l_, i_) * MG[bl2](iw2_)(j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl1_size))
-              chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl1](iW_ + iw_)(j_, n) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, n, k_, l_);
+              chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                    + G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl1](iw2_)(j_, n) * M3_iw_conn(bl1, bl2)(iw1_, iw2_)(m, n, k_, l_);
 
           // Disconnected part
-          chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                + beta * kronecker(iW_) * G_iw[bl1](iw_)(j_, i_) * dens_G[bl2](l_, k_)
-                - kronecker(bl1, bl2) * G_iw[bl1](iw_)(l_, i_) * G_iw[bl2](iW_ + iw_)(j_, k_);
+          chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                + beta * kronecker(iw1_, iw2_) * G_iw[bl1](iw1_)(j_, i_) * dens_G[bl2](l_, k_)
+                - kronecker(bl1, bl2) * G_iw[bl1](iw1_)(l_, i_) * G_iw[bl2](iw2_)(j_, k_);
         } else if constexpr (Chan == Chan_t::XPH) { // ===== Particle-hole-cross channel
 
           auto km_GMG = make_zero_tail(GMG, 3);
@@ -204,26 +205,26 @@ namespace triqs_ctint {
           auto tail_GMG = fit_hermitian_tail(GMG, km_GMG).first;
           auto dens_GMG = density(GMG, tail_GMG);
 
-          M3_iw_conn(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                - GM[bl1](iw_)(j_, i_) * MG[bl2](iW_ + iw_)(l_, k_)
-                + kronecker(bl1, bl2) * beta * kronecker(iW_) * M_iw[bl1](iw_)(l_, i_) * dens_GMG[bl2](j_, k_);
+          M3_iw_conn(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << M3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                - GM[bl1](iw1_)(j_, i_) * MG[bl2](iw2_)(l_, k_)
+                + kronecker(bl1, bl2) * beta * kronecker(iw1_, iw2_) * M_iw[bl1](iw1_)(l_, i_) * dens_GMG[bl2](j_, k_);
 
           for (int m : range(bl1_size))
             for (int n : range(bl1_size))
-              chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                    + G0_iw[bl1](iw_)(m, i_) * G0_iw[bl2](iW_ + iw_)(l_, n) * M3_iw_conn(bl1, bl2)(iW_, iw_)(m, j_, k_, n);
+              chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                    + G0_iw[bl1](iw1_)(m, i_) * G0_iw[bl2](iw2_)(l_, n) * M3_iw_conn(bl1, bl2)(iw1_, iw2_)(m, j_, k_, n);
 
           // Disconnected part
-          chi3_iw(bl1, bl2)(iW_, iw_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iW_, iw_](i_, j_, k_, l_)
-                + G_iw[bl1](iw_)(j_, i_) * G_iw[bl2](iW_ + iw_)(l_, k_)
-                - kronecker(bl1, bl2) * beta * kronecker(iW_) * G_iw[bl1](iw_)(l_, i_) * dens_GMG[bl2](j_, k_);
+          chi3_iw(bl1, bl2)(iw1_, iw2_)(i_, j_, k_, l_) << chi3_iw(bl1, bl2)[iw1_, iw2_](i_, j_, k_, l_)
+                + G_iw[bl1](iw1_)(j_, i_) * G_iw[bl2](iw2_)(l_, k_)
+                - kronecker(bl1, bl2) * beta * kronecker(iw1_, iw2_) * G_iw[bl1](iw1_)(l_, i_) * dens_GMG[bl2](j_, k_);
         }
       }
 
     return chi3_iw;
   }
 
-  // Calculate the chi^{(2)} function from the building blocks chi2_conn_tau and M_iw
+  // Calculate the $\chi_2$ function from the building blocks chi2_conn_tau and M_iw
   template <Chan_t Chan> chi2_tau_t chi2_from_chi2_conn(chi2_tau_cv_t chi2_tau_conn, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
 
     double beta  = G_iw[0].mesh().beta();
@@ -270,7 +271,7 @@ namespace triqs_ctint {
     return chi2_tau;
   }
 
-  // Calculate the chi_{AB} function from chi2_tau and the operator lists A and B
+  // Calculate the $\chi_2$ function from the building blocks chi2_conn_tau and M_iw
   template <Chan_t Chan>
   gf<imtime, matrix_valued> chiAB_from_chi2(chi2_tau_cv_t chi2_tau, gf_struct_t const &gf_struct, std::vector<many_body_operator> const &A_op_vec,
                                             std::vector<many_body_operator> const &B_op_vec) {
@@ -610,149 +611,35 @@ namespace triqs_ctint {
     return chi2_conn;
   }
 
-  // Non-template wrappers exposing the channel-specific instantiations to Python.
-
-  /**
-   * @brief Calculate the three-point correlator \f$ \chi^{(3)} \f$ in the particle-particle channel.
-   * 
-   * @details Forms \f$ \chi^{(3)}_{pp} \f$ from the measured building block \f$ M^{(3)} \f$, the
-   * single-particle building block \f$ M \f$, the non-interacting Green's function \f$ G_0 \f$, the
-   * density obtained from \f$ G \f$, and the Hartree term of \f$ M \f$.
-   *
-   * @param M3_iw The building block \f$ M^{(3)}(i\omega) \f$.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @param dens_G The density obtained from the interacting Green's function \f$ G \f$.
-   * @param M_hartree The Hartree term of \f$ M \f$.
-   * @return The three-point correlator \f$ \chi^{(3)}_{pp}(i\omega) \f$ in the particle-particle channel.
-   */
+  // For wrapping purposes
   inline chi3_iw_t chi3_from_M3_PP(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G,
                                    block_matrix_t const &M_hartree) {
     return chi3_from_M3<Chan_t::PP>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
-
-  /**
-   * @brief Calculate the three-point correlator \f$ \chi^{(3)} \f$ in the particle-hole channel.
-   * 
-   * @details Forms \f$ \chi^{(3)}_{ph} \f$ from the measured building block \f$ M^{(3)} \f$, the
-   * single-particle building block \f$ M \f$, the non-interacting Green's function \f$ G_0 \f$, the
-   * density obtained from \f$ G \f$, and the Hartree term of \f$ M \f$.
-   *
-   * @param M3_iw The building block \f$ M^{(3)}(i\omega) \f$.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @param dens_G The density obtained from the interacting Green's function \f$ G \f$.
-   * @param M_hartree The Hartree term of \f$ M \f$.
-   * @return The three-point correlator \f$ \chi^{(3)}_{ph}(i\omega) \f$ in the particle-hole channel.
-   */
   inline chi3_iw_t chi3_from_M3_PH(chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t const &dens_G,
                                    block_matrix_t const &M_hartree) {
     return chi3_from_M3<Chan_t::PH>(M3_iw, M_iw, G0_iw, dens_G, M_hartree);
   }
-
-  /**
-   * @brief Calculate the two-point correlator \f$ \chi^{(2)} \f$ in the particle-particle channel.
-   * 
-   * @details Adds the disconnected contribution, built from the interacting Green's function
-   * \f$ G \f$ and the density, to the connected \f$ \chi^{(2)} \f$ in imaginary time.
-   *
-   * @param chi2_conn_tau The connected correlator \f$ \chi^{(2)}_{conn}(\tau) \f$ in imaginary time.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @param dens_G The density obtained from the interacting Green's function \f$ G \f$.
-   * @return The two-point correlator \f$ \chi^{(2)}_{pp}(\tau) \f$ in the particle-particle channel.
-   */
   inline chi2_tau_t chi2_from_chi2_conn_PP(chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
     return chi2_from_chi2_conn<Chan_t::PP>(chi2_conn_tau, G_iw, dens_G);
   }
-
-  /**
-   * @brief Calculate the two-point correlator \f$ \chi^{(2)} \f$ in the particle-hole channel.
-   * 
-   * @details Adds the disconnected contribution, built from the interacting Green's function
-   * \f$ G \f$ and the density, to the connected \f$ \chi^{(2)} \f$ in imaginary time.
-   *
-   * @param chi2_conn_tau The connected correlator \f$ \chi^{(2)}_{conn}(\tau) \f$ in imaginary time.
-   * @param G_iw The interacting Green's function \f$ G(i\omega) \f$.
-   * @param dens_G The density obtained from the interacting Green's function \f$ G \f$.
-   * @return The two-point correlator \f$ \chi^{(2)}_{ph}(\tau) \f$ in the particle-hole channel.
-   */
   inline chi2_tau_t chi2_from_chi2_conn_PH(chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t const &dens_G) {
     return chi2_from_chi2_conn<Chan_t::PH>(chi2_conn_tau, G_iw, dens_G);
   }
-
-  /**
-   * @brief Calculate the operator-pair correlation function \f$ \chi_{AB} \f$ in the particle-particle channel.
-   * 
-   * @details Contracts the two-point correlator \f$ \chi^{(2)}_{pp} \f$ with the operator pairs
-   * \f$ A \f$ and \f$ B \f$ to form \f$ \chi_{AB}(\tau) \f$.
-   *
-   * @param chi2pp_tau The two-point correlator \f$ \chi^{(2)}_{pp}(\tau) \f$ in the particle-particle channel.
-   * @param gf_struct The block structure of the Green's function.
-   * @param A_op_vec The list of operators \f$ A \f$.
-   * @param B_op_vec The list of operators \f$ B \f$.
-   * @return The operator-pair correlation function \f$ \chi_{AB}(\tau) \f$.
-   */
   inline gf<imtime, matrix_valued> chiAB_from_chi2_PP(chi2_tau_cv_t chi2pp_tau, gf_struct_t const &gf_struct,
                                                       std::vector<many_body_operator> const &A_op_vec,
                                                       std::vector<many_body_operator> const &B_op_vec) {
     return chiAB_from_chi2<Chan_t::PP>(chi2pp_tau, gf_struct, A_op_vec, B_op_vec);
   }
-
-  /**
-   * @brief Calculate the operator-pair correlation function \f$ \chi_{AB} \f$ in the particle-hole channel.
-   * 
-   * @details Contracts the two-point correlator \f$ \chi^{(2)}_{ph} \f$ with the operator pairs
-   * \f$ A \f$ and \f$ B \f$ to form \f$ \chi_{AB}(\tau) \f$.
-   *
-   * @param chi2ph_tau The two-point correlator \f$ \chi^{(2)}_{ph}(\tau) \f$ in the particle-hole channel.
-   * @param gf_struct The block structure of the Green's function.
-   * @param A_op_vec The list of operators \f$ A \f$.
-   * @param B_op_vec The list of operators \f$ B \f$.
-   * @return The operator-pair correlation function \f$ \chi_{AB}(\tau) \f$.
-   */
   inline gf<imtime, matrix_valued> chiAB_from_chi2_PH(chi2_tau_cv_t chi2ph_tau, gf_struct_t const &gf_struct,
                                                       std::vector<many_body_operator> const &A_op_vec,
                                                       std::vector<many_body_operator> const &B_op_vec) {
     return chiAB_from_chi2<Chan_t::PH>(chi2ph_tau, gf_struct, A_op_vec, B_op_vec);
   }
-
-  /**
-   * @brief Calculate the connected two-point correlator \f$ \chi^{(2)}_{conn} \f$ in the particle-particle channel from \f$ M^{(3)} \f$.
-   * 
-   * @details Forms the connected \f$ \chi^{(2)} \f$ in imaginary time from the measured building
-   * block \f$ M^{(3)}(\tau) \f$ and its equal-time peak, together with the single-particle quantities
-   * \f$ M \f$, \f$ G_0 \f$, and the Hartree term of \f$ M \f$.
-   *
-   * @param M3pp_tau The building block \f$ M^{(3)}_{pp}(\tau) \f$ in the particle-particle channel.
-   * @param M3pp_delta The equal-time peak of \f$ M^{(3)}_{pp}(\tau) \f$.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @param M_tau The building block \f$ M(\tau) \f$ in imaginary time.
-   * @param M_hartree The Hartree term of \f$ M \f$.
-   * @param G0_tau The non-interacting Green's function \f$ G_0(\tau) \f$ in imaginary time.
-   * @return The connected two-point correlator \f$ \chi^{(2)}_{pp,conn}(\tau) \f$ in the particle-particle channel.
-   */
   inline chi2_tau_t chi2_conn_from_M3_PP(chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                          block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
     return chi2_conn_from_M3<Chan_t::PP>(M3pp_tau, M3pp_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);
   }
-
-  /**
-   * @brief Calculate the connected two-point correlator \f$ \chi^{(2)}_{conn} \f$ in the particle-hole channel from \f$ M^{(3)} \f$.
-   * 
-   * @details Forms the connected \f$ \chi^{(2)} \f$ in imaginary time from the measured building
-   * block \f$ M^{(3)}(\tau) \f$ and its equal-time peak, together with the single-particle quantities
-   * \f$ M \f$, \f$ G_0 \f$, and the Hartree term of \f$ M \f$.
-   *
-   * @param M3ph_tau The building block \f$ M^{(3)}_{ph}(\tau) \f$ in the particle-hole channel.
-   * @param M3ph_delta The equal-time peak of \f$ M^{(3)}_{ph}(\tau) \f$.
-   * @param M_iw The building block \f$ M(i\omega) \f$.
-   * @param G0_iw The non-interacting Green's function \f$ G_0(i\omega) \f$.
-   * @param M_tau The building block \f$ M(\tau) \f$ in imaginary time.
-   * @param M_hartree The Hartree term of \f$ M \f$.
-   * @param G0_tau The non-interacting Green's function \f$ G_0(\tau) \f$ in imaginary time.
-   * @return The connected two-point correlator \f$ \chi^{(2)}_{ph,conn}(\tau) \f$ in the particle-hole channel.
-   */
   inline chi2_tau_t chi2_conn_from_M3_PH(chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau,
                                          block_matrix_t const &M_hartree, g_tau_cv_t G0_tau) {
     return chi2_conn_from_M3<Chan_t::PH>(M3ph_tau, M3ph_delta, M_iw, G0_iw, M_tau, M_hartree, G0_tau);

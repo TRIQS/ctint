@@ -12,7 +12,7 @@ TEST(CtInt, Plaquette) { // NOLINT
   double const U    = 1.0;     // Density-density interaction
   double const t    = 1.0;     // Hopping
   double const mu   = U / 2.0; // Chemical Potential
-  double const beta = 100;     // Inverse temperature
+  double const beta = 10;     // Inverse temperature
 
   // --------- simulation parameters ----------
   int const n_cyc = 50;

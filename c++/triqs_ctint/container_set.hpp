@@ -9,194 +9,194 @@
 
 namespace triqs_ctint {
 
-  /// Container for all (optional) quantities measured and post-processed by the solver.
+  /// The set of all (optional) measurement containers in solver_core
   struct container_set {
 
     //============ Containers for measurements
 
-    /// Average Monte-Carlo sign.
+    /// Average sign of the CTINT
     mc_weight_t average_sign;
 
-    /// Total number of measurements.
+    /// Total number of measures
     uint64_t nmeasures;
 
-    /// Average perturbation order.
+    /// Average perturbation order
     double average_k;
 
-    /// Error bar on the average sign.
+    /// Error bar for average sign
     std::optional<double> average_sign_error;
 
-    /// Error bar on the average perturbation order.
+    /// Error bar for average perturbation order
     std::optional<double> average_k_error;
 
-    /// Auto-correlation time.
+    /// Auto-correlation time
     double auto_corr_time;
 
-    /// Warmup time in seconds.
+    /// Warmup time in seconds
     double warmup_time;
 
-    /// Accumulation time in seconds.
+    /// Accumulation time in seconds
     double accumulation_time;
 
-    /// Perturbation-order distribution.
+    /// Average perturbation order distribution
     std::optional<std::vector<double>> histogram;
 
-    /// The density (measured by operator insertion).
+    /// The density matrix (measured by operator insertion)
     std::optional<block_matrix_t> density;
 
-    /// Building block for the Green's function in imaginary time \f$ M(\tau) \f$.
+    /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
 
-    /// Hartree term of \f$ M(\tau) \f$.
+    /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;
 
-    /// Same as \f$ M(\tau) \f$, but measured directly in Matsubara frequencies using NFFT on the DLR grid.
+    /// Same as M_tau, but measured directly in Matsubara frequencies using NFFT on DLR grid
     std::optional<g_dlr_iw_t> M_iw_nfft;
 
-    /// Building block \f$ M^{(4)}(i\omega) \f$ for the full vertex, measured in Matsubara frequencies using NFFT.
+    /// Building block for the full vertex function measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4_iw;
 
-    /// Building block \f$ M^{(4)}_{pp}(i\omega) \f$ (particle-particle channel) for the full vertex, measured using NFFT.
+    /// Building block for the full vertex function (pp channel) measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4pp_iw;
 
-    /// Building block \f$ M^{(4)}_{ph}(i\omega) \f$ (particle-hole channel) for the full vertex, measured using NFFT.
+    /// Building block for the full vertex function (ph channel) measured directly in Matsubara frequencies using NFFT
     std::optional<chi4_iw_t> M4ph_iw;
 
-    /// Building block \f$ M^{(3)}_{pp}(i\omega) \f$ (particle-particle channel) for the fermion-boson vertex, measured using NFFT.
-    std::optional<chi3_iw_t> M3pp_iw_nfft;
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> M3pp_iw_nfft;
 
-    /// Building block \f$ M^{(3)}_{ph}(i\omega) \f$ (particle-hole channel) for the fermion-boson vertex, measured using NFFT.
-    std::optional<chi3_iw_t> M3ph_iw_nfft;
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> M3ph_iw_nfft;
 
-    /// Building block \f$ M^{(3)}_{pp}(\tau) \f$ (particle-particle channel) for the fermion-boson vertex in imaginary time.
+    /// Building block for the fermion boson vertex (pp channel) in imaginary time
     std::optional<chi3_tau_t> M3pp_tau;
 
-    /// Building block \f$ M^{(3)}_{ph}(\tau) \f$ (particle-hole channel) for the fermion-boson vertex in imaginary time.
+    /// Building block for the fermion boson vertex (ph channel) in imaginary time
     std::optional<chi3_tau_t> M3ph_tau;
 
-    /// Building block \f$ M^{(3)}_{xph}(\tau) \f$ (particle-hole-cross channel) for the fermion-boson vertex in imaginary time.
+    /// Building block for the fermion boson vertex (xph channel) in imaginary time
     std::optional<chi3_tau_t> M3xph_tau;
 
-    /// Equal-time peak of \f$ M^{(3)}_{pp}(\tau) \f$.
+    /// Equal-time peak in M3pp_tau
     std::optional<chi2_tau_t> M3pp_delta;
 
-    /// Equal-time peak of \f$ M^{(3)}_{ph}(\tau) \f$.
+    /// Equal-time peak in M3ph_tau
     std::optional<chi2_tau_t> M3ph_delta;
 
-    /// Equal-time peak of \f$ M^{(3)}_{xph}(\tau) \f$.
+    /// Equal-time peak in M3ph_tau
     std::optional<chi2_tau_t> M3xph_delta;
 
-    /// Correlator \f$ \chi^{(2)}_{pp}(\tau) \f$ (particle-particle channel) in imaginary time, obtained by operator insertion.
+    /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary times as obtained by operator insertion
     std::optional<chi2_tau_t> chi2pp_tau;
 
-    /// Correlator \f$ \chi^{(2)}_{ph}(\tau) \f$ (particle-hole channel) in imaginary time, obtained by operator insertion.
+    /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained by operator insertion
     std::optional<chi2_tau_t> chi2ph_tau;
 
-    /// Correlation function \f$ \chi_{AB}(\tau) \f$ in imaginary time.
+    /// The correlation function $\chi_AB$ in imaginary times
     std::optional<gf<imtime>> chiAB_tau;
 
     //============ Containers dependent on measured quantities
 
-    /// Fourier transform of \f$ M(\tau) \f$.
+    /// The Fourier-transform of M_tau. Dependent on M_tau
     std::optional<g_iw_t> M_iw;
 
-    /// Green's function \f$ G(i\omega) \f$ in Matsubara frequencies.
+    /// Greens function in Matsubara frequencies (Eq. (18) in Notes). Dependent on M_iw
     g_iw_t G_iw;
 
-    /// Dynamic self-energy \f$ \Sigma_{dyn}(i\omega) \f$ in Matsubara frequencies (DLR, decays to zero).
+    /// Dynamic self-energy in Matsubara frequencies (DLR, decays to zero). Dependent on M_iw
     g_iw_t Sigma_dyn_iw;
 
-    /// Static (Hartree) part of the self-energy, \f$ \Sigma = \Sigma_{dyn} + \Sigma_{hartree} \f$.
+    /// Static (Hartree) part of the self-energy. Sigma = Sigma_dyn + Sigma_hartree
     std::optional<block_matrix_t> Sigma_hartree;
 
-    /// Building block \f$ M^{(3)}_{pp}(i\omega) \f$ (particle-particle channel) for the fermion-boson vertex in Matsubara frequencies.
+    /// Building block for the fermion boson vertex (pp channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3pp_iw;
 
-    /// Building block \f$ M^{(3)}_{ph}(i\omega) \f$ (particle-hole channel) for the fermion-boson vertex in Matsubara frequencies.
+    /// Building block for the fermion boson vertex (ph channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3ph_iw;
 
-    /// Building block \f$ M^{(3)}_{xph}(i\omega) \f$ (particle-hole-cross channel) for the fermion-boson vertex in Matsubara frequencies.
+    /// Building block for the fermion boson vertex (xph channel) in Matsubara frequencies
     std::optional<chi3_iw_t> M3xph_iw;
 
-    /// The two-particle vertex function \f$ F \f$ in purely fermionic notation.
+    /// The two-particle vertex function in purely fermionic notation (iw1, iw2, iw3)
     std::optional<chi4_iw_t> F_iw;
 
-    /// The two-particle vertex function \f$ F \f$ (particle-particle channel).
+    /// The two-particle vertex function (pp channel)
     std::optional<chi4_iw_t> Fpp_iw;
 
-    /// The two-particle vertex function \f$ F \f$ (particle-hole channel).
+    /// The two-particle vertex function (ph channel)
     std::optional<chi4_iw_t> Fph_iw;
 
-    /// Connected part of the two-particle Green's function \f$ G^{(2)} \f$.
+    /// The connected part of the two-particle Green function
     std::optional<chi4_iw_t> G2_conn_iw;
 
-    /// Connected part of the two-particle Green's function \f$ G^{(2)} \f$ (particle-particle channel).
+    /// The connected part of the two-particle Green function (pp channel)
     std::optional<chi4_iw_t> G2pp_conn_iw;
 
-    /// Connected part of the two-particle Green's function \f$ G^{(2)} \f$ (particle-hole channel).
+    /// The connected part of the two-particle Green function (ph channel)
     std::optional<chi4_iw_t> G2ph_conn_iw;
 
-    /// The two-particle Green's function \f$ G^{(2)} \f$.
+    /// The two-particle Green function
     std::optional<chi4_iw_t> G2_iw;
 
-    /// The two-particle Green's function \f$ G^{(2)} \f$ (particle-particle channel).
+    /// The two-particle Green function (pp channel)
     std::optional<chi4_iw_t> G2pp_iw;
 
-    /// The two-particle Green's function \f$ G^{(2)} \f$ (particle-hole channel).
+    /// The two-particle Green function (ph channel)
     std::optional<chi4_iw_t> G2ph_iw;
 
-    /// Correlator \f$ \chi^{(2)}_{pp}(i\omega) \f$ (particle-particle channel) in Matsubara frequencies.
+    /// The equal time correlator $\chi_2$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi2_iw_t> chi2pp_iw;
 
-    /// Correlator \f$ \chi^{(2)}_{ph}(i\omega) \f$ (particle-hole channel) in Matsubara frequencies.
+    /// The equal time correlator $\chi_2$ in the particle-hole channel in Matsubara frequencies
     std::optional<chi2_iw_t> chi2ph_iw;
 
-    /// Connected \f$ \chi^{(2)} \f$ (particle-particle channel) in imaginary time, obtained from \f$ M^{(3)} \f$.
+    /// M2 in the particle-particle channel in imaginary time as obtained from M3
     std::optional<chi2_tau_t> chi2pp_conn_tau_from_M3;
 
-    /// Connected \f$ \chi^{(2)} \f$ (particle-hole channel) in imaginary time, obtained from \f$ M^{(3)} \f$.
+    /// M2 in the particle-hole channel in imaginary time as obtained from M3
     std::optional<chi2_tau_t> chi2ph_conn_tau_from_M3;
 
-    /// Connected \f$ \chi^{(2)} \f$ (particle-hole-cross channel) in imaginary time, obtained from \f$ M^{(3)} \f$.
+    /// M2 in the particle-hole-cross channel in imaginary time as obtained from M3
     std::optional<chi2_tau_t> chi2xph_conn_tau_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{pp}(\tau) \f$ (particle-particle channel), obtained from \f$ M^{(3)}_{pp}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary times as obtained from M3pp_tau
     std::optional<chi2_tau_t> chi2pp_tau_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{ph}(\tau) \f$ (particle-hole channel), obtained from \f$ M^{(3)}_{ph}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained from M3ph_tau
     std::optional<chi2_tau_t> chi2ph_tau_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{xph}(\tau) \f$ (particle-hole-cross channel), obtained from \f$ M^{(3)}_{xph}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary times as obtained from M3ph_tau
     std::optional<chi2_tau_t> chi2xph_tau_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{pp}(i\omega) \f$ (particle-particle channel), obtained from \f$ M^{(3)}_{pp}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-particle channel in imaginary frequencies as obtained from M3pp_tau
     std::optional<chi2_iw_t> chi2pp_iw_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{ph}(i\omega) \f$ (particle-hole channel), obtained from \f$ M^{(3)}_{ph}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau
     std::optional<chi2_iw_t> chi2ph_iw_from_M3;
 
-    /// Correlator \f$ \chi^{(2)}_{xph}(i\omega) \f$ (particle-hole-cross channel), obtained from \f$ M^{(3)}_{xph}(\tau) \f$.
+    /// The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau
     std::optional<chi2_iw_t> chi2xph_iw_from_M3;
 
-    /// Correlation function \f$ \chi_{AB}(i\omega) \f$ in Matsubara frequencies.
+    /// The correlation function $\chi_AB$ in imaginary frequencies
     std::optional<gf<imfreq>> chiAB_iw;
 
-    /// Correlator \f$ \chi^{(3)}_{pp}(i\omega) \f$ (particle-particle channel) in Matsubara frequencies.
+    /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;
 
-    /// Correlator \f$ \chi^{(3)}_{ph}(i\omega) \f$ (particle-hole channel) in Matsubara frequencies.
+    /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3ph_iw;
 
-    /// Correlator \f$ \chi^{(3)}_{xph}(i\omega) \f$ (particle-hole-cross channel) in Matsubara frequencies.
+    /// The equal time correlator $\chi_3$ in the particle-hole-cross channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3xph_iw;
 
-    /// Correlator \f$ \chi^{(3)}_{pp}(i\omega) \f$ (particle-particle channel), obtained from the NFFT \f$ M^{(3)} \f$ measurement.
-    std::optional<chi3_iw_t> chi3pp_iw_nfft;
+    /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> chi3pp_iw_nfft;
 
-    /// Correlator \f$ \chi^{(3)}_{ph}(i\omega) \f$ (particle-hole channel), obtained from the NFFT \f$ M^{(3)} \f$ measurement.
-    std::optional<chi3_iw_t> chi3ph_iw_nfft;
+    /// The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid
+    std::optional<chi3_dlr2d_iw_t> chi3ph_iw_nfft;
 
-    /// Function that writes all containers to hdf5 file.
+    /// Function that writes all containers to hdf5 file
     friend void h5_write(h5::group h5group, std::string subgroup_name, container_set const &c) {
       auto grp = h5group.create_group(subgroup_name);
       h5_write(grp, "average_sign", c.average_sign);
@@ -261,7 +261,7 @@ namespace triqs_ctint {
       h5_write(grp, "chi3ph_iw_nfft", c.chi3ph_iw_nfft);
     }
 
-    /// Function that reads all containers from hdf5 file.
+    /// Function that reads all containers from hdf5 file
     friend void h5_read(h5::group h5group, std::string subgroup_name, container_set &c) {
       auto grp = h5group.open_group(subgroup_name);
       h5_read(grp, "average_sign", c.average_sign);

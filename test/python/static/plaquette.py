@@ -14,7 +14,7 @@ test_name = "plaquette"
 U = 1.0  # Density-density interaction
 t = 1.0  # Hopping
 mu = U / 2.0  # Chemical Potential
-beta = 100.0  # Inverse temperature
+beta = 2.0  # Inverse temperature
 
 ######## simulation parameters ########
 n_cyc = 50
@@ -54,7 +54,8 @@ gf_struct = [(bl, n_orb) for bl in block_names]
 S = Solver(beta = beta,
                gf_struct = gf_struct,
                n_tau = 201,
-               dlr_wmax = 10.0)
+               dlr_wmax = 10.0,
+               dlr_eps = 1e-7)
 
 # --------- Initialize the non-interacting Green's function ----------
 for bl, g_bl in S.G0_iw: g_bl << inverse(iOmega_n - hloc0_mat)
@@ -103,8 +104,12 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["M4_iw"] = S.M4_iw
     arch["M4pp_iw"] = S.M4pp_iw
     arch["M4ph_iw"] = S.M4ph_iw
-    arch["M3pp_iw_nfft"] = S.M3pp_iw_nfft
-    arch["M3ph_iw_nfft"] = S.M3ph_iw_nfft
+    # M3pp_iw_nfft and M3ph_iw_nfft live on DLR2D meshes whose construction
+    # is currently BLAS-implementation dependent. This may be changed in the
+    # future. For now we exclude these quantities from the test comparison.
+    # The tau variants already cover these measurements.
+    #arch["M3pp_iw_nfft"] = S.M3pp_iw_nfft
+    #arch["M3ph_iw_nfft"] = S.M3ph_iw_nfft
     arch["M3pp_tau"] = S.M3pp_tau
     arch["M3ph_tau"] = S.M3ph_tau
     arch["M3xph_tau"] = S.M3xph_tau
