@@ -13,7 +13,7 @@ namespace triqs_ctint::measures {
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$
   *
-  * $M^3$ is the essential building block for the fermion-boson verticies
+  * $M^3$ is the essential building block for the fermion-boson vertices
   */
   struct M3ph_iw {
 
@@ -26,7 +26,7 @@ namespace triqs_ctint::measures {
     M3ph_iw &operator=(M3ph_iw const &) = delete;
     M3ph_iw &operator=(M3ph_iw &&)      = delete;
 
-    /// Accumulate M_tau using binning
+    /// Accumulate M3ph measurement
     void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
@@ -40,7 +40,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<prod<imfreq, imfreq>, tensor_valued<4>> M3ph_iw_;
+    chi3_dlr2d_iw_v_t M3ph_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;
@@ -53,8 +53,11 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix in the measurement of M3ph
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
+    // Intermediate scattering matrix M on DLR2D mesh (type3 NFFT)
+    block_gf<dlr2d_imfreq, matrix_valued> M;
+    std::vector<std::array<mesh::matsubara_freq, 2>> target_mf_M;
+
+    // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
     block_gf<imfreq, matrix_valued> GM;
     block_gf<imfreq, matrix_valued> MG;
     array<array<dcomplex, 2>, 1> GMG;

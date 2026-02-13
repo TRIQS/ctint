@@ -117,6 +117,15 @@ namespace triqs_ctint {
   /// A const_view to a chi3_iw_t
   using chi3_iw_cv_t = chi3_iw_t::const_view_type;
 
+  /// Container type of $\chi_3$ in Matsubara frequencies on 2D DLR grid
+  using chi3_dlr2d_iw_t = block2_gf<mesh::dlr2d_imfreq, tensor_valued<4>>;
+
+  /// A view to a chi3_dlr2d_iw_t
+  using chi3_dlr2d_iw_v_t = chi3_dlr2d_iw_t::view_type;
+
+  /// A const_view to a chi3_dlr2d_iw_t
+  using chi3_dlr2d_iw_cv_t = chi3_dlr2d_iw_t::const_view_type;
+
   /// Container type of $\chi_3$ in imaginary time
   using chi3_tau_t = block2_gf<prod<imtime, imtime>, tensor_valued<4>>;
 

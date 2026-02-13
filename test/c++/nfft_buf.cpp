@@ -879,4 +879,48 @@ TEST_F(Nfft, DirectType3_Strided_DLR_OddFlush) { // NOLINT
   }
 }
 
+/********************* DIRECT vs TYPE 3: DLR2D mesh ********************/
+TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
+
+  int n_tau    = 5000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(333);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Build DLR2D mesh and extract target matsubara_freq
+  mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH};
+  int64_t n_targets = dlr2d_mesh.size();
+
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (long d = 0; d < n_targets; ++d) {
+    auto [n1, n2] = dlr2d_mesh.to_index(d);
+    target_mf.push_back({mesh::matsubara_freq(n2, beta, mesh::Fermion), mesh::matsubara_freq(n1, beta, mesh::Fermion)});
+  }
+
+  // Type 3 buffer
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct buffer
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, nfft_type_t::direct_type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufd.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  // Compare
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10); }
+}
+
 MAKE_MAIN;
