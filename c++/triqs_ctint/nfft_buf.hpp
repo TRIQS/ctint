@@ -28,7 +28,7 @@ namespace triqs::utility {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
-  enum class nfft_type_t { type1, type3, direct_type1, direct_type3 };
+  enum class nfft_type_t { type1, type3, direct_type1, direct_type3, direct_naf };
 
   template <int Rank> struct nfft_buf_t {
 
@@ -144,8 +144,27 @@ namespace triqs::utility {
           pow2_tbl.resize(num_power2_levels, buf_size_);
         }
 
+      } else if (type == nfft_type_t::direct_naf) {
+        beta = target_mf_[0][0].beta;
+        target_n.resize(Rank, n_targets);
+        unsigned long max_exponent = 0;
+        for (int r = 0; r < Rank; ++r) {
+          naf_digit_offsets[r].resize(n_targets + 1);
+          naf_digit_offsets[r][0] = 0;
+          for (int64_t d = 0; d < n_targets; ++d) {
+            target_n(r, d)    = target_mf_[d][r].n;
+            unsigned long exp = odd_exponent_abs(target_n(r, d));
+            max_exponent      = std::max(max_exponent, exp);
+            auto digits       = compute_naf(exp);
+            naf_digits_flat[r].insert(naf_digits_flat[r].end(), digits.begin(), digits.end());
+            naf_digit_offsets[r][d + 1] = static_cast<int>(naf_digits_flat[r].size());
+          }
+        }
+        naf_num_pow2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)) + 1);
+        for (int r = 0; r < Rank; ++r) naf_pow2_tbl[r].resize(naf_num_pow2_levels, buf_size_);
+
       } else {
-        NDA_RUNTIME_ERROR << "nfft_buf_t: only type3, direct_type1, and direct_type3 supported with target frequencies\n";
+        NDA_RUNTIME_ERROR << "nfft_buf_t: only type3, direct_type1, direct_type3, and direct_naf supported with target frequencies\n";
       }
     }
 
@@ -249,6 +268,16 @@ namespace triqs::utility {
     std::array<nda::array<dcomplex, 2>, Rank> prime_pow_tbl;
     std::array<std::vector<std::vector<int>>, Rank> target_prime_sums;
 
+    // NAF kernel: per-rank pow2 table and flattened signed digit lists
+    int naf_num_pow2_levels = 0;
+    std::array<nda::array<dcomplex, 2>, Rank> naf_pow2_tbl;
+    // Flattened per-rank digit data: all targets' digits stored contiguously.
+    // Each digit is a row index; negative values encode conjugation: -(row+1).
+    std::array<std::vector<int>, Rank> naf_digits_flat;
+    // naf_digit_offsets[r][d] = start index in naf_digits_flat[r] for target d.
+    // naf_digit_offsets[r][n_targets] = total number of digits.
+    std::array<std::vector<int>, Rank> naf_digit_offsets;
+
     // |2n+1| for fermionic Matsubara index n
     static constexpr unsigned long odd_exponent_abs(long n) {
       long odd = 2 * n + 1;
@@ -268,6 +297,7 @@ namespace triqs::utility {
     static constexpr std::size_t simd_size = cbatch::size;
     static constexpr int n_acc_bitwise     = 4; // ILP accumulators for Rank==1
     static constexpr int n_acc_prime       = 4; // ILP accumulators for Rank>1
+    static constexpr int n_acc_naf         = 4; // ILP accumulators for NAF
 
     static std::vector<int> express_as_prime_sum(long n) {
       std::vector<int> out;
@@ -281,6 +311,21 @@ namespace triqs::utility {
         n -= p;
       }
       return out;
+    }
+
+    // NAF (Non-Adjacent Form) decomposition of n into signed binary digits.
+    // Returns encoded digits: k for +1 at bit k, -(k+1) for -1 at bit k.
+    static std::vector<int> compute_naf(unsigned long n) {
+      std::vector<int> digits;
+      long sn = static_cast<long>(n);
+      for (int k = 0; sn > 0; ++k, sn >>= 1) {
+        if (sn & 1) {
+          int r = 2 - static_cast<int>(sn & 3); // +1 if sn%4==1, -1 if sn%4==3
+          digits.push_back(r > 0 ? k : -(k + 1));
+          sn -= r;
+        }
+      }
+      return digits;
     }
 
     // SIMD+ILP target accumulation: processes n_acc targets simultaneously.
@@ -334,6 +379,8 @@ namespace triqs::utility {
         do_nfft_type3();
       else if (nfft_type == nfft_type_t::direct_type3)
         do_direct_type3();
+      else if (nfft_type == nfft_type_t::direct_naf)
+        do_direct_naf();
       else
         do_direct_type1();
     }
@@ -483,6 +530,147 @@ namespace triqs::utility {
         do_direct_bitwise();
       else
         do_direct_prime();
+    }
+
+    // Rank-generic direct NUDFT via NAF (Non-Adjacent Form) decomposition.
+    // Uses the same power-of-two table as bitwise, but signed digits {-1,0,+1}
+    // reduce average non-zero count from L/2 to L/3. Conjugation for -1 digits is free.
+    void do_direct_naf() {
+      double const pi_over_beta      = M_PI / beta;
+      int64_t const buf_counter_simd = buf_counter & -simd_size;
+      int64_t const stride           = buf_size;
+      dcomplex *fiw_ptr              = fiw_vec.data();
+
+      // Phase 1: Build per-rank pow2 tables via repeated squaring (raw pointer access)
+      poet::static_for<Rank>([&](const auto r) {
+        dcomplex *tbl = naf_pow2_tbl[r].data();
+
+        // Level 0: z_r = exp(i*pi*tau_r/beta)
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          using rbatch            = xsimd::batch<double>;
+          auto [sin_vec, cos_vec] = xsimd::sincos(rbatch::load_unaligned(&x_arr(r, j)) * pi_over_beta);
+          cbatch(cos_vec, sin_vec).store_unaligned(tbl + j);
+        }
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          double const theta = pi_over_beta * x_arr(r, j);
+          tbl[j]             = dcomplex{std::cos(theta), std::sin(theta)};
+        }
+
+        // Higher levels: squaring
+        for (int k = 1; k < naf_num_pow2_levels; ++k) {
+          dcomplex const *prev_row = tbl + (k - 1) * stride;
+          dcomplex *cur_row        = tbl + k * stride;
+          for (int j = 0; j < buf_counter_simd; j += simd_size) {
+            cbatch prev = cbatch::load_unaligned(prev_row + j);
+            (prev * prev).store_unaligned(cur_row + j);
+          }
+          for (int j = buf_counter_simd; j < buf_counter; ++j) {
+            dcomplex prev = prev_row[j];
+            cur_row[j]    = prev * prev;
+          }
+        }
+      });
+
+      // Phase 2: Source-blocked accumulation for cache locality.
+      // The pow2 table is buf_size * n_levels * 16 bytes per rank, which can far exceed
+      // L1/L2 cache. By processing sources in blocks, table data at each j position
+      // stays in L1 as we iterate over all targets within the block.
+      std::array<dcomplex const *, Rank> tbl_base;
+      poet::static_for<Rank>([&](const auto r) { tbl_base[r] = naf_pow2_tbl[r].data(); });
+
+      auto compute_simd_pow = [&](int64_t d, int j) -> cbatch {
+        cbatch pow_prod;
+        poet::static_for<Rank>([&](const auto r) {
+          int const *digits = naf_digits_flat[r].data() + naf_digit_offsets[r][d];
+          int n_digits      = naf_digit_offsets[r][d + 1] - naf_digit_offsets[r][d];
+          auto const *base  = tbl_base[r];
+
+          int d0          = digits[0];
+          int row0        = d0 >= 0 ? d0 : -(d0 + 1);
+          cbatch rank_pow = cbatch::load_unaligned(base + row0 * stride + j);
+          if (d0 < 0) rank_pow = xsimd::conj(rank_pow);
+
+          for (int i = 1; i < n_digits; ++i) {
+            int di     = digits[i];
+            int row    = di >= 0 ? di : -(di + 1);
+            cbatch val = cbatch::load_unaligned(base + row * stride + j);
+            rank_pow *= di >= 0 ? val : xsimd::conj(val);
+          }
+
+          rank_pow = (target_n(r, d) < 0) ? xsimd::conj(rank_pow) : rank_pow;
+          pow_prod = (r == 0) ? rank_pow : pow_prod * rank_pow;
+        });
+        return pow_prod;
+      };
+
+      auto compute_scalar_pow = [&](int64_t d, int j) -> dcomplex {
+        dcomplex pow_prod{1.0, 0.0};
+        poet::static_for<Rank>([&](const auto r) {
+          int const *digits = naf_digits_flat[r].data() + naf_digit_offsets[r][d];
+          int n_digits      = naf_digit_offsets[r][d + 1] - naf_digit_offsets[r][d];
+          auto const *base  = tbl_base[r];
+
+          int d0            = digits[0];
+          int row0          = d0 >= 0 ? d0 : -(d0 + 1);
+          dcomplex rank_pow = *(base + row0 * stride + j);
+          if (d0 < 0) rank_pow = std::conj(rank_pow);
+
+          for (int i = 1; i < n_digits; ++i) {
+            int di       = digits[i];
+            int row      = di >= 0 ? di : -(di + 1);
+            dcomplex val = *(base + row * stride + j);
+            rank_pow *= di >= 0 ? val : std::conj(val);
+          }
+
+          rank_pow = (target_n(r, d) < 0) ? std::conj(rank_pow) : rank_pow;
+          pow_prod *= rank_pow;
+        });
+        return pow_prod;
+      };
+
+      // Use source blocking when the table exceeds L2 cache, otherwise use unblocked ILP.
+      constexpr int64_t l2_bytes           = 2 * 1024 * 1024;
+      int64_t const table_bytes_per_source = Rank * naf_num_pow2_levels * static_cast<int64_t>(sizeof(dcomplex));
+      bool const use_blocking              = buf_counter_simd * table_bytes_per_source > l2_bytes;
+
+      if (use_blocking) {
+        // Source-blocked: process sources in L1-sized blocks, iterating over all
+        // targets per block so table data stays in L1 across target iterations.
+        constexpr int source_block   = 128;
+        constexpr int n_acc          = n_acc_naf;
+        int64_t const n_targets_main = (n_targets / n_acc) * n_acc;
+
+        for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
+          int const j_end = std::min(jb + source_block, static_cast<int>(buf_counter_simd));
+
+          int64_t d = 0;
+          for (; d < n_targets_main; d += n_acc) {
+            std::array<cbatch, n_acc> local_sums;
+            poet::static_for<n_acc>([&](const auto i) { local_sums[i] = cbatch(dcomplex{0, 0}); });
+
+            for (int j = jb; j < j_end; j += simd_size) {
+              cbatch fj = cbatch::load_unaligned(fx_arr.data() + j);
+              poet::static_for<n_acc>([&](const auto i) { local_sums[i] = xsimd::fma(fj, compute_simd_pow(d + i, j), local_sums[i]); });
+            }
+
+            poet::static_for<n_acc>([&](const auto i) { fiw_ptr[d + i] += xsimd::reduce_add(local_sums[i]); });
+          }
+          for (; d < n_targets; ++d) {
+            cbatch local_sum(dcomplex{0, 0});
+            for (int j = jb; j < j_end; j += simd_size)
+              local_sum = xsimd::fma(cbatch::load_unaligned(fx_arr.data() + j), compute_simd_pow(d, j), local_sum);
+            fiw_ptr[d] += xsimd::reduce_add(local_sum);
+          }
+        }
+
+        // Scalar tail: only needed for the blocking path (accumulate_targets_ilp handles it internally)
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex fj = fx_arr[j];
+          for (int64_t d = 0; d < n_targets; ++d) fiw_ptr[d] += fj * compute_scalar_pow(d, j);
+        }
+      } else {
+        accumulate_targets_ilp<n_acc_naf>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+      }
     }
 
     // Direct type1 (dense): geometric power table with SIMD gather

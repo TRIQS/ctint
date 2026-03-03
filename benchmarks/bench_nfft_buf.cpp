@@ -404,6 +404,92 @@ static void BM_Nfft_M_iw_DirectType3(benchmark::State &state) {
   }
 }
 
+// --- NAF direct DFT benchmarks ---
+
+static void BM_Nfft_Rank1_DirectNAF(benchmark::State &state) {
+  auto &md         = get_mesh_data();
+  int64_t k        = state.range(0);
+  int64_t n_points = k;
+
+  nda::array<dcomplex, 1> output(md.n_un1);
+  output = 0;
+
+  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, nfft_type_t::direct_naf};
+
+  std::mt19937 rng(42);
+  std::uniform_real_distribution<double> tau_dist(0.0, beta);
+  std::normal_distribution<double> val_dist(0.0, 1.0);
+
+  std::vector<double> taus(n_points);
+  std::vector<dcomplex> vals(n_points);
+  for (int64_t i = 0; i < n_points; ++i) {
+    taus[i] = tau_dist(rng);
+    vals[i] = dcomplex(val_dist(rng), val_dist(rng));
+  }
+
+  for (auto _ : state) {
+    output = 0;
+    for (int64_t i = 0; i < n_points; ++i) buf.push_back({taus[i]}, vals[i]);
+    buf.flush();
+  }
+}
+
+static void BM_Nfft_Rank2_DirectNAF(benchmark::State &state) {
+  auto &md         = get_mesh_data();
+  int64_t k        = state.range(0);
+  int64_t n_points = std::max<int64_t>(k * k / (bl_size * bl_size), 1);
+
+  nda::array<dcomplex, 1> output(md.n_mesh_points);
+  output = 0;
+
+  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, nfft_type_t::direct_naf};
+
+  std::mt19937 rng(42);
+  std::uniform_real_distribution<double> tau_dist(0.0, beta);
+  std::normal_distribution<double> val_dist(0.0, 1.0);
+
+  std::vector<std::array<double, 2>> taus(n_points);
+  std::vector<dcomplex> vals(n_points);
+  for (int64_t i = 0; i < n_points; ++i) {
+    taus[i] = {tau_dist(rng), tau_dist(rng)};
+    vals[i] = dcomplex(val_dist(rng), val_dist(rng));
+  }
+
+  for (auto _ : state) {
+    output = 0;
+    for (int64_t i = 0; i < n_points; ++i) buf.push_back(taus[i], vals[i]);
+    buf.flush();
+  }
+}
+
+static void BM_Nfft_M_iw_DirectNAF(benchmark::State &state) {
+  auto &dlr_md     = get_dlr_mesh_data();
+  int64_t k        = state.range(0);
+  int64_t n_points = k;
+
+  nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
+  output = 0;
+
+  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, nfft_type_t::direct_naf};
+
+  std::mt19937 rng(42);
+  std::uniform_real_distribution<double> tau_dist(0.0, beta);
+  std::normal_distribution<double> val_dist(0.0, 1.0);
+
+  std::vector<double> taus(n_points);
+  std::vector<dcomplex> vals(n_points);
+  for (int64_t i = 0; i < n_points; ++i) {
+    taus[i] = tau_dist(rng);
+    vals[i] = dcomplex(val_dist(rng), val_dist(rng));
+  }
+
+  for (auto _ : state) {
+    output = 0;
+    for (int64_t i = 0; i < n_points; ++i) buf.push_back({taus[i]}, vals[i]);
+    buf.flush();
+  }
+}
+
 // --- M4_iw pattern benchmarks (rectangular uniform grid, rank-2, Type1) ---
 // Grid shape: (6*n_iw_M4, 2*n_iw_M4) - rectangular, not square
 // Push pattern: buf.push_back({tau_j, beta - tau_i}, -Ginv_ji)
@@ -448,15 +534,18 @@ BENCHMARK(BM_Nfft_Rank1_Type1)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank1_Type3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank1_DirectType1)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank1_DirectType3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
+BENCHMARK(BM_Nfft_Rank1_DirectNAF)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank2_Type1)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank2_Type3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank2_DirectType1)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_Rank2_DirectType3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
+BENCHMARK(BM_Nfft_Rank2_DirectNAF)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 
 // M_iw pattern (pure DLR mesh)
 BENCHMARK(BM_Nfft_M_iw_Type3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_M_iw_DirectType1)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 BENCHMARK(BM_Nfft_M_iw_DirectType3)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
+BENCHMARK(BM_Nfft_M_iw_DirectNAF)->Arg(16)->Arg(64)->Arg(256)->Arg(1024);
 
 // M4_iw pattern (rectangular uniform grid) - Args: {k, n_iw_M4}
 BENCHMARK(BM_Nfft_M4_iw_Type1)
