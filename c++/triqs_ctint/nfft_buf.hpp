@@ -28,7 +28,7 @@ namespace triqs::utility {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
-  enum class nfft_type_t { type1, type3, direct_type1, direct_type3, direct_naf };
+  enum class nfft_type_t { automatic, type1, type3, direct_type1, direct_type3, direct_bitwise, direct_prime };
 
   template <int Rank> struct nfft_buf_t {
 
@@ -60,9 +60,9 @@ namespace triqs::utility {
       plan.reset(raw_plan);
     }
 
-    /// Non-uniform target constructor: type3 (FINUFFT) or direct DFT
+    /// Non-uniform target constructor: automatic dispatch, FINUFFT type3, or direct DFT
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_,
-               nfft_type_t type, double tol_ = 1e-15)
+               nfft_type_t type = nfft_type_t::automatic, double tol_ = 1e-15)
        : nfft_type(type),
          fiw_vec(std::move(fiw_vec_)),
          buf_size(buf_size_),
@@ -71,22 +71,15 @@ namespace triqs::utility {
          fx_arr(buf_size_),
          tol(tol_) {
 
+      // Contiguous intermediate buffer for all non-uniform types.
+      // Direct kernels write to fk_vec (contiguous), then copy to fiw_vec (possibly strided).
+      fk_vec.resize(n_targets);
+
       if (type == nfft_type_t::type3) {
-        s_arr.resize(Rank, n_targets);
-        for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf_[d][r]));
-        fk_vec.resize(n_targets);
-        finufft_default_opts(&opts);
-        opts.nthreads = 1;
-        finufft_plan raw_plan = nullptr;
-        check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts));
-        plan.reset(raw_plan);
+        init_type3(target_mf_);
 
       } else if (type == nfft_type_t::direct_type1) {
-        beta = target_mf_[0][0].beta;
-        target_n.resize(Rank, n_targets);
-        for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_[d][r].n;
+        init_direct_common(target_mf_);
 
         // Compute min/range per dimension for dense power table addressing
         for (int r = 0; r < Rank; ++r) {
@@ -103,81 +96,65 @@ namespace triqs::utility {
           for (int64_t d = 0; d < n_targets; ++d) target_idx[r * n_targets + d] = 2 * (target_n(r, d) - n_min_arr[r]);
 
       } else if (type == nfft_type_t::direct_type3) {
-        beta = target_mf_[0][0].beta;
-        target_n.resize(Rank, n_targets);
-        for (int r = 0; r < Rank; ++r)
-          for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_[d][r].n;
+        init_direct_naf(target_mf_, buf_size_);
 
-        if constexpr (Rank > 1) {
-          std::vector<int> all_primes;
-          for (int r = 0; r < Rank; ++r) {
-            target_prime_sums[r].resize(n_targets);
-            for (int64_t d = 0; d < n_targets; ++d) {
-              target_prime_sums[r][d] = express_as_prime_sum(static_cast<long>(odd_exponent_abs(target_n(r, d))));
-              for (int p : target_prime_sums[r][d]) all_primes.push_back(p);
-            }
-          }
-
-          std::sort(all_primes.begin(), all_primes.end());
-          all_primes.erase(std::unique(all_primes.begin(), all_primes.end()), all_primes.end());
-          primes = std::move(all_primes);
-
-          // Remap prime values to indices into the sorted unique primes table
-          for (int r = 0; r < Rank; ++r)
-            for (int64_t d = 0; d < n_targets; ++d)
-              for (int &p : target_prime_sums[r][d])
-                p = static_cast<int>(std::find(primes.begin(), primes.end(), p) - primes.begin());
-
-          for (int r = 0; r < Rank; ++r) prime_pow_tbl[r].resize(primes.size(), buf_size_);
-        } else {
-          unsigned long max_exponent = 0;
-          target_pow2_bits.resize(n_targets);
+      } else if (type == nfft_type_t::direct_bitwise) {
+        init_direct_common(target_mf_);
+        unsigned long max_exponent = 0;
+        for (int r = 0; r < Rank; ++r) {
+          bitwise_pow2_bits[r].resize(n_targets);
           for (int64_t d = 0; d < n_targets; ++d) {
-            unsigned long exponent = odd_exponent_abs(target_n(0, d));
+            unsigned long exponent = odd_exponent_abs(target_n(r, d));
             max_exponent           = std::max(max_exponent, exponent);
             std::vector<int> bits;
             for (int k = 0; exponent > 0; ++k, exponent >>= 1)
               if (exponent & 1ul) bits.push_back(k);
-            target_pow2_bits[d] = std::move(bits);
+            bitwise_pow2_bits[r][d] = std::move(bits);
           }
-          num_power2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)));
-          pow2_tbl.resize(num_power2_levels, buf_size_);
         }
+        num_pow2_levels_bitwise = std::max(1, static_cast<int>(std::bit_width(max_exponent)));
+        for (int r = 0; r < Rank; ++r) bitwise_pow2_tbl[r].resize(num_pow2_levels_bitwise, buf_size_);
 
-      } else if (type == nfft_type_t::direct_naf) {
-        beta = target_mf_[0][0].beta;
-        target_n.resize(Rank, n_targets);
-        unsigned long max_exponent = 0;
+      } else if (type == nfft_type_t::direct_prime) {
+        init_direct_common(target_mf_);
+        std::vector<int> all_primes;
         for (int r = 0; r < Rank; ++r) {
-          naf_digit_offsets[r].resize(n_targets + 1);
-          naf_digit_offsets[r][0] = 0;
+          target_prime_sums[r].resize(n_targets);
           for (int64_t d = 0; d < n_targets; ++d) {
-            target_n(r, d)    = target_mf_[d][r].n;
-            unsigned long exp = odd_exponent_abs(target_n(r, d));
-            max_exponent      = std::max(max_exponent, exp);
-            auto digits       = compute_naf(exp);
-            naf_digits_flat[r].insert(naf_digits_flat[r].end(), digits.begin(), digits.end());
-            naf_digit_offsets[r][d + 1] = static_cast<int>(naf_digits_flat[r].size());
+            target_prime_sums[r][d] = express_as_prime_sum(static_cast<long>(odd_exponent_abs(target_n(r, d))));
+            for (int p : target_prime_sums[r][d]) all_primes.push_back(p);
           }
         }
-        naf_num_pow2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)) + 1);
-        for (int r = 0; r < Rank; ++r) naf_pow2_tbl[r].resize(naf_num_pow2_levels, buf_size_);
+        std::sort(all_primes.begin(), all_primes.end());
+        all_primes.erase(std::unique(all_primes.begin(), all_primes.end()), all_primes.end());
+        primes = std::move(all_primes);
+        for (int r = 0; r < Rank; ++r)
+          for (int64_t d = 0; d < n_targets; ++d)
+            for (int &p : target_prime_sums[r][d]) p = static_cast<int>(std::find(primes.begin(), primes.end(), p) - primes.begin());
+        for (int r = 0; r < Rank; ++r) prime_pow_tbl[r].resize(primes.size(), buf_size_);
+
+      } else if (type == nfft_type_t::automatic) {
+        init_type3(target_mf_);
+        init_direct_naf(target_mf_, buf_size_);
 
       } else {
-        NDA_RUNTIME_ERROR << "nfft_buf_t: only type3, direct_type1, direct_type3, and direct_naf supported with target frequencies\n";
+        NDA_RUNTIME_ERROR << "nfft_buf_t: unsupported nfft_type_t for non-uniform target constructor\n";
       }
     }
 
     /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
-    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_, nfft_type_t type,
-               double tol_ = 1e-15)
+    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_,
+               nfft_type_t type = nfft_type_t::automatic, double tol_ = 1e-15)
       requires(Rank == 1)
-       : nfft_buf_t(std::move(fiw_vec_), [&] {
-           std::vector<std::array<mesh::matsubara_freq, 1>> result;
-           result.reserve(target_mf_.size());
-           for (auto const &mf : target_mf_) result.push_back({mf});
-           return result;
-         }(), buf_size_, type, tol_) {}
+       : nfft_buf_t(
+            std::move(fiw_vec_),
+            [&] {
+              std::vector<std::array<mesh::matsubara_freq, 1>> result;
+              result.reserve(target_mf_.size());
+              for (auto const &mf : target_mf_) result.push_back({mf});
+              return result;
+            }(),
+            buf_size_, type, tol_) {}
 
     ~nfft_buf_t() {
       if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";
@@ -258,12 +235,12 @@ namespace triqs::utility {
     mutable std::array<nda::array<dcomplex, 2>, Rank> pow_tbl; // (buf_size, n_range) per rank
     std::vector<long> target_idx;                               // doubled offset indices for AoS gather
 
-    // Rank==1 bitwise kernel: pow2_tbl(k, j) = z_j^(2^k)
-    int num_power2_levels = 0;
-    std::conditional_t<Rank == 1, nda::array<dcomplex, 2>, std::monostate> pow2_tbl;
-    std::conditional_t<Rank == 1, std::vector<std::vector<int>>, std::monostate> target_pow2_bits;
+    // Bitwise kernel: per-rank pow2 tables and bit lists
+    int num_pow2_levels_bitwise = 0;
+    std::array<nda::array<dcomplex, 2>, Rank> bitwise_pow2_tbl;
+    std::array<std::vector<std::vector<int>>, Rank> bitwise_pow2_bits;
 
-    // Rank>1 prime-sum kernel
+    // Prime-sum kernel: per-rank prime decomposition tables
     std::vector<int> primes;
     std::array<nda::array<dcomplex, 2>, Rank> prime_pow_tbl;
     std::array<std::vector<std::vector<int>>, Rank> target_prime_sums;
@@ -277,6 +254,48 @@ namespace triqs::utility {
     // naf_digit_offsets[r][d] = start index in naf_digits_flat[r] for target d.
     // naf_digit_offsets[r][n_targets] = total number of digits.
     std::array<std::vector<int>, Rank> naf_digit_offsets;
+
+    // Dispatch threshold for automatic mode: use direct_type3 (NAF) when
+    // buf_counter * n_targets < threshold, otherwise fall back to FINUFFT type3.
+    static constexpr int64_t dispatch_threshold = 50'000'000;
+
+    using target_mf_vec = std::vector<std::array<mesh::matsubara_freq, Rank>>;
+
+    void init_type3(target_mf_vec const &target_mf_) {
+      s_arr.resize(Rank, n_targets);
+      for (int r = 0; r < Rank; ++r)
+        for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf_[d][r]));
+      finufft_default_opts(&opts);
+      opts.nthreads         = 1;
+      finufft_plan raw_plan = nullptr;
+      check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts));
+      plan.reset(raw_plan);
+    }
+
+    void init_direct_common(target_mf_vec const &target_mf_) {
+      beta = target_mf_[0][0].beta;
+      target_n.resize(Rank, n_targets);
+      for (int r = 0; r < Rank; ++r)
+        for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf_[d][r].n;
+    }
+
+    void init_direct_naf(target_mf_vec const &target_mf_, int buf_size_) {
+      init_direct_common(target_mf_);
+      unsigned long max_exponent = 0;
+      for (int r = 0; r < Rank; ++r) {
+        naf_digit_offsets[r].resize(n_targets + 1);
+        naf_digit_offsets[r][0] = 0;
+        for (int64_t d = 0; d < n_targets; ++d) {
+          unsigned long exp = odd_exponent_abs(target_n(r, d));
+          max_exponent      = std::max(max_exponent, exp);
+          auto digits       = compute_naf(exp);
+          naf_digits_flat[r].insert(naf_digits_flat[r].end(), digits.begin(), digits.end());
+          naf_digit_offsets[r][d + 1] = static_cast<int>(naf_digits_flat[r].size());
+        }
+      }
+      naf_num_pow2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)) + 1);
+      for (int r = 0; r < Rank; ++r) naf_pow2_tbl[r].resize(naf_num_pow2_levels, buf_size_);
+    }
 
     // |2n+1| for fermionic Matsubara index n
     static constexpr unsigned long odd_exponent_abs(long n) {
@@ -372,17 +391,31 @@ namespace triqs::utility {
       for (; d < n_targets_total; ++d) accumulate_one(d);
     }
 
+    // Run a direct kernel into fk_vec (contiguous), then copy to fiw_vec (possibly strided).
+    template <typename DirectKernel> void run_direct(DirectKernel &&kernel) {
+      fk_vec = 0;
+      kernel();
+      fiw_vec += fk_vec;
+    }
+
     void do_nfft() {
       if (nfft_type == nfft_type_t::type1)
         do_nfft_type1();
-      else if (nfft_type == nfft_type_t::type3)
+      else if (nfft_type == nfft_type_t::automatic) {
+        if (static_cast<int64_t>(buf_counter) * n_targets < dispatch_threshold)
+          run_direct([this] { do_direct_naf(); });
+        else
+          do_nfft_type3();
+      } else if (nfft_type == nfft_type_t::type3)
         do_nfft_type3();
       else if (nfft_type == nfft_type_t::direct_type3)
-        do_direct_type3();
-      else if (nfft_type == nfft_type_t::direct_naf)
-        do_direct_naf();
+        run_direct([this] { do_direct_naf(); });
+      else if (nfft_type == nfft_type_t::direct_bitwise)
+        run_direct([this] { do_direct_bitwise(); });
+      else if (nfft_type == nfft_type_t::direct_prime)
+        run_direct([this] { do_direct_prime(); });
       else
-        do_direct_type1();
+        run_direct([this] { do_direct_type1(); });
     }
 
     // FINUFFT expects coordinates in reverse rank order
@@ -414,56 +447,78 @@ namespace triqs::utility {
       fiw_vec += fk_vec;
     }
 
-    // Rank-1 direct NUDFT via bitwise power-of-two decomposition.
+    // Direct NUDFT via bitwise power-of-two decomposition.
     // z = exp(i*pi*tau/beta), z^|2n+1| computed via binary exponentiation.
     void do_direct_bitwise() {
-      static_assert(Rank == 1);
-
       double const pi_over_beta      = M_PI / beta;
       int64_t const buf_counter_simd = buf_counter & -simd_size;
-      dcomplex *fiw_ptr              = fiw_vec.data();
+      int64_t const stride           = buf_size;
+      dcomplex *fiw_ptr              = fk_vec.data();
 
-      // Build power-of-two table: pow2_tbl(k, j) = z_j^(2^k)
-      for (int j = 0; j < buf_counter_simd; j += simd_size) {
-        using rbatch = xsimd::batch<double>;
-        auto [sin_vec, cos_vec] = xsimd::sincos(rbatch::load_unaligned(&x_arr(0, j)) * pi_over_beta);
-        cbatch(cos_vec, sin_vec).store_unaligned(&pow2_tbl(0, j));
-      }
-      for (int j = buf_counter_simd; j < buf_counter; ++j) {
-        double const theta = pi_over_beta * x_arr(0, j);
-        pow2_tbl(0, j)     = dcomplex{std::cos(theta), std::sin(theta)};
-      }
+      // Phase 1: Build per-rank pow2 tables via sincos + repeated squaring
+      poet::static_for<Rank>([&](const auto r) {
+        dcomplex *tbl = bitwise_pow2_tbl[r].data();
 
-      for (int k = 1; k < num_power2_levels; ++k) {
         for (int j = 0; j < buf_counter_simd; j += simd_size) {
-          cbatch prev = cbatch::load_unaligned(&pow2_tbl(k - 1, j));
-          (prev * prev).store_unaligned(&pow2_tbl(k, j));
+          using rbatch            = xsimd::batch<double>;
+          auto [sin_vec, cos_vec] = xsimd::sincos(rbatch::load_unaligned(&x_arr(r, j)) * pi_over_beta);
+          cbatch(cos_vec, sin_vec).store_unaligned(tbl + j);
         }
         for (int j = buf_counter_simd; j < buf_counter; ++j) {
-          dcomplex prev  = pow2_tbl(k - 1, j);
-          pow2_tbl(k, j) = prev * prev;
+          double const theta = pi_over_beta * x_arr(r, j);
+          tbl[j]             = dcomplex{std::cos(theta), std::sin(theta)};
         }
-      }
 
-      accumulate_targets_ilp<n_acc_bitwise>(n_targets, buf_counter_simd, fiw_ptr,
-        [&](int64_t d, int j) -> cbatch {
-          cbatch rank_pow(dcomplex{1.0, 0.0});
-          for (int k : target_pow2_bits[d]) rank_pow *= cbatch::load_unaligned(&pow2_tbl(k, j));
-          return target_n(0, d) < 0 ? xsimd::conj(rank_pow) : rank_pow;
-        },
-        [&](int64_t d, int j) -> dcomplex {
-          dcomplex rank_pow{1.0, 0.0};
-          for (int k : target_pow2_bits[d]) rank_pow *= pow2_tbl(k, j);
-          return target_n(0, d) < 0 ? std::conj(rank_pow) : rank_pow;
-        });
+        for (int k = 1; k < num_pow2_levels_bitwise; ++k) {
+          dcomplex const *prev_row = tbl + (k - 1) * stride;
+          dcomplex *cur_row        = tbl + k * stride;
+          for (int j = 0; j < buf_counter_simd; j += simd_size) {
+            cbatch prev = cbatch::load_unaligned(prev_row + j);
+            (prev * prev).store_unaligned(cur_row + j);
+          }
+          for (int j = buf_counter_simd; j < buf_counter; ++j) {
+            dcomplex prev = prev_row[j];
+            cur_row[j]    = prev * prev;
+          }
+        }
+      });
+
+      // Phase 2: accumulate with per-rank bit products
+      std::array<dcomplex const *, Rank> tbl_base;
+      poet::static_for<Rank>([&](const auto r) { tbl_base[r] = bitwise_pow2_tbl[r].data(); });
+
+      accumulate_targets_ilp<n_acc_bitwise>(
+         n_targets, buf_counter_simd, fiw_ptr,
+         [&](int64_t d, int j) -> cbatch {
+           cbatch pow_prod;
+           poet::static_for<Rank>([&](const auto r) {
+             auto const *base = tbl_base[r];
+             cbatch rank_pow(dcomplex{1.0, 0.0});
+             for (int k : bitwise_pow2_bits[r][d]) rank_pow *= cbatch::load_unaligned(base + k * stride + j);
+             rank_pow = target_n(r, d) < 0 ? xsimd::conj(rank_pow) : rank_pow;
+             pow_prod = (r == 0) ? rank_pow : pow_prod * rank_pow;
+           });
+           return pow_prod;
+         },
+         [&](int64_t d, int j) -> dcomplex {
+           dcomplex pow_prod{1.0, 0.0};
+           poet::static_for<Rank>([&](const auto r) {
+             auto const *base = tbl_base[r];
+             dcomplex rank_pow{1.0, 0.0};
+             for (int k : bitwise_pow2_bits[r][d]) rank_pow *= *(base + k * stride + j);
+             rank_pow = target_n(r, d) < 0 ? std::conj(rank_pow) : rank_pow;
+             pow_prod *= rank_pow;
+           });
+           return pow_prod;
+         });
     }
 
-    // Rank>1 direct NUDFT via prime-sum decomposition.
+    // Direct NUDFT via prime-sum decomposition.
     // |2n+1| = p1+p2+... so z^|2n+1| = z^p1 * z^p2 * ..., sharing z^p across targets.
     void do_direct_prime() {
       double const pi_over_beta      = M_PI / beta;
       int64_t const buf_counter_simd = buf_counter & -simd_size;
-      dcomplex *fiw_ptr              = fiw_vec.data();
+      dcomplex *fiw_ptr              = fk_vec.data();
       int const num_primes           = static_cast<int>(primes.size());
 
       // Build prime power table: prime_pow_tbl[r](p_idx, j) = z_r^prime
@@ -525,13 +580,6 @@ namespace triqs::utility {
         });
     }
 
-    void do_direct_type3() {
-      if constexpr (Rank == 1)
-        do_direct_bitwise();
-      else
-        do_direct_prime();
-    }
-
     // Rank-generic direct NUDFT via NAF (Non-Adjacent Form) decomposition.
     // Uses the same power-of-two table as bitwise, but signed digits {-1,0,+1}
     // reduce average non-zero count from L/2 to L/3. Conjugation for -1 digits is free.
@@ -539,7 +587,7 @@ namespace triqs::utility {
       double const pi_over_beta      = M_PI / beta;
       int64_t const buf_counter_simd = buf_counter & -simd_size;
       int64_t const stride           = buf_size;
-      dcomplex *fiw_ptr              = fiw_vec.data();
+      dcomplex *fiw_ptr              = fk_vec.data();
 
       // Phase 1: Build per-rank pow2 tables via repeated squaring (raw pointer access)
       poet::static_for<Rank>([&](const auto r) {
@@ -681,7 +729,7 @@ namespace triqs::utility {
 
       double const pi_over_beta    = M_PI / beta;
       int64_t const n_targets_simd = n_targets - (n_targets % static_cast<int64_t>(simd_size_t1));
-      dcomplex *fiw_ptr            = fiw_vec.data();
+      dcomplex *fiw_ptr            = fk_vec.data();
 
       // Phase 1: Build power tables pow_tbl[r](j,i) = z^(2*(n_min+i)+1)
       for (int r = 0; r < Rank; ++r) {
@@ -764,6 +812,11 @@ namespace triqs::utility {
   template <std::size_t N>
   nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, nfft_type_t, double) -> nfft_buf_t<static_cast<int>(N)>;
 
+  template <std::size_t N>
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int) -> nfft_buf_t<static_cast<int>(N)>;
+
   nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, nfft_type_t, double) -> nfft_buf_t<1>;
+
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int) -> nfft_buf_t<1>;
 
 } // namespace triqs::utility

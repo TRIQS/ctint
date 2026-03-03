@@ -522,9 +522,11 @@ void run_direct_analytical_1d(nfft_type_t type, double beta, auto f_tau) {
 }
 
 TEST_F(Nfft, DirectType1_Analytical_1D) { run_direct_analytical_1d(nfft_type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
-TEST_F(Nfft, DirectType3_Analytical_1D) { run_direct_analytical_1d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); }); }
-TEST_F(Nfft, DirectNAF_Analytical_1D) {
-  run_direct_analytical_1d(nfft_type_t::direct_naf, beta, [&](double tau) { return f_tau(tau); });
+TEST_F(Nfft, DirectBitwise_Analytical_1D) {
+  run_direct_analytical_1d(nfft_type_t::direct_bitwise, beta, [&](double tau) { return f_tau(tau); });
+}
+TEST_F(Nfft, DirectType3_Analytical_1D) {
+  run_direct_analytical_1d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
 }
 
 /********************* DIRECT: Analytical 2D ********************/
@@ -575,9 +577,11 @@ void run_direct_analytical_2d(nfft_type_t type, double beta, auto f_tau) {
 }
 
 TEST_F(Nfft, DirectType1_Analytical_2D) { run_direct_analytical_2d(nfft_type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
-TEST_F(Nfft, DirectType3_Analytical_2D) { run_direct_analytical_2d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); }); }
-TEST_F(Nfft, DirectNAF_Analytical_2D) {
-  run_direct_analytical_2d(nfft_type_t::direct_naf, beta, [&](double tau) { return f_tau(tau); });
+TEST_F(Nfft, DirectPrime_Analytical_2D) {
+  run_direct_analytical_2d(nfft_type_t::direct_prime, beta, [&](double tau) { return f_tau(tau); });
+}
+TEST_F(Nfft, DirectType3_Analytical_2D) {
+  run_direct_analytical_2d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
 }
 
 /********************* DIRECT vs TYPE 3: Consistency 1D ********************/
@@ -623,8 +627,8 @@ void run_direct_vs_type3_1d(nfft_type_t direct_type, double beta, int n_iw) {
 }
 
 TEST_F(Nfft, DirectType1_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_type1, beta, n_iw); }
+TEST_F(Nfft, DirectBitwise_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_bitwise, beta, n_iw); }
 TEST_F(Nfft, DirectType3_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_type3, beta, n_iw); }
-TEST_F(Nfft, DirectNAF_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_naf, beta, n_iw); }
 
 /********************* DIRECT vs TYPE 3: Consistency 2D ********************/
 void run_direct_vs_type3_2d(nfft_type_t direct_type, double beta) {
@@ -673,7 +677,206 @@ void run_direct_vs_type3_2d(nfft_type_t direct_type, double beta) {
 }
 
 TEST_F(Nfft, DirectType1_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_type1, beta); }
+TEST_F(Nfft, DirectPrime_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_prime, beta); }
 TEST_F(Nfft, DirectType3_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_type3, beta); }
-TEST_F(Nfft, DirectNAF_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_naf, beta); }
+
+/********************* STRIDED OUTPUT: Direct vs Type3 with strided view ********************/
+// Reproduces the M_iw.cpp pattern: output is a strided slice of a 3D array.
+void run_direct_vs_type3_strided(nfft_type_t direct_type, double beta, int n_iw) {
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+  int bl_size  = 4; // matrix dimension, giving stride = bl_size^2 = 16
+
+  std::default_random_engine gen(333);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Target Matsubara frequencies
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) {
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
+  }
+
+  // Type 3 with contiguous output (reference)
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct with strided output: slice of a 3D array (n_targets, bl_size, bl_size)
+  nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
+  M_data            = 0;
+  auto strided_view = M_data(nda::range::all, 1, 2); // stride = bl_size * bl_size = 16
+  nfft_buf_t<1> bufd(strided_view, target_mf, buf_size, direct_type);
+
+  // Push same random data to both
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  // Compare strided output against contiguous type3 reference
+  for (int64_t k = 0; k < n_targets; ++k) {
+    EXPECT_LT(std::abs(fiw_type3(k) - strided_view(k)), 1e-10) << "Strided output mismatch at k=" << k << " (stride=" << bl_size * bl_size << ")";
+  }
+}
+
+TEST_F(Nfft, DirectType1_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_type1, beta, n_iw); }
+TEST_F(Nfft, DirectBitwise_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_bitwise, beta, n_iw); }
+TEST_F(Nfft, DirectPrime_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_prime, beta, n_iw); }
+TEST_F(Nfft, DirectType3_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_type3, beta, n_iw); }
+TEST_F(Nfft, Automatic_Strided) { run_direct_vs_type3_strided(nfft_type_t::automatic, beta, n_iw); }
+
+/********************* DLR-SCALE: Direct vs Type3 with large Matsubara indices ********************/
+// Uses DLR-like parameters (beta=100, large indices up to |2n+1|=1501) to exercise
+// deep power-of-two tables and NAF decompositions.
+void run_direct_vs_type3_dlr(nfft_type_t direct_type) {
+
+  double dlr_beta = 100.0;
+  int n_tau       = 5000;
+  int buf_size    = n_tau;
+
+  std::default_random_engine gen(444);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // DLR-like target frequencies with large indices (mimics plaquette: beta=100, wmax=10, eps=1e-10)
+  std::vector<int> n_indices = {-751, -368, -232, -162, -124, -97, -79, -66, -48, -40, -34, -26, -22, -19, -14, -12, -10,
+                                -9,   -8,   -7,   -6,   -5,   -4,  -3,  -2,  -1,  0,   1,   2,   3,   4,   5,   6,   7,
+                                8,    9,    12,   15,   18,   25,  33,  39,  47,  63,  79,  102, 134, 183, 384, 685};
+  int64_t n_targets          = static_cast<int64_t>(n_indices.size());
+
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int n : n_indices) target_mf.push_back(mesh::matsubara_freq(n, dlr_beta, mesh::Fermion));
+
+  // Type 3 (reference)
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, direct_type);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * dlr_beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) {
+    EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10)
+       << "DLR-scale mismatch at n=" << n_indices[k] << " (|2n+1|=" << std::abs(2 * n_indices[k] + 1) << ")";
+  }
+}
+
+TEST_F(Nfft, DirectType1_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_type1); }
+TEST_F(Nfft, DirectBitwise_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_bitwise); }
+TEST_F(Nfft, DirectPrime_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_prime); }
+TEST_F(Nfft, DirectType3_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_type3); }
+TEST_F(Nfft, Automatic_DLR) { run_direct_vs_type3_dlr(nfft_type_t::automatic); }
+
+/********************* ODD BUFFER COUNT: Exercises scalar tail path ********************/
+// Uses a buffer size that forces flushes with odd element counts (buf_counter % simd_size != 0),
+// triggering the scalar tail code path in all direct kernels.
+void run_direct_vs_type3_odd_flush(nfft_type_t direct_type, double beta) {
+
+  int n_tau    = 307; // prime number, guarantees odd buf_counter on flush
+  int buf_size = 101; // prime buffer size, forces multiple partial flushes
+
+  std::default_random_engine gen(555);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  std::vector<int> n_indices = {0, 1, 5, -1, -10, 50, -50};
+  int64_t n_targets          = static_cast<int64_t>(n_indices.size());
+
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int n : n_indices) target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  nda::vector<dcomplex> fiw_direct(n_targets);
+  fiw_direct = 0;
+  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, direct_type);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10) << "Odd-flush mismatch at n=" << n_indices[k]; }
+}
+
+TEST_F(Nfft, DirectType1_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_type1, beta); }
+TEST_F(Nfft, DirectBitwise_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_bitwise, beta); }
+TEST_F(Nfft, DirectPrime_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_prime, beta); }
+TEST_F(Nfft, DirectType3_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_type3, beta); }
+TEST_F(Nfft, Automatic_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::automatic, beta); }
+
+/********************* AUTOMATIC: Dispatch correctness ********************/
+// Verifies automatic mode matches type3 for both small and large buffer counts.
+TEST_F(Nfft, Automatic_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::automatic, beta, n_iw); }
+
+/********************* COMBINED: Strided + DLR-scale + odd flush ********************/
+// Combines all three failure modes: strided output, large indices, and odd buffer count.
+TEST_F(Nfft, DirectType3_Strided_DLR_OddFlush) { // NOLINT
+
+  double dlr_beta = 100.0;
+  int n_tau       = 307;
+  int buf_size    = 101;
+  int bl_size     = 4;
+
+  std::default_random_engine gen(666);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // DLR-like targets
+  std::vector<int> n_indices = {-751, -368, -97, -48, -7, -1, 0, 1, 7, 102, 384, 685};
+  int64_t n_targets          = static_cast<int64_t>(n_indices.size());
+
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int n : n_indices) target_mf.push_back(mesh::matsubara_freq(n, dlr_beta, mesh::Fermion));
+
+  // Type 3 contiguous reference
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // NAF with strided output
+  nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
+  M_data            = 0;
+  auto strided_view = M_data(nda::range::all, 2, 3);
+  nfft_buf_t<1> bufd(strided_view, target_mf, buf_size, nfft_type_t::automatic);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * dlr_beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) {
+    EXPECT_LT(std::abs(fiw_type3(k) - strided_view(k)), 1e-10) << "Combined strided+DLR+odd mismatch at n=" << n_indices[k];
+  }
+}
 
 MAKE_MAIN;
