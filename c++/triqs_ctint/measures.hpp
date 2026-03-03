@@ -15,6 +15,8 @@
 #include "./measures/M4ph_iw.hpp"
 #include "./measures/M3pp_iw.hpp"
 #include "./measures/M3ph_iw.hpp"
+#include "./measures/M3pp_iw_full.hpp"
+#include "./measures/M3ph_iw_full.hpp"
 #include "./measures/M3pp_tau.hpp"
 #include "./measures/M3ph_tau.hpp"
 #include "./measures/M3xph_tau.hpp"

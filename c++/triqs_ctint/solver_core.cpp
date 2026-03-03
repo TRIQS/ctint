@@ -137,6 +137,8 @@ namespace triqs_ctint {
       if (params.measure_M4ph_iw) mc.add_measure(measures::M4ph_iw{params, qmc_config, &result_set()}, "M4ph_iw measure");
       if (params.measure_M3pp_iw) mc.add_measure(measures::M3pp_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw measure");
       if (params.measure_M3ph_iw) mc.add_measure(measures::M3ph_iw{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw measure");
+      if (params.measure_M3pp_iw_full) mc.add_measure(measures::M3pp_iw_full{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_iw_full measure");
+      if (params.measure_M3ph_iw_full) mc.add_measure(measures::M3ph_iw_full{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_iw_full measure");
       if (params.measure_M3pp_tau) mc.add_measure(measures::M3pp_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3pp_tau measure");
       if (params.measure_M3ph_tau) mc.add_measure(measures::M3ph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3ph_tau measure");
       if (params.measure_M3xph_tau) mc.add_measure(measures::M3xph_tau{params, qmc_config, &result_set(), G0_shift_tau}, "M3xph_tau measure");
@@ -399,6 +401,10 @@ namespace triqs_ctint {
       chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
     if (M3ph_iw_nfft and M_iw_reg and density)
       chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3pp_iw_nfft_full and M_iw_reg and density)
+      chi3pp_iw_nfft_full = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3ph_iw_nfft_full and M_iw_reg and density)
+      chi3ph_iw_nfft_full = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau
     auto iw_mesh = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
