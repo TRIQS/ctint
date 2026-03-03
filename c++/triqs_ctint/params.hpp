@@ -147,6 +147,10 @@ namespace triqs_ctint {
     bool measure_M3pp_iw = false;
     /// Measure M3ph(iw)
     bool measure_M3ph_iw = false;
+    /// Measure M3pp(iw) on full frequency grid
+    bool measure_M3pp_iw_full = false;
+    /// Measure M3ph(iw) on full frequency grid
+    bool measure_M3ph_iw_full = false;
     /// Number of positive fermionic Matsubara frequencies in M3
     int n_iw_M3 = 64;
     /// Number of positive bosonic Matsubara frequencies in M3

@@ -126,6 +126,16 @@ c.add_member(c_name = "M3ph_iw_nfft",
              read_only= True,
              doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT on DLR2D grid""")
 
+c.add_member(c_name = "M3pp_iw_nfft_full",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (pp channel) in Matsubara frequencies using NFFT on full grid""")
+
+c.add_member(c_name = "M3ph_iw_nfft_full",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""Building block for the fermion boson vertex (ph channel) in Matsubara frequencies using NFFT on full grid""")
+
 c.add_member(c_name = "M3pp_tau",
              c_type = "std::optional<chi3_tau_t>",
              read_only= True,
@@ -336,6 +346,16 @@ c.add_member(c_name = "chi3ph_iw_nfft",
              read_only= True,
              doc = r"""The equal time correlator $\chi_3$ in the particle-hole channel in Matsubara frequencies as obtained by the NFFT $M_3$ measurement on DLR2D grid""")
 
+c.add_member(c_name = "chi3pp_iw_nfft_full",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""chi3 pp channel from full-grid NFFT M3 measurement""")
+
+c.add_member(c_name = "chi3ph_iw_nfft_full",
+             c_type = "std::optional<chi3_iw_t>",
+             read_only= True,
+             doc = r"""chi3 ph channel from full-grid NFFT M3 measurement""")
+
 c.add_member(c_name = "G0_iw",
              c_type = "g_iw_t",
              read_only= True,
@@ -469,6 +489,10 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_iw               | bool                            | false                                   | Measure M3ph(iw)                                                                                                                      |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3pp_iw_full          | bool                            | false                                   | Measure M3pp(iw) on full frequency grid                                                                                               |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3ph_iw_full          | bool                            | false                                   | Measure M3ph(iw) on full frequency grid                                                                                               |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iw_M3                       | int                             | 64                                      | Number of positive fermionic Matsubara frequencies in M3                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iW_M3                       | int                             | 32                                      | Number of positive bosonic Matsubara frequencies in M3                                                                                |
@@ -594,6 +618,10 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 | measure_M3pp_iw               | bool                            | false                                   | Measure M3pp(iw)                                                                                                                      |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M3ph_iw               | bool                            | false                                   | Measure M3ph(iw)                                                                                                                      |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3pp_iw_full          | bool                            | false                                   | Measure M3pp(iw) on full frequency grid                                                                                               |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| measure_M3ph_iw_full          | bool                            | false                                   | Measure M3ph(iw) on full frequency grid                                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_iw_M3                       | int                             | 64                                      | Number of positive fermionic Matsubara frequencies in M3                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -802,6 +830,16 @@ c.add_member(c_name = "measure_M3ph_iw",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M3ph(iw)""")
+
+c.add_member(c_name = "measure_M3pp_iw_full",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3pp(iw) on full frequency grid""")
+
+c.add_member(c_name = "measure_M3ph_iw_full",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3ph(iw) on full frequency grid""")
 
 c.add_member(c_name = "n_iw_M3",
              c_type = "int",
@@ -1101,6 +1139,16 @@ c.add_member(c_name = "measure_M3ph_iw",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure M3ph(iw)""")
+
+c.add_member(c_name = "measure_M3pp_iw_full",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3pp(iw) on full frequency grid""")
+
+c.add_member(c_name = "measure_M3ph_iw_full",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure M3ph(iw) on full frequency grid""")
 
 c.add_member(c_name = "n_iw_M3",
              c_type = "int",

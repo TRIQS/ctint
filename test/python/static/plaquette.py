@@ -73,6 +73,8 @@ S.solve(h_int=h_int,
         nfft_buf_size = 100000,
         measure_M3pp_iw = True,
         measure_M3ph_iw = True,
+        measure_M3pp_iw_full = True,
+        measure_M3ph_iw_full = True,
         measure_M3pp_tau = True,
         measure_M3ph_tau = True,
         measure_M3xph_tau = True,
@@ -104,6 +106,8 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     # The tau variants already cover these measurements.
     #arch["M3pp_iw_nfft"] = S.M3pp_iw_nfft
     #arch["M3ph_iw_nfft"] = S.M3ph_iw_nfft
+    #arch["M3pp_iw_nfft_full"] = S.M3pp_iw_nfft_full
+    #arch["M3ph_iw_nfft_full"] = S.M3ph_iw_nfft_full
     arch["M3pp_tau"] = S.M3pp_tau
     arch["M3ph_tau"] = S.M3ph_tau
     arch["M3xph_tau"] = S.M3xph_tau
