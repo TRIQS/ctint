@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <bit>
 #include <chrono>
@@ -257,6 +258,20 @@ namespace triqs::utility {
     // naf_digit_offsets[r][n_targets] = total number of digits.
     std::array<std::vector<int>, Rank> naf_digit_offsets;
 
+    // Rank >= 2 factored NAF: unique exponents per rank and target-to-unique mapping.
+    // Instead of computing NAF products per-target, compute per-unique-frequency per-rank and combine.
+    bool naf_use_factored = false;
+    std::array<int, Rank> naf_n_unique{};
+    std::array<std::vector<int>, Rank> naf_uniq_digits_flat;
+    std::array<std::vector<int>, Rank> naf_uniq_digit_offsets;
+    // Per-target: interleaved unique indices and conjugation flags for fast sequential access.
+    // Layout: [idx_r0, idx_r1, ..., idx_rN-1, conj_bitmask] per target, stride = Rank + 1.
+    std::vector<int> naf_target_map;
+    // Pre-allocated work buffers for factored phase 2 (avoid per-call heap alloc).
+    mutable std::array<std::vector<xsimd::batch<dcomplex>>, Rank> naf_uq_simd_buf;
+    mutable std::array<std::vector<dcomplex>, Rank> naf_uq_scalar_buf;
+    mutable std::vector<xsimd::batch<dcomplex>> naf_sums_buf;
+
     // Dispatch threshold for automatic mode: use direct NAF when
     // buf_counter < dispatch_buf_threshold, otherwise fall back to FINUFFT type3.
     // Computed by calibrate_dispatch() at construction time.
@@ -298,6 +313,45 @@ namespace triqs::utility {
       }
       naf_num_pow2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)) + 1);
       for (int r = 0; r < Rank; ++r) naf_pow2_tbl[r].resize(naf_num_pow2_levels, buf_size_);
+
+      // For Rank >= 2, build factored unique-exponent data.
+      // Targets often share frequencies in individual ranks; computing NAF products
+      // per unique frequency instead of per target avoids redundant work.
+      if constexpr (Rank >= 2) {
+        int total_unique = 0;
+        naf_target_map.resize(n_targets * (Rank + 1));
+        for (int r = 0; r < Rank; ++r) {
+          std::unordered_map<unsigned long, int> exp_to_idx;
+          naf_uniq_digit_offsets[r].push_back(0);
+          for (int64_t d = 0; d < n_targets; ++d) {
+            unsigned long exp  = odd_exponent_abs(target_n(r, d));
+            auto [it, inserted] = exp_to_idx.try_emplace(exp, static_cast<int>(exp_to_idx.size()));
+            if (inserted) {
+              auto digits = compute_naf(exp);
+              naf_uniq_digits_flat[r].insert(naf_uniq_digits_flat[r].end(), digits.begin(), digits.end());
+              naf_uniq_digit_offsets[r].push_back(static_cast<int>(naf_uniq_digits_flat[r].size()));
+            }
+            naf_target_map[d * (Rank + 1) + r] = it->second;
+          }
+          naf_n_unique[r] = static_cast<int>(exp_to_idx.size());
+          total_unique += naf_n_unique[r];
+        }
+        // Store conjugation bitmask per target (bit r set if target_n(r,d) < 0)
+        for (int64_t d = 0; d < n_targets; ++d) {
+          int conj_mask = 0;
+          for (int r = 0; r < Rank; ++r)
+            if (target_n(r, d) < 0) conj_mask |= (1 << r);
+          naf_target_map[d * (Rank + 1) + Rank] = conj_mask;
+        }
+        naf_use_factored = total_unique < n_targets * Rank;
+        if (naf_use_factored) {
+          for (int r = 0; r < Rank; ++r) {
+            naf_uq_simd_buf[r].resize(naf_n_unique[r]);
+            naf_uq_scalar_buf[r].resize(naf_n_unique[r]);
+          }
+          naf_sums_buf.resize(n_targets);
+        }
+      }
     }
 
     // Calibrate dispatch threshold for automatic mode by timing both NAF and Type3
@@ -305,8 +359,8 @@ namespace triqs::utility {
     void calibrate_dispatch() {
       using clock = std::chrono::steady_clock;
 
-      int const n_hi = std::min(512, buf_size);
-      int const n_lo = std::max(1, n_hi / 8);
+      int const n_hi = std::min(4096, buf_size);
+      int const n_lo = std::clamp(n_hi / 64, 1, 64);
 
       // Fill buffer with deterministic dummy data
       for (int j = 0; j < n_hi; ++j) {
@@ -690,10 +744,15 @@ namespace triqs::utility {
         }
       });
 
-      // Phase 2: Source-blocked accumulation for cache locality.
-      // The pow2 table is buf_size * n_levels * 16 bytes per rank, which can far exceed
-      // L1/L2 cache. By processing sources in blocks, table data at each j position
-      // stays in L1 as we iterate over all targets within the block.
+      // Phase 2: Dispatch to factored path for Rank >= 2 when beneficial.
+      if constexpr (Rank >= 2) {
+        if (naf_use_factored) {
+          do_direct_naf_phase2_factored();
+          return;
+        }
+      }
+
+      // Phase 2 (non-factored): Source-blocked accumulation for cache locality.
       std::array<dcomplex const *, Rank> tbl_base;
       poet::static_for<Rank>([&](const auto r) { tbl_base[r] = naf_pow2_tbl[r].data(); });
 
@@ -789,6 +848,132 @@ namespace triqs::utility {
         }
       } else {
         accumulate_targets_ilp<n_acc_naf>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+      }
+    }
+
+    // Factored NAF phase 2 for Rank >= 2: compute per-unique-frequency powers per rank,
+    // then combine for each target. Reduces O(n_targets * sum_digits) to
+    // O(sum_unique_digits + n_targets) per source batch.
+    void do_direct_naf_phase2_factored()
+      requires(Rank >= 2)
+    {
+      int64_t const buf_counter_simd = buf_counter & -simd_size;
+      int64_t const stride           = buf_size;
+      dcomplex *fiw_ptr              = fk_vec.data();
+
+      std::array<dcomplex const *, Rank> tbl_base;
+      poet::static_for<Rank>([&](const auto r) { tbl_base[r] = naf_pow2_tbl[r].data(); });
+
+      int const *map_ptr                = naf_target_map.data();
+      constexpr int map_stride          = Rank + 1;
+      constexpr int64_t l2_bytes        = 2 * 1024 * 1024;
+      int64_t const table_bytes_per_src = Rank * naf_num_pow2_levels * static_cast<int64_t>(sizeof(dcomplex));
+      bool const use_blocking           = buf_counter_simd * table_bytes_per_src > l2_bytes;
+
+      // Compute NAF product for a single unique exponent u of rank r at SIMD position j.
+      auto compute_unique_simd = [&](int r, int u, int j) -> cbatch {
+        int const *digits = naf_uniq_digits_flat[r].data() + naf_uniq_digit_offsets[r][u];
+        int n_digits      = naf_uniq_digit_offsets[r][u + 1] - naf_uniq_digit_offsets[r][u];
+        auto const *base  = tbl_base[r];
+
+        int d0          = digits[0];
+        int row0        = d0 >= 0 ? d0 : -(d0 + 1);
+        cbatch rank_pow = cbatch::load_unaligned(base + row0 * stride + j);
+        if (d0 < 0) rank_pow = xsimd::conj(rank_pow);
+
+        for (int i = 1; i < n_digits; ++i) {
+          int di     = digits[i];
+          int row    = di >= 0 ? di : -(di + 1);
+          cbatch val = cbatch::load_unaligned(base + row * stride + j);
+          rank_pow *= di >= 0 ? val : xsimd::conj(val);
+        }
+        return rank_pow;
+      };
+
+      auto compute_unique_scalar = [&](int r, int u, int j) -> dcomplex {
+        int const *digits = naf_uniq_digits_flat[r].data() + naf_uniq_digit_offsets[r][u];
+        int n_digits      = naf_uniq_digit_offsets[r][u + 1] - naf_uniq_digit_offsets[r][u];
+        auto const *base  = tbl_base[r];
+
+        int d0            = digits[0];
+        int row0          = d0 >= 0 ? d0 : -(d0 + 1);
+        dcomplex rank_pow = *(base + row0 * stride + j);
+        if (d0 < 0) rank_pow = std::conj(rank_pow);
+
+        for (int i = 1; i < n_digits; ++i) {
+          int di       = digits[i];
+          int row      = di >= 0 ? di : -(di + 1);
+          dcomplex val = *(base + row * stride + j);
+          rank_pow *= di >= 0 ? val : std::conj(val);
+        }
+        return rank_pow;
+      };
+
+      // Combine unique powers for target d (Rank==2 fast path, generic for Rank > 2).
+      auto combine_simd = [&](int64_t d) -> cbatch {
+        int const *info = map_ptr + d * map_stride;
+        cbatch pow      = naf_uq_simd_buf[0][info[0]];
+        if (info[Rank] & 1) pow = xsimd::conj(pow);
+        cbatch p1 = naf_uq_simd_buf[1][info[1]];
+        if (info[Rank] & 2) p1 = xsimd::conj(p1);
+        pow *= p1;
+        if constexpr (Rank > 2) {
+          for (int r = 2; r < Rank; ++r) {
+            cbatch pr = naf_uq_simd_buf[r][info[r]];
+            if (info[Rank] & (1 << r)) pr = xsimd::conj(pr);
+            pow *= pr;
+          }
+        }
+        return pow;
+      };
+
+      auto combine_scalar = [&](int64_t d) -> dcomplex {
+        int const *info = map_ptr + d * map_stride;
+        dcomplex pow    = naf_uq_scalar_buf[0][info[0]];
+        if (info[Rank] & 1) pow = std::conj(pow);
+        for (int r = 1; r < Rank; ++r) {
+          dcomplex pr = naf_uq_scalar_buf[r][info[r]];
+          if (info[Rank] & (1 << r)) pr = std::conj(pr);
+          pow *= pr;
+        }
+        return pow;
+      };
+
+      // SIMD accumulation over a range of source positions [j_begin, j_end).
+      auto accumulate_simd_range = [&](int j_begin, int j_end) {
+        for (int j = j_begin; j < j_end; j += simd_size) {
+          poet::static_for<Rank>([&](const auto r) {
+            for (int u = 0; u < naf_n_unique[r]; ++u) naf_uq_simd_buf[r][u] = compute_unique_simd(r, u, j);
+          });
+          cbatch fj = cbatch::load_unaligned(fx_arr.data() + j);
+          for (int64_t d = 0; d < n_targets; ++d) naf_sums_buf[d] = xsimd::fma(fj, combine_simd(d), naf_sums_buf[d]);
+        }
+      };
+
+      auto reduce_sums = [&]() {
+        for (int64_t d = 0; d < n_targets; ++d) fiw_ptr[d] += xsimd::reduce_add(naf_sums_buf[d]);
+      };
+
+      if (use_blocking) {
+        constexpr int source_block = 128;
+        for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
+          std::fill(naf_sums_buf.begin(), naf_sums_buf.end(), cbatch(dcomplex{0, 0}));
+          accumulate_simd_range(jb, std::min(jb + source_block, static_cast<int>(buf_counter_simd)));
+          reduce_sums();
+        }
+      } else {
+        std::fill(naf_sums_buf.begin(), naf_sums_buf.end(), cbatch(dcomplex{0, 0}));
+        accumulate_simd_range(0, static_cast<int>(buf_counter_simd));
+        reduce_sums();
+      }
+
+      // Scalar tail
+      for (int j = buf_counter_simd; j < buf_counter; ++j) {
+        poet::static_for<Rank>([&](const auto r) {
+          for (int u = 0; u < naf_n_unique[r]; ++u) naf_uq_scalar_buf[r][u] = compute_unique_scalar(r, u, j);
+        });
+        dcomplex fj = fx_arr[j];
+        for (int64_t d = 0; d < n_targets; ++d) fiw_ptr[d] += fj * combine_scalar(d);
       }
     }
 
