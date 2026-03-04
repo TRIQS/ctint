@@ -10,11 +10,11 @@ namespace triqs_ctint::measures {
   M_tau::M_tau(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results) : params(params_), qmc_config(qmc_config_) {
 
     // Init measurement container and capture view
-    results->M_tau = block_gf<imtime, M_tau_target_t>{{params.beta, Fermion, params.n_tau}, params.gf_struct};
+    results->M_tau = block_gf<imtime, g_tau_t::target_t>{{params.beta, Fermion, params.n_tau}, params.gf_struct};
     M_tau_.rebind(results->M_tau.value());
     M_tau_() = 0;
 
-    results->M_hartree = make_block_vector<M_tau_scalar_t>(params.gf_struct);
+    results->M_hartree = make_block_vector<g_tau_scalar_t>(params.gf_struct);
     for (auto &m : results->M_hartree.value()) M_hartree_.push_back(m);
   }
 

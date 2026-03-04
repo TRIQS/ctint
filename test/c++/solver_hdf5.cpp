@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   solve_params_t sp;
   sp.h_int             = U * n("up", 0) * n("down", 0);
   sp.n_s               = 1;
-  sp.alpha             = nda::zeros<double>(1, 2, 2, 1);
+  sp.alpha             = nda::zeros<g_tau_scalar_t>(1, 2, 2, 1);
   sp.alpha(0, 0, 0, 0) = 0.5;
   sp.alpha(0, 1, 1, 0) = 0.5;
   sp.length_cycle      = 50;

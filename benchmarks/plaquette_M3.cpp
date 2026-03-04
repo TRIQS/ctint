@@ -63,7 +63,7 @@ int main() { // NOLINT
   long n_terms = std::distance(h_int.begin(), h_int.end());
   alpha_t alpha(n_terms, 2, 2, 1);
   double const delta = 0.1;
-  for (long l = 0; l < n_terms; ++l) { alpha(l, range::all, range::all, 0) = nda::matrix<double>{{0.5 - delta, 0.}, {0., 0.5 + delta}}; };
+  for (long l = 0; l < n_terms; ++l) { alpha(l, range::all, range::all, 0) = nda::matrix<g_tau_scalar_t>{{0.5 - delta, 0.}, {0., 0.5 + delta}}; };
 
   solve_params_t ps;
   ps.h_int           = h_int;

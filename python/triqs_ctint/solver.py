@@ -10,6 +10,7 @@ This module exposes :class:`Solver`, a Python wrapper around
 """
 
 from .solver_core import SolverCore, ConstrParamsT, SolveParamsT
+from .version import gtau_is_complex, interaction_is_complex
 from triqs.gfs import *
 from triqs.utility import mpi
 from triqs_hartree_fock import ImpuritySolver as HFSolver
@@ -120,7 +121,7 @@ class Solver(SolverCore):
             gf_struct=gf_struct,
             mesh=self.G0_iw.mesh,
             dc=False,
-            force_real=True
+            force_real=not gtau_is_complex
         )
 
         # Copy G0_iw to the HF solver (same DLR mesh)
@@ -150,7 +151,7 @@ class Solver(SolverCore):
             n_D0_total = n_bl * n_bl * R * R
 
         # Build alpha tensor from HF density with delta shift for n_s spin components
-        alpha = np.zeros((n_terms + n_D0_total, 2, 2, n_s))
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, n_s), dtype=complex if gtau_is_complex else float)
         for n, (term, coeff) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             n00 = hf_solver.density[bl0][u0p, u0]
@@ -173,8 +174,8 @@ class Solver(SolverCore):
                             d = ibl1 * n_bl * R * R + ibl2 * R * R + a * R + b
                             for s in range(n_s):
                                 sgn = 1 - 2 * s
-                                alpha[n_terms + d, 0, 0, s] = hf_solver.density[bl1][a, a].real + sgn * delta[0]
-                                alpha[n_terms + d, 1, 1, s] = hf_solver.density[bl2][b, b].real + sgn * delta[0]
+                                alpha[n_terms + d, 0, 0, s] = hf_solver.density[bl1][a, a] + sgn * delta[0]
+                                alpha[n_terms + d, 1, 1, s] = hf_solver.density[bl2][b, b] + sgn * delta[0]
 
         alpha = mpi.bcast(alpha, root=0)
 
@@ -262,7 +263,7 @@ class Solver(SolverCore):
             n_D0_total = n_bl * n_bl * R * R
 
         assert solve_params['n_s'] == 2
-        alpha = np.zeros((n_terms + n_D0_total, 2, 2, 2))
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, 2), dtype=complex if gtau_is_complex else float)
         for l, (term, _) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             same_block = bl0 == bl1

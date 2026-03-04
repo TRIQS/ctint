@@ -15,7 +15,7 @@ namespace triqs_ctint::measures {
 
     // Init measurement container and capture view
     for (auto &[bl, bl_size] : params.gf_struct) {
-      results->density->push_back(zeros<M_tau_scalar_t>(make_shape(bl_size, bl_size)));
+      results->density->push_back(zeros<g_tau_scalar_t>(make_shape(bl_size, bl_size)));
       density_.push_back(results->density->back());
     }
   }
