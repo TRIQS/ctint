@@ -50,17 +50,9 @@ module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PP (chi3_iw_cv_t M3_iw
 
 module.add_function ("chi3_iw_t triqs_ctint::chi3_from_M3_PH (chi3_iw_cv_t M3_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, block_matrix_t dens_G, block_matrix_t M_hartree)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PP (chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
+module.add_function ("gf<mesh::dlr_imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PP (chi2_tau_cv_t chi2pp_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
-module.add_function ("chi2_tau_t triqs_ctint::chi2_from_chi2_conn_PH (chi2_tau_cv_t chi2_conn_tau, g_reg_iw_cv_t G_iw, block_matrix_t dens_G)", doc = r"""""")
-
-module.add_function ("gf<imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PP (chi2_tau_cv_t chi2pp_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
-
-module.add_function ("gf<imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PH (chi2_tau_cv_t chi2ph_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
-
-module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PP (chi3_tau_t M3pp_tau, chi2_tau_t M3pp_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
-
-module.add_function ("chi2_tau_t triqs_ctint::chi2_conn_from_M3_PH (chi3_tau_t M3ph_tau, chi2_tau_t M3ph_delta, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw, g_tau_cv_t M_tau, block_matrix_t M_hartree, g_tau_cv_t G0_tau)", doc = r"""""")
+module.add_function ("gf<mesh::dlr_imtime, matrix_valued> triqs_ctint::chiAB_from_chi2_PH (chi2_tau_cv_t chi2ph_tau, gf_struct_t gf_struct, std::vector<many_body_operator> A_op_vec, std::vector<many_body_operator> B_op_vec)", doc = r"""""")
 
 
 

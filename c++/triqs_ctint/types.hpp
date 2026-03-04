@@ -92,11 +92,11 @@ namespace triqs_ctint {
   /// A view to a block_matrix_t
   using block_matrix_v_t = std::vector<matrix_view<g_tau_scalar_t>>;
 
-  /// Container type of $\chi_3$ in Matsubara frequencies
-  using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;
+  /// Container type of $\chi_2$ in DLR Matsubara frequencies
+  using chi2_iw_t = block2_gf<mesh::dlr_imfreq, tensor_valued<4>>;
 
-  /// Container type of $\chi_3$ in imaginary time
-  using chi2_tau_t = block2_gf<imtime, tensor_valued<4>>;
+  /// Container type of $\chi_2$ in DLR imaginary time
+  using chi2_tau_t = block2_gf<mesh::dlr_imtime, tensor_valued<4>>;
 
   /// A view to a chi2_tau_t
   using chi2_tau_v_t = chi2_tau_t::view_type;

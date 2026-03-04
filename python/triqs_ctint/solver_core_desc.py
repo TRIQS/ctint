@@ -152,19 +152,19 @@ c.add_member(c_name = "M3xph_tau",
              doc = r"""Building block for the fermion boson vertex (xph channel) in imaginary time""")
 
 c.add_member(c_name = "M3pp_delta",
-             c_type = "std::optional<chi2_tau_t>",
+             c_type = "std::optional<block2_gf<imtime, tensor_valued<4>>>",
              read_only= True,
              doc = r"""Equal-time peak in M3pp_tau""")
 
 c.add_member(c_name = "M3ph_delta",
-             c_type = "std::optional<chi2_tau_t>",
+             c_type = "std::optional<block2_gf<imtime, tensor_valued<4>>>",
              read_only= True,
              doc = r"""Equal-time peak in M3ph_tau""")
 
 c.add_member(c_name = "M3xph_delta",
-             c_type = "std::optional<chi2_tau_t>",
+             c_type = "std::optional<block2_gf<imtime, tensor_valued<4>>>",
              read_only= True,
-             doc = r"""Equal-time peak in M3ph_tau""")
+             doc = r"""Equal-time peak in M3xph_tau""")
 
 c.add_member(c_name = "chi2pp_tau",
              c_type = "std::optional<chi2_tau_t>",
@@ -270,51 +270,6 @@ c.add_member(c_name = "chi2ph_iw",
              c_type = "std::optional<chi2_iw_t>",
              read_only= True,
              doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in Matsubara frequencies""")
-
-c.add_member(c_name = "chi2pp_conn_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""M2 in the particle-particle channel in imaginary time as obtained from M3""")
-
-c.add_member(c_name = "chi2ph_conn_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""M2 in the particle-hole channel in imaginary time as obtained from M3""")
-
-c.add_member(c_name = "chi2xph_conn_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""M2 in the particle-hole-cross channel in imaginary time as obtained from M3""")
-
-c.add_member(c_name = "chi2pp_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-particle channel in imaginary times as obtained from M3pp_tau""")
-
-c.add_member(c_name = "chi2ph_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary times as obtained from M3ph_tau""")
-
-c.add_member(c_name = "chi2xph_tau_from_M3",
-             c_type = "std::optional<chi2_tau_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary times as obtained from M3ph_tau""")
-
-c.add_member(c_name = "chi2pp_iw_from_M3",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-particle channel in imaginary frequencies as obtained from M3pp_tau""")
-
-c.add_member(c_name = "chi2ph_iw_from_M3",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-hole channel in imaginary frequencies as obtained from M3ph_tau""")
-
-c.add_member(c_name = "chi2xph_iw_from_M3",
-             c_type = "std::optional<chi2_iw_t>",
-             read_only= True,
-             doc = r"""The equal time correlator $\chi_2$ in the particle-hole-cross channel in imaginary frequencies as obtained from M3ph_tau""")
 
 c.add_member(c_name = "chiAB_iw",
              c_type = "std::optional<gf<mesh::dlr_imfreq>>",
@@ -509,10 +464,6 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chi2ph_tau            | bool                            | false                                   | Measure of chi2ph by insertion                                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_tau_chi2                    | int                             | 201                                     | Number of imaginary time points in chi2                                                                                               |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw_chi2                     | int                             | 32                                      | Number of positive Matsubara frequencies in chi2                                                                                      |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chiAB_tau             | bool                            | false                                   | Measure of chiAB by insertion                                                                                                         |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | chi_A_vec                     | std::vector<many_body_operator> | {}                                      | The list of all operators A                                                                                                           |
@@ -638,10 +589,6 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 | measure_chi2pp_tau            | bool                            | false                                   | Measure of chi2pp by insertion                                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chi2ph_tau            | bool                            | false                                   | Measure of chi2ph by insertion                                                                                                        |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_tau_chi2                    | int                             | 201                                     | Number of imaginary time points in chi2                                                                                               |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_iw_chi2                     | int                             | 32                                      | Number of positive Matsubara frequencies in chi2                                                                                      |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chiAB_tau             | bool                            | false                                   | Measure of chiAB by insertion                                                                                                         |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -880,16 +827,6 @@ c.add_member(c_name = "measure_chi2ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure of chi2ph by insertion""")
-
-c.add_member(c_name = "n_tau_chi2",
-             c_type = "int",
-             initializer = """ 201 """,
-             doc = r"""Number of imaginary time points in chi2""")
-
-c.add_member(c_name = "n_iw_chi2",
-             c_type = "int",
-             initializer = """ 32 """,
-             doc = r"""Number of positive Matsubara frequencies in chi2""")
 
 c.add_member(c_name = "measure_chiAB_tau",
              c_type = "bool",
@@ -1189,16 +1126,6 @@ c.add_member(c_name = "measure_chi2ph_tau",
              c_type = "bool",
              initializer = """ false """,
              doc = r"""Measure of chi2ph by insertion""")
-
-c.add_member(c_name = "n_tau_chi2",
-             c_type = "int",
-             initializer = """ 201 """,
-             doc = r"""Number of imaginary time points in chi2""")
-
-c.add_member(c_name = "n_iw_chi2",
-             c_type = "int",
-             initializer = """ 32 """,
-             doc = r"""Number of positive Matsubara frequencies in chi2""")
 
 c.add_member(c_name = "measure_chiAB_tau",
              c_type = "bool",

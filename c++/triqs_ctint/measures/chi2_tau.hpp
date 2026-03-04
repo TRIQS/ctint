@@ -31,13 +31,13 @@ namespace triqs_ctint::measures {
     qmc_config_t &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<imtime, tensor_valued<4>> chi2_tau_;
+    block2_gf_view<mesh::dlr_imtime, tensor_valued<4>> chi2_tau_;
 
     // The average sign
     mc_weight_t Z = 0.0;
 
     // The tau-mesh
-    mesh::imtime tau_mesh;
+    mesh::dlr_imtime tau_mesh;
   };
 
 } // namespace triqs_ctint::measures

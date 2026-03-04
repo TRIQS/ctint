@@ -306,7 +306,7 @@ namespace triqs_ctint {
     }
 
     // --- Convert DLR quantities to regular imfreq for higher-order post-processing
-    int n_iw_pp = std::max({p.n_iw_M4 + p.n_iW_M4, p.n_iw_M3 + p.n_iW_M3, p.n_iw_chi2}) + 10;
+    int n_iw_pp = std::max({p.n_iw_M4 + p.n_iW_M4, p.n_iw_M3 + p.n_iW_M3}) + 10;
     // DLR2D NFFT measurements may require a larger mesh to cover all DLR2D frequencies
     if (M3pp_iw_nfft) n_iw_pp = std::max(n_iw_pp, static_cast<int>(M3pp_iw_nfft.value()(0, 0).mesh().max_n()) + 1);
     if (M3ph_iw_nfft) n_iw_pp = std::max(n_iw_pp, static_cast<int>(M3ph_iw_nfft.value()(0, 0).mesh().max_n()) + 1);
@@ -332,13 +332,6 @@ namespace triqs_ctint {
            << M3pp_ferm_iw(bl1_, bl2_)(-iw1_, -iw2_)(i_, j_, k_, l_) + M3pp_del_iW(bl1_, bl2_)(-(iw1_ + iw2_))(i_, j_, k_, l_);
       }
 
-      if (M_iw_reg && density) {
-        chi2pp_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PP>(M3pp_tau.value(), M3pp_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
-                                                                M_hartree.value(), G0_shift_tau);
-        chi2pp_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PP>(chi2pp_conn_tau_from_M3.value(), G_iw_reg, density.value());
-        auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
-        chi2pp_iw_from_M3       = make_gf_from_fourier(chi2pp_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2pp_tau_from_M3.value()));
-      }
     }
     if (M3ph_tau) {
       {
@@ -355,13 +348,6 @@ namespace triqs_ctint {
            << M3ph_ferm_iw(bl1_, bl2_)(-iw1_, iw2_)(i_, j_, k_, l_) + M3ph_del_iW(bl1_, bl2_)(iw2_ - iw1_)(i_, j_, k_, l_);
       }
 
-      if (M_iw_reg && density) {
-        chi2ph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::PH>(M3ph_tau.value(), M3ph_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
-                                                                M_hartree.value(), G0_shift_tau);
-        chi2ph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::PH>(chi2ph_conn_tau_from_M3.value(), G_iw_reg, density.value());
-        auto iw_mesh            = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
-        chi2ph_iw_from_M3       = make_gf_from_fourier(chi2ph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2ph_tau_from_M3.value()));
-      }
     }
     if (M3xph_tau) {
       {
@@ -378,13 +364,6 @@ namespace triqs_ctint {
            << M3xph_ferm_iw(bl1_, bl2_)(iw2_, -iw1_)(i_, j_, k_, l_) + M3xph_del_iW(bl1_, bl2_)(iw2_ - iw1_)(i_, j_, k_, l_);
       }
 
-      if (M_iw_reg && density) {
-        chi2xph_conn_tau_from_M3 = chi2_conn_from_M3<Chan_t::XPH>(M3xph_tau.value(), M3xph_delta.value(), M_iw_reg.value(), G0_shift_iw_reg, M_tau.value(),
-                                                                  M_hartree.value(), G0_shift_tau);
-        chi2xph_tau_from_M3      = chi2_from_chi2_conn<Chan_t::XPH>(chi2xph_conn_tau_from_M3.value(), G_iw_reg, density.value());
-        auto iw_mesh             = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
-        chi2xph_iw_from_M3       = make_gf_from_fourier(chi2xph_tau_from_M3.value(), iw_mesh, make_zero_tail(chi2xph_tau_from_M3.value()));
-      }
     }
 
     // Calculate G2_conn_iw, F_iw and G2_iw from M4_iw and M_iw (using regular imfreq quantities)
@@ -413,10 +392,9 @@ namespace triqs_ctint {
     if (M3ph_iw_nfft_full and M_iw_reg and density)
       chi3ph_iw_nfft_full = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
 
-    // Calculate chi2_iw from chi2_tau
-    auto iw_mesh = mesh::imfreq{p.beta, Boson, p.n_iw_chi2};
-    if (chi2pp_tau) chi2pp_iw = make_gf_from_fourier(chi2pp_tau.value(), iw_mesh, make_zero_tail(chi2pp_tau.value()));
-    if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), iw_mesh, make_zero_tail(chi2ph_tau.value()));
+    // Calculate chi2_iw from chi2_tau via DLR
+    if (chi2pp_tau) chi2pp_iw = make_gf_dlr_imfreq(chi2pp_tau.value());
+    if (chi2ph_tau) chi2ph_iw = make_gf_dlr_imfreq(chi2ph_tau.value());
 
     // Calculate chiAB_iw from chiAB_tau
     if (chiAB_tau) chiAB_iw = make_gf_dlr_imfreq(chiAB_tau.value());

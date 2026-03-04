@@ -55,8 +55,6 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.n_tau_M3           = 41;
   ps.measure_chi2pp_tau = true;
   ps.measure_chi2ph_tau = true;
-  ps.n_iw_chi2          = 10;
-  ps.n_tau_chi2         = 21;
 
   solver_core S(pc);
 
