@@ -303,6 +303,9 @@ namespace triqs_ctint {
 
     // --- Convert DLR quantities to regular imfreq for higher-order post-processing
     int n_iw_pp = std::max({p.n_iw_M4 + p.n_iW_M4, p.n_iw_M3 + p.n_iW_M3, p.n_iw_chi2}) + 10;
+    // DLR2D NFFT measurements may require a larger mesh to cover all DLR2D frequencies
+    if (M3pp_iw_nfft) n_iw_pp = std::max(n_iw_pp, static_cast<int>(M3pp_iw_nfft.value()(0, 0).mesh().max_n()) + 1);
+    if (M3ph_iw_nfft) n_iw_pp = std::max(n_iw_pp, static_cast<int>(M3ph_iw_nfft.value()(0, 0).mesh().max_n()) + 1);
     g_reg_iw_t G0_shift_iw_reg = make_gf_imfreq(G0_shift_iw, n_iw_pp);
 
     std::optional<g_reg_iw_t> M_iw_reg;
