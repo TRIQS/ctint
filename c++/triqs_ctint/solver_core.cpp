@@ -415,7 +415,7 @@ namespace triqs_ctint {
     if (chi2ph_tau) chi2ph_iw = make_gf_from_fourier(chi2ph_tau.value(), iw_mesh, make_zero_tail(chi2ph_tau.value()));
 
     // Calculate chiAB_iw from chiAB_tau
-    if (chiAB_tau) chiAB_iw = make_gf_from_fourier(chiAB_tau.value(), iw_mesh, make_zero_tail(chiAB_tau.value()));
+    if (chiAB_tau) chiAB_iw = make_gf_dlr_imfreq(chiAB_tau.value());
   }
 
 } // namespace triqs_ctint
