@@ -50,7 +50,7 @@ namespace triqs_ctint::measures {
       buf_arrarr(bl) =
          array_adapter{M[bl].target_shape(), [&](int i, int j) {
                          return nfft_buf_t<2>{slice_target_to_scalar(M[bl], i, j).data(), target_mf_M,
-                                              params.nfft_buf_size, nfft_type_t::type3, params.nfft_tol};
+                                              params.nfft_buf_size, params.nfft_tol};
                        }};
       buf_arrarr_GM(bl) =
          array_adapter{GM[bl].target_shape(), [&](int i, int j) {

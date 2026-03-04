@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 #include <bit>
+#include <chrono>
 #include <triqs/mesh/matsubara_freq.hpp>
 
 #include "finufft.h"
@@ -37,7 +38,7 @@ namespace triqs::utility {
     nfft_buf_t() = default;
 
     /// Type 1: non-uniform tau -> uniform Matsubara grid
-    nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-15)
+    nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-8)
        : fiw_arr(std::move(fiw_arr_)),
          niws(nda::stdutil::make_std_array<int64_t>(fiw_arr.shape())),
          buf_size(buf_size_),
@@ -62,7 +63,7 @@ namespace triqs::utility {
 
     /// Non-uniform target constructor: automatic dispatch, FINUFFT type3, or direct DFT
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_,
-               nfft_type_t type = nfft_type_t::automatic, double tol_ = 1e-15)
+               double tol_ = 1e-8, nfft_type_t type = nfft_type_t::automatic)
        : nfft_type(type),
          fiw_vec(std::move(fiw_vec_)),
          buf_size(buf_size_),
@@ -136,6 +137,7 @@ namespace triqs::utility {
       } else if (type == nfft_type_t::automatic) {
         init_type3(target_mf_);
         init_direct_naf(target_mf_, buf_size_);
+        calibrate_dispatch();
 
       } else {
         NDA_RUNTIME_ERROR << "nfft_buf_t: unsupported nfft_type_t for non-uniform target constructor\n";
@@ -144,7 +146,7 @@ namespace triqs::utility {
 
     /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_,
-               nfft_type_t type = nfft_type_t::automatic, double tol_ = 1e-15)
+               double tol_ = 1e-8, nfft_type_t type = nfft_type_t::automatic)
       requires(Rank == 1)
        : nfft_buf_t(
             std::move(fiw_vec_),
@@ -154,7 +156,7 @@ namespace triqs::utility {
               for (auto const &mf : target_mf_) result.push_back({mf});
               return result;
             }(),
-            buf_size_, type, tol_) {}
+            buf_size_, tol_, type) {}
 
     ~nfft_buf_t() {
       if (buf_counter != 0) std::cout << " WARNING: Points in NFFT Buffer lost \n";
@@ -227,7 +229,7 @@ namespace triqs::utility {
     nda::array<double, 2> s_arr;       // Type 3 target frequencies
     nda::vector<dcomplex> fk_vec;      // Type 3 output buffer
     nda::array<long, 2> target_n;      // Direct: integer Matsubara indices (Rank, n_targets)
-    double tol = 1e-15;
+    double tol = 1e-8;
 
     // direct_type1 (dense): per-dimension min index, range, power table, and offset indices
     std::array<long, Rank> n_min_arr{};
@@ -255,9 +257,10 @@ namespace triqs::utility {
     // naf_digit_offsets[r][n_targets] = total number of digits.
     std::array<std::vector<int>, Rank> naf_digit_offsets;
 
-    // Dispatch threshold for automatic mode: use direct_type3 (NAF) when
-    // buf_counter * n_targets < threshold, otherwise fall back to FINUFFT type3.
-    static constexpr int64_t dispatch_threshold = 50'000'000;
+    // Dispatch threshold for automatic mode: use direct NAF when
+    // buf_counter < dispatch_buf_threshold, otherwise fall back to FINUFFT type3.
+    // Computed by calibrate_dispatch() at construction time.
+    int dispatch_buf_threshold = 0;
 
     using target_mf_vec = std::vector<std::array<mesh::matsubara_freq, Rank>>;
 
@@ -295,6 +298,74 @@ namespace triqs::utility {
       }
       naf_num_pow2_levels = std::max(1, static_cast<int>(std::bit_width(max_exponent)) + 1);
       for (int r = 0; r < Rank; ++r) naf_pow2_tbl[r].resize(naf_num_pow2_levels, buf_size_);
+    }
+
+    // Calibrate dispatch threshold for automatic mode by timing both NAF and Type3
+    // at two buffer sizes and fitting a linear model to find the crossover.
+    void calibrate_dispatch() {
+      using clock = std::chrono::steady_clock;
+
+      int const n_hi = std::min(512, buf_size);
+      int const n_lo = std::max(1, n_hi / 8);
+
+      // Fill buffer with deterministic dummy data
+      for (int j = 0; j < n_hi; ++j) {
+        for (int r = 0; r < Rank; ++r) x_arr(r, j) = beta * static_cast<double>(j + 1) / (n_hi + 1);
+        fx_arr[j] = dcomplex(1.0, 0.0);
+      }
+
+      auto measure_naf = [&](int n) {
+        buf_counter = n;
+        fk_vec      = 0;
+        auto t0     = clock::now();
+        do_direct_naf();
+        return std::chrono::duration<double>(clock::now() - t0).count();
+      };
+
+      auto measure_type3 = [&](int n) {
+        buf_counter = n;
+        auto t0     = clock::now();
+        set_pts(&s_arr);
+        check_finufft(finufft_execute(plan.get(), fx_arr.data(), fk_vec.data()));
+        return std::chrono::duration<double>(clock::now() - t0).count();
+      };
+
+      // Warmup to avoid cold-start bias
+      measure_type3(n_lo);
+      measure_naf(n_lo);
+
+      // Measure at two buffer sizes (take best of 3 reps)
+      constexpr int n_reps = 3;
+      auto best_of = [&](auto &&fn, int n) {
+        double best = std::numeric_limits<double>::max();
+        for (int rep = 0; rep < n_reps; ++rep) best = std::min(best, fn(n));
+        return best;
+      };
+
+      double naf_lo = best_of(measure_naf, n_lo);
+      double naf_hi = best_of(measure_naf, n_hi);
+      double t3_lo  = best_of(measure_type3, n_lo);
+      double t3_hi  = best_of(measure_type3, n_hi);
+
+      // Linear fit: time(B) = intercept + slope * B
+      double naf_slope    = (naf_hi - naf_lo) / (n_hi - n_lo);
+      double naf_intercept = naf_lo - naf_slope * n_lo;
+      double t3_slope     = (t3_hi - t3_lo) / (n_hi - n_lo);
+      double t3_intercept = t3_lo - t3_slope * n_lo;
+
+      // Crossover: naf_intercept + naf_slope * B = t3_intercept + t3_slope * B
+      if (naf_slope > t3_slope && t3_intercept > naf_intercept)
+        dispatch_buf_threshold = static_cast<int>((t3_intercept - naf_intercept) / (naf_slope - t3_slope));
+      else if (naf_slope <= t3_slope)
+        dispatch_buf_threshold = buf_size + 1; // NAF always wins
+      else
+        dispatch_buf_threshold = 0; // Type3 always wins
+
+      dispatch_buf_threshold = std::clamp(dispatch_buf_threshold, 0, buf_size + 1);
+
+      // Clean up
+      fk_vec      = 0;
+      buf_counter = 0;
     }
 
     // |2n+1| for fermionic Matsubara index n
@@ -402,7 +473,7 @@ namespace triqs::utility {
       if (nfft_type == nfft_type_t::type1)
         do_nfft_type1();
       else if (nfft_type == nfft_type_t::automatic) {
-        if (static_cast<int64_t>(buf_counter) * n_targets < dispatch_threshold)
+        if (buf_counter < dispatch_buf_threshold)
           run_direct([this] { do_direct_naf(); });
         else
           do_nfft_type3();
@@ -810,12 +881,17 @@ namespace triqs::utility {
   nfft_buf_t(nda::array_view<dcomplex, Rank>, int, double, double) -> nfft_buf_t<Rank>;
 
   template <std::size_t N>
-  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, nfft_type_t, double) -> nfft_buf_t<static_cast<int>(N)>;
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, double, nfft_type_t) -> nfft_buf_t<static_cast<int>(N)>;
+
+  template <std::size_t N>
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, double) -> nfft_buf_t<static_cast<int>(N)>;
 
   template <std::size_t N>
   nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int) -> nfft_buf_t<static_cast<int>(N)>;
 
-  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, nfft_type_t, double) -> nfft_buf_t<1>;
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, double, nfft_type_t) -> nfft_buf_t<1>;
+
+  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, double) -> nfft_buf_t<1>;
 
   nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int) -> nfft_buf_t<1>;
 

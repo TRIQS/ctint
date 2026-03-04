@@ -7,8 +7,6 @@
 
 namespace triqs_ctint::measures {
 
-  using triqs::utility::nfft_type_t;
-
   M_iw::M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results)
      : params(params_), qmc_config(qmc_config_), M_data(params_.n_blocks()) {
 
@@ -32,7 +30,7 @@ namespace triqs_ctint::measures {
       M_data(bl) = 0;
 
       auto init_func = [&](int i, int j) {
-        return nfft_buf_t<1>{M_data(bl)(nda::range::all, i, j), target_mf, params.nfft_buf_size, nfft_type_t::automatic, params.nfft_tol};
+        return nfft_buf_t<1>{M_data(bl)(nda::range::all, i, j), target_mf, params.nfft_buf_size, params.nfft_tol};
       };
       buf_vec.emplace_back(array_adapter{std::array{bl_size, bl_size}, init_func});
     }
