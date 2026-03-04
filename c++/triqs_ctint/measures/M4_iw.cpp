@@ -30,7 +30,7 @@ namespace triqs_ctint::measures {
     // Create nfft buffers
     for (int bl : range(params.n_blocks())) {
       auto init_target_func = [&](int i, int j) {
-        return nfft_buf_t<2>{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+        return nfft::buffer_t<2>{slice_target_to_scalar(M[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
       };
       buf_arrarr(bl) = array_adapter{M[bl].target_shape(), init_target_func};
     }

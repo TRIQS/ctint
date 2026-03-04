@@ -1,4 +1,4 @@
-#include <triqs_ctint/nfft_buf.hpp>
+#include <triqs_ctint/nfft/buffer.hpp>
 #include <random>
 #include <triqs/gfs.hpp>
 #include <triqs/mesh.hpp>
@@ -6,6 +6,7 @@
 #include <triqs/test_tools/gfs.hpp>
 
 using namespace triqs::utility;
+using namespace triqs::utility::nfft;
 
 // Check that int holds at least 4 Bytes
 static_assert(sizeof(int) >= sizeof(int32_t), " Error: sizeof(int) < 4 Byte ");
@@ -49,7 +50,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_equid = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer
-  nfft_buf_t<1> buf_equid(giw_nfft_equid.data()(range::all, 0, 0), buf_size, beta);
+  buffer_t<1> buf_equid(giw_nfft_equid.data()(range::all, 0, 0), buf_size, beta);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   buf_equid.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -78,7 +79,7 @@ TEST_F(Nfft, Equid) { // NOLINT
   auto giw_nfft_multi = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
 
   // nfft_buffer with size 4000 = 2 * buf_size / 5
-  nfft_buf_t<1> buf_multi(giw_nfft_multi.data()(range::all, 0, 0), 2 * buf_size / 5, beta);
+  buffer_t<1> buf_multi(giw_nfft_multi.data()(range::all, 0, 0), 2 * buf_size / 5, beta);
 
   // Generate data with equidistant \tau-grid (care for weights at beginning and end)
   // Buffer performs multiple transforms as buf_size < n_tau
@@ -123,7 +124,7 @@ TEST_F(Nfft, Rng) { // NOLINT
   // nfft_buffer
   n_tau    = 1e+6;
   buf_size = n_tau;
-  nfft_buf_t<1> buf_rng(giw_nfft_rng.data()(range::all, 0, 0), buf_size, beta);
+  buffer_t<1> buf_rng(giw_nfft_rng.data()(range::all, 0, 0), buf_size, beta);
 
   // Generate values at random tau points
   for (int i = 0; i < n_tau; ++i) {
@@ -154,7 +155,7 @@ TEST_F(Nfft, 2D) { // NOLINT
   auto giw_nfft_2d = gf<prod<imfreq, imfreq>>{{{beta, Fermion, n_iw}, {beta, Fermion, n_iw}}, shape};
 
   // nfft_buffer
-  nfft_buf_t<2> buf_2d(slice_target_to_scalar(giw_nfft_2d, 0, 0).data(), buf_size, beta);
+  buffer_t<2> buf_2d(slice_target_to_scalar(giw_nfft_2d, 0, 0).data(), buf_size, beta);
 
   // ==== Generate 2d data with equidistant \tau-grids (care for weights at edges and corners)
   // Corner Points with weight 0.25
@@ -232,7 +233,7 @@ TEST_F(Nfft, Type3_Analytical_1D) { // NOLINT
   fiw_out = 0;
 
   // Type 3 nfft buffer
-  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf(fiw_out, target_mf, buf_size, test_tol, type_t::type3);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -281,7 +282,7 @@ TEST_F(Nfft, Type3_Random_1D) { // NOLINT
   // Type 3 nfft buffer
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
-  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf(fiw_out, target_mf, buf_size, test_tol, type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) buf.push_back({taus[i]}, vals[i]);
   buf.flush();
@@ -315,7 +316,7 @@ TEST_F(Nfft, Type3_Analytical_2D) { // NOLINT
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<2> buf(fiw_out, target_mf, buf_size, test_tol, type_t::type3);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -353,7 +354,7 @@ TEST_F(Nfft, Type3_vs_Type1_1D) { // NOLINT
 
   // Type 1 buffer with 2*n_iw uniform Matsubara frequencies
   auto giw_type1 = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
-  nfft_buf_t<1> buf1(giw_type1.data()(range::all, 0, 0), buf_size, beta, test_tol);
+  buffer_t<1> buf1(giw_type1.data()(range::all, 0, 0), buf_size, beta, test_tol);
 
   // Type 3 buffer targeting all uniform Matsubara frequencies omega_n = (2n+1)*pi/beta, n = -n_iw,...,n_iw-1
   int64_t n_targets = 2 * n_iw;
@@ -366,7 +367,7 @@ TEST_F(Nfft, Type3_vs_Type1_1D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -395,7 +396,7 @@ TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
 
   // Type 1: 2D uniform grid
   auto giw_type1 = gf<prod<imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
-  nfft_buf_t<2> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, test_tol);
+  buffer_t<2> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, test_tol);
 
   // Type 3: all (omega_n1, omega_n2) pairs for n1,n2 in [-small_niw, small_niw)
   int64_t n_per_dim = 2 * small_niw;
@@ -411,7 +412,7 @@ TEST_F(Nfft, Type3_vs_Type1_2D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -443,7 +444,7 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
   // Type 1: 3D uniform grid
   auto giw_type1 =
      gf<prod<imfreq, imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
-  nfft_buf_t<3> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, test_tol);
+  buffer_t<3> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, test_tol);
 
   // Type 3: all (omega_n1, omega_n2, omega_n3) triples
   int64_t n_per_dim = 2 * small_niw;
@@ -462,7 +463,7 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<3> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<3> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -484,7 +485,7 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
 }
 
 /********************* DIRECT: Analytical 1D ********************/
-void run_direct_analytical_1d(nfft_type_t type, double beta, auto f_tau) {
+void run_direct_analytical_1d(type_t type, double beta, auto f_tau) {
 
   int n_tau    = 10000;
   int buf_size = n_tau;
@@ -502,7 +503,7 @@ void run_direct_analytical_1d(nfft_type_t type, double beta, auto f_tau) {
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<1> buf(fiw_out, target_mf, buf_size, test_tol,type);
+  buffer_t<1> buf(fiw_out, target_mf, buf_size, test_tol,type);
 
   // Generate equidistant tau data with trapezoidal weights
   buf.push_back({0.0}, 0.5 * f_tau(0.0));
@@ -524,16 +525,16 @@ void run_direct_analytical_1d(nfft_type_t type, double beta, auto f_tau) {
   }
 }
 
-TEST_F(Nfft, DirectType1_Analytical_1D) { run_direct_analytical_1d(nfft_type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
+TEST_F(Nfft, DirectType1_Analytical_1D) { run_direct_analytical_1d(type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
 TEST_F(Nfft, DirectBitwise_Analytical_1D) {
-  run_direct_analytical_1d(nfft_type_t::direct_bitwise, beta, [&](double tau) { return f_tau(tau); });
+  run_direct_analytical_1d(type_t::direct_bitwise, beta, [&](double tau) { return f_tau(tau); });
 }
 TEST_F(Nfft, DirectType3_Analytical_1D) {
-  run_direct_analytical_1d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
+  run_direct_analytical_1d(type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
 }
 
 /********************* DIRECT: Analytical 2D ********************/
-void run_direct_analytical_2d(nfft_type_t type, double beta, auto f_tau) {
+void run_direct_analytical_2d(type_t type, double beta, auto f_tau) {
 
   int n_tau    = 601;
   int buf_size = n_tau * n_tau;
@@ -552,7 +553,7 @@ void run_direct_analytical_2d(nfft_type_t type, double beta, auto f_tau) {
   nda::vector<dcomplex> fiw_out(n_targets);
   fiw_out = 0;
 
-  nfft_buf_t<2> buf(fiw_out, target_mf, buf_size, test_tol,type);
+  buffer_t<2> buf(fiw_out, target_mf, buf_size, test_tol,type);
 
   // 2D equidistant tau with trapezoidal weights
   auto weight = [&](int i, int n) { return (i == 0 || i == n - 1) ? 0.5 : 1.0; };
@@ -579,16 +580,16 @@ void run_direct_analytical_2d(nfft_type_t type, double beta, auto f_tau) {
     }
 }
 
-TEST_F(Nfft, DirectType1_Analytical_2D) { run_direct_analytical_2d(nfft_type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
+TEST_F(Nfft, DirectType1_Analytical_2D) { run_direct_analytical_2d(type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
 TEST_F(Nfft, DirectPrime_Analytical_2D) {
-  run_direct_analytical_2d(nfft_type_t::direct_prime, beta, [&](double tau) { return f_tau(tau); });
+  run_direct_analytical_2d(type_t::direct_prime, beta, [&](double tau) { return f_tau(tau); });
 }
 TEST_F(Nfft, DirectType3_Analytical_2D) {
-  run_direct_analytical_2d(nfft_type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
+  run_direct_analytical_2d(type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
 }
 
 /********************* DIRECT vs TYPE 3: Consistency 1D ********************/
-void run_direct_vs_type3_1d(nfft_type_t direct_type, double beta, int n_iw) {
+void run_direct_vs_type3_1d(type_t direct_type, double beta, int n_iw) {
 
   int n_tau    = 10000;
   int buf_size = n_tau;
@@ -608,12 +609,12 @@ void run_direct_vs_type3_1d(nfft_type_t direct_type, double beta, int n_iw) {
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
+  buffer_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -629,12 +630,12 @@ void run_direct_vs_type3_1d(nfft_type_t direct_type, double beta, int n_iw) {
   for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-9); }
 }
 
-TEST_F(Nfft, DirectType1_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_type1, beta, n_iw); }
-TEST_F(Nfft, DirectBitwise_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_bitwise, beta, n_iw); }
-TEST_F(Nfft, DirectType3_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::direct_type3, beta, n_iw); }
+TEST_F(Nfft, DirectType1_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_type1, beta, n_iw); }
+TEST_F(Nfft, DirectBitwise_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_bitwise, beta, n_iw); }
+TEST_F(Nfft, DirectType3_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_type3, beta, n_iw); }
 
 /********************* DIRECT vs TYPE 3: Consistency 2D ********************/
-void run_direct_vs_type3_2d(nfft_type_t direct_type, double beta) {
+void run_direct_vs_type3_2d(type_t direct_type, double beta) {
 
   int small_niw = 10;
   int n_tau     = 5000;
@@ -658,12 +659,12 @@ void run_direct_vs_type3_2d(nfft_type_t direct_type, double beta) {
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
+  buffer_t<2> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
@@ -679,13 +680,13 @@ void run_direct_vs_type3_2d(nfft_type_t direct_type, double beta) {
   for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-9); }
 }
 
-TEST_F(Nfft, DirectType1_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_type1, beta); }
-TEST_F(Nfft, DirectPrime_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_prime, beta); }
-TEST_F(Nfft, DirectType3_vs_Type3_2D) { run_direct_vs_type3_2d(nfft_type_t::direct_type3, beta); }
+TEST_F(Nfft, DirectType1_vs_Type3_2D) { run_direct_vs_type3_2d(type_t::direct_type1, beta); }
+TEST_F(Nfft, DirectPrime_vs_Type3_2D) { run_direct_vs_type3_2d(type_t::direct_prime, beta); }
+TEST_F(Nfft, DirectType3_vs_Type3_2D) { run_direct_vs_type3_2d(type_t::direct_type3, beta); }
 
 /********************* STRIDED OUTPUT: Direct vs Type3 with strided view ********************/
 // Reproduces the M_iw.cpp pattern: output is a strided slice of a 3D array.
-void run_direct_vs_type3_strided(nfft_type_t direct_type, double beta, int n_iw) {
+void run_direct_vs_type3_strided(type_t direct_type, double beta, int n_iw) {
 
   int n_tau    = 10000;
   int buf_size = n_tau;
@@ -706,13 +707,13 @@ void run_direct_vs_type3_strided(nfft_type_t direct_type, double beta, int n_iw)
   // Type 3 with contiguous output (reference)
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Direct with strided output: slice of a 3D array (n_targets, bl_size, bl_size)
   nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
   M_data            = 0;
   auto strided_view = M_data(nda::range::all, 1, 2); // stride = bl_size * bl_size = 16
-  nfft_buf_t<1> bufd(strided_view, target_mf, buf_size, test_tol,direct_type);
+  buffer_t<1> bufd(strided_view, target_mf, buf_size, test_tol,direct_type);
 
   // Push same random data to both
   for (int i = 0; i < n_tau; ++i) {
@@ -730,16 +731,16 @@ void run_direct_vs_type3_strided(nfft_type_t direct_type, double beta, int n_iw)
   }
 }
 
-TEST_F(Nfft, DirectType1_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_type1, beta, n_iw); }
-TEST_F(Nfft, DirectBitwise_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_bitwise, beta, n_iw); }
-TEST_F(Nfft, DirectPrime_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_prime, beta, n_iw); }
-TEST_F(Nfft, DirectType3_Strided) { run_direct_vs_type3_strided(nfft_type_t::direct_type3, beta, n_iw); }
-TEST_F(Nfft, Automatic_Strided) { run_direct_vs_type3_strided(nfft_type_t::automatic, beta, n_iw); }
+TEST_F(Nfft, DirectType1_Strided) { run_direct_vs_type3_strided(type_t::direct_type1, beta, n_iw); }
+TEST_F(Nfft, DirectBitwise_Strided) { run_direct_vs_type3_strided(type_t::direct_bitwise, beta, n_iw); }
+TEST_F(Nfft, DirectPrime_Strided) { run_direct_vs_type3_strided(type_t::direct_prime, beta, n_iw); }
+TEST_F(Nfft, DirectType3_Strided) { run_direct_vs_type3_strided(type_t::direct_type3, beta, n_iw); }
+TEST_F(Nfft, Automatic_Strided) { run_direct_vs_type3_strided(type_t::automatic, beta, n_iw); }
 
 /********************* DLR-SCALE: Direct vs Type3 with large Matsubara indices ********************/
 // Uses DLR-like parameters (beta=100, large indices up to |2n+1|=1501) to exercise
 // deep power-of-two tables and NAF decompositions.
-void run_direct_vs_type3_dlr(nfft_type_t direct_type) {
+void run_direct_vs_type3_dlr(type_t direct_type) {
 
   double dlr_beta = 100.0;
   int n_tau       = 5000;
@@ -761,12 +762,12 @@ void run_direct_vs_type3_dlr(nfft_type_t direct_type) {
   // Type 3 (reference)
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Direct
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
+  buffer_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau  = dist(gen) * dlr_beta;
@@ -783,16 +784,16 @@ void run_direct_vs_type3_dlr(nfft_type_t direct_type) {
   }
 }
 
-TEST_F(Nfft, DirectType1_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_type1); }
-TEST_F(Nfft, DirectBitwise_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_bitwise); }
-TEST_F(Nfft, DirectPrime_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_prime); }
-TEST_F(Nfft, DirectType3_DLR) { run_direct_vs_type3_dlr(nfft_type_t::direct_type3); }
-TEST_F(Nfft, Automatic_DLR) { run_direct_vs_type3_dlr(nfft_type_t::automatic); }
+TEST_F(Nfft, DirectType1_DLR) { run_direct_vs_type3_dlr(type_t::direct_type1); }
+TEST_F(Nfft, DirectBitwise_DLR) { run_direct_vs_type3_dlr(type_t::direct_bitwise); }
+TEST_F(Nfft, DirectPrime_DLR) { run_direct_vs_type3_dlr(type_t::direct_prime); }
+TEST_F(Nfft, DirectType3_DLR) { run_direct_vs_type3_dlr(type_t::direct_type3); }
+TEST_F(Nfft, Automatic_DLR) { run_direct_vs_type3_dlr(type_t::automatic); }
 
 /********************* ODD BUFFER COUNT: Exercises scalar tail path ********************/
 // Uses a buffer size that forces flushes with odd element counts (buf_counter % simd_size != 0),
 // triggering the scalar tail code path in all direct kernels.
-void run_direct_vs_type3_odd_flush(nfft_type_t direct_type, double beta) {
+void run_direct_vs_type3_odd_flush(type_t direct_type, double beta) {
 
   int n_tau    = 307; // prime number, guarantees odd buf_counter on flush
   int buf_size = 101; // prime buffer size, forces multiple partial flushes
@@ -809,11 +810,11 @@ void run_direct_vs_type3_odd_flush(nfft_type_t direct_type, double beta) {
 
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
+  buffer_t<1> bufd(fiw_direct, target_mf, buf_size, test_tol,direct_type);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau  = dist(gen) * beta;
@@ -827,15 +828,15 @@ void run_direct_vs_type3_odd_flush(nfft_type_t direct_type, double beta) {
   for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-9) << "Odd-flush mismatch at n=" << n_indices[k]; }
 }
 
-TEST_F(Nfft, DirectType1_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_type1, beta); }
-TEST_F(Nfft, DirectBitwise_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_bitwise, beta); }
-TEST_F(Nfft, DirectPrime_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_prime, beta); }
-TEST_F(Nfft, DirectType3_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::direct_type3, beta); }
-TEST_F(Nfft, Automatic_OddFlush) { run_direct_vs_type3_odd_flush(nfft_type_t::automatic, beta); }
+TEST_F(Nfft, DirectType1_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_type1, beta); }
+TEST_F(Nfft, DirectBitwise_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_bitwise, beta); }
+TEST_F(Nfft, DirectPrime_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_prime, beta); }
+TEST_F(Nfft, DirectType3_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_type3, beta); }
+TEST_F(Nfft, Automatic_OddFlush) { run_direct_vs_type3_odd_flush(type_t::automatic, beta); }
 
 /********************* AUTOMATIC: Dispatch correctness ********************/
 // Verifies automatic mode matches type3 for both small and large buffer counts.
-TEST_F(Nfft, Automatic_vs_Type3_1D) { run_direct_vs_type3_1d(nfft_type_t::automatic, beta, n_iw); }
+TEST_F(Nfft, Automatic_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::automatic, beta, n_iw); }
 
 /********************* COMBINED: Strided + DLR-scale + odd flush ********************/
 // Combines all three failure modes: strided output, large indices, and odd buffer count.
@@ -860,13 +861,13 @@ TEST_F(Nfft, DirectType3_Strided_DLR_OddFlush) { // NOLINT
   // Type 3 contiguous reference
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // NAF with strided output
   nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
   M_data            = 0;
   auto strided_view = M_data(nda::range::all, 2, 3);
-  nfft_buf_t<1> bufd(strided_view, target_mf, buf_size, test_tol, nfft_type_t::automatic);
+  buffer_t<1> bufd(strided_view, target_mf, buf_size, test_tol, type_t::automatic);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau  = dist(gen) * dlr_beta;
@@ -905,12 +906,12 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
   // Type 3 buffer
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
-  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, nfft_type_t::type3);
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
   // Direct buffer
   nda::vector<dcomplex> fiw_direct(n_targets);
   fiw_direct = 0;
-  nfft_buf_t<2> bufd(fiw_direct, target_mf, buf_size, test_tol, nfft_type_t::direct_type3);
+  buffer_t<2> bufd(fiw_direct, target_mf, buf_size, test_tol, type_t::direct_type3);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;

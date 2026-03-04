@@ -4,13 +4,14 @@
 // See LICENSE in the root of this distribution for details.
 
 #include <benchmark/benchmark.h>
-#include <triqs_ctint/nfft_buf.hpp>
+#include <triqs_ctint/nfft/buffer.hpp>
 #include <triqs/mesh.hpp>
 #include <triqs/mesh/matsubara_freq.hpp>
 #include <random>
 #include <set>
 
 using namespace triqs::utility;
+using namespace triqs::utility::nfft;
 using namespace triqs::mesh;
 using dcomplex = std::complex<double>;
 
@@ -95,7 +96,7 @@ static void BM_Nfft_Rank1_Type1(benchmark::State &state) {
   nda::array<dcomplex, 1> output(grid_size);
   output = 0;
 
-  nfft_buf_t<1> buf{output, buf_size, beta, tol};
+  buffer_t<1> buf{output, buf_size, beta, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -123,7 +124,7 @@ static void BM_Nfft_Rank1_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, tol, nfft_type_t::type3};
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -155,7 +156,7 @@ static void BM_Nfft_Rank2_Type1(benchmark::State &state) {
   nda::array<dcomplex, 2> output(grid_size, grid_size);
   output = 0;
 
-  nfft_buf_t<2> buf{output, buf_size, beta, tol};
+  buffer_t<2> buf{output, buf_size, beta, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -183,7 +184,7 @@ static void BM_Nfft_Rank2_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, tol, nfft_type_t::type3};
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -213,7 +214,7 @@ static void BM_Nfft_Rank1_DirectType1(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, tol, nfft_type_t::direct_type1};
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::direct_type1};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -241,7 +242,7 @@ static void BM_Nfft_Rank1_DirectBitwise(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, tol, nfft_type_t::direct_bitwise};
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::direct_bitwise};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -269,7 +270,7 @@ static void BM_Nfft_Rank2_DirectType1(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, tol, nfft_type_t::direct_type1};
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::direct_type1};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -297,7 +298,7 @@ static void BM_Nfft_Rank2_DirectPrime(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, tol, nfft_type_t::direct_prime};
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::direct_prime};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -328,7 +329,7 @@ static void BM_Nfft_M_iw_Type3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, tol, nfft_type_t::type3};
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -356,7 +357,7 @@ static void BM_Nfft_M_iw_DirectType1(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, tol, nfft_type_t::direct_type1};
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::direct_type1};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -384,7 +385,7 @@ static void BM_Nfft_M_iw_DirectBitwise(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, tol, nfft_type_t::direct_bitwise};
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::direct_bitwise};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -414,7 +415,7 @@ static void BM_Nfft_Rank1_DirectType3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, tol, nfft_type_t::direct_type3};
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::direct_type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -442,7 +443,7 @@ static void BM_Nfft_Rank2_DirectType3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, tol, nfft_type_t::direct_type3};
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::direct_type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -470,7 +471,7 @@ static void BM_Nfft_M_iw_DirectType3(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, tol, nfft_type_t::direct_type3};
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::direct_type3};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -500,7 +501,7 @@ static void BM_Nfft_Rank1_Automatic(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_un1);
   output = 0;
 
-  nfft_buf_t<1> buf{output, md.target_mf_n1, buf_size, tol, nfft_type_t::automatic};
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::automatic};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -528,7 +529,7 @@ static void BM_Nfft_Rank2_Automatic(benchmark::State &state) {
   nda::array<dcomplex, 1> output(md.n_mesh_points);
   output = 0;
 
-  nfft_buf_t<2> buf{output, md.target_mf_2d, buf_size, tol, nfft_type_t::automatic};
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::automatic};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -556,7 +557,7 @@ static void BM_Nfft_M_iw_Automatic(benchmark::State &state) {
   nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
   output = 0;
 
-  nfft_buf_t<1> buf{output, dlr_md.target_mf, buf_size, tol, nfft_type_t::automatic};
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::automatic};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);
@@ -591,7 +592,7 @@ static void BM_Nfft_M4_iw_Type1(benchmark::State &state) {
   nda::array<dcomplex, 2> output(grid_size_0, grid_size_1);
   output = 0;
 
-  nfft_buf_t<2> buf{output, buf_size, beta, tol};
+  buffer_t<2> buf{output, buf_size, beta, tol};
 
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> tau_dist(0.0, beta);

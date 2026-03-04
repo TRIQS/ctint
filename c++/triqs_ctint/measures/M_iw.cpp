@@ -30,7 +30,7 @@ namespace triqs_ctint::measures {
       M_data(bl) = 0;
 
       auto init_func = [&](int i, int j) {
-        return nfft_buf_t<1>{M_data(bl)(nda::range::all, i, j), target_mf, params.nfft_buf_size, params.nfft_tol};
+        return nfft::buffer_t<1>{M_data(bl)(nda::range::all, i, j), target_mf, params.nfft_buf_size, params.nfft_tol};
       };
       buf_vec.emplace_back(array_adapter{std::array{bl_size, bl_size}, init_func});
     }

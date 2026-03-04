@@ -5,7 +5,7 @@
 
 #pragma once
 #include "../qmc_config.hpp"
-#include "../nfft_buf.hpp"
+#include "../nfft/buffer.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
 
     M_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
-    // M_iw needs to be uncopyable due to nfft_buf_t
+    // M_iw needs to be uncopyable due to nfft::buffer_t
     M_iw(M_iw const &)            = delete;
     M_iw(M_iw &&)                 = default;
     ~M_iw()                       = default;
@@ -55,7 +55,7 @@ namespace triqs_ctint::measures {
     std::vector<mesh::matsubara_freq> target_mf;
 
     // Container of nfft_buffers. buf_vec[block_idx](a,b)
-    std::vector<array<nfft_buf_t<1>, 2>> buf_vec;
+    std::vector<array<nfft::buffer_t<1>, 2>> buf_vec;
   };
 
 } // namespace triqs_ctint::measures
