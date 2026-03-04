@@ -11,7 +11,7 @@ namespace triqs_ctint::measures {
 
   template <Chan_t Chan>
   chi2_tau<Chan>::chi2_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.n_tau_chi2} {
+     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps} {
 
     // Init measurement container and capture view
     if (Chan == Chan_t::PP) {
@@ -53,11 +53,6 @@ namespace triqs_ctint::measures {
                   // Time-Ordering
                   tau_point.n += 3;  // tau -> tau^{+++}
                   taup_point.n += 2; // taup -> tau^{++}
-
-                  if (tau.index() == params.n_tau_chi2 - 1) {
-                    tau_point  = tau_t::get_beta_minus();
-                    taup_point = tau_t::get_beta_minus_minus();
-                  }
 
                   if constexpr (Chan == Chan_t::PP) { // Particle-particle channel
 

@@ -168,11 +168,6 @@ namespace triqs_ctint {
     bool measure_chi2pp_tau = false;
     /// Measure \f$ \chi^{(2)}_{ph}(\tau) \f$ by insertion?
     bool measure_chi2ph_tau = false;
-    /// Number of imaginary-time points in \f$ \chi^{(2)} \f$.
-    int n_tau_chi2 = 201;
-    /// Number of positive Matsubara frequencies in \f$ \chi^{(2)} \f$.
-    int n_iw_chi2 = 32;
-
     /// Measure \f$ \chi_{AB}(\tau) \f$ by insertion?
     bool measure_chiAB_tau = false;
     /// List of all operators \f$ A \f$.

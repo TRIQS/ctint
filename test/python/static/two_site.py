@@ -68,8 +68,6 @@ S.solve(h_int=h_int,
         n_tau_M3 = 41,
         measure_chi2pp_tau = True,
         measure_chi2ph_tau = True,
-        n_iw_chi2 = 10,
-        n_tau_chi2 = 21,
         measure_chiAB_tau = True,
         chi_A_vec = [n('up',0) + n('dn', 0)],
         chi_B_vec = [n('up',0) + n('dn', 0)],
@@ -86,9 +84,6 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chi2pp_iw"] = S.chi2pp_iw
     arch["chi2ph_iw"] = S.chi2ph_iw
     arch["chiAB_iw"] = S.chiAB_iw
-    arch["chi2pp_tau_from_M3"] = S.chi2pp_tau_from_M3
-    arch["chi2ph_tau_from_M3"] = S.chi2ph_tau_from_M3
-    arch["chi2xph_tau_from_M3"] = S.chi2xph_tau_from_M3
 
 # -------- Compare ---------
 h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=5e-5)
