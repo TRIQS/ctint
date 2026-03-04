@@ -32,10 +32,10 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Gf view for the M_tau accumulation
-    block_gf_view<imtime, M_tau_target_t> M_tau_;
+    block_gf_view<imtime, g_tau_t::target_t> M_tau_;
 
     // Matrix views for the hartree term accumulation
-    std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;
+    std::vector<matrix_view<g_tau_scalar_t>> M_hartree_;
 
     // The average sign
     mc_weight_t Z = 0.0;

@@ -38,9 +38,6 @@ namespace triqs_ctint {
   /// The channel type
   enum class Chan_t { PP, PH, XPH };
 
-  /// Container type of the alpha function. alpha(vertex_index, aux_spin)
-  using alpha_t = array<double, 4>;
-
   /// The structure of the gf : block_idx -> pair of block_name and index list (int/string)
   using triqs::gfs::gf_struct_t;
 
@@ -60,6 +57,9 @@ namespace triqs_ctint {
   /// Scalar type of g_tau
   using g_tau_scalar_t = g_tau_t::g_t::scalar_t;
 
+  /// Container type of the alpha function. alpha(vertex_index, aux_spin)
+  using alpha_t = array<g_tau_scalar_t, 4>;
+
   /// Container type of one-particle Green and Vertex functions on DLR Matsubara frequencies
   using g_iw_t    = block_gf<mesh::dlr_imfreq, matrix_valued>;
   using g_dlr_iw_t = g_iw_t; // explicit alias used by M_iw measurement
@@ -72,13 +72,9 @@ namespace triqs_ctint {
   using g_reg_iw_t    = block_gf<imfreq, matrix_valued>;
   using g_reg_iw_cv_t = g_reg_iw_t::const_view_type;
 
-  /// The target_type of the intermediate scattering matrices
-#if defined GTAU_IS_COMPLEX || defined INTERACTION_IS_COMPLEX
-  using M_tau_target_t = matrix_valued;
-#else
-  using M_tau_target_t = matrix_real_valued;
+#if defined(INTERACTION_IS_COMPLEX) && !defined(GTAU_IS_COMPLEX)
+  static_assert(false, "INTERACTION_IS_COMPLEX requires GTAU_IS_COMPLEX");
 #endif
-  using M_tau_scalar_t = M_tau_target_t::scalar_t;
 
   /// Scalar type of all interaction vertices
 #ifdef INTERACTION_IS_COMPLEX
@@ -91,10 +87,10 @@ namespace triqs_ctint {
   using mc_weight_t = decltype(U_scalar_t{} * g_tau_scalar_t{});
 
   /// The type of a block_matrix (e.g. density)
-  using block_matrix_t = std::vector<matrix<M_tau_scalar_t>>;
+  using block_matrix_t = std::vector<matrix<g_tau_scalar_t>>;
 
   /// A view to a block_matrix_t
-  using block_matrix_v_t = std::vector<matrix_view<M_tau_scalar_t>>;
+  using block_matrix_v_t = std::vector<matrix_view<g_tau_scalar_t>>;
 
   /// Container type of $\chi_3$ in Matsubara frequencies
   using chi2_iw_t = block2_gf<imfreq, tensor_valued<4>>;

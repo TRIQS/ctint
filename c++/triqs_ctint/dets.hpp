@@ -62,7 +62,7 @@ namespace triqs_ctint {
     gf_const_view<imtime, g_tau_t::target_t> G0_shift_tau;
 
     /// The alpha function
-    array_const_view<double, 4> alpha;
+    array_const_view<g_tau_scalar_t, 4> alpha;
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
       // Contractions between operators of the same vertex get an alpha shift

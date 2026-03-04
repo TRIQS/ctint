@@ -216,9 +216,9 @@ namespace triqs_ctint {
       // D0 alpha label = n_h_int + sigp * n_bl * R * R + bl2 * R * R + j * R + b
       // alpha[label, 0, 0, s] = density[sigp][j,j] + delta_shift(s)
       // Averaging over s cancels the delta shift
-      std::vector<std::vector<double>> block_density(n_bl);
+      std::vector<std::vector<g_tau_scalar_t>> block_density(n_bl);
       for (int sigp : range(n_bl)) {
-        block_density[sigp].resize(R, 0.0);
+        block_density[sigp].resize(R, g_tau_scalar_t{0});
         for (int j : range(R)) {
           long label = n_h_int + sigp * n_bl * R * R + 0 * R * R + j * R + 0;
           for (int s : range(p.n_s)) block_density[sigp][j] += p.alpha(label, 0, 0, s);
@@ -258,7 +258,7 @@ namespace triqs_ctint {
       M_iw = g_iw_t{M_iw_nfft.value()}; // Direct DLR measurement (M_dyn only)
     } else if (M_tau) {
       // DLR fit of M_tau gives M_dyn only (continuous part, no equal-time delta)
-      // Cast from M_tau_target_t (possibly matrix_real_valued) to matrix_valued for DLR fit
+      // Cast from g_tau_t::target_t (possibly matrix_real_valued) to matrix_valued for DLR fit
       auto const &mt = *M_tau;
       std::vector<gf<imtime, matrix_valued>> gf_vec;
       for (int b = 0; b < mt.size(); ++b) gf_vec.emplace_back(mt[b]);
@@ -294,10 +294,14 @@ namespace triqs_ctint {
         for (auto iw : S_bl.mesh()) S_bl[iw] = G0s_bl[iw] - Gi_bl[iw] - M_h_bl;
 
       // Sigma_hartree = Sigma_alpha + M_hartree = (G0^{-1} - G0_shift^{-1}) + M_hartree
-      Sigma_hartree = make_block_vector<M_tau_scalar_t>(p.gf_struct);
+      Sigma_hartree = make_block_vector<g_tau_scalar_t>(p.gf_struct);
       for (int bl : range(p.n_blocks())) {
-        Sigma_hartree.value()[bl] = real(matrix<dcomplex>(G0_iw_inv[bl].data()(0, ellipsis()) - G0_shift_iw_inv[bl].data()(0, ellipsis())))
-                                    + M_hartree.value()[bl];
+        auto alpha_shift = matrix<dcomplex>(G0_iw_inv[bl].data()(0, ellipsis()) - G0_shift_iw_inv[bl].data()(0, ellipsis()));
+#ifdef GTAU_IS_COMPLEX
+        Sigma_hartree.value()[bl] = matrix<g_tau_scalar_t>(alpha_shift) + M_hartree.value()[bl];
+#else
+        Sigma_hartree.value()[bl] = real(alpha_shift) + M_hartree.value()[bl];
+#endif
       }
     }
 

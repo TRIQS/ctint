@@ -87,7 +87,7 @@ c.add_member(c_name = "density",
              doc = r"""The density matrix (measured by operator insertion)""")
 
 c.add_member(c_name = "M_tau",
-             c_type = "std::optional<block_gf<imtime, M_tau_target_t>>",
+             c_type = "std::optional<g_tau_t>",
              read_only= True,
              doc = r"""Building block for the Green function in imaginary time (Eq. (23) in Notes)""")
 

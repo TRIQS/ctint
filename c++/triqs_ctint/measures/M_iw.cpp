@@ -37,7 +37,7 @@ namespace triqs_ctint::measures {
 
     // Initialize M_hartree if not already set (e.g. by M_tau measurement)
     if (!results->M_hartree) {
-      results->M_hartree = make_block_vector<M_tau_scalar_t>(params.gf_struct);
+      results->M_hartree = make_block_vector<g_tau_scalar_t>(params.gf_struct);
       for (auto &m : results->M_hartree.value()) M_hartree_.push_back(m);
     }
   }

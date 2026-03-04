@@ -149,6 +149,18 @@ if(NOT IS_SUBPROJECT AND Build_Benchs AND NOT ASAN AND NOT UBSAN)
   add_subdirectory(benchmarks)
 endif()
 
+# Set Python-visible boolean variables for compile flags
+if(GTAU_IS_COMPLEX)
+  set(GTAU_IS_COMPLEX_BOOL "True")
+else()
+  set(GTAU_IS_COMPLEX_BOOL "False")
+endif()
+if(INTERACTION_IS_COMPLEX)
+  set(INTERACTION_IS_COMPLEX_BOOL "True")
+else()
+  set(INTERACTION_IS_COMPLEX_BOOL "False")
+endif()
+
 # Python
 if(PythonSupport)
   add_subdirectory(python/${PROJECT_NAME})

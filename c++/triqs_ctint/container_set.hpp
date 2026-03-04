@@ -45,7 +45,7 @@ namespace triqs_ctint {
     std::optional<block_matrix_t> density;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
-    std::optional<block_gf<imtime, M_tau_target_t>> M_tau;
+    std::optional<g_tau_t> M_tau;
 
     /// Hartree-term of M_tau
     std::optional<block_matrix_t> M_hartree;

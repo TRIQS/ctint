@@ -46,7 +46,7 @@ namespace triqs_ctint::measures {
     mc_weight_t Z = 0.0;
 
     // Matrix views for the Hartree term accumulation (equal-time contribution)
-    std::vector<matrix_view<M_tau_scalar_t>> M_hartree_;
+    std::vector<matrix_view<g_tau_scalar_t>> M_hartree_;
 
     // Intermediate data arrays for each block. M_data[bl](iw_idx, a, b)
     nda::array<nda::array<dcomplex, 3>, 1> M_data;
