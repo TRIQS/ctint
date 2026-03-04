@@ -25,7 +25,7 @@ namespace triqs_ctint::measures {
     // Create type1 nfft buffers that write to the block_gf data
     for (auto bl : range(params.n_blocks())) {
       buf_arrarr(bl) = array_adapter{GM[bl].target_shape(), [&](int i, int j) {
-        return nfft_buf_t{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
+        return nfft::buffer_t{slice_target_to_scalar(GM[bl], i, j).data(), params.nfft_buf_size, params.beta, params.nfft_tol};
       }};
     }
   }

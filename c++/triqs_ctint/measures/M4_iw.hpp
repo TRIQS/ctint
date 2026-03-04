@@ -5,7 +5,7 @@
 
 #pragma once
 #include "../qmc_config.hpp"
-#include "../nfft_buf.hpp"
+#include "../nfft/buffer.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
 
     M4_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results);
 
-    // M4_iw needs to be uncopyable due to nfft_buf_t
+    // M4_iw needs to be uncopyable due to nfft::buffer_t
     M4_iw(M4_iw const &)            = delete;
     M4_iw(M4_iw &&)                 = default;
     ~M4_iw()                        = default;
@@ -46,7 +46,7 @@ namespace triqs_ctint::measures {
     mc_weight_t Z = 0.0;
 
     // Container of nfft_buffers: buf_arrarr(block)(u_j,u_i)
-    array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
+    array<array<nfft::buffer_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
     block_gf<prod<imfreq, imfreq>, matrix_valued> M;

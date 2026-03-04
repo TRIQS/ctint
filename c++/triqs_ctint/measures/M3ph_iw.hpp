@@ -5,7 +5,7 @@
 
 #pragma once
 #include "../qmc_config.hpp"
-#include "../nfft_buf.hpp"
+#include "../nfft/buffer.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
@@ -19,7 +19,7 @@ namespace triqs_ctint::measures {
 
     M3ph_iw(params_t const &params_, qmc_config_t const &qmc_config_, container_set *results, g_tau_cv_t G0_tau_);
 
-    // M3ph_iw needs to be uncopyable due to nfft_buf_t
+    // M3ph_iw needs to be uncopyable due to nfft::buffer_t
     M3ph_iw(M3ph_iw const &)            = delete;
     M3ph_iw(M3ph_iw &&)                 = default;
     ~M3ph_iw()                          = default;
@@ -46,9 +46,9 @@ namespace triqs_ctint::measures {
     mc_weight_t Z = 0.0;
 
     // Container of nfft_buffers. buf_arrarr(block)(u_i,u_j)
-    array<array<nfft_buf_t<2>, 2>, 1> buf_arrarr;
-    array<array<nfft_buf_t<1>, 2>, 1> buf_arrarr_GM;
-    array<array<nfft_buf_t<1>, 2>, 1> buf_arrarr_MG;
+    array<array<nfft::buffer_t<2>, 2>, 1> buf_arrarr;
+    array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_GM;
+    array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_MG;
 
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
