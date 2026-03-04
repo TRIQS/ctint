@@ -11,7 +11,7 @@ using namespace triqs::utility;
 namespace triqs_ctint::measures {
 
   chiAB_tau::chiAB_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.n_tau_chi2} {
+     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps} {
 
     if (params.chi_A_vec.size() == 0 or params.chi_B_vec.size() == 0)
       TRIQS_RUNTIME_ERROR << " Empty operator vector detected in chiAB measurement \n";
@@ -20,7 +20,7 @@ namespace triqs_ctint::measures {
     for (auto B : params.chi_B_vec) B_vec.emplace_back(get_terms(B, params.gf_struct));
 
     // Init measurement container and capture view
-    results->chiAB_tau = gf<imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
+    results->chiAB_tau = gf<mesh::dlr_imtime>{tau_mesh, make_shape(A_vec.size(), B_vec.size())};
     chiAB_tau_.rebind(results->chiAB_tau.value());
     chiAB_tau_() = 0;
   }
@@ -61,11 +61,6 @@ namespace triqs_ctint::measures {
               // Time-Ordering
               tau_point.n += 3;  // tau -> tau^{+++}
               taup_point.n += 2; // taup -> tau^{++}
-
-              if (tau.index() == params.n_tau_chi2 - 1) {
-                tau_point  = tau_t::get_beta_minus();
-                taup_point = tau_t::get_beta_minus_minus();
-              }
 
               cdag_A.tau = tau_point;
               c_A.tau    = taup_point;
