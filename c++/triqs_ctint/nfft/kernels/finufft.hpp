@@ -52,6 +52,7 @@ namespace triqs::utility::nfft {
     }
 
     // Expose for calibration
+    void set_pts_type1(shared_state_t<Rank> &state) { set_pts(state, nullptr); }
     void set_pts_type3(shared_state_t<Rank> &state) { set_pts(state, &s_arr); }
     finufft_plan get_plan() const { return plan.get(); }
 

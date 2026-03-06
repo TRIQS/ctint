@@ -17,7 +17,7 @@ namespace triqs::utility::nfft {
 
     buffer_t() = default;
 
-    /// Type 1: non-uniform tau -> uniform Matsubara grid
+    /// Type 1: non-uniform tau -> uniform Matsubara grid (with automatic NAF/FINUFFT dispatch)
     buffer_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-8)
        : fiw_arr(std::move(fiw_arr_)),
          niws(nda::stdutil::make_std_array<int64_t>(fiw_arr.shape())),
@@ -36,6 +36,21 @@ namespace triqs::utility::nfft {
 
       finufft_kernel_.emplace();
       finufft_kernel_->init_type1(niws, buf_size_, tol);
+
+      // Set up direct_type1 kernel for automatic dispatch if grid is not too large
+      int64_t n_targets = 1;
+      for (auto n : niws) n_targets *= n;
+      if (n_targets <= max_type1_dispatch_targets) {
+        state_.n_targets = n_targets;
+        state_.fk_vec.resize(n_targets);
+
+        // Build target_mf from uniform grid (row-major order matching fiw_arr layout)
+        auto target_mf = build_uniform_target_mf(beta_);
+        state_.init_direct_common(target_mf);
+        direct_type1_kernel_.emplace(state_, target_mf);
+        dispatch_buf_threshold = calibrate_dispatch_type1(state_, *direct_type1_kernel_, *finufft_kernel_, fk_arr, common_factor);
+        type1_auto_            = dispatch_buf_threshold > 0;
+      }
     }
 
     /// Non-uniform target constructor: automatic dispatch, FINUFFT type3, or direct DFT
@@ -121,7 +136,7 @@ namespace triqs::utility::nfft {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
       if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
-      if (type_ == type_t::type1) {
+      if (type_ == type_t::type1 && !type1_auto_) {
         double tau_sum = 0.0;
         for (int r = 0; r < Rank; ++r) {
           state_.x_arr(r, state_.buf_counter) = 2 * M_PI * (tau_arr[r] / state_.beta - 0.5);
@@ -147,7 +162,10 @@ namespace triqs::utility::nfft {
     }
 
     private:
+    static constexpr int64_t max_type1_dispatch_targets = 100'000;
+
     type_t type_ = type_t::type1;
+    bool type1_auto_ = false;
     shared_state_t<Rank> state_;
 
     // Type1-specific
@@ -168,9 +186,14 @@ namespace triqs::utility::nfft {
     int dispatch_buf_threshold = 0;
 
     void do_nfft() {
-      if (type_ == type_t::type1)
-        finufft_kernel_->execute_type1(state_, fiw_arr, fk_arr, common_factor);
-      else if (type_ == type_t::automatic) {
+      if (type_ == type_t::type1) {
+        if (type1_auto_ && state_.buf_counter < dispatch_buf_threshold)
+          run_direct_type1();
+        else {
+          if (type1_auto_) prepare_type1_coords();
+          finufft_kernel_->execute_type1(state_, fiw_arr, fk_arr, common_factor);
+        }
+      } else if (type_ == type_t::automatic) {
         if (state_.buf_counter < dispatch_buf_threshold)
           run_direct(*naf_kernel_);
         else
@@ -191,6 +214,66 @@ namespace triqs::utility::nfft {
       state_.fk_vec = 0;
       kernel.execute(state_);
       fiw_vec += state_.fk_vec;
+    }
+
+    // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
+    void run_direct_type1() {
+      state_.fk_vec = 0;
+      direct_type1_kernel_->execute(state_);
+      scatter_to_arr();
+    }
+
+    // Scatter flat fk_vec[d] into Rank-dimensional fiw_arr using row-major index mapping
+    void scatter_to_arr() {
+      if constexpr (Rank == 1) {
+        for (int64_t d = 0; d < state_.n_targets; ++d) fiw_arr(d) += state_.fk_vec(d);
+      } else if constexpr (Rank == 2) {
+        int64_t d = 0;
+        for (int64_t k0 = 0; k0 < niws[0]; ++k0)
+          for (int64_t k1 = 0; k1 < niws[1]; ++k1) fiw_arr(k0, k1) += state_.fk_vec(d++);
+      } else {
+        int64_t d = 0;
+        for (int64_t k0 = 0; k0 < niws[0]; ++k0)
+          for (int64_t k1 = 0; k1 < niws[1]; ++k1)
+            for (int64_t k2 = 0; k2 < niws[2]; ++k2) fiw_arr(k0, k1, k2) += state_.fk_vec(d++);
+      }
+    }
+
+    // Transform raw tau coordinates in-place for FINUFFT type1 convention
+    void prepare_type1_coords() {
+      double const inv_beta = 1.0 / state_.beta;
+      for (int j = 0; j < state_.buf_counter; ++j) {
+        double tau_sum = 0.0;
+        for (int r = 0; r < Rank; ++r) {
+          double tau = state_.x_arr(r, j);
+          tau_sum += tau;
+          state_.x_arr(r, j) = 2 * M_PI * (tau * inv_beta - 0.5);
+        }
+        state_.fx_arr[j] *= std::exp(dcomplex(0, M_PI * tau_sum * inv_beta));
+      }
+    }
+
+    // Build uniform grid target_mf from niws (row-major order)
+    std::vector<std::array<target_mf_t, Rank>> build_uniform_target_mf(double beta) const {
+      std::vector<std::array<target_mf_t, Rank>> target_mf;
+      int64_t n_targets = 1;
+      for (auto n : niws) n_targets *= n;
+      target_mf.reserve(n_targets);
+
+      // Row-major enumeration matching fiw_arr memory layout
+      auto recurse = [&](this auto &&self, std::array<target_mf_t, Rank> &mf, int r) -> void {
+        if (r == Rank) {
+          target_mf.push_back(mf);
+          return;
+        }
+        for (int64_t k = 0; k < niws[r]; ++k) {
+          mf[r] = target_mf_t(static_cast<int>(k - niws[r] / 2), beta, mesh::Fermion);
+          self(mf, r + 1);
+        }
+      };
+      std::array<target_mf_t, Rank> mf{};
+      recurse(mf, 0);
+      return target_mf;
     }
   };
 

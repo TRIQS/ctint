@@ -927,4 +927,122 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
   for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-9); }
 }
 
+/********************* TYPE 1 AUTOMATIC DISPATCH: 1D ********************/
+// Verifies that type1 with automatic dispatch matches type3 reference (which uses a different code path).
+TEST_F(Nfft, Type1_AutoDispatch_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(1234);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Type 1 buffer (now with automatic dispatch)
+  auto giw_type1 = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
+  buffer_t<1> buf1(giw_type1.data()(range::all, 0, 0), buf_size, beta, test_tol);
+
+  // Type 3 buffer targeting the same uniform frequencies as reference
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) {
+    int n = static_cast<int>(k) - n_iw;
+    target_mf.push_back(mesh::matsubara_freq(n, beta, mesh::Fermion));
+  }
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau}, fv);
+    buf3.push_back({tau}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  auto type1_data = giw_type1.data()(range::all, 0, 0);
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - type1_data(k)), 1e-9); }
+}
+
+/********************* TYPE 1 AUTOMATIC DISPATCH: 2D ********************/
+TEST_F(Nfft, Type1_AutoDispatch_2D) { // NOLINT
+
+  int small_niw = 10;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+
+  std::default_random_engine gen(5678);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  auto giw_type1 = gf<prod<imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
+  buffer_t<2> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, test_tol);
+
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+    }
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau1, tau2}, fv);
+    buf3.push_back({tau1, tau2}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  auto type1_data = slice_target_to_scalar(giw_type1, 0, 0).data();
+  int64_t idx     = 0;
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2)), 1e-9); }
+}
+
+/********************* TYPE 1 AUTOMATIC DISPATCH: Small buffer forcing partial flushes ********************/
+TEST_F(Nfft, Type1_AutoDispatch_SmallFlush) { // NOLINT
+
+  int n_tau    = 1000;
+  int buf_size = 37; // small prime buffer size forces many partial flushes, exercising NAF path
+
+  std::default_random_engine gen(9012);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  auto giw_type1 = gf<imfreq, matrix_valued>{{beta, Fermion, n_iw}, shape};
+  buffer_t<1> buf1(giw_type1.data()(range::all, 0, 0), buf_size, beta, test_tol);
+
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(static_cast<int>(k) - n_iw, beta, mesh::Fermion));
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf1.push_back({tau}, fv);
+    buf3.push_back({tau}, fv);
+  }
+  buf1.flush();
+  buf3.flush();
+
+  auto type1_data = giw_type1.data()(range::all, 0, 0);
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - type1_data(k)), 1e-9); }
+}
+
 MAKE_MAIN;

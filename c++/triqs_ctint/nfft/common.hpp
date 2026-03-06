@@ -22,6 +22,13 @@ namespace triqs::utility::nfft {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
+  // Combined sincos to avoid redundant trig computation (compiler doesn't merge without -ffast-math)
+  inline dcomplex cis(double theta) {
+    double s, c;
+    ::sincos(theta, &s, &c);
+    return {c, s};
+  }
+
   inline void check_finufft(int err) {
     if (err > 0) NDA_RUNTIME_ERROR << "Error in FINUFFT: " << err << "\n";
   }
