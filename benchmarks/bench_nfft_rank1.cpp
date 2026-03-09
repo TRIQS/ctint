@@ -4,7 +4,7 @@
 // See LICENSE in the root of this distribution for details.
 
 // Rank-1 NFFT buffer benchmarks: GM/MG (unique_n1 targets) and M_iw (DLR targets)
-// n_points = k (one push per row/column)
+// Benchmark argument is k (perturbation order). Each rank-1 buffer gets k pushes.
 
 #include "bench_nfft_common.hpp"
 

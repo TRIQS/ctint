@@ -4,11 +4,9 @@
 // See LICENSE in the root of this distribution for details.
 
 // Rank-2 NFFT buffer benchmarks: M pattern (intermediate scattering matrix)
-// n_points = k^2 / bl_size^2 (determinant entries distributed across bl_size^2 buffers)
+// Benchmark argument is k (perturbation order). Each buffer gets k^2/n_orb^2 pushes.
 
 #include "bench_nfft_common.hpp"
-
-static int64_t n_points_rank2(int64_t k) { return std::max<int64_t>(k * k / (bl_size * bl_size), 1); }
 
 // =============================================================================
 // FullGrid: uniform prod<imfreq,imfreq> (type1 FINUFFT)

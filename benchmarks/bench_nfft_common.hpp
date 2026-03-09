@@ -20,9 +20,9 @@ using dcomplex = std::complex<double>;
 static constexpr double beta     = 20.0;
 static constexpr double dlr_wmax = 1.0;
 static constexpr double dlr_eps  = 1e-6;
-static constexpr int buf_size    = 100000;
-static constexpr int bl_size     = 4;
-static constexpr double tol      = 1e-8;
+static constexpr int buf_size = 100000;
+static constexpr int n_orb    = 1; // number of orbitals per block; n_points_per_buffer = k^2 / n_orb^2
+static constexpr double tol   = 1e-8;
 
 // --- Mesh data structs (initialized once per process) ---
 
@@ -132,6 +132,9 @@ template <int Rank> std::pair<std::vector<std::array<double, Rank>>, std::vector
   }
   return {std::move(taus), std::move(vals)};
 }
+
+// Benchmark argument is k (perturbation order). Rank-2 pushes k^2/n_orb^2 points per buffer.
+inline int64_t n_points_rank2(int64_t k) { return std::max<int64_t>(k * k / (n_orb * n_orb), 1); }
 
 // clang-format off
 #define K_ARGS ->Arg(8)->Arg(16)->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)
