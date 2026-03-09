@@ -16,8 +16,8 @@ using namespace triqs::utility::nfft;
 using namespace triqs::mesh;
 using dcomplex = std::complex<double>;
 
-// Parameters from plaquette test
-static constexpr double beta     = 20.0;
+// Benchmark parameters
+static constexpr double beta     = 80.0;
 static constexpr double dlr_wmax = 1.0;
 static constexpr double dlr_eps  = 1e-6;
 static constexpr int buf_size = 100000;
