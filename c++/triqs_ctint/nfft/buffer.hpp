@@ -49,7 +49,6 @@ namespace triqs::utility::nfft {
         state_.init_direct_common(target_mf);
         direct_type1_kernel_.emplace(state_, target_mf);
         dispatch_buf_threshold = calibrate_dispatch_type1(state_, *direct_type1_kernel_, *finufft_kernel_, fk_arr, common_factor);
-        type1_auto_            = dispatch_buf_threshold > 0;
       }
     }
 
@@ -84,19 +83,30 @@ namespace triqs::utility::nfft {
         state_.init_direct_common(target_mf_);
         naf_kernel_.emplace(state_, buf_size_);
 
+      } else if (type == type_t::type1_gather) {
+        state_.beta = target_mf_[0][0].beta;
+        finufft_kernel_.emplace();
+        finufft_kernel_->init_type1_gather(target_mf_, state_.n_targets, tol);
+
       } else if (type == type_t::automatic) {
         finufft_kernel_.emplace();
-        finufft_kernel_->init_type3(target_mf_, state_.n_targets, tol);
+        finufft_kernel_->init_type1_gather_and_type3(target_mf_, state_.n_targets, tol);
         state_.init_direct_common(target_mf_);
         naf_kernel_.emplace(state_, buf_size_);
         direct_type1_kernel_.emplace(state_, target_mf_);
-        auto [threshold, use_dt1] = calibrate_dispatch(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
+        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
         dispatch_buf_threshold = threshold;
+        use_type3_                        = use_t3;
         // Release the losing direct kernel
         if (use_dt1)
           naf_kernel_.reset();
         else
           direct_type1_kernel_.reset();
+        // Release the losing FINUFFT path
+        if (use_t3)
+          finufft_kernel_->release_type1_gather();
+        else
+          finufft_kernel_->release_type3();
 
       } else {
         NDA_RUNTIME_ERROR << "buffer_t: unsupported type_t for non-uniform target constructor\n";
@@ -143,13 +153,13 @@ namespace triqs::utility::nfft {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
       if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
-      if (type_ == type_t::type1 && !type1_auto_) {
+      if (type_ == type_t::type1 && dispatch_buf_threshold == 0) {
         double tau_sum = 0.0;
         for (int r = 0; r < Rank; ++r) {
           state_.x_arr(r, state_.buf_counter) = 2 * M_PI * (tau_arr[r] / state_.beta - 0.5);
           tau_sum += tau_arr[r];
         }
-        state_.fx_arr[state_.buf_counter] = std::exp(dcomplex(0, M_PI * tau_sum / state_.beta)) * ftau;
+        state_.fx_arr[state_.buf_counter] = cis(M_PI * tau_sum / state_.beta) * ftau;
       } else {
         for (int r = 0; r < Rank; ++r) state_.x_arr(r, state_.buf_counter) = tau_arr[r];
         state_.fx_arr[state_.buf_counter] = ftau;
@@ -172,7 +182,7 @@ namespace triqs::utility::nfft {
     static constexpr int64_t max_type1_dispatch_targets = 100'000;
 
     type_t type_ = type_t::type1;
-    bool type1_auto_ = false;
+    bool use_type3_ = false;
     shared_state_t<Rank> state_;
 
     // Type1-specific
@@ -194,21 +204,27 @@ namespace triqs::utility::nfft {
 
     void do_nfft() {
       if (type_ == type_t::type1) {
-        if (type1_auto_ && state_.buf_counter < dispatch_buf_threshold)
+        if (state_.buf_counter < dispatch_buf_threshold)
           run_direct_type1();
         else {
-          if (type1_auto_) prepare_type1_coords();
+          if (dispatch_buf_threshold > 0) prepare_type1_coords();
           finufft_kernel_->execute_type1(state_, fiw_arr, fk_arr, common_factor);
         }
+      } else if (type_ == type_t::type1_gather) {
+        prepare_type1_coords();
+        finufft_kernel_->execute_type1_gather(state_, fiw_vec);
       } else if (type_ == type_t::automatic) {
         if (state_.buf_counter < dispatch_buf_threshold) {
-          if (!direct_type1_kernel_ and !naf_kernel_) NDA_RUNTIME_ERROR << "automatic dispatch: no direct kernel available\n";
           if (direct_type1_kernel_)
             run_direct(*direct_type1_kernel_);
           else
             run_direct(*naf_kernel_);
-        } else
+        } else if (use_type3_) {
           finufft_kernel_->execute_type3(state_, fiw_vec);
+        } else {
+          prepare_type1_coords();
+          finufft_kernel_->execute_type1_gather(state_, fiw_vec);
+        }
       } else if (type_ == type_t::type3)
         finufft_kernel_->execute_type3(state_, fiw_vec);
       else if (type_ == type_t::direct_type3)
@@ -234,42 +250,21 @@ namespace triqs::utility::nfft {
       scatter_to_arr();
     }
 
-    // Scatter flat fk_vec[d] into Rank-dimensional fiw_arr using row-major index mapping
+    // Scatter flat fk_vec into Rank-dimensional fiw_arr (both row-major)
     void scatter_to_arr() {
       if constexpr (Rank == 1) {
-        for (int64_t d = 0; d < state_.n_targets; ++d) fiw_arr(d) += state_.fk_vec(d);
-      } else if constexpr (Rank == 2) {
-        int64_t d = 0;
-        for (int64_t k0 = 0; k0 < niws[0]; ++k0)
-          for (int64_t k1 = 0; k1 < niws[1]; ++k1) fiw_arr(k0, k1) += state_.fk_vec(d++);
+        fiw_arr += state_.fk_vec;
       } else {
-        int64_t d = 0;
-        for (int64_t k0 = 0; k0 < niws[0]; ++k0)
-          for (int64_t k1 = 0; k1 < niws[1]; ++k1)
-            for (int64_t k2 = 0; k2 < niws[2]; ++k2) fiw_arr(k0, k1, k2) += state_.fk_vec(d++);
+        fiw_arr += nda::reshape(state_.fk_vec, fiw_arr.shape());
       }
     }
 
-    // Transform raw tau coordinates in-place for FINUFFT type1 convention
-    void prepare_type1_coords() {
-      double const inv_beta = 1.0 / state_.beta;
-      for (int j = 0; j < state_.buf_counter; ++j) {
-        double tau_sum = 0.0;
-        for (int r = 0; r < Rank; ++r) {
-          double tau = state_.x_arr(r, j);
-          tau_sum += tau;
-          state_.x_arr(r, j) = 2 * M_PI * (tau * inv_beta - 0.5);
-        }
-        state_.fx_arr[j] *= std::exp(dcomplex(0, M_PI * tau_sum * inv_beta));
-      }
-    }
+    void prepare_type1_coords() { apply_type1_coord_transform(state_, state_.buf_counter); }
 
     // Build uniform grid target_mf from niws (row-major order)
     std::vector<std::array<target_mf_t, Rank>> build_uniform_target_mf(double beta) const {
       std::vector<std::array<target_mf_t, Rank>> target_mf;
-      int64_t n_targets = 1;
-      for (auto n : niws) n_targets *= n;
-      target_mf.reserve(n_targets);
+      target_mf.reserve(state_.n_targets);
 
       // Row-major enumeration matching fiw_arr memory layout
       auto recurse = [&](this auto &&self, std::array<target_mf_t, Rank> &mf, int r) -> void {

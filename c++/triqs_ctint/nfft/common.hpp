@@ -37,7 +37,7 @@ namespace triqs::utility::nfft {
                              if (p) finufft_destroy(p);
                            })>;
 
-  enum class type_t { automatic, type1, type3, direct_type1, direct_type3, direct_bitwise, direct_prime };
+  enum class type_t { automatic, type1, type1_gather, type3, direct_type1, direct_type3, direct_bitwise, direct_prime };
 
   using target_mf_t = mesh::matsubara_freq;
 
@@ -115,6 +115,20 @@ namespace triqs::utility::nfft {
       }
     }
     return digits;
+  }
+
+  // Transform raw tau coordinates in-place for FINUFFT type1 convention
+  template <int Rank> void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
+    double const inv_beta = 1.0 / state.beta;
+    for (int j = 0; j < n; ++j) {
+      double tau_sum = 0.0;
+      for (int r = 0; r < Rank; ++r) {
+        double tau = state.x_arr(r, j);
+        tau_sum += tau;
+        state.x_arr(r, j) = 2 * M_PI * (tau * inv_beta - 0.5);
+      }
+      state.fx_arr[j] *= cis(M_PI * tau_sum * inv_beta);
+    }
   }
 
   // ---- SIMD type aliases and helpers ----

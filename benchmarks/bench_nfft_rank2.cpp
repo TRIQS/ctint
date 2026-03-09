@@ -82,6 +82,19 @@ static void BM_Rank2_DLR2D_NAF(benchmark::State &state) {
   run_nfft_bench<2>(state, buf, taus, vals, output);
 }
 
+static void BM_Rank2_DLR2D_Type1Gather(benchmark::State &state) {
+  auto &md         = get_dlr2d_mesh_data();
+  int64_t n_points = n_points_rank2(state.range(0));
+
+  nda::array<dcomplex, 1> output(md.n_mesh_points);
+  output = 0;
+
+  buffer_t<2> buf{output, md.target_mf_2d, buf_size, tol, type_t::type1_gather};
+  auto [taus, vals] = gen_random_data<2>(n_points);
+
+  run_nfft_bench<2>(state, buf, taus, vals, output);
+}
+
 static void BM_Rank2_DLR2D_Auto(benchmark::State &state) {
   auto &md         = get_dlr2d_mesh_data();
   int64_t n_points = n_points_rank2(state.range(0));
@@ -142,6 +155,7 @@ static void BM_Rank2_DLR2D_CG_Auto(benchmark::State &state) {
 BENCHMARK(BM_Rank2_FullGrid_FINUFFT) K_ARGS;
 
 BENCHMARK(BM_Rank2_DLR2D_FINUFFT) K_ARGS;
+BENCHMARK(BM_Rank2_DLR2D_Type1Gather) K_ARGS;
 BENCHMARK(BM_Rank2_DLR2D_Sincos) K_ARGS;
 BENCHMARK(BM_Rank2_DLR2D_Prime) K_ARGS;
 BENCHMARK(BM_Rank2_DLR2D_NAF) K_ARGS;

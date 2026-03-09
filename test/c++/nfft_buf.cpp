@@ -484,6 +484,131 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
       for (int64_t k3 = 0; k3 < n_per_dim; ++k3) { EXPECT_LT(std::abs(fiw_type3(idx++) - type1_data(k1, k2, k3)), 1e-9); }
 }
 
+/********************* TYPE1_GATHER vs TYPE 3: Consistency 1D ********************/
+TEST_F(Nfft, Type1Gather_vs_Type3_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(777);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  // Non-uniform targets (subset of Matsubara frequencies)
+  std::vector<int> n_indices = {0, 1, 3, 5, 10, 20, 50, 99, -1, -3, -10, -50, -100};
+  int64_t n_targets          = n_indices.size();
+
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(n_indices[k], beta, mesh::Fermion));
+
+  // Type 3 reference
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<1> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  // Type1 gather
+  nda::vector<dcomplex> fiw_gather(n_targets);
+  fiw_gather = 0;
+  buffer_t<1> bufg(fiw_gather, target_mf, buf_size, test_tol, type_t::type1_gather);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufg.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufg.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_gather(k)), 1e-9); }
+}
+
+/********************* TYPE1_GATHER vs TYPE 3: Consistency 2D ********************/
+TEST_F(Nfft, Type1Gather_vs_Type3_2D) { // NOLINT
+
+  int small_niw = 10;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+
+  std::default_random_engine gen(888);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2) {
+      int n1 = static_cast<int>(k1) - small_niw;
+      int n2 = static_cast<int>(k2) - small_niw;
+      target_mf.push_back({mesh::matsubara_freq(n1, beta, mesh::Fermion), mesh::matsubara_freq(n2, beta, mesh::Fermion)});
+    }
+
+  // Type 3 reference
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  // Type1 gather
+  nda::vector<dcomplex> fiw_gather(n_targets);
+  fiw_gather = 0;
+  buffer_t<2> bufg(fiw_gather, target_mf, buf_size, test_tol, type_t::type1_gather);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufg.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufg.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_gather(k)), 1e-9); }
+}
+
+/********************* TYPE1_GATHER vs TYPE 3: DLR2D mesh ********************/
+TEST_F(Nfft, Type1Gather_vs_Type3_DLR2D) { // NOLINT
+
+  int n_tau    = 5000;
+  int buf_size = n_tau;
+
+  std::default_random_engine gen(999);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH};
+  int64_t n_targets = dlr2d_mesh.size();
+
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (long d = 0; d < n_targets; ++d) {
+    auto [n1, n2] = dlr2d_mesh.to_index(d);
+    target_mf.push_back({mesh::matsubara_freq(n2, beta, mesh::Fermion), mesh::matsubara_freq(n1, beta, mesh::Fermion)});
+  }
+
+  // Type 3 reference
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
+
+  // Type1 gather
+  nda::vector<dcomplex> fiw_gather(n_targets);
+  fiw_gather = 0;
+  buffer_t<2> bufg(fiw_gather, target_mf, buf_size, test_tol, type_t::type1_gather);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufg.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufg.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_gather(k)), 1e-9); }
+}
+
 /********************* DIRECT: Analytical 1D ********************/
 void run_direct_analytical_1d(type_t type, double beta, auto f_tau) {
 
