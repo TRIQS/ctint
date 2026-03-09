@@ -135,9 +135,9 @@ namespace triqs::utility::nfft {
     // Walks the geometric sequence exp(i*(2n+1)*pi*tau/beta) in-place,
     // accumulating directly into the output — no power table needed.
     void execute_sequential(shared_state_t<Rank> &state) {
+      dcomplex *__restrict__ fiw_ptr = state.fk_vec.data();
       constexpr std::size_t S = cbatch::size;
       double const pi_over_beta = M_PI / state.beta;
-      dcomplex * __restrict__ fiw_ptr = state.fk_vec.data();
 
       if constexpr (Rank == 1) {
         long const nr           = n_range_arr[0];
@@ -153,12 +153,7 @@ namespace triqs::utility::nfft {
           dcomplex const z_step = cis(theta_step);
           dcomplex const fj = state.fx_arr[j];
 
-          // Build SIMD multiplier array: mult[k] = z_step^k
-          alignas(cbatch::arch_type::alignment()) std::array<dcomplex, S> mult_arr;
-          dcomplex z_pow = 1.0;
-          for (std::size_t k = 0; k < S; ++k) { mult_arr[k] = z_pow; z_pow *= z_step; }
-          cbatch const mult(cbatch::load_aligned(mult_arr.data()));
-          cbatch const stride(z_pow); // z_step^S
+          auto [mult, stride] = make_simd_multiplier(z_step);
           cbatch zp(fj * z_base);
 
           for (long d = 0; d < nr_simd; d += S) {
@@ -174,32 +169,21 @@ namespace triqs::utility::nfft {
         long const nr0          = n_range_arr[0];
         long const nr1          = n_range_arr[1];
         long const nr1_simd     = nr1 - (nr1 % static_cast<long>(S));
+        double const step_freq  = 2.0 * pi_over_beta;
         double const base_freq0 = static_cast<double>(2 * n_min_arr[0] + 1) * pi_over_beta;
-        double const step_freq0 = 2.0 * pi_over_beta;
         double const base_freq1 = static_cast<double>(2 * n_min_arr[1] + 1) * pi_over_beta;
-        double const step_freq1 = 2.0 * pi_over_beta;
 
         for (int j = 0; j < state.buf_counter; ++j) {
           double const tau0 = state.x_arr(0, j);
           double const tau1 = state.x_arr(1, j);
           dcomplex const fj = state.fx_arr[j];
 
-          double const th_base0 = base_freq0 * tau0;
-          double const th_step0 = step_freq0 * tau0;
-          dcomplex const z_base0 = cis(th_base0);
-          dcomplex const z_step0 = cis(th_step0);
+          dcomplex const z_base0 = cis(base_freq0 * tau0);
+          dcomplex const z_step0 = cis(step_freq * tau0);
+          dcomplex const z_base1 = cis(base_freq1 * tau1);
+          dcomplex const z_step1 = cis(step_freq * tau1);
 
-          double const th_base1 = base_freq1 * tau1;
-          double const th_step1 = step_freq1 * tau1;
-          dcomplex const z_base1 = cis(th_base1);
-          dcomplex const z_step1 = cis(th_step1);
-
-          // SIMD multiplier for inner dimension
-          alignas(cbatch::arch_type::alignment()) std::array<dcomplex, S> mult_arr;
-          dcomplex z_pow = 1.0;
-          for (std::size_t k = 0; k < S; ++k) { mult_arr[k] = z_pow; z_pow *= z_step1; }
-          cbatch const mult1(cbatch::load_aligned(mult_arr.data()));
-          cbatch const stride1(z_pow); // z_step1^S
+          auto [mult1, stride1] = make_simd_multiplier(z_step1);
 
           dcomplex z0 = fj * z_base0;
           dcomplex * __restrict__ out = fiw_ptr;
@@ -222,12 +206,10 @@ namespace triqs::utility::nfft {
         long const nr1 = n_range_arr[1];
         long const nr2 = n_range_arr[2];
         long const nr2_simd = nr2 - (nr2 % static_cast<long>(S));
+        double const step_freq  = 2.0 * pi_over_beta;
         double const base_freq0 = static_cast<double>(2 * n_min_arr[0] + 1) * pi_over_beta;
-        double const step_freq0 = 2.0 * pi_over_beta;
         double const base_freq1 = static_cast<double>(2 * n_min_arr[1] + 1) * pi_over_beta;
-        double const step_freq1 = 2.0 * pi_over_beta;
         double const base_freq2 = static_cast<double>(2 * n_min_arr[2] + 1) * pi_over_beta;
-        double const step_freq2 = 2.0 * pi_over_beta;
 
         for (int j = 0; j < state.buf_counter; ++j) {
           double const tau0 = state.x_arr(0, j);
@@ -236,17 +218,13 @@ namespace triqs::utility::nfft {
           dcomplex const fj = state.fx_arr[j];
 
           dcomplex const z_base0 = cis(base_freq0 * tau0);
-          dcomplex const z_step0 = cis(step_freq0 * tau0);
+          dcomplex const z_step0 = cis(step_freq * tau0);
           dcomplex const z_base1 = cis(base_freq1 * tau1);
-          dcomplex const z_step1 = cis(step_freq1 * tau1);
+          dcomplex const z_step1 = cis(step_freq * tau1);
           dcomplex const z_base2 = cis(base_freq2 * tau2);
-          dcomplex const z_step2 = cis(step_freq2 * tau2);
+          dcomplex const z_step2 = cis(step_freq * tau2);
 
-          alignas(cbatch::arch_type::alignment()) std::array<dcomplex, S> mult_arr;
-          dcomplex zp = 1.0;
-          for (std::size_t k = 0; k < S; ++k) { mult_arr[k] = zp; zp *= z_step2; }
-          cbatch const mult2(cbatch::load_aligned(mult_arr.data()));
-          cbatch const stride2(zp);
+          auto [mult2, stride2] = make_simd_multiplier(z_step2);
 
           dcomplex z0 = fj * z_base0;
           dcomplex * __restrict__ out = fiw_ptr;
@@ -285,6 +263,16 @@ namespace triqs::utility::nfft {
       return neg ? std::conj(result) : result;
     }
 
+    // Build SIMD multiplier and stride from a unit-step phasor z_step:
+    // mult[k] = z_step^k for k in [0, S), stride = z_step^S.
+    static std::pair<cbatch, cbatch> make_simd_multiplier(dcomplex z_step) {
+      constexpr std::size_t S = cbatch::size;
+      alignas(cbatch::arch_type::alignment()) std::array<dcomplex, S> mult_arr;
+      dcomplex z_pow = 1.0;
+      for (std::size_t k = 0; k < S; ++k) { mult_arr[k] = z_pow; z_pow *= z_step; }
+      return {cbatch::load_aligned(mult_arr.data()), cbatch(z_pow)};
+    }
+
     // Fill destination with geometric sequence exp(i*(2n+1)*pi*tau/beta) for n in [n_min, n_min+n_range).
     void fill_pow_row(dcomplex * __restrict__ dest, int r, double tau, double pi_over_beta) {
       constexpr std::size_t S = cbatch::size;
@@ -295,11 +283,7 @@ namespace triqs::utility::nfft {
       dcomplex const z_step = z1 * z1;
       dcomplex const z_base = unit_pow(z_step, n_min_arr[r]) * z1;
 
-      alignas(cbatch::arch_type::alignment()) std::array<dcomplex, S> mult_arr;
-      dcomplex z_pow = 1.0;
-      for (std::size_t k = 0; k < S; ++k) { mult_arr[k] = z_pow; z_pow *= z_step; }
-      cbatch const mult(cbatch::load_aligned(mult_arr.data()));
-      cbatch const stride(z_pow);
+      auto [mult, stride] = make_simd_multiplier(z_step);
       cbatch zp_vec(z_base);
 
       for (long i = 0; i < nr_simd; i += S) {

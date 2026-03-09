@@ -89,7 +89,14 @@ namespace triqs::utility::nfft {
         finufft_kernel_->init_type3(target_mf_, state_.n_targets, tol);
         state_.init_direct_common(target_mf_);
         naf_kernel_.emplace(state_, buf_size_);
-        dispatch_buf_threshold = calibrate_dispatch(state_, *naf_kernel_, *finufft_kernel_);
+        direct_type1_kernel_.emplace(state_, target_mf_);
+        auto [threshold, use_dt1] = calibrate_dispatch(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
+        dispatch_buf_threshold = threshold;
+        // Release the losing direct kernel
+        if (use_dt1)
+          naf_kernel_.reset();
+        else
+          direct_type1_kernel_.reset();
 
       } else {
         NDA_RUNTIME_ERROR << "buffer_t: unsupported type_t for non-uniform target constructor\n";
@@ -194,9 +201,13 @@ namespace triqs::utility::nfft {
           finufft_kernel_->execute_type1(state_, fiw_arr, fk_arr, common_factor);
         }
       } else if (type_ == type_t::automatic) {
-        if (state_.buf_counter < dispatch_buf_threshold)
-          run_direct(*naf_kernel_);
-        else
+        if (state_.buf_counter < dispatch_buf_threshold) {
+          if (!direct_type1_kernel_ and !naf_kernel_) NDA_RUNTIME_ERROR << "automatic dispatch: no direct kernel available\n";
+          if (direct_type1_kernel_)
+            run_direct(*direct_type1_kernel_);
+          else
+            run_direct(*naf_kernel_);
+        } else
           finufft_kernel_->execute_type3(state_, fiw_vec);
       } else if (type_ == type_t::type3)
         finufft_kernel_->execute_type3(state_, fiw_vec);

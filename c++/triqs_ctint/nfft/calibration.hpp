@@ -12,11 +12,33 @@
 
 namespace triqs::utility::nfft {
 
-  // Calibrate dispatch threshold for automatic mode by timing both NAF and Type3
-  // at two buffer sizes and fitting a linear model to find the crossover.
-  // Returns the buf_counter threshold below which NAF is preferred.
+  // Linear-fit crossover: given timings of two kernels at n_lo and n_hi,
+  // find the buffer size where they cross. Returns threshold clamped to [0, buf_size+1].
+  inline int linear_crossover(double a_lo, double a_hi, double b_lo, double b_hi, int n_lo, int n_hi, int buf_size) {
+    double a_slope     = (a_hi - a_lo) / (n_hi - n_lo);
+    double a_intercept = a_lo - a_slope * n_lo;
+    double b_slope     = (b_hi - b_lo) / (n_hi - n_lo);
+    double b_intercept = b_lo - b_slope * n_lo;
+
+    int threshold;
+    if (a_slope > b_slope && b_intercept > a_intercept)
+      threshold = static_cast<int>((b_intercept - a_intercept) / (a_slope - b_slope));
+    else if (a_slope <= b_slope)
+      threshold = buf_size + 1; // a always wins
+    else
+      threshold = 0; // b always wins
+
+    return std::clamp(threshold, 0, buf_size + 1);
+  }
+
+  // Calibrate dispatch threshold for automatic mode (non-uniform targets).
+  // Compares direct_type1, NAF, and FINUFFT type3 kernels:
+  // 1. Pick the faster direct kernel (direct_type1 vs NAF) at a representative buffer size
+  // 2. Calibrate the winner against FINUFFT type3 using linear fit
+  // Returns {threshold, use_direct_type1}: threshold below which the winning direct kernel is preferred.
   template <int Rank>
-  int calibrate_dispatch(shared_state_t<Rank> &state, kernel_naf_t<Rank> &naf_kernel, kernel_finufft_t<Rank> &finufft_kernel) {
+  std::pair<int, bool> calibrate_dispatch(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
+                                          kernel_naf_t<Rank> &naf_kernel, kernel_finufft_t<Rank> &finufft_kernel) {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
@@ -28,11 +50,11 @@ namespace triqs::utility::nfft {
       state.fx_arr[j] = dcomplex(1.0, 0.0);
     }
 
-    auto measure_naf = [&](int n) {
+    auto measure_kernel = [&](auto &kernel, int n) {
       state.buf_counter = n;
       state.fk_vec      = 0;
       auto t0           = clock::now();
-      naf_kernel.execute(state);
+      kernel.execute(state);
       return std::chrono::duration<double>(clock::now() - t0).count();
     };
 
@@ -46,7 +68,8 @@ namespace triqs::utility::nfft {
 
     // Warmup to avoid cold-start bias
     measure_type3(n_lo);
-    measure_naf(n_lo);
+    measure_kernel(naf_kernel, n_lo);
+    measure_kernel(direct_type1_kernel, n_lo);
 
     // Measure at two buffer sizes (take best of 3 reps)
     constexpr int n_reps = 3;
@@ -56,33 +79,25 @@ namespace triqs::utility::nfft {
       return best;
     };
 
-    double naf_lo = best_of(measure_naf, n_lo);
-    double naf_hi = best_of(measure_naf, n_hi);
+    // Pick the faster direct kernel at n_lo, then only measure winner at n_hi.
+    // Note: winner is chosen at n_lo only; both kernels are O(n * n_targets) so
+    // relative ranking is expected to hold across buffer sizes.
+    double dt1_lo = best_of([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
+    double naf_lo = best_of([&](int n) { return measure_kernel(naf_kernel, n); }, n_lo);
+    bool use_dt1  = dt1_lo <= naf_lo;
+    double dir_lo = use_dt1 ? dt1_lo : naf_lo;
+    double dir_hi = use_dt1 ? best_of([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi)
+                            : best_of([&](int n) { return measure_kernel(naf_kernel, n); }, n_hi);
     double t3_lo  = best_of(measure_type3, n_lo);
     double t3_hi  = best_of(measure_type3, n_hi);
 
-    // Linear fit: time(B) = intercept + slope * B
-    double naf_slope     = (naf_hi - naf_lo) / (n_hi - n_lo);
-    double naf_intercept = naf_lo - naf_slope * n_lo;
-    double t3_slope      = (t3_hi - t3_lo) / (n_hi - n_lo);
-    double t3_intercept  = t3_lo - t3_slope * n_lo;
-
-    int threshold;
-    // Crossover: naf_intercept + naf_slope * B = t3_intercept + t3_slope * B
-    if (naf_slope > t3_slope && t3_intercept > naf_intercept)
-      threshold = static_cast<int>((t3_intercept - naf_intercept) / (naf_slope - t3_slope));
-    else if (naf_slope <= t3_slope)
-      threshold = state.buf_size + 1; // NAF always wins
-    else
-      threshold = 0; // Type3 always wins
-
-    threshold = std::clamp(threshold, 0, state.buf_size + 1);
+    int threshold = linear_crossover(dir_lo, dir_hi, t3_lo, t3_hi, n_lo, n_hi, state.buf_size);
 
     // Clean up
     state.fk_vec      = 0;
     state.buf_counter = 0;
 
-    return threshold;
+    return {threshold, use_dt1};
   }
 
   // Calibrate dispatch threshold for type1 automatic mode (direct_type1 vs FINUFFT type1).
@@ -166,20 +181,7 @@ namespace triqs::utility::nfft {
     double t1_lo  = best_of(measure_type1, n_lo);
     double t1_hi  = best_of(measure_type1, n_hi);
 
-    double dir_slope     = (dir_hi - dir_lo) / (n_hi - n_lo);
-    double dir_intercept = dir_lo - dir_slope * n_lo;
-    double t1_slope      = (t1_hi - t1_lo) / (n_hi - n_lo);
-    double t1_intercept  = t1_lo - t1_slope * n_lo;
-
-    int threshold;
-    if (dir_slope > t1_slope && t1_intercept > dir_intercept)
-      threshold = static_cast<int>((t1_intercept - dir_intercept) / (dir_slope - t1_slope));
-    else if (dir_slope <= t1_slope)
-      threshold = state.buf_size + 1; // direct always wins
-    else
-      threshold = 0; // FINUFFT type1 always wins
-
-    threshold = std::clamp(threshold, 0, state.buf_size + 1);
+    int threshold = linear_crossover(dir_lo, dir_hi, t1_lo, t1_hi, n_lo, n_hi, state.buf_size);
 
     // Clean up
     restore_state();
