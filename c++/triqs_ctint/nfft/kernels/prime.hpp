@@ -10,8 +10,6 @@ namespace triqs::utility::nfft {
 
   template <int Rank> struct kernel_prime_t {
 
-    static constexpr int n_acc = 4; // ILP accumulators
-
     kernel_prime_t() = default;
 
     kernel_prime_t(shared_state_t<Rank> const &state) {
