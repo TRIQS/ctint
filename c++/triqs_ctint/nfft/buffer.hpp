@@ -238,6 +238,15 @@ namespace triqs::utility::nfft {
     }
 
     template <typename Kernel> void run_direct(Kernel &kernel) {
+      // Pad buffer counter to SIMD boundary to eliminate scalar tail loops
+      int const buf_counter_padded = std::min(shared_state_t<Rank>::round_up_simd(state_.buf_counter), state_.buf_size);
+
+      // Zero-pad fx_arr and x_arr to SIMD boundary (only if within allocated size)
+      for (int j = state_.buf_counter; j < buf_counter_padded; ++j) {
+        state_.fx_arr[j] = dcomplex{0.0, 0.0};
+        for (int r = 0; r < Rank; ++r) state_.x_arr(r, j) = 0.0;
+      }
+
       state_.fk_vec = 0;
       kernel.execute(state_);
       fiw_vec += state_.fk_vec;

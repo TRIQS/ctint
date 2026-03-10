@@ -59,6 +59,12 @@ namespace triqs::utility::nfft {
       for (int r = 0; r < Rank; ++r)
         for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf[d][r].n;
     }
+
+    // Round up to SIMD boundary to eliminate scalar tail loops
+    static constexpr int round_up_simd(int n) {
+      constexpr int simd_sz = xsimd::batch<dcomplex>::size;
+      return ((n + simd_sz - 1) / simd_sz) * simd_sz;
+    }
   };
 
   // ---- Math utilities ----
