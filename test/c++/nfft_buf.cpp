@@ -1008,8 +1008,8 @@ TEST_F(Nfft, DirectType3_Strided_DLR_OddFlush) { // NOLINT
   }
 }
 
-/********************* DIRECT vs TYPE 3: DLR2D mesh ********************/
-TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
+/********************* kernel vs TYPE 3: DLR2D mesh ********************/
+void run_vs_type3_dlr2d(type_t test_type, double beta, bool compressgrid = false) {
 
   int n_tau    = 5000;
   int buf_size = n_tau;
@@ -1018,7 +1018,7 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
   std::uniform_real_distribution<double> dist(0.0, 1.0);
 
   // Build DLR2D mesh and extract target matsubara_freq
-  mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH};
+  mesh::dlr2d_imfreq dlr2d_mesh{beta, /*dlr_wmax=*/1.0, /*dlr_eps=*/1e-6, mesh::PH, compressgrid};
   int64_t n_targets = dlr2d_mesh.size();
 
   std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
@@ -1028,29 +1028,37 @@ TEST_F(Nfft, Direct_vs_Type3_DLR2D) { // NOLINT
     target_mf.push_back({mesh::matsubara_freq(n2, beta, mesh::Fermion), mesh::matsubara_freq(n1, beta, mesh::Fermion)});
   }
 
-  // Type 3 buffer
+  // Type 3 buffer (reference)
   nda::vector<dcomplex> fiw_type3(n_targets);
   fiw_type3 = 0;
   buffer_t<2> buf3(fiw_type3, target_mf, buf_size, test_tol, type_t::type3);
 
-  // Direct buffer
-  nda::vector<dcomplex> fiw_direct(n_targets);
-  fiw_direct = 0;
-  buffer_t<2> bufd(fiw_direct, target_mf, buf_size, test_tol, type_t::direct_type3);
+  // Test buffer
+  nda::vector<dcomplex> fiw_test(n_targets);
+  fiw_test = 0;
+  buffer_t<2> buft(fiw_test, target_mf, buf_size, test_tol, test_type);
 
   for (int i = 0; i < n_tau; ++i) {
     double tau1 = dist(gen) * beta;
     double tau2 = dist(gen) * beta;
     dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
     buf3.push_back({tau1, tau2}, fv);
-    bufd.push_back({tau1, tau2}, fv);
+    buft.push_back({tau1, tau2}, fv);
   }
   buf3.flush();
-  bufd.flush();
+  buft.flush();
 
   // Compare
-  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-9); }
+  for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_test(k)), 1e-9); }
 }
+
+TEST_F(Nfft, DirectType1_DLR2D) { run_vs_type3_dlr2d(type_t::direct_type1, beta); }
+TEST_F(Nfft, DirectPrime_DLR2D) { run_vs_type3_dlr2d(type_t::direct_prime, beta); }
+TEST_F(Nfft, DirectType3_DLR2D) { run_vs_type3_dlr2d(type_t::direct_type3, beta); }
+TEST_F(Nfft, Automatic_DLR2D) { run_vs_type3_dlr2d(type_t::automatic, beta); }
+
+TEST_F(Nfft, DirectType3_DLR2D_CG) { run_vs_type3_dlr2d(type_t::direct_type3, beta, /*compressgrid=*/true); }
+TEST_F(Nfft, Automatic_DLR2D_CG) { run_vs_type3_dlr2d(type_t::automatic, beta, /*compressgrid=*/true); }
 
 /********************* TYPE 1 AUTOMATIC DISPATCH: 1D ********************/
 // Verifies that type1 with automatic dispatch matches type3 reference (which uses a different code path).
