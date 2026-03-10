@@ -16,6 +16,14 @@ namespace triqs::utility::nfft {
     void init_type1(std::array<int64_t, Rank> const &niws, int /*buf_size*/, double tol) {
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
+
+      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      if (tol >= 1e-8) {
+        opts.upsampfac = 1.25;
+        opts.spread_max_sp_size = 100000;
+      }
+      // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
+
       auto Ns               = std::vector(niws.rbegin(), niws.rend());
       finufft_plan raw_plan = nullptr;
       check_finufft(finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, &raw_plan, &opts));
@@ -66,6 +74,14 @@ namespace triqs::utility::nfft {
       // Init FINUFFT type1 plan with the bounding grid
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
+
+      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      if (tol >= 1e-8) {
+        opts.upsampfac = 1.25;
+        opts.spread_max_sp_size = 100000;
+      }
+      // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
+
       auto Ns               = std::vector(gather_niws.rbegin(), gather_niws.rend());
       finufft_plan raw_plan = nullptr;
       check_finufft(finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, &raw_plan, &opts));
@@ -79,6 +95,14 @@ namespace triqs::utility::nfft {
         for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf[d][r]));
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
+
+      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      if (tol >= 1e-8) {
+        opts.upsampfac = 1.25;
+        opts.spread_max_sp_size = 100000;
+      }
+      // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
+
       finufft_plan raw_plan = nullptr;
       check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts));
       plan.reset(raw_plan);
@@ -97,6 +121,14 @@ namespace triqs::utility::nfft {
       finufft_opts opts_t3{};
       finufft_default_opts(&opts_t3);
       opts_t3.nthreads      = 1;
+
+      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      if (tol >= 1e-8) {
+        opts_t3.upsampfac = 1.25;
+        opts_t3.spread_max_sp_size = 100000;
+      }
+      // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
+
       finufft_plan raw_plan = nullptr;
       check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts_t3));
       plan_t3.reset(raw_plan);
