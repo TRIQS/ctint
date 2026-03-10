@@ -17,10 +17,10 @@ namespace triqs::utility::nfft {
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
 
-      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      // Optimized parameters from tuning (valid for tol >= 1e-8)
       if (tol >= 1e-8) {
         opts.upsampfac = 1.25;
-        opts.spread_max_sp_size = 100000;
+        opts.spread_max_sp_size = (Rank == 1) ? 10000 : 100000;
       }
       // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
 
@@ -75,10 +75,10 @@ namespace triqs::utility::nfft {
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
 
-      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      // Optimized parameters from tuning (valid for tol >= 1e-8)
       if (tol >= 1e-8) {
         opts.upsampfac = 1.25;
-        opts.spread_max_sp_size = 100000;
+        opts.spread_max_sp_size = (Rank == 1) ? 10000 : 100000;
       }
       // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
 
@@ -96,10 +96,10 @@ namespace triqs::utility::nfft {
       finufft_default_opts(&opts);
       opts.nthreads         = 1;
 
-      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      // Optimized parameters from tuning (valid for tol >= 1e-8)
       if (tol >= 1e-8) {
         opts.upsampfac = 1.25;
-        opts.spread_max_sp_size = 100000;
+        opts.spread_max_sp_size = (Rank == 1) ? 10000 : 100000;
       }
       // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
 
@@ -122,10 +122,10 @@ namespace triqs::utility::nfft {
       finufft_default_opts(&opts_t3);
       opts_t3.nthreads      = 1;
 
-      // Optimized parameters from bisection search (valid for tol >= 1e-8)
+      // Optimized parameters from tuning (valid for tol >= 1e-8)
       if (tol >= 1e-8) {
         opts_t3.upsampfac = 1.25;
-        opts_t3.spread_max_sp_size = 100000;
+        opts_t3.spread_max_sp_size = (Rank == 1) ? 10000 : 100000;
       }
       // For stricter tolerances (tol < 1e-8), use FINUFFT defaults
 
