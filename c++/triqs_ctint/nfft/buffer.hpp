@@ -71,10 +71,6 @@ namespace triqs::utility::nfft {
         state_.init_direct_common(target_mf_);
         direct_type1_kernel_.emplace(state_, target_mf_);
 
-      } else if (type == type_t::direct_bitwise) {
-        state_.init_direct_common(target_mf_);
-        bitwise_kernel_.emplace(state_);
-
       } else if (type == type_t::direct_prime) {
         state_.init_direct_common(target_mf_);
         prime_kernel_.emplace(state_);
@@ -196,7 +192,6 @@ namespace triqs::utility::nfft {
     // Kernels (only relevant ones initialized)
     std::optional<kernel_finufft_t<Rank>> finufft_kernel_;
     std::optional<kernel_direct_type1_t<Rank>> direct_type1_kernel_;
-    std::optional<kernel_bitwise_t<Rank>> bitwise_kernel_;
     std::optional<kernel_prime_t<Rank>> prime_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
@@ -229,8 +224,6 @@ namespace triqs::utility::nfft {
         finufft_kernel_->execute_type3(state_, fiw_vec);
       else if (type_ == type_t::direct_type3)
         run_direct(*naf_kernel_);
-      else if (type_ == type_t::direct_bitwise)
-        run_direct(*bitwise_kernel_);
       else if (type_ == type_t::direct_prime)
         run_direct(*prime_kernel_);
       else

@@ -651,9 +651,10 @@ void run_direct_analytical_1d(type_t type, double beta, auto f_tau) {
 }
 
 TEST_F(Nfft, DirectType1_Analytical_1D) { run_direct_analytical_1d(type_t::direct_type1, beta, [&](double tau) { return f_tau(tau); }); }
-TEST_F(Nfft, DirectBitwise_Analytical_1D) {
-  run_direct_analytical_1d(type_t::direct_bitwise, beta, [&](double tau) { return f_tau(tau); });
-}
+// Bitwise kernel removed
+//TEST_F(Nfft, DirectBitwise_Analytical_1D) {
+//  run_direct_analytical_1d(type_t::direct_bitwise, beta, [&](double tau) { return f_tau(tau); });
+//}
 TEST_F(Nfft, DirectType3_Analytical_1D) {
   run_direct_analytical_1d(type_t::direct_type3, beta, [&](double tau) { return f_tau(tau); });
 }
@@ -756,7 +757,8 @@ void run_direct_vs_type3_1d(type_t direct_type, double beta, int n_iw) {
 }
 
 TEST_F(Nfft, DirectType1_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_type1, beta, n_iw); }
-TEST_F(Nfft, DirectBitwise_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_bitwise, beta, n_iw); }
+// Bitwise kernel removed
+//TEST_F(Nfft, DirectBitwise_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_bitwise, beta, n_iw); }
 TEST_F(Nfft, DirectType3_vs_Type3_1D) { run_direct_vs_type3_1d(type_t::direct_type3, beta, n_iw); }
 
 /********************* DIRECT vs TYPE 3: Consistency 2D ********************/
@@ -857,7 +859,8 @@ void run_direct_vs_type3_strided(type_t direct_type, double beta, int n_iw) {
 }
 
 TEST_F(Nfft, DirectType1_Strided) { run_direct_vs_type3_strided(type_t::direct_type1, beta, n_iw); }
-TEST_F(Nfft, DirectBitwise_Strided) { run_direct_vs_type3_strided(type_t::direct_bitwise, beta, n_iw); }
+// Bitwise kernel removed
+//TEST_F(Nfft, DirectBitwise_Strided) { run_direct_vs_type3_strided(type_t::direct_bitwise, beta, n_iw); }
 TEST_F(Nfft, DirectPrime_Strided) { run_direct_vs_type3_strided(type_t::direct_prime, beta, n_iw); }
 TEST_F(Nfft, DirectType3_Strided) { run_direct_vs_type3_strided(type_t::direct_type3, beta, n_iw); }
 TEST_F(Nfft, Automatic_Strided) { run_direct_vs_type3_strided(type_t::automatic, beta, n_iw); }
@@ -910,7 +913,8 @@ void run_direct_vs_type3_dlr(type_t direct_type) {
 }
 
 TEST_F(Nfft, DirectType1_DLR) { run_direct_vs_type3_dlr(type_t::direct_type1); }
-TEST_F(Nfft, DirectBitwise_DLR) { run_direct_vs_type3_dlr(type_t::direct_bitwise); }
+// Bitwise kernel removed
+//TEST_F(Nfft, DirectBitwise_DLR) { run_direct_vs_type3_dlr(type_t::direct_bitwise); }
 TEST_F(Nfft, DirectPrime_DLR) { run_direct_vs_type3_dlr(type_t::direct_prime); }
 TEST_F(Nfft, DirectType3_DLR) { run_direct_vs_type3_dlr(type_t::direct_type3); }
 TEST_F(Nfft, Automatic_DLR) { run_direct_vs_type3_dlr(type_t::automatic); }
@@ -954,7 +958,8 @@ void run_direct_vs_type3_odd_flush(type_t direct_type, double beta) {
 }
 
 TEST_F(Nfft, DirectType1_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_type1, beta); }
-TEST_F(Nfft, DirectBitwise_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_bitwise, beta); }
+// Bitwise kernel removed
+//TEST_F(Nfft, DirectBitwise_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_bitwise, beta); }
 TEST_F(Nfft, DirectPrime_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_prime, beta); }
 TEST_F(Nfft, DirectType3_OddFlush) { run_direct_vs_type3_odd_flush(type_t::direct_type3, beta); }
 TEST_F(Nfft, Automatic_OddFlush) { run_direct_vs_type3_odd_flush(type_t::automatic, beta); }

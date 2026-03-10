@@ -37,7 +37,7 @@ namespace triqs::utility::nfft {
                              if (p) finufft_destroy(p);
                            })>;
 
-  enum class type_t { automatic, type1, type1_gather, type3, direct_type1, direct_type3, direct_bitwise, direct_prime };
+  enum class type_t { automatic, type1, type1_gather, type3, direct_type1, direct_type3, direct_prime };
 
   using target_mf_t = mesh::matsubara_freq;
 

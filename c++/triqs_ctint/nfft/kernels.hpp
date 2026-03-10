@@ -6,6 +6,5 @@
 #pragma once
 #include "kernels/finufft.hpp"
 #include "kernels/direct_type1.hpp"
-#include "kernels/bitwise.hpp"
 #include "kernels/prime.hpp"
 #include "kernels/naf.hpp"
