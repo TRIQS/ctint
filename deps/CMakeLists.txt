@@ -63,6 +63,8 @@ endif()
 set(FINUFFT_USE_OPENMP OFF)
 # Default to a portable finufft build: its -march=native default crashes (SIGILL) when a cross-CPU build cache is reused. Override with -DFINUFFT_ARCH_FLAGS=native for a local perf build.
 set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Architecture flags for finufft (empty = portable baseline)")
+set(FINUFFT_USE_DUCC0 ON)
+set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
 external_dependency(finufft
   GIT_REPO https://github.com/flatironinstitute/finufft
   GIT_TAG v2.5.1
