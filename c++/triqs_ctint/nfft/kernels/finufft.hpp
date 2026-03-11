@@ -10,14 +10,50 @@ namespace triqs::utility::nfft {
 
   namespace detail {
 
-    inline void apply_tuned_finufft_opts(finufft_opts &opts, int rank, double tol) {
-      // Keep upstream defaults for stricter tolerances.
-      if (tol >= 1e-8) {
-        // The no-warning floor is about 1.16 for the rank-2 tol=1e-8 workloads we benchmark.
-        // Use 1.18 by default to keep a small safety margin while still improving over 1.25.
-        opts.upsampfac          = 1.18;
-        opts.spread_max_sp_size = (rank == 1) ? 10000 : 100000;
+    struct tuned_finufft_bucket_t {
+      int max_n_points;
+      double upsampfac;
+      int spread_max_sp_size;
+    };
+
+    // Buckets are keyed by the number of buffered source points. They only matter when
+    // execution actually goes through a FINUFFT path; direct kernels ignore them entirely.
+    template <int Rank> auto const &tuned_finufft_buckets() {
+      if constexpr (Rank == 1) {
+        static constexpr std::array<tuned_finufft_bucket_t, 4> buckets{{
+           {16, 1.20, 4500},
+           {64, 1.18, 2500},
+           {256, 1.16, 10000},
+           {std::numeric_limits<int>::max(), 1.20, 6250},
+        }};
+        return buckets;
+      } else {
+        static constexpr std::array<tuned_finufft_bucket_t, 2> buckets{{
+           {16384, 1.18, 100000},
+           {std::numeric_limits<int>::max(), 1.1775, 150000},
+        }};
+        return buckets;
       }
+    }
+
+    template <int Rank> int tuned_finufft_bucket_index(int n_points, double tol) {
+      if (tol < 1e-8) return 0;
+      auto const &buckets = tuned_finufft_buckets<Rank>();
+      for (int i = 0; i < static_cast<int>(buckets.size()); ++i)
+        if (n_points <= buckets[i].max_n_points) return i;
+      return static_cast<int>(buckets.size()) - 1;
+    }
+
+    template <int Rank> int tuned_finufft_bucket_count(double tol) {
+      if (tol < 1e-8) return 1;
+      return static_cast<int>(tuned_finufft_buckets<Rank>().size());
+    }
+
+    template <int Rank> void apply_tuned_finufft_opts(finufft_opts &opts, double tol, int bucket_index) {
+      if (tol < 1e-8) return;
+      auto const &bucket          = tuned_finufft_buckets<Rank>()[bucket_index];
+      opts.upsampfac              = bucket.upsampfac;
+      opts.spread_max_sp_size     = bucket.spread_max_sp_size;
     }
 
   } // namespace detail
@@ -28,14 +64,11 @@ namespace triqs::utility::nfft {
 
     /// Initialize for type 1 (non-uniform tau -> uniform Matsubara grid)
     void init_type1(std::array<int64_t, Rank> const &niws, int /*buf_size*/, double tol) {
-      finufft_default_opts(&opts);
-      opts.nthreads         = 1;
-      detail::apply_tuned_finufft_opts(opts, Rank, tol);
-
       auto Ns               = std::vector(niws.rbegin(), niws.rend());
-      finufft_plan raw_plan = nullptr;
-      check_finufft(finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, &raw_plan, &opts));
-      plan.reset(raw_plan);
+      tol_                  = tol;
+      init_bucketed_plans(type1_plans_, tol, [&](finufft_opts &local_opts, finufft_plan *raw_plan) {
+        return finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, raw_plan, &local_opts);
+      });
     }
 
     /// Initialize for type 1 + gather (non-uniform targets via bounding uniform grid)
@@ -80,52 +113,35 @@ namespace triqs::utility::nfft {
       gather_fk_arr.resize(nda::stdutil::make_std_array<long>(gather_niws));
 
       // Init FINUFFT type1 plan with the bounding grid
-      finufft_default_opts(&opts);
-      opts.nthreads         = 1;
-      detail::apply_tuned_finufft_opts(opts, Rank, tol);
-
       auto Ns               = std::vector(gather_niws.rbegin(), gather_niws.rend());
-      finufft_plan raw_plan = nullptr;
-      check_finufft(finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, &raw_plan, &opts));
-      plan.reset(raw_plan);
+      tol_                  = tol;
+      init_bucketed_plans(type1_plans_, tol, [&](finufft_opts &local_opts, finufft_plan *raw_plan) {
+        return finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, raw_plan, &local_opts);
+      });
     }
 
     /// Initialize for type 3 (non-uniform tau -> non-uniform Matsubara)
     void init_type3(std::vector<std::array<target_mf_t, Rank>> const &target_mf, int64_t n_targets, double tol) {
-      s_arr.resize(Rank, n_targets);
-      for (int r = 0; r < Rank; ++r)
-        for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf[d][r]));
-      finufft_default_opts(&opts);
-      opts.nthreads         = 1;
-      detail::apply_tuned_finufft_opts(opts, Rank, tol);
-
-      finufft_plan raw_plan = nullptr;
-      check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts));
-      plan.reset(raw_plan);
+      init_type3_targets(target_mf, n_targets);
+      tol_ = tol;
+      init_bucketed_plans(type3_plans_, tol, [&](finufft_opts &local_opts, finufft_plan *raw_plan) {
+        return finufft_makeplan(3, Rank, nullptr, 1, 1, tol, raw_plan, &local_opts);
+      });
     }
 
     /// Initialize both type1_gather and type3 paths (for 3-way automatic dispatch)
     void init_type1_gather_and_type3(std::vector<std::array<target_mf_t, Rank>> const &target_mf, int64_t n_targets, double tol) {
       init_type1_gather(target_mf, n_targets, tol);
 
-      // Set up type3 target frequencies
-      s_arr.resize(Rank, n_targets);
-      for (int r = 0; r < Rank; ++r)
-        for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf[d][r]));
-
-      // Create separate type3 plan
-      finufft_opts opts_t3{};
-      finufft_default_opts(&opts_t3);
-      opts_t3.nthreads      = 1;
-      detail::apply_tuned_finufft_opts(opts_t3, Rank, tol);
-
-      finufft_plan raw_plan = nullptr;
-      check_finufft(finufft_makeplan(3, Rank, nullptr, 1, 1, tol, &raw_plan, &opts_t3));
-      plan_t3.reset(raw_plan);
+      init_type3_targets(target_mf, n_targets);
+      init_bucketed_plans(type3_plans_, tol, [&](finufft_opts &local_opts, finufft_plan *raw_plan) {
+        return finufft_makeplan(3, Rank, nullptr, 1, 1, tol, raw_plan, &local_opts);
+      });
     }
 
     void execute_type1(shared_state_t<Rank> &state, nda::array_view<dcomplex, Rank> fiw_arr, nda::array<dcomplex, Rank> &fk_arr,
                        int common_factor) {
+      auto const &plan = select_type1_plan(state.buf_counter);
       set_pts(state, nullptr, plan);
       check_finufft(finufft_execute(plan.get(), state.fx_arr.data(), fk_arr.data()));
       for (auto idx_tpl : fiw_arr.indices()) {
@@ -136,6 +152,7 @@ namespace triqs::utility::nfft {
     }
 
     void execute_type1_gather(shared_state_t<Rank> &state, nda::array_view<dcomplex, 1> fiw_vec) {
+      auto const &plan = select_type1_plan(state.buf_counter);
       set_pts(state, nullptr, plan);
       check_finufft(finufft_execute(plan.get(), state.fx_arr.data(), gather_fk_arr.data()));
       // Gather selected modes with precomputed signs
@@ -145,30 +162,23 @@ namespace triqs::utility::nfft {
     }
 
     void execute_type3(shared_state_t<Rank> &state, nda::array_view<dcomplex, 1> fiw_vec) {
-      auto &p = plan_t3 ? plan_t3 : plan;
+      auto const &p = select_type3_plan(state.buf_counter);
       set_pts(state, &s_arr, p);
       check_finufft(finufft_execute(p.get(), state.fx_arr.data(), state.fk_vec.data()));
       fiw_vec += state.fk_vec;
     }
-
-    // Expose for calibration
-    void set_pts_type1(shared_state_t<Rank> &state) { set_pts(state, nullptr, plan); }
-    void set_pts_type3(shared_state_t<Rank> &state) { set_pts(state, &s_arr, plan_t3 ? plan_t3 : plan); }
-    finufft_plan get_plan() const { return plan.get(); }
-    finufft_plan get_plan_t3() const { return plan_t3 ? plan_t3.get() : plan.get(); }
     nda::array<dcomplex, Rank> &get_gather_fk_arr() { return gather_fk_arr; }
     std::array<int64_t, Rank> const &get_gather_niws() const { return gather_niws; }
 
     /// Release the type3 plan (after calibration picks type1_gather)
     void release_type3() {
-      plan_t3.reset();
+      type3_plans_.clear();
       s_arr = {};
     }
 
-    /// Release the type1_gather plan and data (after calibration picks type3).
-    /// Moves plan_t3 into plan so execute_type3 works with the primary plan.
+    /// Release the type1_gather plan/data once automatic dispatch decides to stay on type3.
     void release_type1_gather() {
-      if (plan_t3) plan = std::move(plan_t3);
+      if (!type3_plans_.empty()) type1_plans_ = std::move(type3_plans_);
       gather_indices.clear();
       gather_signs.clear();
       gather_fk_arr = {};
@@ -176,14 +186,50 @@ namespace triqs::utility::nfft {
     }
 
     private:
-    finufft_plan_ptr plan;
-    finufft_plan_ptr plan_t3; // separate type3 plan (when both paths coexist)
-    finufft_opts opts{};
+    std::vector<finufft_plan_ptr> type1_plans_;
+    std::vector<finufft_plan_ptr> type3_plans_; // separate type3 plans (when both paths coexist)
+    double tol_ = 1e-8;
     nda::array<double, 2> s_arr;              // type3 target frequencies
     std::array<int64_t, Rank> gather_niws{};  // type1_gather grid sizes
     std::vector<int64_t> gather_indices;      // type1_gather: flat index per target
     std::vector<int> gather_signs;            // type1_gather: sign factor per target
     nda::array<dcomplex, Rank> gather_fk_arr; // type1_gather: FINUFFT output buffer
+
+    void init_type3_targets(std::vector<std::array<target_mf_t, Rank>> const &target_mf, int64_t n_targets) {
+      s_arr.resize(Rank, n_targets);
+      for (int r = 0; r < Rank; ++r)
+        for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf[d][r]));
+    }
+
+    template <typename MakePlanFn> void init_bucketed_plans(std::vector<finufft_plan_ptr> &plans, double tol, MakePlanFn &&make_plan) {
+      plans.clear();
+      plans.reserve(detail::tuned_finufft_bucket_count<Rank>(tol));
+      for (int bucket = 0; bucket < detail::tuned_finufft_bucket_count<Rank>(tol); ++bucket) {
+        finufft_opts local_opts{};
+        finufft_default_opts(&local_opts);
+        local_opts.nthreads = 1;
+        detail::apply_tuned_finufft_opts<Rank>(local_opts, tol, bucket);
+        finufft_plan raw_plan = nullptr;
+        check_finufft(make_plan(local_opts, &raw_plan));
+        plans.emplace_back(raw_plan);
+      }
+    }
+
+    int select_bucket_index(int n_points, std::vector<finufft_plan_ptr> const &plans) const {
+      if (plans.size() <= 1) return 0;
+      return detail::tuned_finufft_bucket_index<Rank>(n_points, tol_);
+    }
+
+    finufft_plan_ptr const &select_plan(std::vector<finufft_plan_ptr> const &plans, int n_points) const {
+      return plans[select_bucket_index(n_points, plans)];
+    }
+
+    finufft_plan_ptr const &select_type1_plan(int n_points) const { return select_plan(type1_plans_, n_points); }
+
+    finufft_plan_ptr const &select_type3_plan(int n_points) const {
+      auto const &plans = type3_plans_.empty() ? type1_plans_ : type3_plans_;
+      return select_plan(plans, n_points);
+    }
 
     // FINUFFT expects coordinates in reverse rank order
     void set_pts(shared_state_t<Rank> &state, nda::array<double, 2> *tgt, finufft_plan_ptr const &p) {

@@ -93,7 +93,14 @@ namespace triqs::utility::nfft {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
-    int const n_lo = std::clamp(n_hi / 64, 1, 64);
+    // Rank-1 auto workloads frequently live in the n=8..128 regime, so calibrating only
+    // from n=64 upward can switch to the FINUFFT side too early around the crossover.
+    int const n_lo = [] {
+      if constexpr (Rank == 1)
+        return 16;
+      else
+        return 64;
+    }();
 
     fill_dummy_tau(state, n_hi);
     state_saver_t saver(state, n_hi);
@@ -122,9 +129,9 @@ namespace triqs::utility::nfft {
     auto measure_type3 = [&](int n) {
       saver.restore();
       state.buf_counter = n;
+      dummy_fiw         = 0;
       auto t0           = clock::now();
-      finufft_kernel.set_pts_type3(state);
-      check_finufft(finufft_execute(finufft_kernel.get_plan_t3(), state.fx_arr.data(), state.fk_vec.data()));
+      finufft_kernel.execute_type3(state, dummy_fiw);
       return std::chrono::duration<double>(clock::now() - t0).count();
     };
 
@@ -153,6 +160,7 @@ namespace triqs::utility::nfft {
     double finufft_hi = use_type3 ? t3_hi : tg_hi;
 
     int threshold = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
+    if constexpr (Rank == 1) threshold = std::max(threshold, 96);
 
     saver.cleanup();
     return {.threshold = threshold, .use_dt1 = use_dt1, .use_type3 = use_type3};
