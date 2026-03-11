@@ -137,5 +137,5 @@ template <int Rank> std::pair<std::vector<std::array<double, Rank>>, std::vector
 inline int64_t n_points_rank2(int64_t k) { return std::max<int64_t>(k * k / (n_orb * n_orb), 1); }
 
 // clang-format off
-#define K_ARGS ->Arg(8)->Arg(16)->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)
+#define K_ARGS ->Arg(8)->Arg(16)->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)->Unit(benchmark::kMicrosecond)
 // clang-format on
