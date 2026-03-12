@@ -101,8 +101,7 @@ TEST(CtInt, Plaquette) { // NOLINT
   ps.measure_chi2pp_tau   = true;
   ps.measure_chi2ph_tau   = true;
   ps.measure_chiAB_tau    = true;
-  ps.chi_A_vec            = {n("up", 0) + n("dn", 0)};
-  ps.chi_B_vec            = {n("up", 0) + n("dn", 0)};
+  ps.chi_ops              = {{n("up", 0) + n("dn", 0), n("up", 0) + n("dn", 0)}};
   ps.post_process         = false;
   ps.use_double_insertion = true;
 

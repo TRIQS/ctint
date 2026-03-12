@@ -60,8 +60,7 @@ S.solve(h_int=h_int,
         measure_chi2pp_tau = True,
         measure_chi2ph_tau = True,
         measure_chiAB_tau = True,
-        chi_A_vec = [n('single_block',0) - n('single_block', 1)],
-        chi_B_vec = [n('single_block',0) + n('single_block', 1)],
+        chi_ops = [(n('single_block',0) - n('single_block', 1), n('single_block',0) + n('single_block', 1))],
         post_process = True )
 
 # -------- Save in archive ---------

@@ -171,10 +171,8 @@ namespace triqs_ctint {
     bool measure_chi2ph_tau = false;
     /// Measure of chiAB by insertion
     bool measure_chiAB_tau = false;
-    /// The list of all operators A
-    std::vector<many_body_operator> chi_A_vec = {};
-    /// The list of all operators B
-    std::vector<many_body_operator> chi_B_vec = {};
+    /// List of operator pairs (A, B) for chiAB measurement
+    std::vector<std::pair<many_body_operator, many_body_operator>> chi_ops = {};
 
     /// Size of the Nfft buffer
     int nfft_buf_size = 100000;

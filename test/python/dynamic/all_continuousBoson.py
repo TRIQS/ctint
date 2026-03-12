@@ -77,8 +77,7 @@ S.solve(h_int=h_int,
         measure_chi2pp_tau = True,
         measure_chi2ph_tau = True,
         measure_chiAB_tau = True,
-        chi_A_vec = [n('up',0) + n('dn', 0)],
-        chi_B_vec = [n('up',0) + n('dn', 0)],
+        chi_ops = [(n('up',0) + n('dn', 0), n('up',0) + n('dn', 0))],
         post_process = True )
 
 # -------- Save in archive ---------

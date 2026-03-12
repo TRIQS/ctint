@@ -466,9 +466,7 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chiAB_tau             | bool                            | false                                   | Measure of chiAB by insertion                                                                                                         |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| chi_A_vec                     | std::vector<many_body_operator> | {}                                      | The list of all operators A                                                                                                           |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| chi_B_vec                     | std::vector<many_body_operator> | {}                                      | The list of all operators B                                                                                                           |
+| chi_ops                       | std::vector<std::pair<many_body_operator, many_body_operator>> | {}               | List of operator pairs (A, B) for chiAB measurement                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | nfft_buf_size                 | int                             | 100000                                  | Size of the Nfft buffer                                                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -592,9 +590,7 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_chiAB_tau             | bool                            | false                                   | Measure of chiAB by insertion                                                                                                         |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| chi_A_vec                     | std::vector<many_body_operator> | {}                                      | The list of all operators A                                                                                                           |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| chi_B_vec                     | std::vector<many_body_operator> | {}                                      | The list of all operators B                                                                                                           |
+| chi_ops                       | std::vector<std::pair<many_body_operator, many_body_operator>> | {}               | List of operator pairs (A, B) for chiAB measurement                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | nfft_buf_size                 | int                             | 100000                                  | Size of the Nfft buffer                                                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -833,15 +829,10 @@ c.add_member(c_name = "measure_chiAB_tau",
              initializer = """ false """,
              doc = r"""Measure of chiAB by insertion""")
 
-c.add_member(c_name = "chi_A_vec",
-             c_type = "std::vector<many_body_operator>",
+c.add_member(c_name = "chi_ops",
+             c_type = "std::vector<std::pair<many_body_operator, many_body_operator>>",
              initializer = """ {} """,
-             doc = r"""The list of all operators A""")
-
-c.add_member(c_name = "chi_B_vec",
-             c_type = "std::vector<many_body_operator>",
-             initializer = """ {} """,
-             doc = r"""The list of all operators B""")
+             doc = r"""List of operator pairs (A, B) for chiAB measurement""")
 
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",
@@ -1132,15 +1123,10 @@ c.add_member(c_name = "measure_chiAB_tau",
              initializer = """ false """,
              doc = r"""Measure of chiAB by insertion""")
 
-c.add_member(c_name = "chi_A_vec",
-             c_type = "std::vector<many_body_operator>",
+c.add_member(c_name = "chi_ops",
+             c_type = "std::vector<std::pair<many_body_operator, many_body_operator>>",
              initializer = """ {} """,
-             doc = r"""The list of all operators A""")
-
-c.add_member(c_name = "chi_B_vec",
-             c_type = "std::vector<many_body_operator>",
-             initializer = """ {} """,
-             doc = r"""The list of all operators B""")
+             doc = r"""List of operator pairs (A, B) for chiAB measurement""")
 
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",
