@@ -99,7 +99,7 @@ namespace triqs_ctint {
     std::optional<chi2_tau_t> chi2ph_tau;
 
     /// The correlation function $\chi_AB$ in imaginary times
-    std::optional<gf<mesh::dlr_imtime>> chiAB_tau;
+    std::optional<gf<mesh::dlr_imtime, tensor_valued<1>>> chiAB_tau;
 
     //============ Containers dependent on measured quantities
 
@@ -158,7 +158,7 @@ namespace triqs_ctint {
     std::optional<chi2_iw_t> chi2ph_iw;
 
     /// The correlation function $\chi_AB$ in imaginary frequencies
-    std::optional<gf<mesh::dlr_imfreq>> chiAB_iw;
+    std::optional<gf<mesh::dlr_imfreq, tensor_valued<1>>> chiAB_iw;
 
     /// The equal time correlator $\chi_3$ in the particle-particle channel in Matsubara frequencies
     std::optional<chi3_iw_t> chi3pp_iw;

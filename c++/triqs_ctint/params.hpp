@@ -170,10 +170,8 @@ namespace triqs_ctint {
     bool measure_chi2ph_tau = false;
     /// Measure \f$ \chi_{AB}(\tau) \f$ by insertion?
     bool measure_chiAB_tau = false;
-    /// List of all operators \f$ A \f$.
-    std::vector<many_body_operator> chi_A_vec = {};
-    /// List of all operators \f$ B \f$.
-    std::vector<many_body_operator> chi_B_vec = {};
+    /// List of operator pairs \f$ (A, B) \f$ for the \f$ \chi_{AB} \f$ measurement.
+    std::vector<std::pair<many_body_operator, many_body_operator>> chi_ops = {};
 
     /// Size of the NFFT buffer.
     int nfft_buf_size = 100000;

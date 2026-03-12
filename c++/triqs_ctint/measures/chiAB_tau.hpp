@@ -31,12 +31,11 @@ namespace triqs_ctint::measures {
     qmc_config_t &qmc_config;
 
     // Container for the accumulation
-    gf_view<mesh::dlr_imtime> chiAB_tau_;
+    gf_view<mesh::dlr_imtime, tensor_valued<1>> chiAB_tau_;
 
-    // The bosonic operator vectors
+    // The parsed operator pairs
     using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
-    std::vector<std::vector<op_term_t>> A_vec;
-    std::vector<std::vector<op_term_t>> B_vec;
+    std::vector<std::pair<std::vector<op_term_t>, std::vector<op_term_t>>> op_pairs;
 
     // The average sign
     mc_weight_t Z = 0.0;
