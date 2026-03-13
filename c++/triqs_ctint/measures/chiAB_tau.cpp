@@ -27,6 +27,8 @@ namespace triqs_ctint::measures {
     // Accumulate sign
     Z += sign;
 
+    long K = tau_mesh.size();
+
     for (auto [i, pair] : enumerate(op_pairs)) {
       auto &[A, B] = pair;
       for (auto &[coef_B, bl_pair_B, idx_pair_B] : B) {
@@ -52,29 +54,44 @@ namespace triqs_ctint::measures {
           auto &det_1 = qmc_config.dets[bl_cdag_A];
           auto &det_2 = is_AABB ? qmc_config.dets[bl_cdag_B] : qmc_config.dets[bl_c_A];
 
+          // Build vectors of operator arguments for all tau points (batch insertion)
+          std::vector<c_t> c_A_vec(K), c_B_vec(K);
+          std::vector<cdag_t> cdag_A_vec(K), cdag_B_vec(K);
+
+          long k = 0;
           for (auto tau : tau_mesh) {
             auto tau_point  = make_tau_t(double(tau));
             auto taup_point = tau_point;
-
-            // Time-Ordering
             tau_point.n += 3;  // tau -> tau^{+++}
             taup_point.n += 2; // taup -> tau^{++}
 
-            cdag_A.tau = tau_point;
-            c_A.tau    = taup_point;
-
-            // TODO Extend for measurement of pairing response functions
-            if (is_AAAA)
-              chiAB_tau_[tau](i) += coef_A * coef_B * sign * det_1.try_insert2(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
-            else if (is_AABB)
-              chiAB_tau_[tau](i) += coef_A * coef_B * sign * det_1.try_insert(0, 0, c_A, cdag_A) * det_2.try_insert(0, 0, c_B, cdag_B);
-            else if (is_ABAB) // In this case we have to swap c_A and c_B, which leads to a minus sign
-              chiAB_tau_[tau](i) -= coef_A * coef_B * sign * det_1.try_insert(0, 0, c_B, cdag_A) * det_2.try_insert(0, 0, c_A, cdag_B);
-            // Note: All other block combinations vanish
-
-            det_1.reject_last_try();
-            det_2.reject_last_try();
+            c_A_vec[k]    = c_A;
+            c_A_vec[k].tau = taup_point;
+            cdag_A_vec[k] = cdag_A;
+            cdag_A_vec[k].tau = tau_point;
+            c_B_vec[k]    = c_B;
+            cdag_B_vec[k] = cdag_B;
+            ++k;
           }
+
+          // TODO Extend for measurement of pairing response functions
+          if (is_AAAA) {
+            auto ratios = det_1.insert2_ratios(0, 1, 0, 1, c_A_vec, c_B_vec, cdag_A_vec, cdag_B_vec);
+            k = 0;
+            for (auto tau : tau_mesh) { chiAB_tau_[tau](i) += coef_A * coef_B * sign * ratios(k++); }
+          } else if (is_AABB) {
+            auto ratios_1 = det_1.insert_ratios(0, 0, c_A_vec, cdag_A_vec);
+            auto ratios_2 = det_2.insert_ratios(0, 0, c_B_vec, cdag_B_vec);
+            k = 0;
+            for (auto tau : tau_mesh) { chiAB_tau_[tau](i) += coef_A * coef_B * sign * ratios_1(k) * ratios_2(k); ++k; }
+          } else if (is_ABAB) {
+            // Swap c_A and c_B which leads to a minus sign
+            auto ratios_1 = det_1.insert_ratios(0, 0, c_B_vec, cdag_A_vec);
+            auto ratios_2 = det_2.insert_ratios(0, 0, c_A_vec, cdag_B_vec);
+            k = 0;
+            for (auto tau : tau_mesh) { chiAB_tau_[tau](i) -= coef_A * coef_B * sign * ratios_1(k) * ratios_2(k); ++k; }
+          }
+          // Note: All other block combinations vanish
         }
       }
     }
