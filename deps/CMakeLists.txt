@@ -64,7 +64,6 @@ if(PythonSupport)
     GIT_REPO https://github.com/TRIQS/hartree_fock
     VERSION 3.3
     GIT_TAG unstable
-    EXCLUDE_FROM_ALL
   )
 endif()
 
