@@ -32,12 +32,12 @@ namespace triqs_ctint::measures {
       auto &dens_mat = density_matrix_[bl];
       int bl_size    = dens_mat.shape()[0];
 
-      // Build c and cdag vectors for all orbital indices
-      std::vector<c_t> cs(bl_size);
-      std::vector<cdag_t> cdags(bl_size);
+      // Build c and cdag arrays for all orbital indices
+      nda::array<c_t, 1> cs(bl_size);
+      nda::array<cdag_t, 1> cdags(bl_size);
       for (int a = 0; a < bl_size; ++a) {
-        cs[a]    = c_t{tau_t::get_zero(), a};
-        cdags[a] = cdag_t{tau_t::get_zero_plus(), a};
+        cs(a)    = c_t{tau_t::get_zero(), a};
+        cdags(a) = cdag_t{tau_t::get_zero_plus(), a};
       }
 
       // Single batched call: insert_ratios_matrix returns ratios(b,a) for (c_b, cdag_a)
