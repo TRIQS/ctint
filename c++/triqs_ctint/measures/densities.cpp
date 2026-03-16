@@ -31,12 +31,12 @@ namespace triqs_ctint::measures {
       auto &dens = densities_[bl];
       int bl_size = dens.shape()[0];
 
-      // Build paired c / cdag vectors for diagonal entries
-      std::vector<c_t> cs(bl_size);
-      std::vector<cdag_t> cdags(bl_size);
+      // Build paired c / cdag arrays for diagonal entries
+      nda::array<c_t, 1> cs(bl_size);
+      nda::array<cdag_t, 1> cdags(bl_size);
       for (int a = 0; a < bl_size; ++a) {
-        cs[a]    = c_t{tau_t::get_zero(), a};
-        cdags[a] = cdag_t{tau_t::get_zero_plus(), a};
+        cs(a)    = c_t{tau_t::get_zero(), a};
+        cdags(a) = cdag_t{tau_t::get_zero_plus(), a};
       }
 
       // Single batched call: insert_ratios returns ratios for paired (cs[a], cdags[a])
