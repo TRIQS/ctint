@@ -81,7 +81,7 @@ TEST(CtInt, Plaquette) { // NOLINT
   ps.n_warmup_cycles      = 100;
   ps.random_seed          = 34788;
   ps.measure_histogram    = true;
-  ps.measure_density      = true;
+  ps.measure_densities    = true;
   ps.measure_M_tau        = true;
   ps.measure_M_iw         = true;
   ps.measure_M4_iw        = true;
@@ -110,7 +110,7 @@ TEST(CtInt, Plaquette) { // NOLINT
   // -------- Save in archive ---------
   auto archive = h5::file("plaquette.out.h5", 'w');
   h5_write(archive, "histogram", S.histogram);
-  h5_write(archive, "density", S.density);
+  h5_write(archive, "density_matrix", S.density_matrix);
   h5_write(archive, "M_tau", S.M_tau);
   h5_write(archive, "M_iw", S.M_iw_nfft);
   h5_write(archive, "M4_iw", S.M4_iw);

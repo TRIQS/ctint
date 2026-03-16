@@ -62,7 +62,7 @@ S.solve(h_int=h_int,
         n_warmup_cycles = 100,
         random_seed = 34788,
         measure_histogram = True,
-        measure_density = True,
+        measure_densities = True,
         measure_M_tau = True,
         measure_M_iw = True,
         measure_M4_iw = True,
@@ -91,7 +91,7 @@ S.solve(h_int=h_int,
 # -------- Save in archive ---------
 with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["histogram"] = S.histogram
-    arch["density"] = S.density
+    arch["density_matrix"] = S.density_matrix
     arch["M_tau"] = S.M_tau
     arch["M_iw"] = S.M_iw_nfft
     arch["M4_iw"] = S.M4_iw

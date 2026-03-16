@@ -92,6 +92,12 @@ namespace triqs_ctint {
   /// A view to a block_matrix_t
   using block_matrix_v_t = std::vector<matrix_view<g_tau_scalar_t>>;
 
+  /// The type of a block_vector (e.g. diagonal densities)
+  using block_vector_t = std::vector<nda::array<g_tau_scalar_t, 1>>;
+
+  /// A view to a block_vector_t
+  using block_vector_v_t = std::vector<nda::array_view<g_tau_scalar_t, 1>>;
+
   /// Container type of $\chi_2$ in DLR Matsubara frequencies
   using chi2_iw_t = block2_gf<mesh::dlr_imfreq, tensor_valued<4>>;
 

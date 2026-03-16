@@ -118,6 +118,11 @@ namespace triqs_ctint {
     mc.clear_measures();
     container_set::operator=(container_set{});
 
+    // Auto-enable density_matrix measurement when any M3 measurement is active (needed for chi3 post-processing)
+    if (params.measure_M3pp_iw || params.measure_M3ph_iw || params.measure_M3pp_iw_full || params.measure_M3ph_iw_full
+        || params.measure_M3pp_tau || params.measure_M3ph_tau || params.measure_M3xph_tau)
+      params.measure_density_matrix = true;
+
     // Register all measurements
     if (params.measure_average_sign)
       mc.add_measure(measures::average_sign{params, qmc_config, &result_set()}, "sign measure", /* enable_timer */ true, /* report */ true);
@@ -129,7 +134,8 @@ namespace triqs_ctint {
       report(3) << "You selected Sign only mode" << std::endl;
     } else {
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
-      if (params.measure_density) mc.add_measure(measures::density{params, qmc_config, &result_set()}, "density matrix measure");
+      if (params.measure_densities) mc.add_measure(measures::densities{params, qmc_config, &result_set()}, "densities measure");
+      if (params.measure_density_matrix) mc.add_measure(measures::density_matrix{params, qmc_config, &result_set()}, "density matrix measure");
       if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
       if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
       if (params.measure_M4_iw) mc.add_measure(measures::M4_iw{params, qmc_config, &result_set()}, "M4_iw measure");
@@ -380,17 +386,17 @@ namespace triqs_ctint {
     if (G2ph_conn_iw and M_iw_reg) G2ph_iw = G2ph_from_G2ph_conn(G2ph_conn_iw.value(), G_iw_reg);
 
     // Calculate chi3_iw from M3_iw and M_iw (using regular imfreq quantities)
-    if (M3pp_iw and M_iw_reg and density) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3ph_iw and M_iw_reg and density) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3xph_iw and M_iw_reg and density) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3pp_iw_nfft and M_iw_reg and density)
-      chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3ph_iw_nfft and M_iw_reg and density)
-      chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3pp_iw_nfft_full and M_iw_reg and density)
-      chi3pp_iw_nfft_full = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
-    if (M3ph_iw_nfft_full and M_iw_reg and density)
-      chi3ph_iw_nfft_full = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density.value(), M_hartree.value());
+    if (M3pp_iw and M_iw_reg and density_matrix) chi3pp_iw = chi3_from_M3<Chan_t::PP>(M3pp_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3ph_iw and M_iw_reg and density_matrix) chi3ph_iw = chi3_from_M3<Chan_t::PH>(M3ph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3xph_iw and M_iw_reg and density_matrix) chi3xph_iw = chi3_from_M3<Chan_t::XPH>(M3xph_iw.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3pp_iw_nfft and M_iw_reg and density_matrix)
+      chi3pp_iw_nfft = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3ph_iw_nfft and M_iw_reg and density_matrix)
+      chi3ph_iw_nfft = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3pp_iw_nfft_full and M_iw_reg and density_matrix)
+      chi3pp_iw_nfft_full = chi3_from_M3<Chan_t::PP>(M3pp_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
+    if (M3ph_iw_nfft_full and M_iw_reg and density_matrix)
+      chi3ph_iw_nfft_full = chi3_from_M3<Chan_t::PH>(M3ph_iw_nfft_full.value(), M_iw_reg.value(), G0_shift_iw_reg, density_matrix.value(), M_hartree.value());
 
     // Calculate chi2_iw from chi2_tau via DLR
     if (chi2pp_tau) chi2pp_iw = make_gf_dlr_imfreq(chi2pp_tau.value());

@@ -81,10 +81,15 @@ c.add_member(c_name = "histogram",
              read_only= True,
              doc = r"""Average perturbation order distribution""")
 
-c.add_member(c_name = "density",
+c.add_member(c_name = "densities",
+             c_type = "std::optional<block_vector_t>",
+             read_only= True,
+             doc = r"""The diagonal densities (measured by operator insertion)""")
+
+c.add_member(c_name = "density_matrix",
              c_type = "std::optional<block_matrix_t>",
              read_only= True,
-             doc = r"""The density matrix (measured by operator insertion)""")
+             doc = r"""The full density matrix (measured by operator insertion, needed for chi3)""")
 
 c.add_member(c_name = "M_tau",
              c_type = "std::optional<g_tau_t>",
@@ -424,7 +429,8 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_histogram             | bool                            | false                                   | Measure the average perturbation order distribution                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| measure_density               | bool                            | true                                    | Measure the density matrix by operator insertion                                                                                      |
+| measure_densities             | bool                            | true                                    | Measure the diagonal densities by operator insertion                                                                                  |
+| measure_density_matrix        | bool                            | false                                   | Measure the full density matrix by operator insertion (needed for chi3)                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M_tau                 | bool                            | true                                    | Measure M(tau)                                                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -548,7 +554,8 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_histogram             | bool                            | false                                   | Measure the average perturbation order distribution                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| measure_density               | bool                            | true                                    | Measure the density matrix by operator insertion                                                                                      |
+| measure_densities             | bool                            | true                                    | Measure the diagonal densities by operator insertion                                                                                  |
+| measure_density_matrix        | bool                            | false                                   | Measure the full density matrix by operator insertion (needed for chi3)                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_M_tau                 | bool                            | true                                    | Measure M(tau)                                                                                                                        |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -724,10 +731,15 @@ c.add_member(c_name = "measure_histogram",
              initializer = """ false """,
              doc = r"""Measure the average perturbation order distribution""")
 
-c.add_member(c_name = "measure_density",
+c.add_member(c_name = "measure_densities",
              c_type = "bool",
              initializer = """ true """,
-             doc = r"""Measure the density matrix by operator insertion""")
+             doc = r"""Measure the diagonal densities by operator insertion""")
+
+c.add_member(c_name = "measure_density_matrix",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure the full density matrix by operator insertion (needed for chi3)""")
 
 c.add_member(c_name = "measure_M_tau",
              c_type = "bool",
@@ -1018,10 +1030,15 @@ c.add_member(c_name = "measure_histogram",
              initializer = """ false """,
              doc = r"""Measure the average perturbation order distribution""")
 
-c.add_member(c_name = "measure_density",
+c.add_member(c_name = "measure_densities",
              c_type = "bool",
              initializer = """ true """,
-             doc = r"""Measure the density matrix by operator insertion""")
+             doc = r"""Measure the diagonal densities by operator insertion""")
+
+c.add_member(c_name = "measure_density_matrix",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure the full density matrix by operator insertion (needed for chi3)""")
 
 c.add_member(c_name = "measure_M_tau",
              c_type = "bool",

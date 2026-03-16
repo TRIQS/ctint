@@ -10,27 +10,27 @@
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of the density matrix by operator insertion
+  * Measure of the full density matrix by operator insertion using insert_ratios_matrix
   */
-  struct density {
+  struct density_matrix {
 
-    density(params_t const &params_, qmc_config_t &qmc_config_, container_set *results);
+    density_matrix(params_t const &params_, qmc_config_t &qmc_config_, container_set *results);
 
-    /// Accumulate M_tau using binning
+    /// Accumulate density matrix using batched insert_ratios_matrix
     void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
     void collect_results(mpi::communicator const &comm);
 
     private:
-    // Capture the parameters FIXME We cannot choose const, as we call try_insert
+    // Capture the parameters
     params_t const &params;
 
     // The Monte-Carlo configuration
     qmc_config_t &qmc_config;
 
-    // Container for the accumulation
-    block_matrix_v_t density_;
+    // Container for the accumulation (views into results->density_matrix)
+    block_matrix_v_t density_matrix_;
 
     // The average sign
     mc_weight_t Z = 0.0;

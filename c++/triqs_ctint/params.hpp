@@ -123,8 +123,11 @@ namespace triqs_ctint {
     /// Measure the average perturbation order distribution
     bool measure_histogram = false;
 
-    /// Measure the density matrix by operator insertion
-    bool measure_density = true;
+    /// Measure the diagonal densities by operator insertion
+    bool measure_densities = true;
+
+    /// Measure the full density matrix by operator insertion (needed for chi3)
+    bool measure_density_matrix = false;
 
     /// Measure M(tau)
     bool measure_M_tau = true;

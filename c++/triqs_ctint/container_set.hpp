@@ -41,8 +41,11 @@ namespace triqs_ctint {
     /// Average perturbation order distribution
     std::optional<std::vector<double>> histogram;
 
-    /// The density matrix (measured by operator insertion)
-    std::optional<block_matrix_t> density;
+    /// The diagonal densities (measured by operator insertion)
+    std::optional<block_vector_t> densities;
+
+    /// The full density matrix (measured by operator insertion, needed for chi3)
+    std::optional<block_matrix_t> density_matrix;
 
     /// Building block for the Green function in imaginary time (Eq. (23) in Notes)
     std::optional<g_tau_t> M_tau;
@@ -193,7 +196,8 @@ namespace triqs_ctint {
       h5_write(grp, "warmup_time", c.warmup_time);
       h5_write(grp, "accumulation_time", c.accumulation_time);
       h5_write(grp, "histogram", c.histogram);
-      h5_write(grp, "density", c.density);
+      h5_write(grp, "densities", c.densities);
+      h5_write(grp, "density_matrix", c.density_matrix);
       h5_write(grp, "M_tau", c.M_tau);
       h5_write(grp, "M_hartree", c.M_hartree);
       h5_write(grp, "M_iw_nfft", c.M_iw_nfft);
@@ -253,7 +257,9 @@ namespace triqs_ctint {
       h5::try_read(grp, "warmup_time", c.warmup_time);
       h5::try_read(grp, "accumulation_time", c.accumulation_time);
       h5_read(grp, "histogram", c.histogram);
-      h5::try_read(grp, "density", c.density);
+      h5::try_read(grp, "densities", c.densities);
+      h5::try_read(grp, "density_matrix", c.density_matrix);
+      if (!c.density_matrix) h5::try_read(grp, "density", c.density_matrix); // backward compat
       h5_read(grp, "M_tau", c.M_tau);
       h5_read(grp, "M_hartree", c.M_hartree);
       h5_read(grp, "M_iw_nfft", c.M_iw_nfft);
