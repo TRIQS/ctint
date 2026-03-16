@@ -43,7 +43,7 @@ TEST(CtInt, Anderson) { // NOLINT
   ps.n_warmup_cycles    = 100;
   ps.random_seed        = 34788;
   ps.measure_histogram  = true;
-  ps.measure_density    = true;
+  ps.measure_densities  = true;
   ps.measure_M4_iw      = true;
   ps.n_iw_M4            = 5;
   ps.nfft_buf_size      = 50;

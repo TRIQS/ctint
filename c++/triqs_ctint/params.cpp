@@ -51,7 +51,8 @@ namespace triqs_ctint {
     h5_write(grp, "measure_average_k", sp.measure_average_k);
     h5_write(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
     h5_write(grp, "measure_histogram", sp.measure_histogram);
-    h5_write(grp, "measure_density", sp.measure_density);
+    h5_write(grp, "measure_densities", sp.measure_densities);
+    h5_write(grp, "measure_density_matrix", sp.measure_density_matrix);
     h5_write(grp, "measure_M_tau", sp.measure_M_tau);
     h5_write(grp, "measure_M_iw", sp.measure_M_iw);
     h5_write(grp, "measure_M4_iw", sp.measure_M4_iw);
@@ -95,7 +96,9 @@ namespace triqs_ctint {
     h5_read(grp, "measure_average_k", sp.measure_average_k);
     h5_read(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
     h5_read(grp, "measure_histogram", sp.measure_histogram);
-    h5::try_read(grp, "measure_density", sp.measure_density);
+    h5::try_read(grp, "measure_densities", sp.measure_densities);
+    if (!grp.has_key("measure_densities")) h5::try_read(grp, "measure_density", sp.measure_densities); // backward compat
+    h5::try_read(grp, "measure_density_matrix", sp.measure_density_matrix);
     h5_read(grp, "measure_M_tau", sp.measure_M_tau);
     h5_read(grp, "measure_M_iw", sp.measure_M_iw);
     h5_read(grp, "measure_M4_iw", sp.measure_M4_iw);
