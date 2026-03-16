@@ -24,7 +24,7 @@ namespace triqs_ctint::measures {
     void collect_results(mpi::communicator const &comm);
 
     private:
-    // Capture the parameters FIXME We cannot choose const, as we call try_insert
+    // Capture the parameters
     params_t const &params;
 
     // The Monte-Carlo configuration
@@ -33,9 +33,26 @@ namespace triqs_ctint::measures {
     // Container for the accumulation
     gf_view<mesh::dlr_imtime, tensor_valued<1>> chiAB_tau_;
 
-    // The parsed operator pairs
-    using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
-    std::vector<std::pair<std::vector<op_term_t>, std::vector<op_term_t>>> op_pairs;
+    // Case types for operator block structure
+    enum class chi_case_t { AAAA, AABB, ABAB };
+
+    // A single entry in a chi group
+    struct chi_entry_t {
+      long pair_idx;           // target index in chiAB_tau_
+      dcomplex coef;           // coef_A * coef_B (ABAB minus sign absorbed)
+      int idx_cdag_A, idx_c_A; // A-side orbital indices
+      int idx_cdag_B, idx_c_B; // B-side orbital indices
+    };
+
+    // A group of entries sharing the same case type and block indices
+    struct chi_group_t {
+      chi_case_t case_type;
+      int bl_det1, bl_det2;              // block indices for determinant(s)
+      std::vector<chi_entry_t> entries;
+    };
+
+    // Grouped operator pairs (replaces op_pairs)
+    std::vector<chi_group_t> groups_;
 
     // The average sign
     mc_weight_t Z = 0.0;
