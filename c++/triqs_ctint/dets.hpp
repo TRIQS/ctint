@@ -64,17 +64,38 @@ namespace triqs_ctint {
     /// The alpha function
     array_const_view<g_tau_scalar_t, 4> alpha;
 
+    // Precomputed constants for fast mesh index computation
+    double delta_inv_ = 0;
+    long n_tau_       = 0;
+    long n_orb_       = 0;
+
+    G0hat_t(gf_const_view<imtime, g_tau_t::target_t> g0, array_const_view<g_tau_scalar_t, 4> a)
+       : G0_shift_tau(std::move(g0)), alpha(std::move(a)) {
+      auto const &mesh = G0_shift_tau.mesh();
+      delta_inv_       = mesh.delta_inv();
+      n_tau_           = mesh.size();
+      n_orb_           = G0_shift_tau.data().shape()[1];
+    }
+
+    G0hat_t()                            = default;
+    G0hat_t(G0hat_t const &)             = default;
+    G0hat_t(G0hat_t &&)                  = default;
+    G0hat_t &operator=(G0hat_t const &)  = default;
+    G0hat_t &operator=(G0hat_t &&)       = default;
+
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
       // Contractions between operators of the same vertex get an alpha shift
       // Use tau-equality to check if cdag and c are from the same vertex
       if (c.tau == cdag.tau) {
-        auto res = G0_shift_tau[0](c.u, cdag.u) + (c.u == cdag.u ? 1 : 0) - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
+        auto res = G0_shift_tau.data()(0, c.u, cdag.u) + (c.u == cdag.u ? 1 : 0) - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
         return res;
       }
-      auto [s, dtau] = cyclic_difference(c.tau, cdag.tau);
-      auto res       = G0_shift_tau[closest_mesh_pt(dtau)](c.u, cdag.u);
-      // For the equal-time case, consider the order <c cdag>
-      return s * res;
+      // Compute sign and dtau via cyclic_difference
+      double sign  = cdag.tau > c.tau ? -1.0 : 1.0;
+      double dtau  = double(tau_t{c.tau.n - cdag.tau.n});
+      // Compute mesh data index directly: idx = clamp(round(dtau * delta_inv), 0, n_tau-1)
+      long idx     = std::clamp(static_cast<long>(dtau * delta_inv_ + 0.5), 0L, n_tau_ - 1);
+      return sign * G0_shift_tau.data()(idx, c.u, cdag.u);
     }
   };
 
