@@ -66,8 +66,8 @@ set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Architecture flags for finufft (empty = 
 set(FINUFFT_USE_DUCC0 ON)
 set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
 external_dependency(finufft
-  GIT_REPO https://github.com/flatironinstitute/finufft
-  GIT_TAG v2.5.1
+  GIT_REPO https://github.com/diamondinoia/finufft
+  GIT_TAG experimental
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )
