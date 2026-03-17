@@ -186,6 +186,11 @@ c.add_member(c_name = "chiAB_tau",
              read_only= True,
              doc = r"""The correlation function $\chi_AB$ in imaginary times""")
 
+c.add_member(c_name = "static_obs",
+             c_type = "std::optional<nda::array<dcomplex, 1>>",
+             read_only= True,
+             doc = r"""Static expectation values $\langle C_i \rangle$ measured by operator insertion with tau-averaging""")
+
 c.add_member(c_name = "M_iw",
              c_type = "std::optional<g_iw_t>",
              read_only= True,
@@ -846,6 +851,21 @@ c.add_member(c_name = "chi_ops",
              initializer = """ {} """,
              doc = r"""List of operator pairs (A, B) for chiAB measurement""")
 
+c.add_member(c_name = "measure_static_obs",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure static expectation values of arbitrary operators by insertion with tau-averaging""")
+
+c.add_member(c_name = "static_obs",
+             c_type = "std::vector<many_body_operator>",
+             initializer = """ {} """,
+             doc = r"""List of operators C_i for static observable measurement: measures <C_i>""")
+
+c.add_member(c_name = "n_tau_static_obs",
+             c_type = "int",
+             initializer = """ 10 """,
+             doc = r"""Number of tau points for tau-averaging in static_obs measurement""")
+
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",
              initializer = """ 100000 """,
@@ -1144,6 +1164,21 @@ c.add_member(c_name = "chi_ops",
              c_type = "std::vector<std::pair<many_body_operator, many_body_operator>>",
              initializer = """ {} """,
              doc = r"""List of operator pairs (A, B) for chiAB measurement""")
+
+c.add_member(c_name = "measure_static_obs",
+             c_type = "bool",
+             initializer = """ false """,
+             doc = r"""Measure static expectation values of arbitrary operators by insertion with tau-averaging""")
+
+c.add_member(c_name = "static_obs",
+             c_type = "std::vector<many_body_operator>",
+             initializer = """ {} """,
+             doc = r"""List of operators C_i for static observable measurement: measures <C_i>""")
+
+c.add_member(c_name = "n_tau_static_obs",
+             c_type = "int",
+             initializer = """ 10 """,
+             doc = r"""Number of tau points for tau-averaging in static_obs measurement""")
 
 c.add_member(c_name = "nfft_buf_size",
              c_type = "int",
