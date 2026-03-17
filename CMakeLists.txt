@@ -104,6 +104,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Provide additional debugging information for Debug builds
 add_compile_options($<$<CONFIG:Debug>:-ggdb3>)
 
+# Increase constexpr evaluation depth for DP table computation in nfft/common.hpp
+add_compile_options(-fconstexpr-steps=10000000)
+
 # Create an Interface target for compiler warnings
 add_library(${PROJECT_NAME}_warnings INTERFACE)
 target_compile_options(${PROJECT_NAME}_warnings

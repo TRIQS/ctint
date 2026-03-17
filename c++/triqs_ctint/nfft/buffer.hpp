@@ -106,10 +106,9 @@ namespace triqs::utility::nfft {
           use_prime_direct_ = (total_prime_digits < total_naf_digits);
         }
 
-        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_,
-                                                                           (Rank >= 2 && use_prime_direct_) ? *prime_kernel_ : *naf_kernel_,
-                                                                           *finufft_kernel_);
-        dispatch_buf_threshold = threshold;
+        // Calibrate using NAF kernel (performance similar to prime kernel)
+        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
+        dispatch_buf_threshold            = threshold;
         use_type3_                        = use_t3;
 
         // Release the losing direct kernels

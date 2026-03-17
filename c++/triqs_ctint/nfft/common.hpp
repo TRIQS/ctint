@@ -86,6 +86,7 @@ namespace triqs::utility::nfft {
 
   // Constexpr DP table for optimal (minimum-term) prime-sum decompositions.
   // best_summand[n] is the first summand to subtract; chase the chain to reconstruct.
+  // Requires -fconstexpr-steps=10000000 compiler flag (set in CMakeLists.txt)
   static constexpr int max_precomputed_exp = 2048;
   static constexpr auto prime_dp_table     = [] {
     std::array<uint16_t, max_precomputed_exp + 1> best{};
