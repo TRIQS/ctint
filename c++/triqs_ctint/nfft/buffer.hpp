@@ -90,14 +90,41 @@ namespace triqs::utility::nfft {
         state_.init_direct_common(target_mf_);
         naf_kernel_.emplace(state_, buf_size_);
         direct_type1_kernel_.emplace(state_, target_mf_);
-        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
+
+        // For Rank >= 2: also initialize prime kernel and pick the one with fewer total digits
+        if constexpr (Rank >= 2) {
+          prime_kernel_.emplace(state_);
+
+          // Count total digits for NAF vs prime decomposition
+          int64_t total_naf_digits = 0, total_prime_digits = 0;
+          for (int r = 0; r < Rank; ++r) {
+            for (int64_t d = 0; d < state_.n_targets; ++d) {
+              total_naf_digits += static_cast<int64_t>(compute_naf(odd_exponent_abs(state_.target_n(r, d))).size());
+              total_prime_digits += static_cast<int64_t>(express_as_prime_sum(static_cast<long>(odd_exponent_abs(state_.target_n(r, d)))).size());
+            }
+          }
+          use_prime_direct_ = (total_prime_digits < total_naf_digits);
+        }
+
+        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_,
+                                                                           (Rank >= 2 && use_prime_direct_) ? *prime_kernel_ : *naf_kernel_,
+                                                                           *finufft_kernel_);
         dispatch_buf_threshold = threshold;
         use_type3_                        = use_t3;
-        // Release the losing direct kernel
-        if (use_dt1)
+
+        // Release the losing direct kernels
+        if (use_dt1) {
           naf_kernel_.reset();
-        else
+          if constexpr (Rank >= 2) prime_kernel_.reset();
+        } else {
           direct_type1_kernel_.reset();
+          if constexpr (Rank >= 2) {
+            if (use_prime_direct_)
+              naf_kernel_.reset();
+            else
+              prime_kernel_.reset();
+          }
+        }
         // Release the losing FINUFFT path
         if (use_t3)
           finufft_kernel_->release_type1_gather();
@@ -177,8 +204,9 @@ namespace triqs::utility::nfft {
     private:
     static constexpr int64_t max_type1_dispatch_targets = 100'000;
 
-    type_t type_ = type_t::type1;
-    bool use_type3_ = false;
+    type_t type_            = type_t::type1;
+    bool use_type3_         = false;
+    bool use_prime_direct_  = false; // For Rank>=2: use prime instead of NAF
     shared_state_t<Rank> state_;
 
     // Type1-specific
@@ -212,6 +240,8 @@ namespace triqs::utility::nfft {
         if (state_.buf_counter < dispatch_buf_threshold) {
           if (direct_type1_kernel_)
             run_direct(*direct_type1_kernel_);
+          else if (use_prime_direct_ && prime_kernel_)
+            run_direct(*prime_kernel_);
           else
             run_direct(*naf_kernel_);
         } else if (use_type3_) {
