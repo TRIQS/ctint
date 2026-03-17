@@ -176,6 +176,13 @@ namespace triqs_ctint {
     /// List of operator pairs \f$ (A, B) \f$ for the \f$ \chi_{AB} \f$ measurement.
     std::vector<std::pair<many_body_operator, many_body_operator>> chi_ops = {};
 
+    /// Measure static expectation values of arbitrary operators by insertion with tau-averaging?
+    bool measure_static_obs = false;
+    /// List of operators \f$ C_i \f$ for the static-observable measurement (measures \f$ \langle C_i \rangle \f$).
+    std::vector<many_body_operator> static_obs = {};
+    /// Number of tau points for tau-averaging in the static_obs measurement.
+    int n_tau_static_obs = 10;
+
     /// Size of the NFFT buffer.
     int nfft_buf_size = 100000;
 

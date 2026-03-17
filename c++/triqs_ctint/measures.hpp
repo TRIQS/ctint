@@ -23,3 +23,4 @@
 #include "./measures/M3xph_tau.hpp"
 #include "./measures/chi2_tau.hpp"
 #include "./measures/chiAB_tau.hpp"
+#include "./measures/static_obs.hpp"

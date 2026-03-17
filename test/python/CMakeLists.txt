@@ -11,6 +11,8 @@ set(all_tests
   static/supercond
   static/two_site
   static/plaquette
+  static/hubbard_atom_nfft
+  static/static_obs
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens
