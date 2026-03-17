@@ -37,7 +37,7 @@ namespace triqs::utility::nfft {
                              if (p) finufft_destroy(p);
                            })>;
 
-  enum class type_t { automatic, type1, type1_gather, type3, direct_type1, direct_type3, direct_prime };
+  enum class type_t { automatic, type1, type1_gather, type3, direct_type1, direct_type3, direct_chain };
 
   using target_mf_t = mesh::matsubara_freq;
 
@@ -73,86 +73,6 @@ namespace triqs::utility::nfft {
   constexpr unsigned long odd_exponent_abs(long n) {
     long odd = 2 * n + 1;
     return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
-  }
-
-  constexpr bool is_prime(long x) {
-    if (x < 2) return false;
-    if (x == 2) return true;
-    if (x % 2 == 0) return false;
-    for (long i = 3; i * i <= x; i += 2)
-      if (x % i == 0) return false;
-    return true;
-  }
-
-  // Constexpr DP table for optimal (minimum-term) prime-sum decompositions.
-  // best_summand[n] is the first summand to subtract; chase the chain to reconstruct.
-  // Requires -fconstexpr-steps=10000000 compiler flag (set in CMakeLists.txt)
-  static constexpr int max_precomputed_exp = 2048;
-  static constexpr auto prime_dp_table     = [] {
-    std::array<uint16_t, max_precomputed_exp + 1> best{};
-    std::array<uint16_t, max_precomputed_exp + 1> dp{};
-    for (int i = 1; i <= max_precomputed_exp; ++i) dp[i] = 30000;
-
-    // Sieve primes, collect into flat array
-    std::array<bool, max_precomputed_exp + 1> sieve{};
-    for (int i = 2; i <= max_precomputed_exp; ++i) sieve[i] = true;
-    for (int i = 2; i * i <= max_precomputed_exp; ++i)
-      if (sieve[i])
-        for (int j = i * i; j <= max_precomputed_exp; j += i) sieve[j] = false;
-    std::array<uint16_t, 320> plist{}; // pi(2048) = 309
-    int np = 0;
-    for (int i = 2; i <= max_precomputed_exp; ++i)
-      if (sieve[i]) plist[np++] = static_cast<uint16_t>(i);
-
-    // DP: dp[n] = minimum number of primes that sum to n
-    for (int n = 1; n <= max_precomputed_exp; ++n) {
-      if (dp[n - 1] + 1 < dp[n]) {
-        dp[n]   = static_cast<uint16_t>(dp[n - 1] + 1);
-        best[n] = 1;
-      }
-      for (int pi = 0; pi < np && plist[pi] <= n; ++pi) {
-        int p = plist[pi];
-        if (dp[n - p] + 1 < dp[n]) {
-          dp[n]   = static_cast<uint16_t>(dp[n - p] + 1);
-          best[n] = static_cast<uint16_t>(p);
-        }
-      }
-    }
-    return best;
-  }();
-
-  inline std::vector<int> express_as_prime_sum(long n) {
-    std::vector<int> out;
-    if (n <= max_precomputed_exp) {
-      // Optimal decomposition from precomputed DP table
-      while (n > 0) {
-        int p = prime_dp_table[n];
-        out.push_back(p);
-        n -= p;
-      }
-    } else {
-      // Greedy fallback for very large exponents
-      while (n > 0) {
-        if (n == 1) {
-          out.push_back(1);
-          break;
-        }
-        if (n <= 3) {
-          out.push_back(static_cast<int>(n));
-          break;
-        }
-        if (n == 4) {
-          out.push_back(2);
-          out.push_back(2);
-          break;
-        }
-        long p = n;
-        while (p > 1 && !is_prime(p)) --p;
-        out.push_back(static_cast<int>(p));
-        n -= p;
-      }
-    }
-    return out;
   }
 
   // NAF (Non-Adjacent Form) decomposition of n into signed binary digits.

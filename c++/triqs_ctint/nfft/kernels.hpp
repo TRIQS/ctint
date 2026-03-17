@@ -6,5 +6,5 @@
 #pragma once
 #include "kernels/finufft.hpp"
 #include "kernels/direct_type1.hpp"
-#include "kernels/prime.hpp"
+#include "kernels/chain.hpp"
 #include "kernels/naf.hpp"

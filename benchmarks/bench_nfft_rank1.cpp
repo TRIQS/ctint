@@ -83,6 +83,19 @@ static void BM_Rank1_UniqueN1_NAF(benchmark::State &state) {
   run_nfft_bench<1>(state, buf, taus, vals, output);
 }
 
+static void BM_Rank1_UniqueN1_Chain(benchmark::State &state) {
+  auto &md         = get_dlr2d_mesh_data();
+  int64_t n_points = state.range(0);
+
+  nda::array<dcomplex, 1> output(md.n_un1);
+  output = 0;
+
+  buffer_t<1> buf{output, md.target_mf_n1, buf_size, tol, type_t::direct_chain};
+  auto [taus, vals] = gen_random_data<1>(n_points);
+
+  run_nfft_bench<1>(state, buf, taus, vals, output);
+}
+
 static void BM_Rank1_UniqueN1_Auto(benchmark::State &state) {
   auto &md         = get_dlr2d_mesh_data();
   int64_t n_points = state.range(0);
@@ -153,6 +166,19 @@ static void BM_Rank1_DLR_NAF(benchmark::State &state) {
   run_nfft_bench<1>(state, buf, taus, vals, output);
 }
 
+static void BM_Rank1_DLR_Chain(benchmark::State &state) {
+  auto &dlr_md     = get_dlr_mesh_data();
+  int64_t n_points = state.range(0);
+
+  nda::array<dcomplex, 1> output(dlr_md.n_dlr_pts);
+  output = 0;
+
+  buffer_t<1> buf{output, dlr_md.target_mf, buf_size, tol, type_t::direct_chain};
+  auto [taus, vals] = gen_random_data<1>(n_points);
+
+  run_nfft_bench<1>(state, buf, taus, vals, output);
+}
+
 static void BM_Rank1_DLR_Auto(benchmark::State &state) {
   auto &dlr_md     = get_dlr_mesh_data();
   int64_t n_points = state.range(0);
@@ -173,11 +199,13 @@ BENCHMARK(BM_Rank1_UniqueN1_FINUFFT) K_ARGS;
 BENCHMARK(BM_Rank1_UniqueN1_Sincos) K_ARGS;
 // BENCHMARK(BM_Rank1_UniqueN1_Bitwise) K_ARGS;  // Bitwise kernel removed
 BENCHMARK(BM_Rank1_UniqueN1_NAF) K_ARGS;
+BENCHMARK(BM_Rank1_UniqueN1_Chain) K_ARGS;
 BENCHMARK(BM_Rank1_UniqueN1_Auto) K_ARGS;
 
 BENCHMARK(BM_Rank1_DLR_FINUFFT) K_ARGS;
 BENCHMARK(BM_Rank1_DLR_Sincos) K_ARGS;
 // BENCHMARK(BM_Rank1_DLR_Bitwise) K_ARGS;  // Bitwise kernel removed
 BENCHMARK(BM_Rank1_DLR_NAF) K_ARGS;
+BENCHMARK(BM_Rank1_DLR_Chain) K_ARGS;
 BENCHMARK(BM_Rank1_DLR_Auto) K_ARGS;
 // clang-format on

@@ -71,9 +71,9 @@ namespace triqs::utility::nfft {
         state_.init_direct_common(target_mf_);
         direct_type1_kernel_.emplace(state_, target_mf_);
 
-      } else if (type == type_t::direct_prime) {
+      } else if (type == type_t::direct_chain) {
         state_.init_direct_common(target_mf_);
-        prime_kernel_.emplace(state_);
+        chain_kernel_.emplace(state_);
 
       } else if (type == type_t::direct_type3) {
         state_.init_direct_common(target_mf_);
@@ -91,38 +91,40 @@ namespace triqs::utility::nfft {
         naf_kernel_.emplace(state_, buf_size_);
         direct_type1_kernel_.emplace(state_, target_mf_);
 
-        // For Rank >= 2: also initialize prime kernel and pick the one with fewer total digits
-        if constexpr (Rank >= 2) {
-          prime_kernel_.emplace(state_);
+        // Initialize the chain-based sparse-direct kernel and pick between it and
+        // NAF using an estimate of row-synthesis multiplies.
+        chain_kernel_.emplace(state_);
 
-          // Count total digits for NAF vs prime decomposition
-          int64_t total_naf_digits = 0, total_prime_digits = 0;
-          for (int r = 0; r < Rank; ++r) {
-            for (int64_t d = 0; d < state_.n_targets; ++d) {
-              total_naf_digits += static_cast<int64_t>(compute_naf(odd_exponent_abs(state_.target_n(r, d))).size());
-              total_prime_digits += static_cast<int64_t>(express_as_prime_sum(static_cast<long>(odd_exponent_abs(state_.target_n(r, d)))).size());
-            }
-          }
-          use_prime_direct_ = (total_prime_digits < total_naf_digits);
+        int64_t naf_estimate = 0;
+        for (int r = 0; r < Rank; ++r) {
+          std::vector<unsigned long> unique_exp;
+          unique_exp.reserve(state_.n_targets);
+          for (int64_t d = 0; d < state_.n_targets; ++d) unique_exp.push_back(odd_exponent_abs(state_.target_n(r, d)));
+          std::sort(unique_exp.begin(), unique_exp.end());
+          unique_exp.erase(std::unique(unique_exp.begin(), unique_exp.end()), unique_exp.end());
+          if (unique_exp.empty()) continue;
+
+          naf_estimate += static_cast<int64_t>(std::bit_width(unique_exp.back()) - 1);
+          for (unsigned long exp : unique_exp) naf_estimate += static_cast<int64_t>(compute_naf(exp).size()) - 1;
         }
+        use_chain_direct_ = (chain_kernel_->estimated_complex_multiplies() < naf_estimate);
 
-        // Calibrate using NAF kernel (performance similar to prime kernel)
-        auto [threshold, use_dt1, use_t3] = calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
+        auto [threshold, use_dt1, use_t3] =
+           (use_chain_direct_ && chain_kernel_) ? calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *chain_kernel_, *finufft_kernel_) :
+                                                  calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
         dispatch_buf_threshold            = threshold;
         use_type3_                        = use_t3;
 
         // Release the losing direct kernels
         if (use_dt1) {
           naf_kernel_.reset();
-          if constexpr (Rank >= 2) prime_kernel_.reset();
+          chain_kernel_.reset();
         } else {
           direct_type1_kernel_.reset();
-          if constexpr (Rank >= 2) {
-            if (use_prime_direct_)
-              naf_kernel_.reset();
-            else
-              prime_kernel_.reset();
-          }
+          if (use_chain_direct_)
+            naf_kernel_.reset();
+          else
+            chain_kernel_.reset();
         }
         // Release the losing FINUFFT path
         if (use_t3)
@@ -205,7 +207,7 @@ namespace triqs::utility::nfft {
 
     type_t type_            = type_t::type1;
     bool use_type3_         = false;
-    bool use_prime_direct_  = false; // For Rank>=2: use prime instead of NAF
+    bool use_chain_direct_  = false; // Use chain-based sparse direct kernel instead of NAF
     shared_state_t<Rank> state_;
 
     // Type1-specific
@@ -219,7 +221,7 @@ namespace triqs::utility::nfft {
     // Kernels (only relevant ones initialized)
     std::optional<kernel_finufft_t<Rank>> finufft_kernel_;
     std::optional<kernel_direct_type1_t<Rank>> direct_type1_kernel_;
-    std::optional<kernel_prime_t<Rank>> prime_kernel_;
+    std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
     int dispatch_buf_threshold = 0;
@@ -239,8 +241,8 @@ namespace triqs::utility::nfft {
         if (state_.buf_counter < dispatch_buf_threshold) {
           if (direct_type1_kernel_)
             run_direct(*direct_type1_kernel_);
-          else if (use_prime_direct_ && prime_kernel_)
-            run_direct(*prime_kernel_);
+          else if (use_chain_direct_ && chain_kernel_)
+            run_direct(*chain_kernel_);
           else
             run_direct(*naf_kernel_);
         } else if (use_type3_) {
@@ -253,8 +255,8 @@ namespace triqs::utility::nfft {
         finufft_kernel_->execute_type3(state_, fiw_vec);
       else if (type_ == type_t::direct_type3)
         run_direct(*naf_kernel_);
-      else if (type_ == type_t::direct_prime)
-        run_direct(*prime_kernel_);
+      else if (type_ == type_t::direct_chain)
+        run_direct(*chain_kernel_);
       else
         run_direct(*direct_type1_kernel_);
     }

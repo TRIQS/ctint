@@ -85,11 +85,12 @@ namespace triqs::utility::nfft {
   };
 
   // Calibrate dispatch threshold for automatic mode with non-uniform targets.
-  // Compares direct kernels (direct_type1 vs NAF) against both FINUFFT paths (type1_gather vs type3),
-  // then picks the faster direct kernel and the faster FINUFFT path, and computes their crossover.
-  template <int Rank>
+  // Compares direct kernels (direct_type1 vs sparse direct kernel) against both
+  // FINUFFT paths (type1_gather vs type3), then picks the faster direct kernel
+  // and the faster FINUFFT path, and computes their crossover.
+  template <int Rank, typename SparseDirectKernel>
   nonuniform_dispatch_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
-                                                      kernel_naf_t<Rank> &naf_kernel, kernel_finufft_t<Rank> &finufft_kernel) {
+                                                      SparseDirectKernel &sparse_direct_kernel, kernel_finufft_t<Rank> &finufft_kernel) {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
@@ -138,16 +139,16 @@ namespace triqs::utility::nfft {
     // Warmup
     measure_type1_gather(n_lo);
     measure_type3(n_lo);
-    measure_kernel(naf_kernel, n_lo);
+    measure_kernel(sparse_direct_kernel, n_lo);
     measure_kernel(direct_type1_kernel, n_lo);
 
     // Pick faster direct kernel at n_lo, measure winner at n_hi
-    double dt1_lo = best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
-    double naf_lo = best_of_n([&](int n) { return measure_kernel(naf_kernel, n); }, n_lo);
-    bool use_dt1  = dt1_lo <= naf_lo;
-    double dir_lo = use_dt1 ? dt1_lo : naf_lo;
+    double dt1_lo    = best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
+    double sparse_lo = best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_lo);
+    bool use_dt1     = dt1_lo <= sparse_lo;
+    double dir_lo    = use_dt1 ? dt1_lo : sparse_lo;
     double dir_hi = use_dt1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
-                              best_of_n([&](int n) { return measure_kernel(naf_kernel, n); }, n_hi);
+                              best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
 
     // Measure both FINUFFT paths, pick faster at n_hi (more representative of high-n regime)
     double tg_lo = best_of_n(measure_type1_gather, n_lo);
