@@ -73,8 +73,8 @@ set(FINUFFT_USE_OPENMP OFF)
 set(FINUFFT_USE_DUCC0 ON)
 set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
 external_dependency(finufft
-  GIT_REPO https://github.com/Wentzell/finufft
-  GIT_TAG DLR2D
+  GIT_REPO https://github.com/diamondinoia/finufft
+  GIT_TAG experimental
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )
