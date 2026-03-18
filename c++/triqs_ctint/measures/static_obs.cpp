@@ -112,11 +112,23 @@ namespace triqs_ctint::measures {
       }
     }
 
-    // Flatten maps to vectors
+    // Flatten maps to vectors and pre-allocate scratch arrays
     bilinear_groups_.reserve(bilinear_map.size());
-    for (auto &[key, grp] : bilinear_map) bilinear_groups_.push_back(std::move(grp));
+    for (auto &[key, grp] : bilinear_map) {
+      long E = static_cast<long>(grp.entries.size());
+      grp.cs.resize(L_, E);
+      grp.cdags.resize(L_, E);
+      bilinear_groups_.push_back(std::move(grp));
+    }
     quartic_groups_.reserve(quartic_map.size());
-    for (auto &[key, grp] : quartic_map) quartic_groups_.push_back(std::move(grp));
+    for (auto &[key, grp] : quartic_map) {
+      long E = static_cast<long>(grp.entries.size());
+      grp.c_A.resize(L_, E);
+      grp.c_B.resize(L_, E);
+      grp.cdag_A.resize(L_, E);
+      grp.cdag_B.resize(L_, E);
+      quartic_groups_.push_back(std::move(grp));
+    }
   }
 
   void static_obs::accumulate(mc_weight_t sign) {
@@ -124,76 +136,79 @@ namespace triqs_ctint::measures {
     ++N_;
     step_contrib_() = 0;
 
+    // Scatter ratios into per-observable step contributions (e-outer for entry lookup hoisting)
+    auto accum = [&](auto const &entries, auto const &ratios) {
+      long E = static_cast<long>(entries.size());
+      for (long e = 0; e < E; ++e) {
+        auto const &entry = entries[e];
+        auto val          = entry.coef * sign;
+        for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * ratios(l, e);
+      }
+    };
+
     // --- Bilinear groups ---
-    for (auto const &grp : bilinear_groups_) {
-      long E     = static_cast<long>(grp.entries.size());
-      auto &det  = qmc_config.dets[grp.bl_det];
-
-      nda::array<c_t, 2> cs(L_, E);
-      nda::array<cdag_t, 2> cdags(L_, E);
-
+    for (auto &grp : bilinear_groups_) {
+      auto &det = qmc_config.dets[grp.bl_det];
       for (long l = 0; l < L_; ++l) {
-        auto tau = tau_points_[l];
+        auto tau      = tau_points_[l];
         auto tau_plus = tau_t{tau.n + 1};
-        for (long e = 0; e < E; ++e) {
+        for (long e = 0; e < static_cast<long>(grp.entries.size()); ++e) {
           auto const &entry = grp.entries[e];
-          cs(l, e)    = c_t{tau, entry.idx_c};
-          cdags(l, e) = cdag_t{tau_plus, entry.idx_cdag};
+          grp.cs(l, e)     = c_t{tau, entry.idx_c};
+          grp.cdags(l, e)  = cdag_t{tau_plus, entry.idx_cdag};
         }
       }
-
-      auto ratios = det.insert_ratios(0, 0, cs, cdags); // shape (L_, E)
-
-      for (long l = 0; l < L_; ++l)
-        for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(l, e);
+      accum(grp.entries, det.insert_ratios(0, 0, grp.cs, grp.cdags));
     }
 
     // --- Quartic groups ---
-    for (auto const &grp : quartic_groups_) {
-      long E = static_cast<long>(grp.entries.size());
-
-      // Fill rank-2 (L_, E) arrays for all four operators — common to all cases
-      nda::array<c_t, 2> c_A(L_, E), c_B(L_, E);
-      nda::array<cdag_t, 2> cdag_A(L_, E), cdag_B(L_, E);
+    for (auto &grp : quartic_groups_) {
+      // Fill pre-allocated (L_, E) arrays for all four operators
+      // Distinct tau offsets (+0,+1,+2,+3) enforce strict time-ordering for the det_manip insertions
       for (long l = 0; l < L_; ++l) {
         auto tau = tau_points_[l];
-        for (long e = 0; e < E; ++e) {
-          auto const &entry = grp.entries[e];
-          c_B(l, e)    = c_t{tau_t{tau.n}, entry.idx_c_B};
-          cdag_B(l, e) = cdag_t{tau_t{tau.n + 1}, entry.idx_cdag_B};
-          c_A(l, e)    = c_t{tau_t{tau.n + 2}, entry.idx_c_A};
-          cdag_A(l, e) = cdag_t{tau_t{tau.n + 3}, entry.idx_cdag_A};
+        for (long e = 0; e < static_cast<long>(grp.entries.size()); ++e) {
+          auto const &entry  = grp.entries[e];
+          grp.c_B(l, e)     = c_t{tau_t{tau.n}, entry.idx_c_B};
+          grp.cdag_B(l, e)  = cdag_t{tau_t{tau.n + 1}, entry.idx_cdag_B};
+          grp.c_A(l, e)     = c_t{tau_t{tau.n + 2}, entry.idx_c_A};
+          grp.cdag_A(l, e)  = cdag_t{tau_t{tau.n + 3}, entry.idx_cdag_A};
         }
       }
 
-      // Accumulate ratios into step_contrib_
-      auto accum = [&](auto const &ratios) {
-        for (long l = 0; l < L_; ++l)
-          for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(l, e);
-      };
-
-      // Compute ratios — only the insert call differs between cases
       switch (grp.case_type) {
         case case_t::AAAA: {
-          accum(qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B));
+          accum(grp.entries, qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, grp.c_A, grp.c_B, grp.cdag_A, grp.cdag_B));
           break;
         }
         case case_t::AABB: {
-          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, c_A, cdag_A);
-          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, c_B, cdag_B);
-          accum(r1 * r2);
+          // Pair A in det1, pair B in det2 — independent blocks, ratio factorizes
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_A, grp.cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_B, grp.cdag_B);
+          long E  = static_cast<long>(grp.entries.size());
+          for (long e = 0; e < E; ++e) {
+            auto const &entry = grp.entries[e];
+            auto val          = entry.coef * sign;
+            for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * r1(l, e) * r2(l, e);
+          }
           break;
         }
         case case_t::ABAB: {
-          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, c_B, cdag_A);
-          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, c_A, cdag_B);
-          accum(r1 * r2);
+          // ABAB: bl_cdag_A==bl_c_B, bl_cdag_B==bl_c_A — cross-pair into each det
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_B, grp.cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_A, grp.cdag_B);
+          long E  = static_cast<long>(grp.entries.size());
+          for (long e = 0; e < E; ++e) {
+            auto const &entry = grp.entries[e];
+            auto val          = entry.coef * sign;
+            for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * r1(l, e) * r2(l, e);
+          }
           break;
         }
       }
     }
 
-    // --- Constant parts (no tau dependence, multiply by L_ to compensate collect_results /L_) ---
+    // Constant parts: no tau dependence, multiply by L_ to compensate the /L_ normalization in collect_results
     for (long i = 0; i < constant_parts_.size(); ++i) step_contrib_(i) += constant_parts_(i) * sign * L_;
 
     // Accumulate into result and feed per-step contributions into bins

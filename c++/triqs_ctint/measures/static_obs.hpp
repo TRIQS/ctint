@@ -43,6 +43,9 @@ namespace triqs_ctint::measures {
     struct bilinear_group_t {
       int bl_det;
       std::vector<bilinear_entry_t> entries;
+      // Pre-allocated scratch arrays of shape (L_, entries.size()), filled each MC step
+      nda::array<c_t, 2> cs;
+      nda::array<cdag_t, 2> cdags;
     };
 
     // Quartic entry: double insertion or product of insertions
@@ -56,6 +59,9 @@ namespace triqs_ctint::measures {
       case_t case_type;
       int bl_det1, bl_det2;
       std::vector<quartic_entry_t> entries;
+      // Pre-allocated scratch arrays of shape (L_, entries.size()), filled each MC step
+      nda::array<c_t, 2> c_A, c_B;
+      nda::array<cdag_t, 2> cdag_A, cdag_B;
     };
 
     // Grouped operator terms
