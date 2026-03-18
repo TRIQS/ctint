@@ -14,7 +14,7 @@
 #include <triqs/mesh/matsubara_freq.hpp>
 
 #include "finufft.h"
-#include "fast_sincos.hpp"
+#include "sincos.hpp"
 #include <xsimd/xsimd.hpp>
 #include <poet/poet.hpp>
 

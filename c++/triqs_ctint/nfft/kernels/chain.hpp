@@ -391,7 +391,7 @@ namespace triqs::utility::nfft {
       auto const &plan = plans_[0];
       for (int j = static_cast<int>(buf_counter_simd); j < state.buf_counter; ++j) {
         double const theta = pi_over_beta * state.x_arr(0, j);
-        tbl[0]             = dcomplex{std::cos(theta), std::sin(theta)};
+        tbl[0]             = cis(theta);
         for (std::size_t op_idx = 0; op_idx < plan.ops.size(); ++op_idx) {
           auto const &op                   = plan.ops[op_idx];
           dcomplex rhs                     = tbl[op.rhs];
@@ -424,7 +424,7 @@ namespace triqs::utility::nfft {
           dcomplex *uq     = uq_scalar_base[r];
 
           double const theta = pi_over_beta * state.x_arr(r, j);
-          tbl[0]             = dcomplex{std::cos(theta), std::sin(theta)};
+          tbl[0]             = cis(theta);
           for (std::size_t op_idx = 0; op_idx < plan.ops.size(); ++op_idx) {
             auto const &op = plan.ops[op_idx];
             dcomplex rhs   = tbl[op.rhs];

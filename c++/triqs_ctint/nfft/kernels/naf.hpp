@@ -205,7 +205,7 @@ namespace triqs::utility::nfft {
         poet::static_for<Rank>([&](const auto r) {
           auto &tbl       = scalar_pow2_tbl[r];
           double const theta = pi_over_beta * state.x_arr(r, j);
-          tbl[0]             = dcomplex{std::cos(theta), std::sin(theta)};
+          tbl[0]             = cis(theta);
           for (int k = 1; k < num_pow2_levels[r]; ++k) tbl[k] = tbl[k - 1] * tbl[k - 1];
 
           for (int u = 0; u < n_unique[r]; ++u) {

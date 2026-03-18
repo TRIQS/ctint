@@ -128,7 +128,7 @@ template <int TolDigits, class X> [[gnu::always_inline]] inline auto evaluate_re
 
 // ---- Angle reduction + quadrant adjustment ----
 
-template <int TolDigits, angle_arg Angle> auto sincos_impl(Angle const &angle) {
+template <int TolDigits, angle_arg Angle> [[gnu::flatten]] auto sincos_impl(Angle const &angle) {
   using A    = std::remove_cvref_t<Angle>;
   using real = scalar_t<Angle>;
 
