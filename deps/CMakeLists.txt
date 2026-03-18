@@ -72,6 +72,17 @@ external_dependency(finufft
   EXCLUDE_FROM_ALL
 )
 
+# -- polyfit (also provides poet as transitive dependency) --
+set(POLYFIT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(POLYFIT_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+external_dependency(polyfit
+  GIT_REPO https://github.com/DiamonDinoia/polyfit
+  GIT_TAG main
+  BUILD_ALWAYS
+  EXCLUDE_FROM_ALL
+)
+
+
 # -- GTest --
 external_dependency(GTest
   GIT_REPO https://github.com/google/googletest
