@@ -39,8 +39,8 @@ namespace triqs_ctint::measures {
     for (long k = 0; k < L_; ++k) tau_points_[k] = make_tau_t(k * params.beta / L_);
 
     // Maps for grouping
-    std::map<int, bilinear_group_t> bilinear_map;                                       // keyed by bl_det
-    using quartic_key_t = std::tuple<case_t, int, int>;
+    std::map<int, bilinear_group_t> bilinear_map;
+    using quartic_key_t = std::tuple<quartic_case_t, int, int>;
     std::map<quartic_key_t, quartic_group_t> quartic_map;
 
     for (auto [obs_idx, C] : itertools::enumerate(ops)) {
@@ -74,37 +74,15 @@ namespace triqs_ctint::measures {
           auto [bl_cdag_B, idx_cdag_B] = get_int_indices(m[1], params.gf_struct);
           auto [bl_c_B, idx_c_B]       = get_int_indices(m[2], params.gf_struct);
 
-          bool is_AABB = (bl_cdag_A == bl_c_A && bl_cdag_B == bl_c_B);
-          bool is_ABAB = (bl_cdag_A == bl_c_B && bl_cdag_B == bl_c_A);
-          bool is_AAAA = is_AABB && is_ABAB;
+          auto info = classify_quartic_blocks(bl_cdag_A, bl_c_A, bl_cdag_B, bl_c_B, dcomplex(term.coef));
+          if (!info) continue;
 
-          case_t ct;
-          int bl_det1, bl_det2;
-          dcomplex coef = dcomplex(term.coef);
-
-          if (is_AAAA) {
-            ct = case_t::AAAA;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_cdag_A;
-          } else if (is_AABB) {
-            ct = case_t::AABB;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_cdag_B;
-          } else if (is_ABAB) {
-            ct = case_t::ABAB;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_c_A;
-            coef = -coef; // minus sign from operator swap
-          } else {
-            continue; // other block combinations vanish
-          }
-
-          quartic_key_t key{ct, bl_det1, bl_det2};
+          quartic_key_t key{info->case_type, info->bl_det1, info->bl_det2};
           auto &grp     = quartic_map[key];
-          grp.case_type = ct;
-          grp.bl_det1   = bl_det1;
-          grp.bl_det2   = bl_det2;
-          grp.entries.push_back({static_cast<long>(obs_idx), coef, idx_cdag_A, idx_c_A, idx_cdag_B, idx_c_B});
+          grp.case_type = info->case_type;
+          grp.bl_det1   = info->bl_det1;
+          grp.bl_det2   = info->bl_det2;
+          grp.entries.push_back({static_cast<long>(obs_idx), info->coef, idx_cdag_A, idx_c_A, idx_cdag_B, idx_c_B});
 
         } else {
           TRIQS_RUNTIME_ERROR << "Operator degree " << m.size() << " not supported in static_obs (max 4)";
@@ -142,7 +120,7 @@ namespace triqs_ctint::measures {
       for (long e = 0; e < E; ++e) {
         auto const &entry = entries[e];
         auto val          = entry.coef * sign;
-        for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * ratios(l, e);
+        for (long l = 0; l < L_; ++l) step_contrib_(entry.target_idx) += val * ratios(l, e);
       }
     };
 
@@ -177,32 +155,22 @@ namespace triqs_ctint::measures {
       }
 
       switch (grp.case_type) {
-        case case_t::AAAA: {
+        case quartic_case_t::AAAA: {
           accum(grp.entries, qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, grp.c_A, grp.c_B, grp.cdag_A, grp.cdag_B));
           break;
         }
-        case case_t::AABB: {
-          // Pair A in det1, pair B in det2 — independent blocks, ratio factorizes
+        case quartic_case_t::AABB: {
           auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_A, grp.cdag_A);
           auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_B, grp.cdag_B);
-          long E  = static_cast<long>(grp.entries.size());
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            auto val          = entry.coef * sign;
-            for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * r1(l, e) * r2(l, e);
-          }
+          r1 *= r2;
+          accum(grp.entries, r1);
           break;
         }
-        case case_t::ABAB: {
-          // ABAB: bl_cdag_A==bl_c_B, bl_cdag_B==bl_c_A — cross-pair into each det
+        case quartic_case_t::ABAB: {
           auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_B, grp.cdag_A);
           auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_A, grp.cdag_B);
-          long E  = static_cast<long>(grp.entries.size());
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            auto val          = entry.coef * sign;
-            for (long l = 0; l < L_; ++l) step_contrib_(entry.obs_idx) += val * r1(l, e) * r2(l, e);
-          }
+          r1 *= r2;
+          accum(grp.entries, r1);
           break;
         }
       }
