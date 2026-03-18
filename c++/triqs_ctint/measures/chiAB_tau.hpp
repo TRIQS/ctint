@@ -5,7 +5,6 @@
 
 #pragma once
 #include "../qmc_config.hpp"
-#include "../nfft/buffer.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
@@ -17,7 +16,7 @@ namespace triqs_ctint::measures {
 
     chiAB_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results);
 
-    /// Accumulate M_tau using binning
+    /// Accumulate chiAB_tau by operator insertion
     void accumulate(mc_weight_t sign);
 
     /// Collect results and normalize
@@ -49,16 +48,20 @@ namespace triqs_ctint::measures {
       chi_case_t case_type;
       int bl_det1, bl_det2;              // block indices for determinant(s)
       std::vector<chi_entry_t> entries;
+      // Pre-allocated scratch arrays of shape (L, entries.size()), filled each MC step
+      nda::array<c_t, 2> c_A, c_B;
+      nda::array<cdag_t, 2> cdag_A, cdag_B;
     };
 
-    // Grouped operator pairs (replaces op_pairs)
+    // Grouped operator pairs
     std::vector<chi_group_t> groups_;
 
     // The average sign
     mc_weight_t Z = 0.0;
 
-    // The tau-mesh
-    mesh::dlr_imtime tau_mesh;
+    // Precomputed tau points from the DLR imtime mesh
+    long L_;
+    std::vector<tau_t> tau_points_;
   };
 
 } // namespace triqs_ctint::measures
