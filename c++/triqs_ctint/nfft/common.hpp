@@ -75,6 +75,15 @@ namespace triqs::utility::nfft {
     return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
   }
 
+  using supported_tol_digits_t = std::integer_sequence<int, 6, 8, 10, 12>;
+
+  constexpr int bucket_tol_digits(double tol) {
+    if (tol <= 1e-12) return 12;
+    if (tol <= 1e-10) return 10;
+    if (tol <= 1e-8) return 8;
+    return 6;
+  }
+
   // NAF (Non-Adjacent Form) decomposition of n into signed binary digits.
   // Returns encoded digits: k for +1 at bit k, -(k+1) for -1 at bit k.
   inline std::vector<int> compute_naf(unsigned long n) {

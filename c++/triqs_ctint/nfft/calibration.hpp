@@ -88,9 +88,9 @@ namespace triqs::utility::nfft {
   // Compares direct kernels (direct_type1 vs sparse direct kernel) against both
   // FINUFFT paths (type1_gather vs type3), then picks the faster direct kernel
   // and the faster FINUFFT path, and computes their crossover.
-  template <int Rank, typename SparseDirectKernel>
+  template <int Rank, typename SparseDirectKernel, typename FinufftKernel>
   nonuniform_dispatch_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
-                                                      SparseDirectKernel &sparse_direct_kernel, kernel_finufft_t<Rank> &finufft_kernel) {
+                                                      SparseDirectKernel &sparse_direct_kernel, FinufftKernel &finufft_kernel) {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
@@ -169,8 +169,8 @@ namespace triqs::utility::nfft {
 
   // Calibrate dispatch threshold for type1 automatic mode (direct_type1 vs FINUFFT type1).
   // The direct path uses raw tau, while the FINUFFT path needs coordinate transformation.
-  template <int Rank>
-  int calibrate_dispatch_type1(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_kernel, kernel_finufft_t<Rank> &finufft_kernel,
+  template <int Rank, typename FinufftKernel>
+  int calibrate_dispatch_type1(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_kernel, FinufftKernel &finufft_kernel,
                                nda::array<dcomplex, Rank> &fk_arr, int common_factor) {
     using clock = std::chrono::steady_clock;
 

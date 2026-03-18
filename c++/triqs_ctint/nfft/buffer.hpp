@@ -8,12 +8,20 @@
 #include "kernels.hpp"
 #include "calibration.hpp"
 #include <optional>
+#include <variant>
 
 namespace triqs::utility::nfft {
 
   template <int Rank> struct buffer_t {
 
     static_assert(Rank >= 1 and Rank <= 3, "buffer_t only supports Rank 1, 2, and 3");
+
+    template <int TolDigits>
+    using finufft_kernel_t = kernel_finufft_t<Rank, TolDigits>;
+
+    using finufft_variant_t = std::variant<std::monostate, finufft_kernel_t<6>, finufft_kernel_t<8>, finufft_kernel_t<10>, finufft_kernel_t<12>>;
+
+    using do_nfft_fn_t = void (*)(buffer_t &);
 
     buffer_t() = default;
 
@@ -34,22 +42,7 @@ namespace triqs::utility::nfft {
         common_factor *= (n / 2) % 2 ? -1 : 1;
       }
 
-      finufft_kernel_.emplace();
-      finufft_kernel_->init_type1(niws, buf_size_, tol);
-
-      // Set up direct_type1 kernel for automatic dispatch if grid is not too large
-      int64_t n_targets = 1;
-      for (auto n : niws) n_targets *= n;
-      if (n_targets <= max_type1_dispatch_targets) {
-        state_.n_targets = n_targets;
-        state_.fk_vec.resize(n_targets);
-
-        // Build target_mf from uniform grid (row-major order matching fiw_arr layout)
-        auto target_mf = build_uniform_target_mf(beta_);
-        state_.init_direct_common(target_mf);
-        direct_type1_kernel_.emplace(state_, target_mf);
-        dispatch_buf_threshold = calibrate_dispatch_type1(state_, *direct_type1_kernel_, *finufft_kernel_, fk_arr, common_factor);
-      }
+      dispatch_tol_digits([&]<int TolDigits>() { init_type1_impl<TolDigits>(beta_); });
     }
 
     /// Non-uniform target constructor: automatic dispatch, FINUFFT type3, or direct DFT
@@ -63,78 +56,7 @@ namespace triqs::utility::nfft {
       state_.fx_arr.resize(buf_size_);
       state_.fk_vec.resize(state_.n_targets);
 
-      if (type == type_t::type3) {
-        finufft_kernel_.emplace();
-        finufft_kernel_->init_type3(target_mf_, state_.n_targets, tol);
-
-      } else if (type == type_t::direct_type1) {
-        state_.init_direct_common(target_mf_);
-        direct_type1_kernel_.emplace(state_, target_mf_);
-
-      } else if (type == type_t::direct_chain) {
-        state_.init_direct_common(target_mf_);
-        chain_kernel_.emplace(state_);
-
-      } else if (type == type_t::direct_type3) {
-        state_.init_direct_common(target_mf_);
-        naf_kernel_.emplace(state_, buf_size_);
-
-      } else if (type == type_t::type1_gather) {
-        state_.beta = target_mf_[0][0].beta;
-        finufft_kernel_.emplace();
-        finufft_kernel_->init_type1_gather(target_mf_, state_.n_targets, tol);
-
-      } else if (type == type_t::automatic) {
-        finufft_kernel_.emplace();
-        finufft_kernel_->init_type1_gather_and_type3(target_mf_, state_.n_targets, tol);
-        state_.init_direct_common(target_mf_);
-        naf_kernel_.emplace(state_, buf_size_);
-        direct_type1_kernel_.emplace(state_, target_mf_);
-
-        // Initialize the chain-based sparse-direct kernel and pick between it and
-        // NAF using an estimate of row-synthesis multiplies.
-        chain_kernel_.emplace(state_);
-
-        int64_t naf_estimate = 0;
-        for (int r = 0; r < Rank; ++r) {
-          std::vector<unsigned long> unique_exp;
-          unique_exp.reserve(state_.n_targets);
-          for (int64_t d = 0; d < state_.n_targets; ++d) unique_exp.push_back(odd_exponent_abs(state_.target_n(r, d)));
-          std::sort(unique_exp.begin(), unique_exp.end());
-          unique_exp.erase(std::unique(unique_exp.begin(), unique_exp.end()), unique_exp.end());
-          if (unique_exp.empty()) continue;
-
-          naf_estimate += static_cast<int64_t>(std::bit_width(unique_exp.back()) - 1);
-          for (unsigned long exp : unique_exp) naf_estimate += static_cast<int64_t>(compute_naf(exp).size()) - 1;
-        }
-        use_chain_direct_ = (chain_kernel_->estimated_complex_multiplies() < naf_estimate);
-
-        auto [threshold, use_dt1, use_t3] =
-           (use_chain_direct_ && chain_kernel_) ? calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *chain_kernel_, *finufft_kernel_) :
-                                                  calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, *naf_kernel_, *finufft_kernel_);
-        dispatch_buf_threshold            = threshold;
-        use_type3_                        = use_t3;
-
-        // Release the losing direct kernels
-        if (use_dt1) {
-          naf_kernel_.reset();
-          chain_kernel_.reset();
-        } else {
-          direct_type1_kernel_.reset();
-          if (use_chain_direct_)
-            naf_kernel_.reset();
-          else
-            chain_kernel_.reset();
-        }
-        // Release the losing FINUFFT path
-        if (use_t3)
-          finufft_kernel_->release_type1_gather();
-        else
-          finufft_kernel_->release_type3();
-
-      } else {
-        NDA_RUNTIME_ERROR << "buffer_t: unsupported type_t for non-uniform target constructor\n";
-      }
+      dispatch_tol_digits([&]<int TolDigits>() { init_nonuniform_impl<TolDigits>(target_mf_); });
     }
 
     /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
@@ -189,16 +111,14 @@ namespace triqs::utility::nfft {
         state_.fx_arr[state_.buf_counter] = ftau;
       }
 
-      if (++state_.buf_counter >= state_.buf_size) {
-        do_nfft();
-        state_.buf_counter = 0;
-      }
+      if (++state_.buf_counter >= state_.buf_size) flush();
     }
 
     void flush() {
       if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
       if (state_.buf_counter == 0) return;
-      do_nfft();
+      if (not do_nfft_fn_) NDA_RUNTIME_ERROR << " Nfft Buffer backend was not initialized\n";
+      do_nfft_fn_(*this);
       state_.buf_counter = 0;
     }
 
@@ -207,10 +127,9 @@ namespace triqs::utility::nfft {
 
     type_t type_            = type_t::type1;
     bool use_type3_         = false;
-    bool use_chain_direct_  = false; // Use chain-based sparse direct kernel instead of NAF
+    bool use_chain_direct_  = false;
     shared_state_t<Rank> state_;
 
-    // Type1-specific
     nda::array_view<dcomplex, Rank> fiw_arr;
     nda::array_view<dcomplex, 1> fiw_vec;
     std::array<int64_t, Rank> niws{};
@@ -218,54 +137,168 @@ namespace triqs::utility::nfft {
     int common_factor = 1;
     double tol        = 1e-8;
 
-    // Kernels (only relevant ones initialized)
-    std::optional<kernel_finufft_t<Rank>> finufft_kernel_;
+    finufft_variant_t finufft_kernel_;
     std::optional<kernel_direct_type1_t<Rank>> direct_type1_kernel_;
     std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
     int dispatch_buf_threshold = 0;
+    do_nfft_fn_t do_nfft_fn_   = nullptr;
 
-    void do_nfft() {
-      if (type_ == type_t::type1) {
-        if (state_.buf_counter < dispatch_buf_threshold)
-          run_direct_type1();
-        else {
-          if (dispatch_buf_threshold > 0) prepare_type1_coords();
-          finufft_kernel_->execute_type1(state_, fiw_arr, fk_arr, common_factor);
-        }
+    template <int TolDigits> auto &emplace_finufft() {
+      return finufft_kernel_.template emplace<finufft_kernel_t<TolDigits>>();
+    }
+
+    template <int TolDigits> auto &get_finufft() { return std::get<finufft_kernel_t<TolDigits>>(finufft_kernel_); }
+
+    template <typename Builder> void dispatch_tol_digits(Builder &&builder) {
+      auto params = std::make_tuple(poet::DispatchParam<supported_tol_digits_t>{bucket_tol_digits(tol)});
+      poet::dispatch(poet::throw_t, std::forward<Builder>(builder), params);
+    }
+
+    template <int TolDigits> void init_type1_impl(double beta_) {
+      auto &finufft = emplace_finufft<TolDigits>();
+      finufft.init_type1(niws, state_.buf_size, tol);
+
+      int64_t n_targets = 1;
+      for (auto n : niws) n_targets *= n;
+      if (n_targets <= max_type1_dispatch_targets) {
+        state_.n_targets = n_targets;
+        state_.fk_vec.resize(n_targets);
+
+        auto target_mf = build_uniform_target_mf(beta_);
+        state_.init_direct_common(target_mf);
+        direct_type1_kernel_.emplace(state_, target_mf);
+        dispatch_buf_threshold = calibrate_dispatch_type1(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
+      }
+
+      do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
+    }
+
+    template <int TolDigits> void init_nonuniform_impl(std::vector<std::array<target_mf_t, Rank>> const &target_mf) {
+      if (type_ == type_t::type3) {
+        emplace_finufft<TolDigits>().init_type3(target_mf, state_.n_targets, tol);
+
+      } else if (type_ == type_t::direct_type1) {
+        state_.init_direct_common(target_mf);
+        direct_type1_kernel_.emplace(state_, target_mf);
+
+      } else if (type_ == type_t::direct_chain) {
+        state_.init_direct_common(target_mf);
+        chain_kernel_.emplace(state_);
+
+      } else if (type_ == type_t::direct_type3) {
+        state_.init_direct_common(target_mf);
+        naf_kernel_.emplace(state_, state_.buf_size);
+
       } else if (type_ == type_t::type1_gather) {
-        prepare_type1_coords();
-        finufft_kernel_->execute_type1_gather(state_, fiw_vec);
+        state_.beta = target_mf[0][0].beta;
+        emplace_finufft<TolDigits>().init_type1_gather(target_mf, state_.n_targets, tol);
+
       } else if (type_ == type_t::automatic) {
-        if (state_.buf_counter < dispatch_buf_threshold) {
-          if (direct_type1_kernel_)
-            run_direct(*direct_type1_kernel_);
-          else if (use_chain_direct_ && chain_kernel_)
-            run_direct(*chain_kernel_);
-          else
-            run_direct(*naf_kernel_);
-        } else if (use_type3_) {
-          finufft_kernel_->execute_type3(state_, fiw_vec);
-        } else {
-          prepare_type1_coords();
-          finufft_kernel_->execute_type1_gather(state_, fiw_vec);
-        }
-      } else if (type_ == type_t::type3)
-        finufft_kernel_->execute_type3(state_, fiw_vec);
-      else if (type_ == type_t::direct_type3)
-        run_direct(*naf_kernel_);
-      else if (type_ == type_t::direct_chain)
-        run_direct(*chain_kernel_);
+        auto &finufft = emplace_finufft<TolDigits>();
+        finufft.init_type1_gather_and_type3(target_mf, state_.n_targets, tol);
+        state_.init_direct_common(target_mf);
+        naf_kernel_.emplace(state_, state_.buf_size);
+        direct_type1_kernel_.emplace(state_, target_mf);
+        chain_kernel_.emplace(state_);
+
+        auto &naf_kernel   = *naf_kernel_;
+        auto &chain_kernel = *chain_kernel_;
+
+        use_chain_direct_ = (chain_kernel.estimated_complex_multiplies() < estimate_naf_multiplies());
+
+        auto [threshold, use_dt1, use_t3] =
+           use_chain_direct_ ? calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, chain_kernel, finufft) :
+                              calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, naf_kernel, finufft);
+        dispatch_buf_threshold = threshold;
+        use_type3_             = use_t3;
+
+        prune_automatic_direct_kernels(use_dt1);
+
+        if (use_t3)
+          finufft.release_type1_gather();
+        else
+          finufft.release_type3();
+
+      } else {
+        NDA_RUNTIME_ERROR << "buffer_t: unsupported type_t for non-uniform target constructor\n";
+      }
+
+      do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
+    }
+
+    int64_t estimate_naf_multiplies() const {
+      int64_t naf_estimate = 0;
+      for (int r = 0; r < Rank; ++r) {
+        std::vector<unsigned long> unique_exp;
+        unique_exp.reserve(state_.n_targets);
+        for (int64_t d = 0; d < state_.n_targets; ++d) unique_exp.push_back(odd_exponent_abs(state_.target_n(r, d)));
+        std::sort(unique_exp.begin(), unique_exp.end());
+        unique_exp.erase(std::unique(unique_exp.begin(), unique_exp.end()), unique_exp.end());
+        if (unique_exp.empty()) continue;
+
+        naf_estimate += static_cast<int64_t>(std::bit_width(unique_exp.back()) - 1);
+        for (unsigned long exp : unique_exp) naf_estimate += static_cast<int64_t>(compute_naf(exp).size()) - 1;
+      }
+      return naf_estimate;
+    }
+
+    void prune_automatic_direct_kernels(bool use_dt1) {
+      if (use_dt1) {
+        naf_kernel_.reset();
+        chain_kernel_.reset();
+        return;
+      }
+
+      direct_type1_kernel_.reset();
+      if (use_chain_direct_)
+        naf_kernel_.reset();
       else
-        run_direct(*direct_type1_kernel_);
+        chain_kernel_.reset();
+    }
+
+    template <int TolDigits> static void do_nfft_impl(buffer_t &self) {
+      auto &finufft = self.template get_finufft<TolDigits>();
+
+      if (self.type_ == type_t::type1) {
+        if (self.state_.buf_counter < self.dispatch_buf_threshold)
+          self.run_direct_type1(*self.direct_type1_kernel_);
+        else {
+          if (self.dispatch_buf_threshold > 0) self.prepare_type1_coords();
+          finufft.execute_type1(self.state_, self.fiw_arr, self.fk_arr, self.common_factor);
+        }
+      } else if (self.type_ == type_t::type1_gather) {
+        self.prepare_type1_coords();
+        finufft.execute_type1_gather(self.state_, self.fiw_vec);
+      } else if (self.type_ == type_t::automatic) {
+        if (self.state_.buf_counter < self.dispatch_buf_threshold) {
+          if (self.direct_type1_kernel_)
+            self.run_direct(*self.direct_type1_kernel_);
+          else if (self.use_chain_direct_ && self.chain_kernel_)
+            self.run_direct(*self.chain_kernel_);
+          else
+            self.run_direct(*self.naf_kernel_);
+        } else if (self.use_type3_) {
+          finufft.execute_type3(self.state_, self.fiw_vec);
+        } else {
+          self.prepare_type1_coords();
+          finufft.execute_type1_gather(self.state_, self.fiw_vec);
+        }
+      } else if (self.type_ == type_t::type3)
+        finufft.execute_type3(self.state_, self.fiw_vec);
+      else if (self.type_ == type_t::direct_type3)
+        self.run_direct(*self.naf_kernel_);
+      else if (self.type_ == type_t::direct_chain)
+        self.run_direct(*self.chain_kernel_);
+      else
+        self.run_direct_type1(*self.direct_type1_kernel_);
     }
 
     template <typename Kernel> void run_direct(Kernel &kernel) {
       // Pad buffer counter to SIMD boundary to eliminate scalar tail loops
       int const buf_counter_padded = std::min(shared_state_t<Rank>::round_up_simd(state_.buf_counter), state_.buf_size);
 
-      // Zero-pad fx_arr and x_arr to SIMD boundary (only if within allocated size)
       for (int j = state_.buf_counter; j < buf_counter_padded; ++j) {
         state_.fx_arr[j] = dcomplex{0.0, 0.0};
         for (int r = 0; r < Rank; ++r) state_.x_arr(r, j) = 0.0;
@@ -277,13 +310,12 @@ namespace triqs::utility::nfft {
     }
 
     // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
-    void run_direct_type1() {
+    void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
-      direct_type1_kernel_->execute(state_);
+      kernel.execute(state_);
       scatter_to_arr();
     }
 
-    // Scatter flat fk_vec into Rank-dimensional fiw_arr (both row-major)
     void scatter_to_arr() {
       if constexpr (Rank == 1) {
         fiw_arr += state_.fk_vec;
@@ -294,12 +326,10 @@ namespace triqs::utility::nfft {
 
     void prepare_type1_coords() { apply_type1_coord_transform(state_, state_.buf_counter); }
 
-    // Build uniform grid target_mf from niws (row-major order)
     std::vector<std::array<target_mf_t, Rank>> build_uniform_target_mf(double beta) const {
       std::vector<std::array<target_mf_t, Rank>> target_mf;
       target_mf.reserve(state_.n_targets);
 
-      // Row-major enumeration matching fiw_arr memory layout
       auto recurse = [&](this auto &&self, std::array<target_mf_t, Rank> &mf, int r) -> void {
         if (r == Rank) {
           target_mf.push_back(mf);
@@ -316,7 +346,6 @@ namespace triqs::utility::nfft {
     }
   };
 
-  // Deduction guides
   template <int Rank> buffer_t(nda::array_view<dcomplex, Rank>, int, double, double) -> buffer_t<Rank>;
 
   template <std::size_t N>
