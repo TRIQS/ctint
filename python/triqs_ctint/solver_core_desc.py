@@ -445,8 +445,6 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_average_k             | bool                            | true                                    | Measure the average perturbation order                                                                                                |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| measure_auto_corr_time        | bool                            | true                                    | Measure the auto-correlation time                                                                                                     |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_histogram             | bool                            | false                                   | Measure the average perturbation order distribution                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_densities             | bool                            | true                                    | Measure the diagonal densities by operator insertion                                                                                  |
@@ -569,8 +567,6 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 | measure_average_sign          | bool                            | true                                    | Measure the MC sign                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_average_k             | bool                            | true                                    | Measure the average perturbation order                                                                                                |
-+-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| measure_auto_corr_time        | bool                            | true                                    | Measure the auto-correlation time                                                                                                     |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | measure_histogram             | bool                            | false                                   | Measure the average perturbation order distribution                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -740,11 +736,6 @@ c.add_member(c_name = "measure_average_k",
              c_type = "bool",
              initializer = """ true """,
              doc = r"""Measure the average perturbation order""")
-
-c.add_member(c_name = "measure_auto_corr_time",
-             c_type = "bool",
-             initializer = """ true """,
-             doc = r"""Measure the auto-correlation time""")
 
 c.add_member(c_name = "measure_histogram",
              c_type = "bool",
@@ -1054,11 +1045,6 @@ c.add_member(c_name = "measure_average_k",
              c_type = "bool",
              initializer = """ true """,
              doc = r"""Measure the average perturbation order""")
-
-c.add_member(c_name = "measure_auto_corr_time",
-             c_type = "bool",
-             initializer = """ true """,
-             doc = r"""Measure the auto-correlation time""")
 
 c.add_member(c_name = "measure_histogram",
              c_type = "bool",

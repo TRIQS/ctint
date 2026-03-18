@@ -5,13 +5,16 @@
 
 #pragma once
 #include <triqs/stat/lin_binning.hpp>
+#include <triqs/stat/log_binning.hpp>
 #include "../qmc_config.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
 
   /**
-  * Measure of the diagonal densities by operator insertion
+  * Measure of the diagonal densities by operator insertion.
+  * Always determines the auto-correlation time via log-binning
+  * of the perturbation order and diagonal densities.
   */
   struct densities {
 
@@ -36,6 +39,9 @@ namespace triqs_ctint::measures {
 
     // Linear binning for error analysis (one accumulator per block)
     std::vector<triqs::stat::lin_binning<nda::array<dcomplex, 1>>> dens_bins_;
+
+    // Log-binning accumulators for auto-correlation: [0] = perturbation order, [1..] = sign * density per orbital
+    std::vector<triqs::stat::log_binning<dcomplex>> log_accs_;
   };
 
 } // namespace triqs_ctint::measures
