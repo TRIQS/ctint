@@ -18,9 +18,15 @@ namespace triqs_ctint::measures {
     if (ops.empty()) TRIQS_RUNTIME_ERROR << "Empty operator list in static_obs measurement";
     long n_obs = ops.size();
 
-    // Init result accumulator
+    // Init result accumulator and per-step contribution array
     result_.resize(n_obs);
     result_() = 0;
+    step_contrib_.resize(n_obs);
+    step_contrib_() = 0;
+
+    // Init linear binning accumulators for error analysis (one per observable)
+    obs_bins_.reserve(n_obs);
+    for (long i = 0; i < n_obs; ++i) obs_bins_.emplace_back(dcomplex{0.0}, 128, 1);
 
     // Init constant parts
     constant_parts_ = nda::array<dcomplex, 1>(n_obs);
@@ -113,6 +119,8 @@ namespace triqs_ctint::measures {
 
   void static_obs::accumulate(mc_weight_t sign) {
     Z += sign;
+    ++N_;
+    step_contrib_() = 0;
 
     // --- Bilinear groups ---
     for (auto const &grp : bilinear_groups_) {
@@ -135,7 +143,7 @@ namespace triqs_ctint::measures {
       auto ratios = det.insert_ratios(0, 0, cs, cdags); // shape (L_, E)
 
       for (long l = 0; l < L_; ++l)
-        for (long e = 0; e < E; ++e) result_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(l, e);
+        for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(l, e);
     }
 
     // --- Quartic groups ---
@@ -164,7 +172,7 @@ namespace triqs_ctint::measures {
             cdag_A(e) = cdag_t{tau3, entry.idx_cdag_A};
           }
           auto ratios = det.insert2_ratios(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
-          for (long e = 0; e < E; ++e) result_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(e);
+          for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(e);
         }
 
       } else if (grp.case_type == case_t::AABB) {
@@ -189,7 +197,7 @@ namespace triqs_ctint::measures {
           auto ratios_1 = det_1.insert_ratios(0, 0, c_A, cdag_A);
           auto ratios_2 = det_2.insert_ratios(0, 0, c_B, cdag_B);
           for (long e = 0; e < E; ++e)
-            result_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
+            step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
         }
 
       } else { // ABAB
@@ -215,20 +223,33 @@ namespace triqs_ctint::measures {
           auto ratios_1 = det_1.insert_ratios(0, 0, c_B, cdag_A);
           auto ratios_2 = det_2.insert_ratios(0, 0, c_A, cdag_B);
           for (long e = 0; e < E; ++e)
-            result_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
+            step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
         }
       }
     }
 
     // --- Constant parts (no tau dependence, multiply by L_ to compensate collect_results /L_) ---
-    for (long i = 0; i < constant_parts_.size(); ++i) result_(i) += constant_parts_(i) * sign * L_;
+    for (long i = 0; i < constant_parts_.size(); ++i) step_contrib_(i) += constant_parts_(i) * sign * L_;
+
+    // Accumulate into result and feed per-step contributions into bins
+    result_ += step_contrib_;
+    for (long i = 0; i < step_contrib_.size(); ++i) obs_bins_[i] << step_contrib_(i);
   }
 
   void static_obs::collect_results(mpi::communicator const &comm) {
     Z       = mpi::all_reduce(Z, comm);
+    N_      = mpi::all_reduce(N_, comm);
     result_ = mpi::all_reduce(result_, comm);
     result_ = result_ / (Z * L_);
     results_->static_obs = result_;
+
+    // Compute error bars from linear binning
+    nda::array<double, 1> errors(result_.size());
+    for (long i = 0; i < result_.size(); ++i) {
+      auto [m, err, tau] = obs_bins_[i].mean_error_and_tau(comm);
+      errors(i)          = std::abs(err) / (std::abs(Z / N_) * L_);
+    }
+    results_->static_obs_errors = errors;
   }
 
 } // namespace triqs_ctint::measures

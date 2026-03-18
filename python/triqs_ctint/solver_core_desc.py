@@ -191,6 +191,11 @@ c.add_member(c_name = "static_obs",
              read_only= True,
              doc = r"""Static expectation values $\langle C_i \rangle$ measured by operator insertion with tau-averaging""")
 
+c.add_member(c_name = "static_obs_errors",
+             c_type = "std::optional<nda::array<double, 1>>",
+             read_only= True,
+             doc = r"""Error bars for static_obs from linear binning""")
+
 c.add_member(c_name = "M_iw",
              c_type = "std::optional<g_iw_t>",
              read_only= True,

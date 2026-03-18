@@ -4,6 +4,7 @@
 // See LICENSE in the root of this distribution for details.
 
 #pragma once
+#include <triqs/stat/lin_binning.hpp>
 #include "../qmc_config.hpp"
 #include "../container_set.hpp"
 
@@ -69,6 +70,11 @@ namespace triqs_ctint::measures {
     std::vector<tau_t> tau_points_;  // precomputed uniform tau grid
 
     mc_weight_t Z = 0.0;
+    long N_        = 0; // step counter
+
+    // Per-step contributions and linear binning for error analysis
+    nda::array<dcomplex, 1> step_contrib_;
+    std::vector<triqs::stat::lin_binning<dcomplex>> obs_bins_;
   };
 
 } // namespace triqs_ctint::measures
