@@ -129,12 +129,11 @@ namespace triqs_ctint {
     if (params.measure_average_k)
       mc.add_measure(measures::average_k{params, qmc_config, &result_set()}, "perturbation order measure", /* enable_timer */ true,
                      /* report */ true);
-    if (params.measure_auto_corr_time) mc.add_measure(measures::auto_corr_time{params, qmc_config, &result_set()}, "Auto-correlation time");
+    mc.add_measure(measures::densities{params, qmc_config, &result_set()}, "densities measure"); // always active for auto-correlation time
     if (params.measure_sign_only) {
       report(3) << "You selected Sign only mode" << std::endl;
     } else {
       if (params.measure_histogram) mc.add_measure(measures::histogram{params, qmc_config, &result_set()}, "perturbation order histogram measure");
-      if (params.measure_densities) mc.add_measure(measures::densities{params, qmc_config, &result_set()}, "densities measure");
       if (params.measure_density_matrix) mc.add_measure(measures::density_matrix{params, qmc_config, &result_set()}, "density matrix measure");
       if (params.measure_M_tau) mc.add_measure(measures::M_tau{params, qmc_config, &result_set()}, "M_tau measure");
       if (params.measure_M_iw) mc.add_measure(measures::M_iw{params, qmc_config, &result_set()}, "M_iw measure");
@@ -164,7 +163,7 @@ namespace triqs_ctint {
 
     if (params.measure_average_sign) report(3) << "Average sign: " << average_sign << "\n";
     if (params.measure_average_k) report(3) << "Average perturbation order: " << average_k << "\n";
-    if (params.measure_auto_corr_time) report(3) << "Auto-correlation time: " << auto_corr_time << "\n";
+    report(3) << "Auto-correlation time: " << auto_corr_time << "\n";
 
     // Post Processing
     if (params.post_process) { post_process(params); }

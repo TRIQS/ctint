@@ -49,7 +49,6 @@ namespace triqs_ctint {
     h5_write(grp, "rethrow_exception", sp.rethrow_exception);
     h5_write(grp, "measure_average_sign", sp.measure_average_sign);
     h5_write(grp, "measure_average_k", sp.measure_average_k);
-    h5_write(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
     h5_write(grp, "measure_histogram", sp.measure_histogram);
     h5_write(grp, "measure_densities", sp.measure_densities);
     h5_write(grp, "measure_density_matrix", sp.measure_density_matrix);
@@ -97,7 +96,6 @@ namespace triqs_ctint {
     h5_read(grp, "max_time", sp.max_time);
     h5_read(grp, "measure_average_sign", sp.measure_average_sign);
     h5_read(grp, "measure_average_k", sp.measure_average_k);
-    h5_read(grp, "measure_auto_corr_time", sp.measure_auto_corr_time);
     h5_read(grp, "measure_histogram", sp.measure_histogram);
     h5::try_read(grp, "measure_densities", sp.measure_densities);
     if (!grp.has_key("measure_densities")) h5::try_read(grp, "measure_density", sp.measure_densities); // backward compat

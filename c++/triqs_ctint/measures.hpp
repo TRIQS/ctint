@@ -5,7 +5,6 @@
 
 #include "./measures/average_sign.hpp"
 #include "./measures/average_k.hpp"
-#include "./measures/auto_corr_time.hpp"
 #include "./measures/histogram.hpp"
 #include "./measures/densities.hpp"
 #include "./measures/density_matrix.hpp"
