@@ -32,6 +32,8 @@ namespace triqs_ctint::measures {
     constant_parts_ = nda::array<dcomplex, 1>(n_obs);
     constant_parts_() = 0;
 
+    if (L_ <= 0) TRIQS_RUNTIME_ERROR << "n_tau_static_obs must be positive, got " << L_;
+
     // Precompute uniform tau grid: tau_k = k * beta / L for k = 0, ..., L-1
     tau_points_.resize(L_);
     for (long k = 0; k < L_; ++k) tau_points_[k] = make_tau_t(k * params.beta / L_);
@@ -150,80 +152,43 @@ namespace triqs_ctint::measures {
     for (auto const &grp : quartic_groups_) {
       long E = static_cast<long>(grp.entries.size());
 
-      if (grp.case_type == case_t::AAAA) {
-        auto &det = qmc_config.dets[grp.bl_det1];
-
-        // Loop over tau points and make L separate calls of size E.
-        // This avoids K=L*E flat arrays where the BLAS cost scales as O(N * L * E).
-        // With L calls of size E, total BLAS is the same but f-evaluation is better cached.
-        nda::array<c_t, 1> c_A(E), c_B(E);
-        nda::array<cdag_t, 1> cdag_A(E), cdag_B(E);
-
-        for (long l = 0; l < L_; ++l) {
-          auto tau = tau_points_[l];
-          auto tau1 = tau_t{tau.n + 1};
-          auto tau2 = tau_t{tau.n + 2};
-          auto tau3 = tau_t{tau.n + 3};
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_B(e)    = c_t{tau, entry.idx_c_B};
-            cdag_B(e) = cdag_t{tau1, entry.idx_cdag_B};
-            c_A(e)    = c_t{tau2, entry.idx_c_A};
-            cdag_A(e) = cdag_t{tau3, entry.idx_cdag_A};
-          }
-          auto ratios = det.insert2_ratios(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
-          for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(e);
+      // Fill rank-2 (L_, E) arrays for all four operators — common to all cases
+      nda::array<c_t, 2> c_A(L_, E), c_B(L_, E);
+      nda::array<cdag_t, 2> cdag_A(L_, E), cdag_B(L_, E);
+      for (long l = 0; l < L_; ++l) {
+        auto tau = tau_points_[l];
+        for (long e = 0; e < E; ++e) {
+          auto const &entry = grp.entries[e];
+          c_B(l, e)    = c_t{tau_t{tau.n}, entry.idx_c_B};
+          cdag_B(l, e) = cdag_t{tau_t{tau.n + 1}, entry.idx_cdag_B};
+          c_A(l, e)    = c_t{tau_t{tau.n + 2}, entry.idx_c_A};
+          cdag_A(l, e) = cdag_t{tau_t{tau.n + 3}, entry.idx_cdag_A};
         }
+      }
 
-      } else if (grp.case_type == case_t::AABB) {
-        auto &det_1 = qmc_config.dets[grp.bl_det1];
-        auto &det_2 = qmc_config.dets[grp.bl_det2];
+      // Accumulate ratios into step_contrib_
+      auto accum = [&](auto const &ratios) {
+        for (long l = 0; l < L_; ++l)
+          for (long e = 0; e < E; ++e) step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios(l, e);
+      };
 
-        nda::array<c_t, 1> c_A(E), c_B(E);
-        nda::array<cdag_t, 1> cdag_A(E), cdag_B(E);
-
-        for (long l = 0; l < L_; ++l) {
-          auto tau = tau_points_[l];
-          auto tau1 = tau_t{tau.n + 1};
-          auto tau2 = tau_t{tau.n + 2};
-          auto tau3 = tau_t{tau.n + 3};
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_B(e)    = c_t{tau, entry.idx_c_B};
-            cdag_B(e) = cdag_t{tau1, entry.idx_cdag_B};
-            c_A(e)    = c_t{tau2, entry.idx_c_A};
-            cdag_A(e) = cdag_t{tau3, entry.idx_cdag_A};
-          }
-          auto ratios_1 = det_1.insert_ratios(0, 0, c_A, cdag_A);
-          auto ratios_2 = det_2.insert_ratios(0, 0, c_B, cdag_B);
-          for (long e = 0; e < E; ++e)
-            step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
+      // Compute ratios — only the insert call differs between cases
+      switch (grp.case_type) {
+        case case_t::AAAA: {
+          accum(qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B));
+          break;
         }
-
-      } else { // ABAB
-        auto &det_1 = qmc_config.dets[grp.bl_det1];
-        auto &det_2 = qmc_config.dets[grp.bl_det2];
-
-        nda::array<c_t, 1> c_A(E), c_B(E);
-        nda::array<cdag_t, 1> cdag_A(E), cdag_B(E);
-
-        for (long l = 0; l < L_; ++l) {
-          auto tau = tau_points_[l];
-          auto tau1 = tau_t{tau.n + 1};
-          auto tau2 = tau_t{tau.n + 2};
-          auto tau3 = tau_t{tau.n + 3};
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_B(e)    = c_t{tau, entry.idx_c_B};
-            cdag_B(e) = cdag_t{tau1, entry.idx_cdag_B};
-            c_A(e)    = c_t{tau2, entry.idx_c_A};
-            cdag_A(e) = cdag_t{tau3, entry.idx_cdag_A};
-          }
-          // Swapped: det_1 gets (c_B, cdag_A), det_2 gets (c_A, cdag_B)
-          auto ratios_1 = det_1.insert_ratios(0, 0, c_B, cdag_A);
-          auto ratios_2 = det_2.insert_ratios(0, 0, c_A, cdag_B);
-          for (long e = 0; e < E; ++e)
-            step_contrib_(grp.entries[e].obs_idx) += grp.entries[e].coef * sign * ratios_1(e) * ratios_2(e);
+        case case_t::AABB: {
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, c_A, cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, c_B, cdag_B);
+          accum(r1 * r2);
+          break;
+        }
+        case case_t::ABAB: {
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, c_B, cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, c_A, cdag_B);
+          accum(r1 * r2);
+          break;
         }
       }
     }
