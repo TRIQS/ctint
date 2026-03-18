@@ -86,10 +86,20 @@ c.add_member(c_name = "densities",
              read_only= True,
              doc = r"""The diagonal densities (measured by operator insertion)""")
 
+c.add_member(c_name = "densities_errors",
+             c_type = "std::optional<block_vector_t>",
+             read_only= True,
+             doc = r"""Error bars for densities from linear binning""")
+
 c.add_member(c_name = "density_matrix",
              c_type = "std::optional<block_matrix_t>",
              read_only= True,
              doc = r"""The full density matrix (measured by operator insertion, needed for chi3)""")
+
+c.add_member(c_name = "density_matrix_errors",
+             c_type = "std::optional<block_matrix_t>",
+             read_only= True,
+             doc = r"""Error bars for density_matrix from linear binning""")
 
 c.add_member(c_name = "M_tau",
              c_type = "std::optional<g_tau_t>",

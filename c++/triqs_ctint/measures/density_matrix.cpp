@@ -10,20 +10,21 @@ using namespace triqs::utility;
 namespace triqs_ctint::measures {
 
   density_matrix::density_matrix(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_) {
+     : params(params_), qmc_config(qmc_config_), results_(results) {
 
     results->density_matrix = block_matrix_t{};
 
-    // Init measurement container and capture view
+    // Init measurement container and capture view, and init binning accumulators
     for (auto &[bl, bl_size] : params.gf_struct) {
       results->density_matrix->push_back(zeros<g_tau_scalar_t>(make_shape(bl_size, bl_size)));
       density_matrix_.push_back(results->density_matrix->back());
+      dm_bins_.emplace_back(nda::zeros<dcomplex>(make_shape(bl_size, bl_size)), 128, 1);
     }
   }
 
   void density_matrix::accumulate(mc_weight_t sign) {
-    // Accumulate sign
     Z += sign;
+    ++N_;
 
     // Measure full density matrix using batched insert_ratios_matrix
     for (int bl : range(params.n_blocks())) {
@@ -43,18 +44,31 @@ namespace triqs_ctint::measures {
       // Single batched call: insert_ratios_matrix returns ratios(b,a) for (c_b, cdag_a)
       // density_matrix(a,b) = <cdag_a c_b> = det_ratio for inserting (c_b, cdag_a)
       auto ratios = det.insert_ratios_matrix(0, 0, cs, cdags);
-      // ratios(b, a) = det_ratio for (c_b, cdag_a) = density_matrix(a,b)
+      auto step   = nda::array<dcomplex, 2>(bl_size, bl_size);
       for (int a = 0; a < bl_size; ++a)
-        for (int b = 0; b < bl_size; ++b) dens_mat(a, b) += sign * ratios(b, a);
+        for (int b = 0; b < bl_size; ++b) {
+          auto val        = sign * ratios(b, a);
+          dens_mat(a, b) += val;
+          step(a, b)      = val;
+        }
+      dm_bins_[bl] << step;
     }
   }
 
   void density_matrix::collect_results(mpi::communicator const &comm) {
-    // Collect results and normalize
-    Z = mpi::all_reduce(Z, comm);
+    Z  = mpi::all_reduce(Z, comm);
+    N_ = mpi::all_reduce(N_, comm);
     for (auto &dens_mat : density_matrix_) {
       dens_mat = mpi::all_reduce(dens_mat, comm);
       dens_mat = dens_mat / Z;
+    }
+
+    // Compute error bars from linear binning
+    results_->density_matrix_errors = block_matrix_t{};
+    for (int bl : range(params.n_blocks())) {
+      auto [m, err, tau] = dm_bins_[bl].mean_error_and_tau(comm);
+      auto norm          = std::abs(Z / N_);
+      results_->density_matrix_errors->push_back(matrix<g_tau_scalar_t>(nda::abs(err) / norm));
     }
   }
 
