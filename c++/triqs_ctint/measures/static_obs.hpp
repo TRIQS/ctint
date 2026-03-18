@@ -5,7 +5,7 @@
 
 #pragma once
 #include <triqs/stat/lin_binning.hpp>
-#include "../qmc_config.hpp"
+#include "quartic_block.hpp"
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {
@@ -31,12 +31,9 @@ namespace triqs_ctint::measures {
     container_set *results_;
     nda::array<dcomplex, 1> result_;
 
-    // Case types for quartic operator block structure
-    enum class case_t { AAAA, AABB, ABAB };
-
     // Bilinear entry: single insertion into one det
     struct bilinear_entry_t {
-      long obs_idx;
+      long target_idx;
       dcomplex coef;
       int idx_cdag, idx_c;
     };
@@ -46,22 +43,6 @@ namespace triqs_ctint::measures {
       // Pre-allocated scratch arrays of shape (L_, entries.size()), filled each MC step
       nda::array<c_t, 2> cs;
       nda::array<cdag_t, 2> cdags;
-    };
-
-    // Quartic entry: double insertion or product of insertions
-    struct quartic_entry_t {
-      long obs_idx;
-      dcomplex coef;
-      int idx_cdag_A, idx_c_A; // pair A: (m[0], m[3])
-      int idx_cdag_B, idx_c_B; // pair B: (m[1], m[2])
-    };
-    struct quartic_group_t {
-      case_t case_type;
-      int bl_det1, bl_det2;
-      std::vector<quartic_entry_t> entries;
-      // Pre-allocated scratch arrays of shape (L_, entries.size()), filled each MC step
-      nda::array<c_t, 2> c_A, c_B;
-      nda::array<cdag_t, 2> cdag_A, cdag_B;
     };
 
     // Grouped operator terms

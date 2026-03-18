@@ -20,11 +20,11 @@ namespace triqs_ctint::measures {
     std::vector<std::pair<std::vector<op_term_t>, std::vector<op_term_t>>> op_pairs;
     for (auto const &[A, B] : params.chi_ops) op_pairs.emplace_back(get_terms(A, params.gf_struct), get_terms(B, params.gf_struct));
 
-    // Group all (pair_idx, A_term, B_term) triples by (case_type, block_indices)
-    using group_key_t = std::tuple<chi_case_t, int, int>;
-    std::map<group_key_t, chi_group_t> group_map;
+    // Group all (target_idx, A_term, B_term) triples by (case_type, block_indices)
+    using group_key_t = std::tuple<quartic_case_t, int, int>;
+    std::map<group_key_t, quartic_group_t> group_map;
 
-    for (auto [pair_idx, pair] : itertools::enumerate(op_pairs)) {
+    for (auto [target_idx, pair] : itertools::enumerate(op_pairs)) {
       auto &[A, B] = pair;
       for (auto &[coef_B, bl_pair_B, idx_pair_B] : B) {
         auto [bl_cdag_B, bl_c_B] = bl_pair_B;
@@ -34,37 +34,15 @@ namespace triqs_ctint::measures {
           auto [bl_cdag_A, bl_c_A] = bl_pair_A;
           auto [idx_cdag_A, idx_c_A] = idx_pair_A;
 
-          bool is_AABB = (bl_cdag_A == bl_c_A && bl_cdag_B == bl_c_B);
-          bool is_ABAB = (bl_cdag_A == bl_c_B && bl_cdag_B == bl_c_A);
-          bool is_AAAA = is_AABB && is_ABAB;
+          auto info = classify_quartic_blocks(bl_cdag_A, bl_c_A, bl_cdag_B, bl_c_B, coef_A * coef_B);
+          if (!info) continue;
 
-          chi_case_t case_type;
-          int bl_det1, bl_det2;
-          dcomplex coef = coef_A * coef_B;
-
-          if (is_AAAA) {
-            case_type = chi_case_t::AAAA;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_cdag_A;
-          } else if (is_AABB) {
-            case_type = chi_case_t::AABB;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_cdag_B;
-          } else if (is_ABAB) {
-            case_type = chi_case_t::ABAB;
-            bl_det1 = bl_cdag_A;
-            bl_det2 = bl_c_A;
-            coef = -coef; // absorb minus sign from operator swap
-          } else {
-            continue; // other block combinations vanish
-          }
-
-          group_key_t key{case_type, bl_det1, bl_det2};
-          auto &grp = group_map[key];
-          grp.case_type = case_type;
-          grp.bl_det1 = bl_det1;
-          grp.bl_det2 = bl_det2;
-          grp.entries.push_back({static_cast<long>(pair_idx), coef, idx_cdag_A, idx_c_A, idx_cdag_B, idx_c_B});
+          group_key_t key{info->case_type, info->bl_det1, info->bl_det2};
+          auto &grp     = group_map[key];
+          grp.case_type = info->case_type;
+          grp.bl_det1   = info->bl_det1;
+          grp.bl_det2   = info->bl_det2;
+          grp.entries.push_back({static_cast<long>(target_idx), info->coef, idx_cdag_A, idx_c_A, idx_cdag_B, idx_c_B});
         }
       }
     }
@@ -120,22 +98,22 @@ namespace triqs_ctint::measures {
       // Scatter ratios into chiAB_tau_ (l-outer for row-major cache locality)
       auto scatter = [&](auto const &ratios) {
         for (long l = 0; l < L_; ++l)
-          for (long e = 0; e < E; ++e) chiAB_tau_.data()(l, grp.entries[e].pair_idx) += grp.entries[e].coef * sign * ratios(l, e);
+          for (long e = 0; e < E; ++e) chiAB_tau_.data()(l, grp.entries[e].target_idx) += grp.entries[e].coef * sign * ratios(l, e);
       };
 
       switch (grp.case_type) {
-        case chi_case_t::AAAA: {
+        case quartic_case_t::AAAA: {
           scatter(qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, grp.c_A, grp.c_B, grp.cdag_A, grp.cdag_B));
           break;
         }
-        case chi_case_t::AABB: {
+        case quartic_case_t::AABB: {
           auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_A, grp.cdag_A);
           auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_B, grp.cdag_B);
           r1 *= r2;
           scatter(r1);
           break;
         }
-        case chi_case_t::ABAB: {
+        case quartic_case_t::ABAB: {
           // det_1: (c_B, cdag_A), det_2: (c_A, cdag_B) — cross-pair into each det
           auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_B, grp.cdag_A);
           auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_A, grp.cdag_B);
