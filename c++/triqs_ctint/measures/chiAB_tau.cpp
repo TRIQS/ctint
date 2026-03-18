@@ -11,7 +11,7 @@ using namespace triqs::utility;
 namespace triqs_ctint::measures {
 
   chiAB_tau::chiAB_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps} {
+     : params(params_), qmc_config(qmc_config_) {
 
     if (params.chi_ops.empty()) TRIQS_RUNTIME_ERROR << " Empty operator pair list detected in chiAB measurement \n";
 
@@ -21,7 +21,6 @@ namespace triqs_ctint::measures {
     for (auto const &[A, B] : params.chi_ops) op_pairs.emplace_back(get_terms(A, params.gf_struct), get_terms(B, params.gf_struct));
 
     // Group all (pair_idx, A_term, B_term) triples by (case_type, block_indices)
-    // Use a map keyed by (case_type, bl_det1, bl_det2)
     using group_key_t = std::tuple<chi_case_t, int, int>;
     std::map<group_key_t, chi_group_t> group_map;
 
@@ -46,7 +45,7 @@ namespace triqs_ctint::measures {
           if (is_AAAA) {
             case_type = chi_case_t::AAAA;
             bl_det1 = bl_cdag_A;
-            bl_det2 = bl_cdag_A; // unused, same det
+            bl_det2 = bl_cdag_A;
           } else if (is_AABB) {
             case_type = chi_case_t::AABB;
             bl_det1 = bl_cdag_A;
@@ -70,160 +69,83 @@ namespace triqs_ctint::measures {
       }
     }
 
-    // Flatten map to vector
-    groups_.reserve(group_map.size());
-    for (auto &[key, grp] : group_map) groups_.push_back(std::move(grp));
-
     // Init measurement container and capture view
+    mesh::dlr_imtime tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps};
     results->chiAB_tau = gf<mesh::dlr_imtime, tensor_valued<1>>{tau_mesh, make_shape(op_pairs.size())};
     chiAB_tau_.rebind(results->chiAB_tau.value());
     chiAB_tau_() = 0;
+
+    // Precompute tau points from the DLR mesh
+    L_ = tau_mesh.size();
+    tau_points_.reserve(L_);
+    for (auto tau : tau_mesh) tau_points_.push_back(make_tau_t(double(tau)));
+
+    // Flatten map to vector and pre-allocate scratch arrays
+    groups_.reserve(group_map.size());
+    for (auto &[key, grp] : group_map) {
+      long E = static_cast<long>(grp.entries.size());
+      grp.c_A.resize(L_, E);
+      grp.c_B.resize(L_, E);
+      grp.cdag_A.resize(L_, E);
+      grp.cdag_B.resize(L_, E);
+      groups_.push_back(std::move(grp));
+    }
   }
 
   void chiAB_tau::accumulate(mc_weight_t sign) {
     Z += sign;
 
-    long L = tau_mesh.size();
-
-    for (auto const &grp : groups_) {
+    for (auto &grp : groups_) {
       long E = static_cast<long>(grp.entries.size());
-      auto &det_1 = qmc_config.dets[grp.bl_det1];
 
-      if (grp.case_type == chi_case_t::AAAA) {
-        // Build rank-2 arrays (L, E) for A-side (tau varies), rank-1 (E) for B-side (tau=0 fixed)
-        nda::array<c_t, 2> c_A(L, E);
-        nda::array<cdag_t, 2> cdag_A(L, E);
-        nda::array<c_t, 1> c_B(E);
-        nda::array<cdag_t, 1> cdag_B(E);
-
+      // Fill scratch arrays: A-side varies with tau, B-side fixed at tau=0
+      for (long l = 0; l < L_; ++l) {
+        auto tau      = tau_points_[l];
+        auto tau_cA   = tau_t{tau.n + 2};
+        auto tau_cdA  = tau_t{tau.n + 3};
         for (long e = 0; e < E; ++e) {
           auto const &entry = grp.entries[e];
-          c_B(e) = c_t{tau_t::get_zero(), entry.idx_c_B};
-          cdag_B(e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
+          grp.c_A(l, e)    = c_t{tau_cA, entry.idx_c_A};
+          grp.cdag_A(l, e) = cdag_t{tau_cdA, entry.idx_cdag_A};
+          grp.c_B(l, e)    = c_t{tau_t::get_zero(), entry.idx_c_B};
+          grp.cdag_B(l, e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
         }
+      }
 
-        long l = 0;
-        for (auto tau : tau_mesh) {
-          auto tau_point = make_tau_t(double(tau));
-          auto taup_point = tau_point;
-          tau_point.n += 3;
-          taup_point.n += 2;
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_A(l, e) = c_t{taup_point, entry.idx_c_A};
-            cdag_A(l, e) = cdag_t{tau_point, entry.idx_cdag_A};
-          }
-          ++l;
-        }
-
-        // Single batched call with broadcast: (L,E) × (E) → (L,E)
-        auto ratios = det_1.insert2_ratios(0, 1, 0, 1, c_A, c_B, cdag_A, cdag_B);
-
-        // Scatter results
-        l = 0;
-        for (auto tau : tau_mesh) {
-          for (long e = 0; e < E; ++e) { chiAB_tau_[tau](grp.entries[e].pair_idx) += grp.entries[e].coef * sign * ratios(l, e); }
-          ++l;
-        }
-
-      } else if (grp.case_type == chi_case_t::AABB) {
-        auto &det_2 = qmc_config.dets[grp.bl_det2];
-
-        // A-side: rank-2 (L, E), B-side: rank-1 (E)
-        nda::array<c_t, 2> c_A(L, E);
-        nda::array<cdag_t, 2> cdag_A(L, E);
-        nda::array<c_t, 1> c_B(E);
-        nda::array<cdag_t, 1> cdag_B(E);
-
+      // Compute ratios depending on case type
+      auto scatter = [&](auto const &ratios) {
         for (long e = 0; e < E; ++e) {
           auto const &entry = grp.entries[e];
-          c_B(e) = c_t{tau_t::get_zero(), entry.idx_c_B};
-          cdag_B(e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
+          auto val = entry.coef * sign;
+          for (long l = 0; l < L_; ++l) chiAB_tau_.data()(l, entry.pair_idx) += val * ratios(l, e);
         }
+      };
 
-        long l = 0;
-        for (auto tau : tau_mesh) {
-          auto tau_point = make_tau_t(double(tau));
-          auto taup_point = tau_point;
-          tau_point.n += 3;
-          taup_point.n += 2;
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_A(l, e) = c_t{taup_point, entry.idx_c_A};
-            cdag_A(l, e) = cdag_t{tau_point, entry.idx_cdag_A};
-          }
-          ++l;
+      switch (grp.case_type) {
+        case chi_case_t::AAAA: {
+          scatter(qmc_config.dets[grp.bl_det1].insert2_ratios(0, 1, 0, 1, grp.c_A, grp.c_B, grp.cdag_A, grp.cdag_B));
+          break;
         }
-
-        // det_1: A-side, rank-2 (L, E) × rank-2 (L, E)
-        auto ratios_1 = det_1.insert_ratios(0, 0, c_A, cdag_A);
-        // det_2: B-side, rank-1 (E) × rank-1 (E)
-        auto ratios_2 = det_2.insert_ratios(0, 0, c_B, cdag_B);
-
-        // Scatter with broadcast: ratios_1(l,e) * ratios_2(e)
-        l = 0;
-        for (auto tau : tau_mesh) {
-          for (long e = 0; e < E; ++e) {
-            chiAB_tau_[tau](grp.entries[e].pair_idx) += grp.entries[e].coef * sign * ratios_1(l, e) * ratios_2(e);
-          }
-          ++l;
+        case chi_case_t::AABB: {
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_A, grp.cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_B, grp.cdag_B);
+          r1 *= r2;
+          scatter(r1);
+          break;
         }
-
-      } else { // ABAB
-        auto &det_2 = qmc_config.dets[grp.bl_det2];
-
-        // ABAB: det_1 gets (c_B, cdag_A), det_2 gets (c_A, cdag_B)
-        // c_B has fixed tau=0, cdag_A varies with tau
-        // c_A varies with tau, cdag_B has fixed tau=0+
-        // Both det calls need rank-2 arrays (replicate fixed-tau side)
-        nda::array<c_t, 2> c_B_rep(L, E);    // replicated across L
-        nda::array<cdag_t, 2> cdag_A(L, E);   // varies with tau
-        nda::array<c_t, 2> c_A(L, E);         // varies with tau
-        nda::array<cdag_t, 2> cdag_B_rep(L, E); // replicated across L
-
-        for (long e = 0; e < E; ++e) {
-          auto const &entry = grp.entries[e];
-          auto c_B_e = c_t{tau_t::get_zero(), entry.idx_c_B};
-          auto cdag_B_e = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
-          for (long l2 = 0; l2 < L; ++l2) {
-            c_B_rep(l2, e) = c_B_e;
-            cdag_B_rep(l2, e) = cdag_B_e;
-          }
-        }
-
-        long l = 0;
-        for (auto tau : tau_mesh) {
-          auto tau_point = make_tau_t(double(tau));
-          auto taup_point = tau_point;
-          tau_point.n += 3;
-          taup_point.n += 2;
-          for (long e = 0; e < E; ++e) {
-            auto const &entry = grp.entries[e];
-            c_A(l, e) = c_t{taup_point, entry.idx_c_A};
-            cdag_A(l, e) = cdag_t{tau_point, entry.idx_cdag_A};
-          }
-          ++l;
-        }
-
-        // det_1: (c_B, cdag_A) — swapped operators
-        auto ratios_1 = det_1.insert_ratios(0, 0, c_B_rep, cdag_A);
-        // det_2: (c_A, cdag_B)
-        auto ratios_2 = det_2.insert_ratios(0, 0, c_A, cdag_B_rep);
-
-        // Scatter (minus sign already absorbed into coef)
-        l = 0;
-        for (auto tau : tau_mesh) {
-          for (long e = 0; e < E; ++e) {
-            chiAB_tau_[tau](grp.entries[e].pair_idx) += grp.entries[e].coef * sign * ratios_1(l, e) * ratios_2(l, e);
-          }
-          ++l;
+        case chi_case_t::ABAB: {
+          // det_1: (c_B, cdag_A), det_2: (c_A, cdag_B) — cross-pair into each det
+          auto r1 = qmc_config.dets[grp.bl_det1].insert_ratios(0, 0, grp.c_B, grp.cdag_A);
+          auto r2 = qmc_config.dets[grp.bl_det2].insert_ratios(0, 0, grp.c_A, grp.cdag_B);
+          r1 *= r2;
+          scatter(r1);
+          break;
         }
       }
     }
   }
 
   void chiAB_tau::collect_results(mpi::communicator const &comm) {
-    // Collect results and normalize
     Z          = mpi::all_reduce(Z, comm);
     chiAB_tau_ = mpi::all_reduce(chiAB_tau_, comm);
     chiAB_tau_ = chiAB_tau_ / Z;
