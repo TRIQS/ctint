@@ -284,7 +284,7 @@ namespace triqs::utility::nfft {
 
         for (int j = 0; j < block_len; j += simd_size) {
           using rbatch            = xsimd::batch<double>;
-          auto [sin_vec, cos_vec] = xsimd::sincos(rbatch::load_unaligned(&state.x_arr(r, j_begin + j)) * pi_over_beta);
+          auto [sin_vec, cos_vec] = triqs::utility::math::sincos<12>(rbatch::load_unaligned(&state.x_arr(r, j_begin + j)) * pi_over_beta);
           cbatch(cos_vec, sin_vec).store_unaligned(tbl + j);
         }
 
@@ -310,7 +310,7 @@ namespace triqs::utility::nfft {
       auto const *flat_row_idx = unique_row_idx.empty() ? nullptr : unique_row_idx.data();
       poet::static_for<Rank>([&](const auto r) {
         auto *rows        = simd_row_tbl_[r].data();
-        auto [sin_vec, cos_vec] = xsimd::sincos(xsimd::batch<double>::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
+        auto [sin_vec, cos_vec] = triqs::utility::math::sincos<12>(xsimd::batch<double>::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
         rows[0]           = cbatch(cos_vec, sin_vec);
 
         auto const &plan = plans_[r];

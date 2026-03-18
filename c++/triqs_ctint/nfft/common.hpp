@@ -14,6 +14,7 @@
 #include <triqs/mesh/matsubara_freq.hpp>
 
 #include "finufft.h"
+#include "fast_sincos.hpp"
 #include <xsimd/xsimd.hpp>
 #include <poet/poet.hpp>
 
@@ -22,10 +23,10 @@ namespace triqs::utility::nfft {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
-  // Combined sincos to avoid redundant trig computation (compiler doesn't merge without -ffast-math)
-  inline dcomplex cis(double theta) {
-    double s, c;
-    ::sincos(theta, &s, &c);
+  // Combined sincos using polynomial approximation (polyfit-based).
+  // TolDigits controls accuracy vs speed tradeoff; should match NFFT tolerance.
+  template <int TolDigits = 12> inline dcomplex cis(double theta) {
+    auto [s, c] = triqs::utility::math::sincos<TolDigits>(theta);
     return {c, s};
   }
 

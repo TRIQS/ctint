@@ -102,7 +102,7 @@ namespace triqs::utility::nfft {
       poet::static_for<Rank>([&](const auto r) {
         auto &tbl = simd_pow2_tbl[r];
         using rbatch = xsimd::batch<double>;
-        auto [sin_vec, cos_vec] = xsimd::sincos(rbatch::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
+        auto [sin_vec, cos_vec] = triqs::utility::math::sincos<12>(rbatch::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
         tbl[0] = cbatch(cos_vec, sin_vec);
         for (int k = 1; k < num_pow2_levels[r]; ++k) tbl[k] = tbl[k - 1] * tbl[k - 1];
       });
