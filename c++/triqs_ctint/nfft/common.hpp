@@ -118,30 +118,11 @@ namespace triqs::utility::nfft {
   using cbatch                           = xsimd::batch<dcomplex>;
   static constexpr std::size_t simd_size = cbatch::size;
 
-  // Number of SIMD registers available on the target architecture.
-  static constexpr int simd_num_regs = [] {
-    using arch = typename cbatch::arch_type;
-    // AVX-512 variants: 32 ZMM registers
-    if constexpr (std::is_base_of_v<xsimd::avx512f, arch>) return 32;
-#ifdef XSIMD_WITH_NEON
-    // ARM NEON: 32 V registers
-    else if constexpr (std::is_base_of_v<xsimd::neon, arch>) return 32;
-#endif
-#ifdef XSIMD_WITH_SVE
-    // ARM SVE: 32 Z registers
-    else if constexpr (std::is_base_of_v<xsimd::sve, arch>) return 32;
-#endif
-    // x86 SSE/AVX/AVX2: 16 XMM/YMM registers
-    else return 16;
-  }();
-
-  // Optimal ILP accumulator count based on available SIMD registers.
-  // Empirically determined from spill analysis (Clang 22, -O3):
-  //   16 regs (SSE/AVX2): n_acc=2 is zero-spill; n_acc=3+ spills heavily
-  //   32 regs (AVX-512/NEON/SVE): n_acc=4-5 is zero-spill
-  static constexpr int n_acc = std::clamp(simd_num_regs <= 16 ? 2 : 4, 2, 8);
+  // ILP accumulator count: 2 for 16-reg ISAs (SSE/AVX2), 4 for 32-reg ISAs (AVX-512/NEON/SVE).
+  static constexpr int n_acc = poet::vector_register_count() <= 16 ? 2 : 4;
 
   // SIMD+ILP target accumulation: processes n_acc targets simultaneously.
+  // The inner source loop is shared across n_acc accumulators for ILP.
   // compute_simd_pow(d, j) returns SIMD batch of exp(i*omega_d*tau_j).
   // compute_scalar_pow(d, j) returns scalar version for the tail.
   template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>

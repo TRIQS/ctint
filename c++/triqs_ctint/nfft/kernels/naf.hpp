@@ -162,14 +162,10 @@ namespace triqs::utility::nfft {
             grouped_sum[p] = xsimd::fma(fj_u0, load_target(uq1, rank1_idx[p]), grouped_sum[p]);
         }
       } else if constexpr (Rank == 1) {
-        int64_t d                        = 0;
-        int64_t const n_targets_main     = (n_tgt / n_acc) * n_acc;
-        cbatch *__restrict__ sp          = sums_buf.data();
-
-        for (; d < n_targets_main; d += n_acc)
-          poet::static_for<n_acc>([&](const auto i) { sp[d + i] = xsimd::fma(fj, load_target(uq0, map_ptr[d + i]), sp[d + i]); });
-
-        for (; d < n_tgt; ++d) sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
+        cbatch *__restrict__ sp = sums_buf.data();
+        poet::dynamic_for<n_acc>(int64_t{0}, n_tgt, [&](auto, int64_t d) {
+          sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
+        });
       } else {
         cbatch *__restrict__ sp = sums_buf.data();
         for (int64_t d = 0; d < n_tgt; ++d) {
