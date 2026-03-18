@@ -107,6 +107,9 @@ namespace triqs_ctint {
     /// Static expectation values $\langle C_i \rangle$ measured by operator insertion with tau-averaging
     std::optional<nda::array<dcomplex, 1>> static_obs;
 
+    /// Error bars for static_obs from linear binning
+    std::optional<nda::array<double, 1>> static_obs_errors;
+
     //============ Containers dependent on measured quantities
 
     /// The Fourier-transform of M_tau. Dependent on M_tau
@@ -221,6 +224,7 @@ namespace triqs_ctint {
       h5_write(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_write(grp, "chiAB_tau", c.chiAB_tau);
       h5_write(grp, "static_obs", c.static_obs);
+      h5_write(grp, "static_obs_errors", c.static_obs_errors);
       h5_write(grp, "M_iw", c.M_iw);
       h5_write(grp, "G_iw", c.G_iw);
       h5_write(grp, "Sigma_dyn_iw", c.Sigma_dyn_iw);
@@ -284,6 +288,7 @@ namespace triqs_ctint {
       h5_read(grp, "chi2ph_tau", c.chi2ph_tau);
       h5_read(grp, "chiAB_tau", c.chiAB_tau);
       h5::try_read(grp, "static_obs", c.static_obs);
+      h5::try_read(grp, "static_obs_errors", c.static_obs_errors);
       h5_read(grp, "M_iw", c.M_iw);
       h5_read(grp, "G_iw", c.G_iw);
       h5::try_read(grp, "Sigma_dyn_iw", c.Sigma_dyn_iw);
