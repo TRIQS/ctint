@@ -18,6 +18,7 @@
 #include <utility>
 
 #include <xsimd/xsimd.hpp>
+#include <poet/poet.hpp>
 
 namespace triqs::utility::math {
 
@@ -68,7 +69,7 @@ inline constexpr std::array<double, 6> cos_tail_full = {
 };
 
 // Compile-time truncation: return the last N elements (lowest-order, most important terms).
-template <std::size_t N, std::size_t M> constexpr std::array<double, N> tail(std::array<double, M> const &src) {
+template <std::size_t N, std::size_t M> consteval std::array<double, N> tail(std::array<double, M> const &src) {
   static_assert(N <= M);
   std::array<double, N> out{};
   for (std::size_t i = 0; i < N; ++i) out[i] = src[M - N + i];
@@ -109,15 +110,15 @@ template <class T, class U> [[gnu::always_inline]] inline auto fma_or_mul_add(T 
 template <std::size_t N, class T>
 [[gnu::always_inline]] inline auto eval_horner(std::array<double, N> const &coeffs, T const &x) {
   auto acc = std::remove_cvref_t<T>(coeffs[0]);
-  for (std::size_t i = 1; i < N; ++i) acc = fma_or_mul_add(acc, x, coeffs[i]);
+  poet::static_for<1, static_cast<std::ptrdiff_t>(N)>([&](auto i) { acc = fma_or_mul_add(acc, x, coeffs[i]); });
   return acc;
 }
 
 // ---- Reduced-angle evaluation: |t| <= pi/4 ----
 
 template <int TolDigits, class X> [[gnu::always_inline]] inline auto evaluate_reduced(X const &t) {
-  auto const &si = sin_inner<TolDigits>;
-  auto const &ct = cos_tail<TolDigits>;
+  static constexpr auto si = sin_inner<TolDigits>;
+  static constexpr auto ct = cos_tail<TolDigits>;
   auto const t2 = t * t;
   auto const t3 = t2 * t;
   auto const sp = eval_horner(si, t2);

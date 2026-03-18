@@ -41,11 +41,11 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void execute(shared_state_t<Rank> &state) {
+    template <int TolDigits = 12> void execute(shared_state_t<Rank> &state) {
       if (is_sequential_)
-        execute_sequential(state);
+        execute_sequential<TolDigits>(state);
       else
-        execute_gather(state);
+        execute_gather<TolDigits>(state);
     }
 
     private:
@@ -163,11 +163,11 @@ namespace triqs::utility::nfft {
 
     // Fill destination with geometric sequence exp(i*(2n+1)*pi*tau/beta) for n in [n_min, n_min+n_range).
     // Uses n_range_padded (SIMD-aligned) so no scalar tail is needed.
-    void fill_pow_row(dcomplex * __restrict__ dest, int r, double tau, double pi_over_beta) {
+    template <int TolDigits> void fill_pow_row(dcomplex * __restrict__ dest, int r, double tau, double pi_over_beta) {
       constexpr std::size_t S = cbatch::size;
       long const nr      = n_range_padded[r];
       double const theta1 = pi_over_beta * tau;
-      dcomplex const z1 = cis(theta1);
+      dcomplex const z1 = cis<TolDigits>(theta1);
       dcomplex const z_step = z1 * z1;
       dcomplex const z_base = unit_pow(z_step, n_min_arr[r]) * z1;
 
@@ -210,7 +210,7 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void execute_sequential(shared_state_t<Rank> &state) {
+    template <int TolDigits> void execute_sequential(shared_state_t<Rank> &state) {
       dcomplex * __restrict__ fiw_ptr = state.fk_vec.data();
       double const pi_over_beta = M_PI / state.beta;
       double const step_freq    = 2.0 * pi_over_beta;
@@ -220,8 +220,8 @@ namespace triqs::utility::nfft {
         std::array<std::pair<cbatch, cbatch>, Rank> simd_mult;
         poet::static_for<Rank>([&](auto r) {
           double const tau = state.x_arr(r, j);
-          z_base[r]    = cis(static_cast<double>(2 * n_min_arr[r] + 1) * pi_over_beta * tau);
-          z_step[r]    = cis(step_freq * tau);
+          z_base[r]    = cis<TolDigits>(static_cast<double>(2 * n_min_arr[r] + 1) * pi_over_beta * tau);
+          z_step[r]    = cis<TolDigits>(step_freq * tau);
           simd_mult[r] = make_simd_multiplier(z_step[r]);
         });
         seq_accumulate<0>(fiw_ptr, state.fx_arr[j], z_base, z_step, simd_mult);
@@ -230,7 +230,7 @@ namespace triqs::utility::nfft {
 
     // ---- Gather path: Rank=1 ----
 
-    void execute_gather(shared_state_t<Rank> &state) requires(Rank == 1) {
+    template <int TolDigits> void execute_gather(shared_state_t<Rank> &state) requires(Rank == 1) {
       using rbatch              = xsimd::batch<double>;
       using ibatch              = xsimd::batch<int64_t>;
       constexpr std::size_t S   = cbatch::size;
@@ -248,7 +248,7 @@ namespace triqs::utility::nfft {
       for (; j + B <= state.buf_counter; j += B) {
         std::array<cbatch, B> fj_vec;
         for (int b = 0; b < B; ++b) {
-          fill_pow_row(pow0_buf[b].data(), 0, state.x_arr(0, j + b), pi_over_beta);
+          fill_pow_row<TolDigits>(pow0_buf[b].data(), 0, state.x_arr(0, j + b), pi_over_beta);
           fj_vec[b] = cbatch(state.fx_arr[j + b]);
         }
 
@@ -267,7 +267,7 @@ namespace triqs::utility::nfft {
 
       // Remainder: one source at a time
       for (; j < state.buf_counter; ++j) {
-        fill_pow_row(pow0_buf[0].data(), 0, state.x_arr(0, j), pi_over_beta);
+        fill_pow_row<TolDigits>(pow0_buf[0].data(), 0, state.x_arr(0, j), pi_over_beta);
         cbatch const fj(state.fx_arr[j]);
         double const * __restrict__ pow0 = reinterpret_cast<double const *>(pow0_buf[0].data());
 
@@ -283,7 +283,7 @@ namespace triqs::utility::nfft {
 
     // ---- Gather path: Rank>=2, factored accumulation with j-tiling ----
 
-    void execute_gather(shared_state_t<Rank> &state) requires(Rank >= 2) {
+    template <int TolDigits> void execute_gather(shared_state_t<Rank> &state) requires(Rank >= 2) {
       using rbatch              = xsimd::batch<double>;
       using ibatch              = xsimd::batch<int64_t>;
       constexpr std::size_t S   = cbatch::size;
@@ -316,7 +316,7 @@ namespace triqs::utility::nfft {
       int j = 0;
       for (; j + B <= state.buf_counter; j += B) {
         for (int b = 0; b < B; ++b)
-          poet::static_for<Rank>([&](auto r) { fill_pow_row(pow_bufs[r][b].data(), r, state.x_arr(r, j + b), pi_over_beta); });
+          poet::static_for<Rank>([&](auto r) { fill_pow_row<TolDigits>(pow_bufs[r][b].data(), r, state.x_arr(r, j + b), pi_over_beta); });
 
         for (auto const &g : groups_) {
           std::array<cbatch, B> combined_vec;
@@ -333,7 +333,7 @@ namespace triqs::utility::nfft {
 
       // Remainder: one source at a time
       for (; j < state.buf_counter; ++j) {
-        poet::static_for<Rank>([&](auto r) { fill_pow_row(pow_bufs[r][0].data(), r, state.x_arr(r, j), pi_over_beta); });
+        poet::static_for<Rank>([&](auto r) { fill_pow_row<TolDigits>(pow_bufs[r][0].data(), r, state.x_arr(r, j), pi_over_beta); });
         dcomplex const fj = state.fx_arr[j];
 
         for (auto const &g : groups_) {

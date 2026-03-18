@@ -106,10 +106,10 @@ namespace triqs::utility::nfft {
       return total;
     }
 
-    void execute(shared_state_t<Rank> &state) {
+    template <int TolDigits = 12> void execute(shared_state_t<Rank> &state) {
       double const pi_over_beta      = M_PI / state.beta;
       int64_t const buf_counter_simd = state.buf_counter & -simd_size;
-      execute_phase2(state, pi_over_beta, buf_counter_simd);
+      execute_phase2<TolDigits>(state, pi_over_beta, buf_counter_simd);
     }
 
     private:
@@ -276,7 +276,7 @@ namespace triqs::utility::nfft {
       return static_cast<int>(std::clamp<int64_t>(rounded, simd_size, max_simd_source_block));
     }
 
-    void synthesize_simd_block(shared_state_t<Rank> &state, int j_begin, int block_len, double pi_over_beta) {
+    template <int TolDigits> void synthesize_simd_block(shared_state_t<Rank> &state, int j_begin, int block_len, double pi_over_beta) {
       constexpr int stride = max_simd_source_block;
       poet::static_for<Rank>([&](const auto r) {
         dcomplex *tbl    = pow_tbl[r].data();
@@ -284,7 +284,7 @@ namespace triqs::utility::nfft {
 
         for (int j = 0; j < block_len; j += simd_size) {
           using rbatch            = xsimd::batch<double>;
-          auto [sin_vec, cos_vec] = triqs::utility::math::sincos<12>(rbatch::load_unaligned(&state.x_arr(r, j_begin + j)) * pi_over_beta);
+          auto [sin_vec, cos_vec] = triqs::utility::math::sincos<TolDigits>(rbatch::load_unaligned(&state.x_arr(r, j_begin + j)) * pi_over_beta);
           cbatch(cos_vec, sin_vec).store_unaligned(tbl + j);
         }
 
@@ -304,13 +304,13 @@ namespace triqs::utility::nfft {
       });
     }
 
-    void accumulate_simd_step(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
+    template <int TolDigits> void accumulate_simd_step(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
       std::array<cbatch const *, Rank> row_base;
       std::array<int const *, Rank> row_idx_base;
       auto const *flat_row_idx = unique_row_idx.empty() ? nullptr : unique_row_idx.data();
       poet::static_for<Rank>([&](const auto r) {
         auto *rows        = simd_row_tbl_[r].data();
-        auto [sin_vec, cos_vec] = triqs::utility::math::sincos<12>(xsimd::batch<double>::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
+        auto [sin_vec, cos_vec] = triqs::utility::math::sincos<TolDigits>(xsimd::batch<double>::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
         rows[0]           = cbatch(cos_vec, sin_vec);
 
         auto const &plan = plans_[r];
@@ -359,7 +359,7 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void execute_phase2_rank1(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
+    template <int TolDigits> [[gnu::noinline]] void execute_phase2_rank1(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
       static_assert(Rank == 1);
 
       dcomplex *__restrict__ fiw_ptr             = state.fk_vec.data();
@@ -376,7 +376,7 @@ namespace triqs::utility::nfft {
 
       for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
         int const block_len = std::min(source_block, static_cast<int>(buf_counter_simd - jb));
-        synthesize_simd_block(state, jb, block_len, pi_over_beta);
+        synthesize_simd_block<TolDigits>(state, jb, block_len, pi_over_beta);
 
         auto compute_simd_pow                 = [&](int64_t d, int j) {
           cbatch pow = cbatch::load_unaligned(row_base + row_offset_ptr[d] + j);
@@ -391,7 +391,7 @@ namespace triqs::utility::nfft {
       auto const &plan = plans_[0];
       for (int j = static_cast<int>(buf_counter_simd); j < state.buf_counter; ++j) {
         double const theta = pi_over_beta * state.x_arr(0, j);
-        tbl[0]             = cis(theta);
+        tbl[0]             = cis<TolDigits>(theta);
         for (std::size_t op_idx = 0; op_idx < plan.ops.size(); ++op_idx) {
           auto const &op                   = plan.ops[op_idx];
           dcomplex rhs                     = tbl[op.rhs];
@@ -406,7 +406,7 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void accumulate_scalar_tail(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
+    template <int TolDigits> void accumulate_scalar_tail(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
       std::array<int const *, Rank> row_idx_base;
       std::array<dcomplex *, Rank> uq_scalar_base;
       auto const *flat_row_idx = unique_row_idx.empty() ? nullptr : unique_row_idx.data();
@@ -424,7 +424,7 @@ namespace triqs::utility::nfft {
           dcomplex *uq     = uq_scalar_base[r];
 
           double const theta = pi_over_beta * state.x_arr(r, j);
-          tbl[0]             = cis(theta);
+          tbl[0]             = cis<TolDigits>(theta);
           for (std::size_t op_idx = 0; op_idx < plan.ops.size(); ++op_idx) {
             auto const &op = plan.ops[op_idx];
             dcomplex rhs   = tbl[op.rhs];
@@ -449,14 +449,14 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void execute_phase2(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
+    template <int TolDigits> void execute_phase2(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
       if constexpr (Rank == 1) {
-        execute_phase2_rank1(state, pi_over_beta, buf_counter_simd);
+        execute_phase2_rank1<TolDigits>(state, pi_over_beta, buf_counter_simd);
         return;
       }
 
       std::fill(sums_buf.begin(), sums_buf.end(), cbatch(dcomplex{0, 0}));
-      for (int jb = 0; jb < buf_counter_simd; jb += simd_size) accumulate_simd_step(state, jb, pi_over_beta);
+      for (int jb = 0; jb < buf_counter_simd; jb += simd_size) accumulate_simd_step<TolDigits>(state, jb, pi_over_beta);
 
       dcomplex *fiw_ptr = state.fk_vec.data();
       if constexpr (Rank == 2) {
@@ -468,7 +468,7 @@ namespace triqs::utility::nfft {
       } else {
         for (int64_t d = 0; d < state.n_targets; ++d) fiw_ptr[d] += xsimd::reduce_add(sums_buf[d]);
       }
-      accumulate_scalar_tail(state, static_cast<int>(buf_counter_simd), pi_over_beta);
+      accumulate_scalar_tail<TolDigits>(state, static_cast<int>(buf_counter_simd), pi_over_beta);
     }
   };
 

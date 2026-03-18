@@ -263,7 +263,7 @@ namespace triqs::utility::nfft {
 
       if (self.type_ == type_t::type1) {
         if (self.state_.buf_counter < self.dispatch_buf_threshold)
-          self.run_direct_type1(*self.direct_type1_kernel_);
+          self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
         else {
           if (self.dispatch_buf_threshold > 0) self.prepare_type1_coords();
           finufft.execute_type1(self.state_, self.fiw_arr, self.fk_arr, self.common_factor);
@@ -274,11 +274,11 @@ namespace triqs::utility::nfft {
       } else if (self.type_ == type_t::automatic) {
         if (self.state_.buf_counter < self.dispatch_buf_threshold) {
           if (self.direct_type1_kernel_)
-            self.run_direct(*self.direct_type1_kernel_);
+            self.template run_direct<TolDigits>(*self.direct_type1_kernel_);
           else if (self.use_chain_direct_ && self.chain_kernel_)
-            self.run_direct(*self.chain_kernel_);
+            self.template run_direct<TolDigits>(*self.chain_kernel_);
           else
-            self.run_direct(*self.naf_kernel_);
+            self.template run_direct<TolDigits>(*self.naf_kernel_);
         } else if (self.use_type3_) {
           finufft.execute_type3(self.state_, self.fiw_vec);
         } else {
@@ -288,14 +288,14 @@ namespace triqs::utility::nfft {
       } else if (self.type_ == type_t::type3)
         finufft.execute_type3(self.state_, self.fiw_vec);
       else if (self.type_ == type_t::direct_type3)
-        self.run_direct(*self.naf_kernel_);
+        self.template run_direct<TolDigits>(*self.naf_kernel_);
       else if (self.type_ == type_t::direct_chain)
-        self.run_direct(*self.chain_kernel_);
+        self.template run_direct<TolDigits>(*self.chain_kernel_);
       else
-        self.run_direct_type1(*self.direct_type1_kernel_);
+        self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
     }
 
-    template <typename Kernel> void run_direct(Kernel &kernel) {
+    template <int TolDigits, typename Kernel> void run_direct(Kernel &kernel) {
       // Pad buffer counter to SIMD boundary to eliminate scalar tail loops
       int const buf_counter_padded = std::min(shared_state_t<Rank>::round_up_simd(state_.buf_counter), state_.buf_size);
 
@@ -305,14 +305,14 @@ namespace triqs::utility::nfft {
       }
 
       state_.fk_vec = 0;
-      kernel.execute(state_);
+      kernel.template execute<TolDigits>(state_);
       fiw_vec += state_.fk_vec;
     }
 
     // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
-    void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
+    template <int TolDigits> void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
-      kernel.execute(state_);
+      kernel.template execute<TolDigits>(state_);
       scatter_to_arr();
     }
 
