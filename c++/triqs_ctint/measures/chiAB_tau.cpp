@@ -80,14 +80,21 @@ namespace triqs_ctint::measures {
     tau_points_.reserve(L_);
     for (auto tau : tau_mesh) tau_points_.push_back(make_tau_t(double(tau)));
 
-    // Flatten map to vector and pre-allocate scratch arrays
+    // Flatten map to vector, pre-allocate scratch arrays, and fill constant B-side
     groups_.reserve(group_map.size());
     for (auto &[key, grp] : group_map) {
       long E = static_cast<long>(grp.entries.size());
       grp.c_A.resize(L_, E);
-      grp.c_B.resize(L_, E);
       grp.cdag_A.resize(L_, E);
+      grp.c_B.resize(L_, E);
       grp.cdag_B.resize(L_, E);
+      // B-side operators are at tau=0 and never change — fill once
+      for (long l = 0; l < L_; ++l) {
+        for (long e = 0; e < E; ++e) {
+          grp.c_B(l, e)    = c_t{tau_t::get_zero(), grp.entries[e].idx_c_B};
+          grp.cdag_B(l, e) = cdag_t{tau_t::get_zero_plus(), grp.entries[e].idx_cdag_B};
+        }
+      }
       groups_.push_back(std::move(grp));
     }
   }
@@ -98,7 +105,7 @@ namespace triqs_ctint::measures {
     for (auto &grp : groups_) {
       long E = static_cast<long>(grp.entries.size());
 
-      // Fill scratch arrays: A-side varies with tau, B-side fixed at tau=0
+      // Fill A-side scratch arrays (vary with tau; B-side is constant, filled in constructor)
       for (long l = 0; l < L_; ++l) {
         auto tau      = tau_points_[l];
         auto tau_cA   = tau_t{tau.n + 2};
@@ -107,18 +114,13 @@ namespace triqs_ctint::measures {
           auto const &entry = grp.entries[e];
           grp.c_A(l, e)    = c_t{tau_cA, entry.idx_c_A};
           grp.cdag_A(l, e) = cdag_t{tau_cdA, entry.idx_cdag_A};
-          grp.c_B(l, e)    = c_t{tau_t::get_zero(), entry.idx_c_B};
-          grp.cdag_B(l, e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
         }
       }
 
-      // Compute ratios depending on case type
+      // Scatter ratios into chiAB_tau_ (l-outer for row-major cache locality)
       auto scatter = [&](auto const &ratios) {
-        for (long e = 0; e < E; ++e) {
-          auto const &entry = grp.entries[e];
-          auto val = entry.coef * sign;
-          for (long l = 0; l < L_; ++l) chiAB_tau_.data()(l, entry.pair_idx) += val * ratios(l, e);
-        }
+        for (long l = 0; l < L_; ++l)
+          for (long e = 0; e < E; ++e) chiAB_tau_.data()(l, grp.entries[e].pair_idx) += grp.entries[e].coef * sign * ratios(l, e);
       };
 
       switch (grp.case_type) {
