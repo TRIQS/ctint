@@ -206,17 +206,25 @@ namespace triqs::utility::nfft {
         auto &naf_kernel   = *naf_kernel_;
         auto &chain_kernel = *chain_kernel_;
 
-        use_chain_direct_ = (chain_kernel.estimated_complex_multiplies() < estimate_naf_multiplies());
+        // Calibrate both sparse kernels and pick the one with the higher crossover threshold
+        // (= faster direct kernel over a wider buffer range)
+        auto [chain_threshold, chain_dt1, chain_t3] =
+           calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, chain_kernel, finufft);
+        auto [naf_threshold, naf_dt1, naf_t3] =
+           calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, naf_kernel, finufft);
 
-        auto [threshold, use_dt1, use_t3] =
-           use_chain_direct_ ? calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, chain_kernel, finufft) :
-                              calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, naf_kernel, finufft);
-        dispatch_buf_threshold = threshold;
-        use_type3_             = use_t3;
+        use_chain_direct_      = chain_threshold > naf_threshold;
+        dispatch_buf_threshold = use_chain_direct_ ? chain_threshold : naf_threshold;
+        use_type3_             = use_chain_direct_ ? chain_t3 : naf_t3;
 
-        prune_automatic_direct_kernels(use_dt1);
+        // Always use sparse kernel for direct path
+        direct_type1_kernel_.reset();
+        if (use_chain_direct_)
+          naf_kernel_.reset();
+        else
+          chain_kernel_.reset();
 
-        if (use_t3)
+        if (use_type3_)
           finufft.release_type1_gather();
         else
           finufft.release_type3();

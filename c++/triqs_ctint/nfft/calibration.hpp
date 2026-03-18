@@ -98,7 +98,7 @@ namespace triqs::utility::nfft {
     // from n=64 upward can switch to the FINUFFT side too early around the crossover.
     int const n_lo = [] {
       if constexpr (Rank == 1)
-        return 16;
+        return 8;
       else
         return 64;
     }();
