@@ -41,8 +41,8 @@ namespace triqs::utility::nfft {
         num_pow2_levels[r]  = std::max(1, max_digit_row + 1);
         simd_pow2_tbl[r].resize(num_pow2_levels[r]);
         scalar_pow2_tbl[r].resize(num_pow2_levels[r]);
-        uq_simd_buf[r].resize(2 * n_unique[r]);
-        uq_scalar_buf[r].resize(2 * n_unique[r]);
+        uq_simd_buf[r].resize(n_unique[r]);
+        uq_scalar_buf[r].resize(n_unique[r]);
       }
       sums_buf.resize(state.n_targets);
 
@@ -134,9 +134,7 @@ namespace triqs::utility::nfft {
 
       auto fill_unique = [&](cbatch *__restrict__ uq, auto r) {
         for (int u = 0; u < n_unique[r]; ++u) {
-          cbatch val     = compute_unique_simd(r, u);
-          uq[2 * u]      = val;
-          uq[2 * u + 1]  = xsimd::conj(val);
+          uq[u] = compute_unique_simd(r, u);
         }
       };
 
@@ -147,6 +145,10 @@ namespace triqs::utility::nfft {
       }
 
       cbatch fj = cbatch::load_unaligned(fxp);
+      auto load_target = [](cbatch const *__restrict__ uq, int info) {
+        cbatch pow = uq[info >> 1];
+        return (info & 1) ? xsimd::conj(pow) : pow;
+      };
       if constexpr (Rank == 2) {
         int const *__restrict__ group_key    = rank0_group_key.data();
         int const *__restrict__ group_offset = rank0_group_offset.data();
@@ -155,9 +157,9 @@ namespace triqs::utility::nfft {
         int const n_groups                   = static_cast<int>(rank0_group_key.size());
 
         for (int g = 0; g < n_groups; ++g) {
-          cbatch const fj_u0 = fj * uq0[group_key[g]];
+          cbatch const fj_u0 = fj * load_target(uq0, group_key[g]);
           for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
-            grouped_sum[p] = xsimd::fma(fj_u0, uq1[rank1_idx[p]], grouped_sum[p]);
+            grouped_sum[p] = xsimd::fma(fj_u0, load_target(uq1, rank1_idx[p]), grouped_sum[p]);
         }
       } else if constexpr (Rank == 1) {
         int64_t d                        = 0;
@@ -165,17 +167,17 @@ namespace triqs::utility::nfft {
         cbatch *__restrict__ sp          = sums_buf.data();
 
         for (; d < n_targets_main; d += n_acc)
-          poet::static_for<n_acc>([&](const auto i) { sp[d + i] = xsimd::fma(fj, uq0[map_ptr[d + i]], sp[d + i]); });
+          poet::static_for<n_acc>([&](const auto i) { sp[d + i] = xsimd::fma(fj, load_target(uq0, map_ptr[d + i]), sp[d + i]); });
 
-        for (; d < n_tgt; ++d) sp[d] = xsimd::fma(fj, uq0[map_ptr[d]], sp[d]);
+        for (; d < n_tgt; ++d) sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
       } else {
         cbatch *__restrict__ sp = sums_buf.data();
         for (int64_t d = 0; d < n_tgt; ++d) {
           int const *info = map_ptr + d * map_stride;
-          cbatch pow      = uq0[info[0]];
-          if constexpr (Rank >= 2) pow *= uq1[info[1]];
+          cbatch pow      = load_target(uq0, info[0]);
+          if constexpr (Rank >= 2) pow *= load_target(uq1, info[1]);
           if constexpr (Rank > 2) {
-            for (int r = 2; r < Rank; ++r) pow *= uq_simd_buf[r][info[r]];
+            for (int r = 2; r < Rank; ++r) pow *= load_target(uq_simd_buf[r].data(), info[r]);
           }
           sp[d] = xsimd::fma(fj, pow, sp[d]);
         }
@@ -211,16 +213,18 @@ namespace triqs::utility::nfft {
           for (int k = 1; k < num_pow2_levels[r]; ++k) tbl[k] = tbl[k - 1] * tbl[k - 1];
 
           for (int u = 0; u < n_unique[r]; ++u) {
-            dcomplex val                = compute_unique_scalar(r, u);
-            uq_scalar_buf[r][2 * u]     = val;
-            uq_scalar_buf[r][2 * u + 1] = std::conj(val);
+            uq_scalar_buf[r][u] = compute_unique_scalar(r, u);
           }
         });
         dcomplex fj = state.fx_arr[j];
         for (int64_t d = 0; d < state.n_targets; ++d) {
           int const *info = map_ptr + d * map_stride;
-          dcomplex pow    = uq_scalar_buf[0][info[0]];
-          for (int r = 1; r < Rank; ++r) pow *= uq_scalar_buf[r][info[r]];
+          dcomplex pow    = uq_scalar_buf[0][info[0] >> 1];
+          if (info[0] & 1) pow = std::conj(pow);
+          for (int r = 1; r < Rank; ++r) {
+            dcomplex val = uq_scalar_buf[r][info[r] >> 1];
+            pow *= (info[r] & 1) ? std::conj(val) : val;
+          }
           fiw_ptr[d] += fj * pow;
         }
       }

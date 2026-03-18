@@ -35,7 +35,7 @@ namespace triqs::utility::nfft {
         unique_entry_offsets[r] = total_unique_entries;
         uq_entry_offsets[r]     = total_uq_entries;
         total_unique_entries += n_unique[r];
-        total_uq_entries += 2 * n_unique[r];
+        total_uq_entries += n_unique[r];
 
         std::vector<unsigned long> unique_exponents(n_unique[r]);
         for (auto const &[exp, u] : exp_to_unique) unique_exponents[u] = exp;
@@ -44,15 +44,17 @@ namespace triqs::utility::nfft {
         row_indices_by_rank[r].resize(n_unique[r]);
         for (auto const &[exp, u] : exp_to_unique)
           row_indices_by_rank[r][u] = plans_[r].required_row_idx[u];
-        pow_tbl[r].resize(static_cast<long>(plans_[r].row_exp.size()), max_simd_source_block);
+        simd_row_tbl_[r].resize(plans_[r].row_exp.size());
+        if constexpr (Rank == 1) {
+          pow_tbl[r].resize(static_cast<long>(plans_[r].row_exp.size()), max_simd_source_block);
+          table_bytes_per_source_ += static_cast<int64_t>(plans_[r].row_exp.size()) * static_cast<int64_t>(sizeof(dcomplex));
+        }
         scalar_pow_tbl[r].resize(plans_[r].row_exp.size());
-        table_bytes_per_source_ += static_cast<int64_t>(plans_[r].row_exp.size()) * static_cast<int64_t>(sizeof(dcomplex));
       }
       unique_row_idx.resize(total_unique_entries);
       for (int r = 0; r < Rank; ++r)
         std::copy(row_indices_by_rank[r].begin(), row_indices_by_rank[r].end(), unique_row_idx.begin() + unique_entry_offsets[r]);
       if constexpr (Rank != 1) {
-        uq_simd_buf.resize(total_uq_entries);
         uq_scalar_buf.resize(total_uq_entries);
         sums_buf.resize(state.n_targets);
       }
@@ -136,7 +138,7 @@ namespace triqs::utility::nfft {
     std::array<int, Rank> uq_entry_offsets{};
     std::vector<int> unique_row_idx;
     std::vector<int> target_map;
-    mutable std::vector<xsimd::batch<dcomplex>> uq_simd_buf;
+    std::array<std::vector<cbatch>, Rank> simd_row_tbl_;
     mutable std::vector<dcomplex> uq_scalar_buf;
     mutable std::vector<xsimd::batch<dcomplex>> sums_buf;
     std::vector<int> rank0_group_key;
@@ -302,68 +304,57 @@ namespace triqs::utility::nfft {
       });
     }
 
-    void accumulate_simd_block(shared_state_t<Rank> &state, int j_begin, int block_len) {
-      constexpr int stride = max_simd_source_block;
-      std::array<dcomplex const *, Rank> tbl_base;
+    void accumulate_simd_step(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
+      std::array<cbatch const *, Rank> row_base;
       std::array<int const *, Rank> row_idx_base;
-      std::array<cbatch *, Rank> uq_simd_base;
       auto const *flat_row_idx = unique_row_idx.empty() ? nullptr : unique_row_idx.data();
-      auto *flat_uq_simd       = uq_simd_buf.empty() ? nullptr : uq_simd_buf.data();
       poet::static_for<Rank>([&](const auto r) {
-        tbl_base[r]     = pow_tbl[r].data();
+        auto *rows        = simd_row_tbl_[r].data();
+        auto [sin_vec, cos_vec] = xsimd::sincos(xsimd::batch<double>::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
+        rows[0]           = cbatch(cos_vec, sin_vec);
+
+        auto const &plan = plans_[r];
+        for (std::size_t op_idx = 0; op_idx < plan.ops.size(); ++op_idx) {
+          auto const &op              = plan.ops[op_idx];
+          cbatch rhs                  = rows[op.rhs];
+          rows[static_cast<int>(op_idx) + 1] = op.subtract_rhs ? rows[op.lhs] * xsimd::conj(rhs) : rows[op.lhs] * rhs;
+        }
+
+        row_base[r]     = rows;
         row_idx_base[r] = flat_row_idx ? flat_row_idx + unique_entry_offsets[r] : nullptr;
-        uq_simd_base[r] = flat_uq_simd ? flat_uq_simd + uq_entry_offsets[r] : nullptr;
       });
 
       int const *__restrict__ mp       = target_map.data();
       int64_t const n_tgt              = state.n_targets;
       dcomplex const *__restrict__ fxp = state.fx_arr.data() + j_begin;
-
-      [[maybe_unused]] cbatch *__restrict__ uq1 = nullptr;
-      if constexpr (Rank >= 2) uq1 = uq_simd_base[1];
-
-      auto fill_unique = [&](cbatch *__restrict__ uq, auto r, int j_idx) {
-        auto const *base = tbl_base[r];
-        auto const *rows = row_idx_base[r];
-        for (int u = 0; u < n_unique[r]; ++u) {
-          cbatch val     = cbatch::load_unaligned(base + static_cast<int64_t>(rows[u]) * stride + j_idx);
-          uq[2 * u]     = val;
-          uq[2 * u + 1] = xsimd::conj(val);
-        }
+      auto load_target = [&](cbatch const *rows, int const *row_idx, int info) {
+        cbatch pow = rows[row_idx[info >> 1]];
+        return (info & 1) ? xsimd::conj(pow) : pow;
       };
 
-      for (int j = 0; j < block_len; j += simd_size) {
-        cbatch *__restrict__ uq0 = uq_simd_base[0];
-        fill_unique(uq0, std::integral_constant<int, 0>{}, j);
-        if constexpr (Rank >= 2) fill_unique(uq1, std::integral_constant<int, 1>{}, j);
-        if constexpr (Rank > 2) {
-          for (int r = 2; r < Rank; ++r) fill_unique(uq_simd_base[r], r, j);
+      cbatch fj = cbatch::load_unaligned(fxp);
+      if constexpr (Rank == 2) {
+        int const *__restrict__ group_key    = rank0_group_key.data();
+        int const *__restrict__ group_offset = rank0_group_offset.data();
+        int const *__restrict__ rank1_idx    = grouped_rank1_idx.data();
+        cbatch *__restrict__ grouped_sum     = sums_buf.data();
+        int const n_groups                   = static_cast<int>(rank0_group_key.size());
+
+        for (int g = 0; g < n_groups; ++g) {
+          cbatch const fj_u0 = fj * load_target(row_base[0], row_idx_base[0], group_key[g]);
+          for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
+            grouped_sum[p] = xsimd::fma(fj_u0, load_target(row_base[1], row_idx_base[1], rank1_idx[p]), grouped_sum[p]);
         }
-
-        cbatch fj = cbatch::load_unaligned(fxp + j);
-        if constexpr (Rank == 2) {
-          int const *__restrict__ group_key    = rank0_group_key.data();
-          int const *__restrict__ group_offset = rank0_group_offset.data();
-          int const *__restrict__ rank1_idx    = grouped_rank1_idx.data();
-          cbatch *__restrict__ grouped_sum     = sums_buf.data();
-          int const n_groups                   = static_cast<int>(rank0_group_key.size());
-
-          for (int g = 0; g < n_groups; ++g) {
-            cbatch const fj_u0 = fj * uq0[group_key[g]];
-            for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
-              grouped_sum[p] = xsimd::fma(fj_u0, uq1[rank1_idx[p]], grouped_sum[p]);
+      } else {
+        cbatch *__restrict__ sp = sums_buf.data();
+        for (int64_t d = 0; d < n_tgt; ++d) {
+          int const *info = mp + d * Rank;
+          cbatch pow      = load_target(row_base[0], row_idx_base[0], info[0]);
+          if constexpr (Rank >= 2) pow *= load_target(row_base[1], row_idx_base[1], info[1]);
+          if constexpr (Rank > 2) {
+            for (int r = 2; r < Rank; ++r) pow *= load_target(row_base[r], row_idx_base[r], info[r]);
           }
-        } else {
-          cbatch *__restrict__ sp = sums_buf.data();
-          for (int64_t d = 0; d < n_tgt; ++d) {
-            int const *info = mp + d * Rank;
-            cbatch pow      = uq0[info[0]];
-            if constexpr (Rank >= 2) pow *= uq1[info[1]];
-            if constexpr (Rank > 2) {
-              for (int r = 2; r < Rank; ++r) pow *= uq_simd_base[r][info[r]];
-            }
-            sp[d] = xsimd::fma(fj, pow, sp[d]);
-          }
+          sp[d] = xsimd::fma(fj, pow, sp[d]);
         }
       }
     }
@@ -440,17 +431,19 @@ namespace triqs::utility::nfft {
             tbl[static_cast<int>(op_idx) + 1] = op.subtract_rhs ? tbl[op.lhs] * std::conj(rhs) : tbl[op.lhs] * rhs;
           }
           for (int u = 0; u < n_unique[r]; ++u) {
-            dcomplex val = tbl[rows[u]];
-            uq[2 * u]     = val;
-            uq[2 * u + 1] = std::conj(val);
+            uq[u] = tbl[rows[u]];
           }
         });
 
         dcomplex fj = state.fx_arr[j];
         for (int64_t d = 0; d < state.n_targets; ++d) {
           int const *info = target_map.data() + d * Rank;
-          dcomplex pow    = uq_scalar_base[0][info[0]];
-          for (int r = 1; r < Rank; ++r) pow *= uq_scalar_base[r][info[r]];
+          dcomplex pow    = uq_scalar_base[0][info[0] >> 1];
+          if (info[0] & 1) pow = std::conj(pow);
+          for (int r = 1; r < Rank; ++r) {
+            dcomplex val = uq_scalar_base[r][info[r] >> 1];
+            pow *= (info[r] & 1) ? std::conj(val) : val;
+          }
           state.fk_vec[d] += fj * pow;
         }
       }
@@ -463,12 +456,7 @@ namespace triqs::utility::nfft {
       }
 
       std::fill(sums_buf.begin(), sums_buf.end(), cbatch(dcomplex{0, 0}));
-      int const source_block = simd_source_block();
-      for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
-        int block_len = std::min(source_block, static_cast<int>(buf_counter_simd - jb));
-        synthesize_simd_block(state, jb, block_len, pi_over_beta);
-        accumulate_simd_block(state, jb, block_len);
-      }
+      for (int jb = 0; jb < buf_counter_simd; jb += simd_size) accumulate_simd_step(state, jb, pi_over_beta);
 
       dcomplex *fiw_ptr = state.fk_vec.data();
       if constexpr (Rank == 2) {
