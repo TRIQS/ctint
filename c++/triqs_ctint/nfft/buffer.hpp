@@ -42,7 +42,7 @@ namespace triqs::utility::nfft {
         common_factor *= (n / 2) % 2 ? -1 : 1;
       }
 
-      dispatch_tol_digits([&]<int TolDigits>() { init_type1_impl<TolDigits>(beta_); });
+      with_tol_digits([&]<int TolDigits>() { init_type1_impl<TolDigits>(beta_); });
     }
 
     /// Non-uniform target constructor: automatic dispatch, FINUFFT type3, or direct DFT
@@ -56,7 +56,7 @@ namespace triqs::utility::nfft {
       state_.fx_arr.resize(buf_size_);
       state_.fk_vec.resize(state_.n_targets);
 
-      dispatch_tol_digits([&]<int TolDigits>() { init_nonuniform_impl<TolDigits>(target_mf_); });
+      with_tol_digits([&]<int TolDigits>() { init_nonuniform_impl<TolDigits>(target_mf_); });
     }
 
     /// Convenience constructor for Rank=1: accepts vector of matsubara_freq directly
@@ -104,7 +104,7 @@ namespace triqs::utility::nfft {
 
       int const idx = state_.buf_counter;
 
-      if (type_ == type_t::type1 && direct_vs_finufft_threshold_ == 0) {
+      if (type_ == type_t::type1 && direct_cutoff_ == 0) {
         double tau_sum = 0.0;
         double const pi_over_beta     = M_PI / state_.beta;
         double const two_pi_over_beta = 2.0 * pi_over_beta;
@@ -142,11 +142,11 @@ namespace triqs::utility::nfft {
     }
 
     type_t type_ = type_t::type1;
-    // Automatic non-uniform dispatch first chooses a direct kernel family
-    // (direct_type1 vs NAF/chain), then chooses the FINUFFT path
-    // (type3 vs type1_gather) for buffer sizes above the direct crossover.
-    bool selected_sparse_direct_is_chain_      = false;
-    bool use_type3_below_switch_threshold_     = false;
+    // Automatic mode first chooses the direct side, then the FINUFFT side:
+    //   n < direct_cutoff_  -> direct kernel
+    //   n >= direct_cutoff_ -> FINUFFT, with a type3/type1_gather split at finufft_switch_n_.
+    bool use_chain_direct_  = false;
+    bool type3_for_small_n_ = false;
     shared_state_t<Rank> state_;
 
     nda::array_view<dcomplex, Rank> fiw_arr;
@@ -161,8 +161,8 @@ namespace triqs::utility::nfft {
     std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
-    int direct_vs_finufft_threshold_ = 0;
-    int finufft_path_switch_threshold_ = 0;
+    int direct_cutoff_      = 0;
+    int finufft_switch_n_   = 0;
     do_nfft_fn_t do_nfft_fn_          = nullptr;
 
     template <int TolDigits> auto &emplace_finufft() {
@@ -171,8 +171,8 @@ namespace triqs::utility::nfft {
 
     template <int TolDigits> auto &get_finufft() { return std::get<finufft_kernel_t<TolDigits>>(finufft_kernel_); }
 
-    template <typename Builder> void dispatch_tol_digits(Builder &&builder) {
-      auto params = std::make_tuple(poet::DispatchParam<supported_tol_digits_t>{bucket_tol_digits(tol)});
+    template <typename Builder> void with_tol_digits(Builder &&builder) {
+      auto params = std::make_tuple(poet::DispatchParam<tol_digits_seq_t>{tol_digits_bucket(tol)});
       poet::dispatch(poet::throw_t, std::forward<Builder>(builder), params);
     }
 
@@ -189,7 +189,7 @@ namespace triqs::utility::nfft {
         auto target_mf = build_uniform_target_mf(beta_);
         state_.init_direct_common(target_mf);
         direct_type1_kernel_.emplace(state_, target_mf);
-        direct_vs_finufft_threshold_ = calibrate_dispatch_type1<12>(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
+        direct_cutoff_ = calibrate_dispatch_type1<12>(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
       }
 
       do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
@@ -231,41 +231,27 @@ namespace triqs::utility::nfft {
         //    Keep the sparse family with the larger direct-vs-FINUFFT crossover.
         // 2. For that winning family, honor the calibration result that says whether the best
         //    direct kernel is actually `direct_type1` or the sparse kernel itself.
-        auto const chain_dispatch_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
-        auto const naf_dispatch_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
+        auto const chain_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
+        auto const naf_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
 
-        auto const direct_path_cost = [](auto const &plan) { return plan.direct_path_lo_time + plan.direct_path_hi_time; };
-        double const chain_direct_cost = direct_path_cost(chain_dispatch_plan);
-        double const naf_direct_cost   = direct_path_cost(naf_dispatch_plan);
-
-        if (!chain_dispatch_plan.select_direct_type1 && !naf_dispatch_plan.select_direct_type1) {
-          selected_sparse_direct_is_chain_ =
-             (chain_direct_cost < naf_direct_cost) ||
-             ((chain_direct_cost == naf_direct_cost) &&
-              (chain_dispatch_plan.direct_vs_finufft_threshold >= naf_dispatch_plan.direct_vs_finufft_threshold));
-        } else {
-          selected_sparse_direct_is_chain_ =
-             (chain_dispatch_plan.direct_vs_finufft_threshold > naf_dispatch_plan.direct_vs_finufft_threshold) ||
-             ((chain_dispatch_plan.direct_vs_finufft_threshold == naf_dispatch_plan.direct_vs_finufft_threshold) &&
-              (chain_direct_cost <= naf_direct_cost));
-        }
-        auto const &selected_dispatch_plan = selected_sparse_direct_is_chain_ ? chain_dispatch_plan : naf_dispatch_plan;
-        bool const select_direct_type1     = selected_dispatch_plan.select_direct_type1;
-        direct_vs_finufft_threshold_       = selected_dispatch_plan.direct_vs_finufft_threshold;
-        finufft_path_switch_threshold_     = selected_dispatch_plan.finufft_path_switch_threshold;
-        use_type3_below_switch_threshold_  = selected_dispatch_plan.use_type3_below_switch_threshold;
+        use_chain_direct_           = pick_chain_direct(chain_plan, naf_plan);
+        auto const &plan            = use_chain_direct_ ? chain_plan : naf_plan;
+        bool const use_direct_type1 = plan.use_direct_type1;
+        direct_cutoff_              = plan.direct_cutoff;
+        finufft_switch_n_           = plan.finufft_switch_n;
+        type3_for_small_n_          = plan.type3_for_small_n;
 
         // Cleanup after the selected automatic dispatch policy is fully determined.
-        prune_unselected_direct_kernels(select_direct_type1);
+        drop_unselected_direct_kernels(use_direct_type1);
 
         // Release unused FINUFFT plans only if one path dominates over the full buffer range.
-        if (finufft_path_switch_threshold_ <= 0) {
-          if (use_type3_below_switch_threshold_)
+        if (finufft_switch_n_ <= 0) {
+          if (type3_for_small_n_)
             finufft.release_type3();
           else
             finufft.release_type1_gather();
-        } else if (finufft_path_switch_threshold_ > state_.buf_size) {
-          if (use_type3_below_switch_threshold_)
+        } else if (finufft_switch_n_ > state_.buf_size) {
+          if (type3_for_small_n_)
             finufft.release_type1_gather();
           else
             finufft.release_type3();
@@ -278,49 +264,47 @@ namespace triqs::utility::nfft {
       do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
     }
 
-    int64_t estimate_naf_multiplies() const {
-      int64_t naf_estimate = 0;
-      for (int r = 0; r < Rank; ++r) {
-        std::vector<unsigned long> unique_exp;
-        unique_exp.reserve(state_.n_targets);
-        for (int64_t d = 0; d < state_.n_targets; ++d) unique_exp.push_back(odd_exponent_abs(state_.target_n(r, d)));
-        std::sort(unique_exp.begin(), unique_exp.end());
-        unique_exp.erase(std::unique(unique_exp.begin(), unique_exp.end()), unique_exp.end());
-        if (unique_exp.empty()) continue;
+    static double direct_cost(dispatch_plan_t const &plan) { return plan.direct_lo + plan.direct_hi; }
 
-        naf_estimate += static_cast<int64_t>(std::bit_width(unique_exp.back()) - 1);
-        for (unsigned long exp : unique_exp) naf_estimate += static_cast<int64_t>(compute_naf(exp).size()) - 1;
+    static bool pick_chain_direct(dispatch_plan_t const &chain_plan, dispatch_plan_t const &naf_plan) {
+      double const chain_cost = direct_cost(chain_plan);
+      double const naf_cost   = direct_cost(naf_plan);
+
+      if (!chain_plan.use_direct_type1 && !naf_plan.use_direct_type1) {
+        return (chain_cost < naf_cost) || ((chain_cost == naf_cost) && (chain_plan.direct_cutoff >= naf_plan.direct_cutoff));
       }
-      return naf_estimate;
+
+      return (chain_plan.direct_cutoff > naf_plan.direct_cutoff) ||
+             ((chain_plan.direct_cutoff == naf_plan.direct_cutoff) && (chain_cost <= naf_cost));
     }
 
-    void prune_unselected_direct_kernels(bool select_direct_type1) {
-      if (select_direct_type1) {
+    void drop_unselected_direct_kernels(bool use_direct_type1) {
+      if (use_direct_type1) {
         naf_kernel_.reset();
         chain_kernel_.reset();
         return;
       }
 
       direct_type1_kernel_.reset();
-      if (selected_sparse_direct_is_chain_)
+      if (use_chain_direct_)
         naf_kernel_.reset();
       else
         chain_kernel_.reset();
     }
 
-    bool should_use_type3_for_n(int n) const {
-      if (finufft_path_switch_threshold_ <= 0) return !use_type3_below_switch_threshold_;
-      if (finufft_path_switch_threshold_ > state_.buf_size) return use_type3_below_switch_threshold_;
-      return use_type3_below_switch_threshold_ ? (n < finufft_path_switch_threshold_) : (n >= finufft_path_switch_threshold_);
+    bool use_type3_for_n(int n) const {
+      if (finufft_switch_n_ <= 0) return !type3_for_small_n_;
+      if (finufft_switch_n_ > state_.buf_size) return type3_for_small_n_;
+      return type3_for_small_n_ ? (n < finufft_switch_n_) : (n >= finufft_switch_n_);
     }
 
     template <int TolDigits> static void do_nfft_impl(buffer_t &self) {
       if (self.type_ == type_t::type1) {
         auto &finufft = self.template get_finufft<TolDigits>();
-        if (self.state_.buf_counter < self.direct_vs_finufft_threshold_)
-          self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
+        if (self.state_.buf_counter < self.direct_cutoff_)
+          self.run_direct_type1(*self.direct_type1_kernel_);
         else {
-          if (self.direct_vs_finufft_threshold_ > 0) self.template prepare_type1_coords<12>();
+          if (self.direct_cutoff_ > 0) self.template prepare_type1_coords<12>();
           finufft.execute_type1(self.state_, self.fiw_arr, self.fk_arr, self.common_factor);
         }
       } else if (self.type_ == type_t::type1_gather) {
@@ -328,16 +312,16 @@ namespace triqs::utility::nfft {
         self.template prepare_type1_coords<TolDigits>();
         finufft.execute_type1_gather(self.state_, self.fiw_vec);
       } else if (self.type_ == type_t::automatic) {
-        if (self.state_.buf_counter < self.direct_vs_finufft_threshold_) {
+        if (self.state_.buf_counter < self.direct_cutoff_) {
           if (self.direct_type1_kernel_)
-            self.template run_direct<TolDigits>(*self.direct_type1_kernel_);
-          else if (self.selected_sparse_direct_is_chain_ && self.chain_kernel_)
+            self.run_direct(*self.direct_type1_kernel_);
+          else if (self.use_chain_direct_ && self.chain_kernel_)
             self.template run_direct<TolDigits>(*self.chain_kernel_);
           else
             self.template run_direct<TolDigits>(*self.naf_kernel_);
         } else {
           auto &finufft = self.template get_finufft<TolDigits>();
-          if (self.should_use_type3_for_n(self.state_.buf_counter)) {
+          if (self.use_type3_for_n(self.state_.buf_counter)) {
             finufft.execute_type3(self.state_, self.fiw_vec);
           } else {
             self.template prepare_type1_coords<TolDigits>();
@@ -348,16 +332,16 @@ namespace triqs::utility::nfft {
         auto &finufft = self.template get_finufft<TolDigits>();
         finufft.execute_type3(self.state_, self.fiw_vec);
       } else if (self.type_ == type_t::direct_type1)
-        self.template run_direct<TolDigits>(*self.direct_type1_kernel_);
+        self.run_direct(*self.direct_type1_kernel_);
       else if (self.type_ == type_t::direct_type3)
         self.template run_direct<TolDigits>(*self.naf_kernel_);
       else if (self.type_ == type_t::direct_chain)
         self.template run_direct<TolDigits>(*self.chain_kernel_);
       else
-        self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
+        self.run_direct_type1(*self.direct_type1_kernel_);
     }
 
-    template <int TolDigits> void run_direct(kernel_direct_type1_t<Rank> &kernel) {
+    void run_direct(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
       kernel.template execute<12>(state_);
       fiw_vec += state_.fk_vec;
@@ -378,7 +362,7 @@ namespace triqs::utility::nfft {
     }
 
     // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
-    template <int TolDigits> void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
+    void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
       kernel.template execute<12>(state_);
       scatter_to_arr();

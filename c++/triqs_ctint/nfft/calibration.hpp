@@ -77,17 +77,17 @@ namespace triqs::utility::nfft {
 
   // ---- Calibration functions ----
 
-  // Selection plan for automatic non-uniform dispatch.
-  // There are two independent decisions:
-  // 1. Direct vs FINUFFT: below direct_vs_finufft_threshold use a direct kernel, above it use FINUFFT.
-  // 2. Inside the FINUFFT region: switch between type3 and type1_gather at finufft_path_switch_threshold.
-  struct nonuniform_dispatch_plan_t {
-    int direct_vs_finufft_threshold;
-    int finufft_path_switch_threshold;
-    bool select_direct_type1;
-    bool use_type3_below_switch_threshold;
-    double direct_path_lo_time;
-    double direct_path_hi_time;
+  // Automatic non-uniform dispatch uses two cutoffs:
+  //   n < direct_cutoff   -> direct kernel
+  //   n >= direct_cutoff  -> FINUFFT
+  // with a second split between type3 and type1_gather inside the FINUFFT region.
+  struct dispatch_plan_t {
+    int direct_cutoff;
+    int finufft_switch_n;
+    bool use_direct_type1;
+    bool type3_for_small_n;
+    double direct_lo;
+    double direct_hi;
   };
 
   // Calibrate dispatch threshold for automatic mode with non-uniform targets.
@@ -95,8 +95,8 @@ namespace triqs::utility::nfft {
   // FINUFFT paths (type1_gather vs type3), then picks the faster direct kernel
   // and the faster FINUFFT path, and computes their crossover.
   template <int TolDigits = 12, int Rank, typename SparseDirectKernel, typename FinufftKernel>
-  nonuniform_dispatch_plan_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
-                                                           SparseDirectKernel &sparse_direct_kernel, FinufftKernel &finufft_kernel) {
+  dispatch_plan_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
+                                                SparseDirectKernel &sparse_direct_kernel, FinufftKernel &finufft_kernel) {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
@@ -151,10 +151,10 @@ namespace triqs::utility::nfft {
     // Pick faster direct kernel at n_lo, measure winner at n_hi
     double dt1_lo    = best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
     double sparse_lo = best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_lo);
-    bool const select_direct_type1 = dt1_lo <= sparse_lo;
-    double dir_lo                  = select_direct_type1 ? dt1_lo : sparse_lo;
-    double dir_hi                  = select_direct_type1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
-                                                           best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
+    bool const use_direct_type1 = dt1_lo <= sparse_lo;
+    double dir_lo               = use_direct_type1 ? dt1_lo : sparse_lo;
+    double dir_hi               = use_direct_type1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
+                                                     best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
 
     // Measure both FINUFFT paths. Automatic mode can dispatch between them, so calibrate
     // both the per-n FINUFFT crossover and the direct-vs-best-FINUFFT crossover.
@@ -163,24 +163,24 @@ namespace triqs::utility::nfft {
     double t3_lo = best_of_n(measure_type3, n_lo);
     double t3_hi = best_of_n(measure_type3, n_hi);
 
-    bool const use_type3_below_switch_threshold = t3_lo <= tg_lo;
-    int const finufft_path_switch_threshold =
-       use_type3_below_switch_threshold ? linear_crossover(t3_lo, t3_hi, tg_lo, tg_hi, n_lo, n_hi, state.buf_size) :
-                                          linear_crossover(tg_lo, tg_hi, t3_lo, t3_hi, n_lo, n_hi, state.buf_size);
+    bool const type3_for_small_n = t3_lo <= tg_lo;
+    int const finufft_switch_n   =
+       type3_for_small_n ? linear_crossover(t3_lo, t3_hi, tg_lo, tg_hi, n_lo, n_hi, state.buf_size) :
+                           linear_crossover(tg_lo, tg_hi, t3_lo, t3_hi, n_lo, n_hi, state.buf_size);
 
     double finufft_lo = std::min(t3_lo, tg_lo);
     double finufft_hi = std::min(t3_hi, tg_hi);
 
-    int direct_vs_finufft_threshold = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
-    if constexpr (Rank == 1) direct_vs_finufft_threshold = std::max(direct_vs_finufft_threshold, 96);
+    int direct_cutoff = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
+    if constexpr (Rank == 1) direct_cutoff = std::max(direct_cutoff, 96);
 
     saver.cleanup();
-    return {.direct_vs_finufft_threshold = direct_vs_finufft_threshold,
-            .finufft_path_switch_threshold = finufft_path_switch_threshold,
-            .select_direct_type1 = select_direct_type1,
-            .use_type3_below_switch_threshold = use_type3_below_switch_threshold,
-            .direct_path_lo_time = dir_lo,
-            .direct_path_hi_time = dir_hi};
+    return {.direct_cutoff = direct_cutoff,
+            .finufft_switch_n = finufft_switch_n,
+            .use_direct_type1 = use_direct_type1,
+            .type3_for_small_n = type3_for_small_n,
+            .direct_lo = dir_lo,
+            .direct_hi = dir_hi};
   }
 
   // Calibrate dispatch threshold for type1 automatic mode (direct_type1 vs FINUFFT type1).
@@ -226,10 +226,10 @@ namespace triqs::utility::nfft {
     double t1_lo  = best_of_n(measure_type1, n_lo);
     double t1_hi  = best_of_n(measure_type1, n_hi);
 
-    int threshold = linear_crossover(dir_lo, dir_hi, t1_lo, t1_hi, n_lo, n_hi, state.buf_size);
+    int direct_cutoff = linear_crossover(dir_lo, dir_hi, t1_lo, t1_hi, n_lo, n_hi, state.buf_size);
 
     saver.cleanup();
-    return threshold;
+    return direct_cutoff;
   }
 
 } // namespace triqs::utility::nfft

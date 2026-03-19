@@ -80,32 +80,23 @@ namespace triqs::utility::nfft {
       // Grid size per dimension: covers modes [-N/2, N/2-1], need N/2 > max_abs_n
       for (int r = 0; r < Rank; ++r) gather_niws[r] = 2 * (max_abs_n[r] + 1);
 
-      // Precompute gather indices and signs for each target point
-      // fk_arr is row-major with mode k in dim r at array index (k + N_r/2)
-      // Sign: (-1)^(sum of array indices) * common_factor, where common_factor = prod_r (-1)^(N_r/2)
-      // This simplifies to (-1)^(sum_r(n_r + N_r/2)) * common_factor = (-1)^(sum_r n_r) * (-1)^(sum_r N_r/2) * common_factor
-      // Since common_factor = (-1)^(sum_r N_r/2), sign = (-1)^(sum_r n_r) * common_factor^2 = (-1)^(sum_r n_r)
-      // Wait: common_factor = prod_r [(-1)^(N_r/2)] which equals (-1)^(sum_r N_r/2).
-      // sign = (-1)^(sum_r(n_r + N_r/2)) = (-1)^(sum_r n_r) * (-1)^(sum_r N_r/2) = (-1)^(sum_r n_r) * common_factor
-      // But that's not right either. Let me just follow execute_type1 exactly:
-      // factor = common_factor * (idx_sum % 2 ? -1 : 1) where idx_sum = sum of array indices
-      // array index for target d, dim r = target_mf[d][r].n + gather_niws[r]/2
+      // After x_r = 2π(τ_r/β - 1/2), the half-grid shift contributes a factor
+      // (-1)^{n_r} per rank, so the total gather sign is (-1)^{Σ_r n_r}.
       gather_indices.resize(n_targets);
       gather_signs.resize(n_targets);
-      int common_factor = 1;
-      for (int r = 0; r < Rank; ++r) common_factor *= (gather_niws[r] / 2) % 2 ? -1 : 1;
 
       for (int64_t d = 0; d < n_targets; ++d) {
         int64_t flat    = 0;
-        int64_t idx_sum = 0;
+        int parity      = 0;
         for (int r = 0; r < Rank; ++r) {
           int64_t arr_idx = target_mf[d][r].n + gather_niws[r] / 2;
           if (r > 0) flat *= gather_niws[r];
           flat += arr_idx;
-          idx_sum += arr_idx;
+          long const n = target_mf[d][r].n;
+          parity ^= static_cast<int>(static_cast<unsigned long>(n < 0 ? -n : n) & 1UL);
         }
         gather_indices[d] = flat;
-        gather_signs[d]   = common_factor * (idx_sum % 2 ? -1 : 1);
+        gather_signs[d]   = parity ? -1 : 1;
       }
 
       // Allocate output array for type1 transform
@@ -164,9 +155,6 @@ namespace triqs::utility::nfft {
       check_finufft(finufft_execute(p.get(), state.fx_arr.data(), state.fk_vec.data()));
       fiw_vec += state.fk_vec;
     }
-    nda::array<dcomplex, Rank> &get_gather_fk_arr() { return gather_fk_arr; }
-    std::array<int64_t, Rank> const &get_gather_niws() const { return gather_niws; }
-
     /// Release the type3 plan (after calibration picks type1_gather)
     void release_type3() {
       type3_plans_.clear();

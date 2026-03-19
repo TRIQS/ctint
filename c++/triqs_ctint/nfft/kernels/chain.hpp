@@ -7,11 +7,17 @@
 #include "../common.hpp"
 #include <limits>
 #include <numeric>
-#include <optional>
 #include <unordered_map>
 
 namespace triqs::utility::nfft {
 
+  // Chain kernel for odd Matsubara exponents e = |2n + 1|.
+  // If e = a + b or e = a - b, then
+  //
+  //   z^e = z^a z^b,     z^{a-b} = z^a conj(z^b).
+  //
+  // The planner builds a short addition/subtraction chain for the required
+  // exponents and reuses those synthesized rows across targets.
   template <int Rank> struct kernel_chain_t {
 
     kernel_chain_t() = default;
@@ -100,12 +106,6 @@ namespace triqs::utility::nfft {
       }
     }
 
-    [[nodiscard]] int64_t estimated_complex_multiplies() const {
-      int64_t total = 0;
-      for (auto const &plan : plans_) total += static_cast<int64_t>(plan.ops.size());
-      return total;
-    }
-
     template <int TolDigits = 12> void execute(shared_state_t<Rank> &state) {
       double const pi_over_beta      = M_PI / state.beta;
       int64_t const buf_counter_simd = state.buf_counter & -simd_size;
@@ -128,7 +128,7 @@ namespace triqs::utility::nfft {
     static constexpr int64_t plan_score_weight            = 1024;
     static constexpr int max_simd_source_block            = 256;
     static constexpr int64_t simd_block_cache_budget_bytes = 1024 * 1024;
-    static constexpr int rank1_target_unroll              = n_acc;
+    static constexpr int rank1_target_unroll              = ilp_unroll;
 
     std::array<rank_plan_t, Rank> plans_;
     std::array<nda::array<dcomplex, 2>, Rank> pow_tbl;

@@ -11,6 +11,8 @@
 
 namespace triqs::utility::nfft {
 
+  // NAF writes |2n + 1| = Σ_k ε_k 2^k with ε_k in {-1, 0, 1}, so
+  // z^{|2n + 1|} = Π_k (z^{2^k})^{ε_k} and only powers of two need tables.
   template <int Rank> struct kernel_naf_t {
 
     kernel_naf_t() = default;
@@ -128,54 +130,52 @@ namespace triqs::utility::nfft {
         return rank_pow;
       };
 
-      cbatch *__restrict__ uq0 = uq_simd_buf[0].data();
-      [[maybe_unused]] cbatch *__restrict__ uq1 = nullptr;
-      if constexpr (Rank >= 2) uq1 = uq_simd_buf[1].data();
-
       auto fill_unique = [&](cbatch *__restrict__ uq, auto r) {
         for (int u = 0; u < n_unique[r]; ++u) {
           uq[u] = compute_unique_simd(r, u);
         }
       };
 
+      cbatch *__restrict__ uq0 = uq_simd_buf[0].data();
       fill_unique(uq0, std::integral_constant<int, 0>{});
-      if constexpr (Rank >= 2) fill_unique(uq1, std::integral_constant<int, 1>{});
-      if constexpr (Rank > 2) {
-        for (int r = 2; r < Rank; ++r) fill_unique(uq_simd_buf[r].data(), r);
-      }
 
       cbatch fj = cbatch::load_unaligned(fxp);
       auto load_target = [](cbatch const *__restrict__ uq, int info) {
         cbatch pow = uq[info >> 1];
         return (info & 1) ? xsimd::conj(pow) : pow;
       };
-      if constexpr (Rank == 2) {
-        int const *__restrict__ group_key    = rank0_group_key.data();
-        int const *__restrict__ group_offset = rank0_group_offset.data();
-        int const *__restrict__ rank1_idx    = grouped_rank1_idx.data();
-        cbatch *__restrict__ grouped_sum     = sums_buf.data();
-        int const n_groups                   = static_cast<int>(rank0_group_key.size());
-
-        for (int g = 0; g < n_groups; ++g) {
-          cbatch const fj_u0 = fj * load_target(uq0, group_key[g]);
-          for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
-            grouped_sum[p] = xsimd::fma(fj_u0, load_target(uq1, rank1_idx[p]), grouped_sum[p]);
-        }
-      } else if constexpr (Rank == 1) {
+      if constexpr (Rank == 1) {
         cbatch *__restrict__ sp = sums_buf.data();
-        poet::dynamic_for<n_acc, 1>(int64_t{0}, n_tgt, [&](int64_t d) {
+        poet::dynamic_for<ilp_unroll, 1>(int64_t{0}, n_tgt, [&](int64_t d) {
           sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
         });
       } else {
-        cbatch *__restrict__ sp = sums_buf.data();
-        for (int64_t d = 0; d < n_tgt; ++d) {
-          int const *info = map_ptr + d * map_stride;
-          cbatch pow      = load_target(uq0, info[0]);
-          if constexpr (Rank >= 2) pow *= load_target(uq1, info[1]);
-          if constexpr (Rank > 2) {
-            for (int r = 2; r < Rank; ++r) pow *= load_target(uq_simd_buf[r].data(), info[r]);
+        cbatch *__restrict__ uq1 = uq_simd_buf[1].data();
+        fill_unique(uq1, std::integral_constant<int, 1>{});
+        if constexpr (Rank > 2) {
+          for (int r = 2; r < Rank; ++r) fill_unique(uq_simd_buf[r].data(), r);
+        }
+
+        if constexpr (Rank == 2) {
+          int const *__restrict__ group_key    = rank0_group_key.data();
+          int const *__restrict__ group_offset = rank0_group_offset.data();
+          int const *__restrict__ rank1_idx    = grouped_rank1_idx.data();
+          cbatch *__restrict__ grouped_sum     = sums_buf.data();
+          int const n_groups                   = static_cast<int>(rank0_group_key.size());
+
+          for (int g = 0; g < n_groups; ++g) {
+            cbatch const fj_u0 = fj * load_target(uq0, group_key[g]);
+            for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
+              grouped_sum[p] = xsimd::fma(fj_u0, load_target(uq1, rank1_idx[p]), grouped_sum[p]);
           }
-          sp[d] = xsimd::fma(fj, pow, sp[d]);
+        } else {
+          cbatch *__restrict__ sp = sums_buf.data();
+          for (int64_t d = 0; d < n_tgt; ++d) {
+            int const *info = map_ptr + d * map_stride;
+            cbatch pow      = load_target(uq0, info[0]) * load_target(uq1, info[1]);
+            for (int r = 2; r < Rank; ++r) pow *= load_target(uq_simd_buf[r].data(), info[r]);
+            sp[d] = xsimd::fma(fj, pow, sp[d]);
+          }
         }
       }
     }

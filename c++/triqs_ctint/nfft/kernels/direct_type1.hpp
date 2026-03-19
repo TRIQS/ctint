@@ -9,6 +9,9 @@
 
 namespace triqs::utility::nfft {
 
+  // Direct type-1 evaluates
+  //
+  //   F(n) += Σ_j f_j ∏_r z_{rj}^{2 n_r + 1},   z_{rj} = exp(i π τ_{rj} / β).
   template <int Rank> struct kernel_direct_type1_t {
 
     kernel_direct_type1_t() = default;

@@ -80,9 +80,9 @@ namespace triqs::utility::nfft {
     return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
   }
 
-  using supported_tol_digits_t = std::integer_sequence<int, 6, 8, 10, 12>;
+  using tol_digits_seq_t = std::integer_sequence<int, 6, 8, 10, 12>;
 
-  constexpr int bucket_tol_digits(double tol) {
+  constexpr int tol_digits_bucket(double tol) {
     if (tol <= 1e-12) return 12;
     if (tol <= 1e-10) return 10;
     if (tol <= 1e-8) return 8;
@@ -104,9 +104,12 @@ namespace triqs::utility::nfft {
     return digits;
   }
 
-  // Transform raw tau coordinates in-place for FINUFFT type1 convention.
-  // The hot part is embarrassingly parallel in the source index j, so run a SIMD
-  // main loop over the contiguous x_arr rows and fx_arr, then finish with a scalar tail.
+  // Map raw imaginary-time samples to the FINUFFT type-1 convention:
+  //
+  //   x_r = 2π(τ_r / β - 1/2),
+  //   f_j <- f_j exp(i π Σ_r τ_{rj} / β).
+  //
+  // The half-grid shift turns odd Matsubara frequencies into an integer-mode FFT.
   template <int TolDigits = 12, int Rank> [[gnu::flatten]] void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
     using dbatch = xsimd::batch<double>;
     using cbatch = xsimd::batch<dcomplex>;
@@ -156,37 +159,38 @@ namespace triqs::utility::nfft {
   using cbatch                           = xsimd::batch<dcomplex>;
   static constexpr std::size_t simd_size = cbatch::size;
 
-  // ILP accumulator count: 2 for 16-reg ISAs (SSE/AVX2), 4 for 32-reg ISAs (AVX-512/NEON/SVE).
-  static constexpr int n_acc = poet::vector_register_count() <= 16 ? 2 : 4;
+  // Number of target accumulators kept live to expose ILP in the direct kernels.
+  static constexpr int ilp_unroll = poet::vector_register_count() <= 16 ? 2 : 4;
 
-  // SIMD+ILP target accumulation for a SIMD-rounded source block. The source
-  // sweep is shared across n_acc target accumulators, but targets themselves
-  // are not padded, so the final few targets still use a scalar target tail.
-  // compute_simd_pow(d, j) returns SIMD batch of exp(i*omega_d*tau_j).
-  template <int n_acc, typename SimdPowFunc>
+  // Accumulate
+  //
+  //   F_d += Σ_j f_j p_d(j)
+  //
+  // for `Unroll` targets at once over a SIMD-rounded source block.
+  template <int Unroll, typename SimdPowFunc>
   [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets, int n_sources_simd, dcomplex *fx_data, dcomplex *fiw_ptr,
                                                             SimdPowFunc &&compute_simd_pow) {
-    static_assert(n_acc > 0 && ((n_acc & (n_acc - 1)) == 0));
+    static_assert(Unroll > 0 && ((Unroll & (Unroll - 1)) == 0));
     if (n_targets == 0 || n_sources_simd == 0) return;
-    constexpr int64_t n_acc_mask = ~int64_t{n_acc - 1};
-    int64_t const n_targets_main = n_targets & n_acc_mask;
+    constexpr int64_t unroll_mask = ~int64_t{Unroll - 1};
+    int64_t const n_targets_main  = n_targets & unroll_mask;
     int64_t d                    = 0;
 
-    for (; d < n_targets_main; d += n_acc) {
-      std::array<cbatch, n_acc> sum_vecs{};
+    for (; d < n_targets_main; d += Unroll) {
+      std::array<cbatch, Unroll> acc{};
       for (int j = 0; j < n_sources_simd; j += simd_size) {
         cbatch fj = cbatch::load_unaligned(fx_data + j);
-        poet::static_for<n_acc>([&](const auto i) { sum_vecs[i] = xsimd::fma(fj, compute_simd_pow(d + i, j), sum_vecs[i]); });
+        poet::static_for<Unroll>([&](const auto i) { acc[i] = xsimd::fma(fj, compute_simd_pow(d + i, j), acc[i]); });
       }
 
-      poet::static_for<n_acc>([&](const auto i) { fiw_ptr[d + i] += xsimd::reduce_add(sum_vecs[i]); });
+      poet::static_for<Unroll>([&](const auto i) { fiw_ptr[d + i] += xsimd::reduce_add(acc[i]); });
     }
 
     for (; d < n_targets; ++d) {
-      cbatch sum_vec{};
+      cbatch acc{};
       for (int j = 0; j < n_sources_simd; j += simd_size)
-        sum_vec = xsimd::fma(cbatch::load_unaligned(fx_data + j), compute_simd_pow(d, j), sum_vec);
-      fiw_ptr[d] += xsimd::reduce_add(sum_vec);
+        acc = xsimd::fma(cbatch::load_unaligned(fx_data + j), compute_simd_pow(d, j), acc);
+      fiw_ptr[d] += xsimd::reduce_add(acc);
     }
   }
 
