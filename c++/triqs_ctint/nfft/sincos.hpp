@@ -12,13 +12,13 @@
 
 #include <array>
 #include <cmath>
+#include <concepts>
 #include <numbers>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
 #include <xsimd/xsimd.hpp>
-#include <poet/poet.hpp>
 
 namespace triqs::utility::math {
 
@@ -107,11 +107,20 @@ template <class T, class U> [[gnu::always_inline]] inline auto fma_or_mul_add(T 
     return acc * x + c;
 }
 
+template <class T, std::size_t N, std::size_t... I>
+[[gnu::always_inline]] inline auto eval_horner_impl(std::array<double, N> const &coeffs, T const &x, std::index_sequence<I...>) {
+  auto acc = std::remove_cvref_t<T>(coeffs[0]);
+  ((acc = fma_or_mul_add(acc, x, coeffs[I + 1])), ...);
+  return acc;
+}
+
 template <std::size_t N, class T>
 [[gnu::always_inline]] inline auto eval_horner(std::array<double, N> const &coeffs, T const &x) {
-  auto acc = std::remove_cvref_t<T>(coeffs[0]);
-  poet::static_for<1, static_cast<std::ptrdiff_t>(N)>([&](auto i) { acc = fma_or_mul_add(acc, x, coeffs[i]); });
-  return acc;
+  static_assert(N > 0);
+  if constexpr (N == 1)
+    return std::remove_cvref_t<T>(coeffs[0]);
+  else
+    return eval_horner_impl(coeffs, x, std::make_index_sequence<N - 1>{});
 }
 
 // ---- Reduced-angle evaluation: |t| <= pi/4 ----
@@ -144,8 +153,19 @@ template <int TolDigits, angle_arg Angle> [[gnu::flatten]] auto sincos_impl(Angl
     auto const c2 = xsimd::select(even_mask, c1, -s1);
     return std::tuple{xsimd::select(low_half_mask, s2, -s2), xsimd::select(low_half_mask, c2, -c2)};
   } else {
-    auto const qi  = static_cast<long long>(std::nearbyint(static_cast<real>(angle) * consts::inv_pi_over_2));
-    real const x1  = std::fma(static_cast<real>(qi), consts::neg_pi_over_2, static_cast<real>(angle));
+    auto const qi = static_cast<long long>(std::nearbyint(static_cast<real>(angle) * consts::inv_pi_over_2));
+    real const x1 = [&] {
+      if constexpr (std::is_same_v<real, float>) {
+        constexpr real pio2_1 = 1.5703125f;
+        constexpr real pio2_2 = 4.837512969970703125e-4f;
+        constexpr real pio2_3 = 7.549789954891882e-8f;
+        auto xr               = std::fma(static_cast<real>(qi), -pio2_1, static_cast<real>(angle));
+        xr                    = std::fma(static_cast<real>(qi), -pio2_2, xr);
+        return std::fma(static_cast<real>(qi), -pio2_3, xr);
+      } else {
+        return std::fma(static_cast<real>(qi), consts::neg_pi_over_2, static_cast<real>(angle));
+      }
+    }();
     auto const [s1, c1] = evaluate_reduced<TolDigits>(x1);
     real const s2 = (qi & 1) == 0 ? s1 : c1;
     real const c2 = (qi & 1) == 0 ? c1 : -s1;

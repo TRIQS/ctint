@@ -163,7 +163,7 @@ namespace triqs::utility::nfft {
         }
       } else if constexpr (Rank == 1) {
         cbatch *__restrict__ sp = sums_buf.data();
-        poet::dynamic_for<n_acc>(int64_t{0}, n_tgt, [&](auto, int64_t d) {
+        poet::dynamic_for<n_acc, 1>(int64_t{0}, n_tgt, [&](int64_t d) {
           sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
         });
       } else {

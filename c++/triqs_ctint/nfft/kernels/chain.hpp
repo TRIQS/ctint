@@ -359,7 +359,7 @@ namespace triqs::utility::nfft {
       }
     }
 
-    template <int TolDigits> [[gnu::noinline]] void execute_phase2_rank1(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
+    template <int TolDigits> void execute_phase2_rank1(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
       static_assert(Rank == 1);
 
       dcomplex *__restrict__ fiw_ptr             = state.fk_vec.data();
@@ -368,11 +368,6 @@ namespace triqs::utility::nfft {
       uint8_t const *__restrict__ conj_ptr       = rank1_target_needs_conj.data();
       int64_t const n_targets                    = state.n_targets;
       int const source_block                     = simd_source_block();
-
-      auto compute_scalar_pow = [&](int64_t d, int j) {
-        dcomplex pow = row_base[row_offset_ptr[d] + j];
-        return conj_ptr[d] ? std::conj(pow) : pow;
-      };
 
       for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
         int const block_len = std::min(source_block, static_cast<int>(buf_counter_simd - jb));
@@ -383,8 +378,7 @@ namespace triqs::utility::nfft {
           return conj_ptr[d] ? xsimd::conj(pow) : pow;
         };
 
-        accumulate_targets_ilp<rank1_target_unroll>(n_targets, block_len, block_len, state.fx_arr.data() + jb, fiw_ptr, compute_simd_pow,
-                                                    compute_scalar_pow);
+        accumulate_targets_ilp<rank1_target_unroll>(n_targets, block_len, state.fx_arr.data() + jb, fiw_ptr, compute_simd_pow);
       }
 
       auto &tbl        = scalar_pow_tbl[0];
@@ -399,7 +393,7 @@ namespace triqs::utility::nfft {
         }
 
         dcomplex const fj = state.fx_arr[j];
-        poet::dynamic_for<rank1_target_unroll>(int64_t{0}, n_targets, [&](auto, int64_t d) {
+        poet::dynamic_for<rank1_target_unroll, 1>(int64_t{0}, n_targets, [&](int64_t d) {
           dcomplex pow = tbl[row_offset_ptr[d] / max_simd_source_block];
           fiw_ptr[d] += fj * (conj_ptr[d] ? std::conj(pow) : pow);
         });

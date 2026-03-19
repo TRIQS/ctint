@@ -159,47 +159,35 @@ namespace triqs::utility::nfft {
   // ILP accumulator count: 2 for 16-reg ISAs (SSE/AVX2), 4 for 32-reg ISAs (AVX-512/NEON/SVE).
   static constexpr int n_acc = poet::vector_register_count() <= 16 ? 2 : 4;
 
-  // SIMD+ILP target accumulation: processes n_acc targets simultaneously.
-  // The inner source loop is shared across n_acc accumulators for ILP.
+  // SIMD+ILP target accumulation for a SIMD-rounded source block. The source
+  // sweep is shared across n_acc target accumulators, but targets themselves
+  // are not padded, so the final few targets still use a scalar target tail.
   // compute_simd_pow(d, j) returns SIMD batch of exp(i*omega_d*tau_j).
-  // compute_scalar_pow(d, j) returns scalar version for the tail.
-  template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>
-  [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets_total, int64_t buf_counter_simd, int buf_counter,
-                                                            dcomplex *fx_data, dcomplex *fiw_ptr, SimdPowFunc &&compute_simd_pow,
-                                                            ScalarPowFunc &&compute_scalar_pow) {
-    auto accumulate_one = [&](int64_t d) {
-      cbatch sum_vec(dcomplex{0, 0});
-      for (int j = 0; j < buf_counter_simd; j += simd_size)
-        sum_vec = xsimd::fma(cbatch::load_unaligned(fx_data + j), compute_simd_pow(d, j), sum_vec);
-      dcomplex sum = xsimd::reduce_add(sum_vec);
-      for (int j = buf_counter_simd; j < buf_counter; ++j) sum += fx_data[j] * compute_scalar_pow(d, j);
-      fiw_ptr[d] += sum;
-    };
-
-    int64_t const n_targets_main = (n_targets_total / n_acc) * n_acc;
+  template <int n_acc, typename SimdPowFunc>
+  [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets, int n_sources_simd, dcomplex *fx_data, dcomplex *fiw_ptr,
+                                                            SimdPowFunc &&compute_simd_pow) {
+    static_assert(n_acc > 0 && ((n_acc & (n_acc - 1)) == 0));
+    if (n_targets == 0 || n_sources_simd == 0) return;
+    constexpr int64_t n_acc_mask = ~int64_t{n_acc - 1};
+    int64_t const n_targets_main = n_targets & n_acc_mask;
     int64_t d                    = 0;
 
     for (; d < n_targets_main; d += n_acc) {
-      std::array<cbatch, n_acc> sum_vecs;
-      poet::static_for<n_acc>([&](const auto i) { sum_vecs[i] = cbatch(dcomplex{0, 0}); });
-
-      for (int j = 0; j < buf_counter_simd; j += simd_size) {
+      std::array<cbatch, n_acc> sum_vecs{};
+      for (int j = 0; j < n_sources_simd; j += simd_size) {
         cbatch fj = cbatch::load_unaligned(fx_data + j);
         poet::static_for<n_acc>([&](const auto i) { sum_vecs[i] = xsimd::fma(fj, compute_simd_pow(d + i, j), sum_vecs[i]); });
       }
 
-      std::array<dcomplex, n_acc> sums;
-      poet::static_for<n_acc>([&](const auto i) { sums[i] = xsimd::reduce_add(sum_vecs[i]); });
-
-      for (int j = buf_counter_simd; j < buf_counter; ++j) {
-        dcomplex fj = fx_data[j];
-        poet::static_for<n_acc>([&](const auto i) { sums[i] += fj * compute_scalar_pow(d + i, j); });
-      }
-
-      poet::static_for<n_acc>([&](const auto i) { fiw_ptr[d + i] += sums[i]; });
+      poet::static_for<n_acc>([&](const auto i) { fiw_ptr[d + i] += xsimd::reduce_add(sum_vecs[i]); });
     }
 
-    for (; d < n_targets_total; ++d) accumulate_one(d);
+    for (; d < n_targets; ++d) {
+      cbatch sum_vec{};
+      for (int j = 0; j < n_sources_simd; j += simd_size)
+        sum_vec = xsimd::fma(cbatch::load_unaligned(fx_data + j), compute_simd_pow(d, j), sum_vec);
+      fiw_ptr[d] += xsimd::reduce_add(sum_vec);
+    }
   }
 
 } // namespace triqs::utility::nfft

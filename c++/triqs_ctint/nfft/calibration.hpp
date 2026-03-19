@@ -86,6 +86,8 @@ namespace triqs::utility::nfft {
     int finufft_path_switch_threshold;
     bool select_direct_type1;
     bool use_type3_below_switch_threshold;
+    double direct_path_lo_time;
+    double direct_path_hi_time;
   };
 
   // Calibrate dispatch threshold for automatic mode with non-uniform targets.
@@ -176,7 +178,9 @@ namespace triqs::utility::nfft {
     return {.direct_vs_finufft_threshold = direct_vs_finufft_threshold,
             .finufft_path_switch_threshold = finufft_path_switch_threshold,
             .select_direct_type1 = select_direct_type1,
-            .use_type3_below_switch_threshold = use_type3_below_switch_threshold};
+            .use_type3_below_switch_threshold = use_type3_below_switch_threshold,
+            .direct_path_lo_time = dir_lo,
+            .direct_path_hi_time = dir_hi};
   }
 
   // Calibrate dispatch threshold for type1 automatic mode (direct_type1 vs FINUFFT type1).

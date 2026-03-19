@@ -68,7 +68,8 @@ if(PythonSupport)
 endif()
 
 # -- finufft --
-# Note: finufft will fetch xsimd v14 via CPM, which we use for ctint
+# Note: FINUFFT fetches xsimd transitively; keep the xsimd source/ref explicit here so
+# ctint does not silently drift when FINUFFT's defaults change.
 set(FINUFFT_USE_OPENMP OFF)
 set(FINUFFT_USE_DUCC0 ON)
 set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
@@ -79,11 +80,12 @@ external_dependency(finufft
   EXCLUDE_FROM_ALL
 )
 
-# -- polyfit (also provides poet as transitive dependency) --
-set(POLYFIT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(POLYFIT_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-external_dependency(polyfit
-  GIT_REPO https://github.com/DiamonDinoia/polyfit
+# -- poet --
+set(POET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(POET_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(POET_BUILD_DEVEL OFF CACHE BOOL "" FORCE)
+external_dependency(poet
+  GIT_REPO https://github.com/DiamonDinoia/poet
   GIT_TAG main
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL

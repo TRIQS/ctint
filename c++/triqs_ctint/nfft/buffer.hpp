@@ -234,7 +234,21 @@ namespace triqs::utility::nfft {
         auto const chain_dispatch_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
         auto const naf_dispatch_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
 
-        selected_sparse_direct_is_chain_ = chain_dispatch_plan.direct_vs_finufft_threshold > naf_dispatch_plan.direct_vs_finufft_threshold;
+        auto const direct_path_cost = [](auto const &plan) { return plan.direct_path_lo_time + plan.direct_path_hi_time; };
+        double const chain_direct_cost = direct_path_cost(chain_dispatch_plan);
+        double const naf_direct_cost   = direct_path_cost(naf_dispatch_plan);
+
+        if (!chain_dispatch_plan.select_direct_type1 && !naf_dispatch_plan.select_direct_type1) {
+          selected_sparse_direct_is_chain_ =
+             (chain_direct_cost < naf_direct_cost) ||
+             ((chain_direct_cost == naf_direct_cost) &&
+              (chain_dispatch_plan.direct_vs_finufft_threshold >= naf_dispatch_plan.direct_vs_finufft_threshold));
+        } else {
+          selected_sparse_direct_is_chain_ =
+             (chain_dispatch_plan.direct_vs_finufft_threshold > naf_dispatch_plan.direct_vs_finufft_threshold) ||
+             ((chain_dispatch_plan.direct_vs_finufft_threshold == naf_dispatch_plan.direct_vs_finufft_threshold) &&
+              (chain_direct_cost <= naf_direct_cost));
+        }
         auto const &selected_dispatch_plan = selected_sparse_direct_is_chain_ ? chain_dispatch_plan : naf_dispatch_plan;
         bool const select_direct_type1     = selected_dispatch_plan.select_direct_type1;
         direct_vs_finufft_threshold_       = selected_dispatch_plan.direct_vs_finufft_threshold;
