@@ -48,7 +48,7 @@ namespace triqs_ctint::measures {
     }
 
     // Init measurement container and capture view
-    mesh::dlr_imtime tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps};
+    mesh::dlr_imtime tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps, true};
     results->chiAB_tau = gf<mesh::dlr_imtime, tensor_valued<1>>{tau_mesh, make_shape(op_pairs.size())};
     chiAB_tau_.rebind(results->chiAB_tau.value());
     chiAB_tau_() = 0;
