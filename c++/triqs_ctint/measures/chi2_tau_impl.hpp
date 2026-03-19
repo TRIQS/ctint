@@ -11,7 +11,7 @@ namespace triqs_ctint::measures {
 
   template <Chan_t Chan>
   chi2_tau<Chan>::chi2_tau(params_t const &params_, qmc_config_t &qmc_config_, container_set *results)
-     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps} {
+     : params(params_), qmc_config(qmc_config_), tau_mesh{params_.beta, Boson, params_.dlr_wmax, params_.dlr_eps, true} {
 
     // Init measurement container and capture view
     if (Chan == Chan_t::PP) {
