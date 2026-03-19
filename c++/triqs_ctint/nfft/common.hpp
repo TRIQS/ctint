@@ -23,10 +23,11 @@ namespace triqs::utility::nfft {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
-  // Combined sincos using polynomial approximation (polyfit-based).
-  // TolDigits controls accuracy vs speed tradeoff; should match NFFT tolerance.
+  // Scalar sincos: use glibc ::sincos (faster than polynomial for single values).
+  // The polynomial fast path is used only for SIMD batches in the kernels.
   template <int TolDigits = 12> inline dcomplex cis(double theta) {
-    auto [s, c] = triqs::utility::math::sincos<TolDigits>(theta);
+    double s, c;
+    ::sincos(theta, &s, &c);
     return {c, s};
   }
 
