@@ -37,8 +37,8 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING
 # xsimd and finufft are needed only to compile nfft_buf.cpp; BUILD_INTERFACE is enough
 target_link_libraries(${PROJECT_NAME}_c PRIVATE $<BUILD_INTERFACE:xsimd> $<BUILD_INTERFACE:finufft::finufft>)
 
-# polyfit backs the fast sincos in the nfft headers; poet arrives transitively
-target_link_libraries(${PROJECT_NAME}_c PUBLIC polyfit::polyfit)
+# poet backs the nfft kernels, which live in installed headers
+target_link_libraries(${PROJECT_NAME}_c PUBLIC poet::poet)
 
 # Absorb finufft into the ctint archive
 # fftw dependency is resolved by triqs_ctint-config.cmake

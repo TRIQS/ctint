@@ -58,8 +58,8 @@ endif()
 
 # -- finufft --
 # BUILD_ALWAYS: c++/triqs_ctint absorbs finufft's objects into libtriqs_ctint_c.a via
-# $<TARGET_OBJECTS:>, which does not work on the IMPORTED target a system finufft would give us.
-# Note: finufft fetches xsimd via CPM, which we use for ctint as well.
+# $<TARGET_OBJECTS:>, which does not work on the IMPORTED target of a system finufft.
+# finufft fetches xsimd transitively; keep the xsimd ref explicit so ctint does not drift.
 set(FINUFFT_USE_OPENMP OFF)
 # Default to a portable finufft build: its -march=native default crashes (SIGILL) when a cross-CPU build cache is reused. Override with -DFINUFFT_ARCH_FLAGS=native for a local perf build.
 set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Architecture flags for finufft (empty = portable baseline)")
@@ -72,11 +72,12 @@ external_dependency(finufft
   EXCLUDE_FROM_ALL
 )
 
-# -- polyfit (also provides poet as transitive dependency) --
-set(POLYFIT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(POLYFIT_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-external_dependency(polyfit
-  GIT_REPO https://github.com/DiamonDinoia/polyfit
+# -- poet --
+set(POET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(POET_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(POET_BUILD_DEVEL OFF CACHE BOOL "" FORCE)
+external_dependency(poet
+  GIT_REPO https://github.com/DiamonDinoia/poet
   GIT_TAG main
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
