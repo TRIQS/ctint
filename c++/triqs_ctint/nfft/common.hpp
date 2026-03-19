@@ -23,12 +23,15 @@ namespace triqs::utility::nfft {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
-  // Scalar sincos: use glibc ::sincos (faster than polynomial for single values).
-  // The polynomial fast path is used only for SIMD batches in the kernels.
   template <int TolDigits = 12> inline dcomplex cis(double theta) {
-    double s, c;
-    ::sincos(theta, &s, &c);
-    return {c, s};
+    if constexpr (TolDigits >= 12) {
+      double s, c;
+      ::sincos(theta, &s, &c);
+      return {c, s};
+    } else {
+      auto [s, c] = triqs::utility::math::sincos<TolDigits>(theta);
+      return {c, s};
+    }
   }
 
   inline void check_finufft(int err) {
@@ -102,7 +105,7 @@ namespace triqs::utility::nfft {
   }
 
   // Transform raw tau coordinates in-place for FINUFFT type1 convention
-  template <int Rank> void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
+  template <int TolDigits = 12, int Rank> void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
     double const inv_beta = 1.0 / state.beta;
     for (int j = 0; j < n; ++j) {
       double tau_sum = 0.0;
@@ -111,7 +114,7 @@ namespace triqs::utility::nfft {
         tau_sum += tau;
         state.x_arr(r, j) = 2 * M_PI * (tau * inv_beta - 0.5);
       }
-      state.fx_arr[j] *= cis(M_PI * tau_sum * inv_beta);
+      state.fx_arr[j] *= cis<TolDigits>(M_PI * tau_sum * inv_beta);
     }
   }
 

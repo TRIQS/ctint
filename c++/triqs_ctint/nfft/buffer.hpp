@@ -99,7 +99,7 @@ namespace triqs::utility::nfft {
     void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
       if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
 
-      if (type_ == type_t::type1 && dispatch_buf_threshold == 0) {
+      if (type_ == type_t::type1 && direct_vs_finufft_threshold_ == 0) {
         double tau_sum = 0.0;
         for (int r = 0; r < Rank; ++r) {
           state_.x_arr(r, state_.buf_counter) = 2 * M_PI * (tau_arr[r] / state_.beta - 0.5);
@@ -125,9 +125,12 @@ namespace triqs::utility::nfft {
     private:
     static constexpr int64_t max_type1_dispatch_targets = 100'000;
 
-    type_t type_            = type_t::type1;
-    bool use_type3_         = false;
-    bool use_chain_direct_  = false;
+    type_t type_ = type_t::type1;
+    // Automatic non-uniform dispatch first chooses a direct kernel family
+    // (direct_type1 vs NAF/chain), then chooses the FINUFFT path
+    // (type3 vs type1_gather) for buffer sizes above the direct crossover.
+    bool selected_sparse_direct_is_chain_      = false;
+    bool use_type3_below_switch_threshold_     = false;
     shared_state_t<Rank> state_;
 
     nda::array_view<dcomplex, Rank> fiw_arr;
@@ -142,8 +145,9 @@ namespace triqs::utility::nfft {
     std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
-    int dispatch_buf_threshold = 0;
-    do_nfft_fn_t do_nfft_fn_   = nullptr;
+    int direct_vs_finufft_threshold_ = 0;
+    int finufft_path_switch_threshold_ = 0;
+    do_nfft_fn_t do_nfft_fn_          = nullptr;
 
     template <int TolDigits> auto &emplace_finufft() {
       return finufft_kernel_.template emplace<finufft_kernel_t<TolDigits>>();
@@ -169,7 +173,7 @@ namespace triqs::utility::nfft {
         auto target_mf = build_uniform_target_mf(beta_);
         state_.init_direct_common(target_mf);
         direct_type1_kernel_.emplace(state_, target_mf);
-        dispatch_buf_threshold = calibrate_dispatch_type1(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
+        direct_vs_finufft_threshold_ = calibrate_dispatch_type1<12>(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
       }
 
       do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
@@ -206,24 +210,36 @@ namespace triqs::utility::nfft {
         auto &naf_kernel   = *naf_kernel_;
         auto &chain_kernel = *chain_kernel_;
 
-        // Calibrate both sparse kernels against direct_type1 and FINUFFT.
-        // Pick the sparse kernel with the higher crossover threshold (= better direct performance).
-        auto [chain_threshold, chain_dt1, chain_t3] =
-           calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, chain_kernel, finufft);
-        auto [naf_threshold, naf_dt1, naf_t3] =
-           calibrate_dispatch_nonuniform(state_, *direct_type1_kernel_, naf_kernel, finufft);
+        // Automatic mode is chosen in two stages:
+        // 1. Compare the two sparse-direct candidates (`chain` and `naf`) against `direct_type1`.
+        //    Keep the sparse family with the larger direct-vs-FINUFFT crossover.
+        // 2. For that winning family, honor the calibration result that says whether the best
+        //    direct kernel is actually `direct_type1` or the sparse kernel itself.
+        auto const chain_dispatch_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
+        auto const naf_dispatch_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
 
-        use_chain_direct_      = chain_threshold > naf_threshold;
-        dispatch_buf_threshold = use_chain_direct_ ? chain_threshold : naf_threshold;
-        use_type3_             = use_chain_direct_ ? chain_t3 : naf_t3;
-        bool use_dt1           = use_chain_direct_ ? chain_dt1 : naf_dt1;
+        selected_sparse_direct_is_chain_ = chain_dispatch_plan.direct_vs_finufft_threshold > naf_dispatch_plan.direct_vs_finufft_threshold;
+        auto const &selected_dispatch_plan = selected_sparse_direct_is_chain_ ? chain_dispatch_plan : naf_dispatch_plan;
+        bool const select_direct_type1     = selected_dispatch_plan.select_direct_type1;
+        direct_vs_finufft_threshold_       = selected_dispatch_plan.direct_vs_finufft_threshold;
+        finufft_path_switch_threshold_     = selected_dispatch_plan.finufft_path_switch_threshold;
+        use_type3_below_switch_threshold_  = selected_dispatch_plan.use_type3_below_switch_threshold;
 
-        prune_automatic_direct_kernels(use_dt1);
+        // Cleanup after the selected automatic dispatch policy is fully determined.
+        prune_unselected_direct_kernels(select_direct_type1);
 
-        if (use_type3_)
-          finufft.release_type1_gather();
-        else
-          finufft.release_type3();
+        // Release unused FINUFFT plans only if one path dominates over the full buffer range.
+        if (finufft_path_switch_threshold_ <= 0) {
+          if (use_type3_below_switch_threshold_)
+            finufft.release_type3();
+          else
+            finufft.release_type1_gather();
+        } else if (finufft_path_switch_threshold_ > state_.buf_size) {
+          if (use_type3_below_switch_threshold_)
+            finufft.release_type1_gather();
+          else
+            finufft.release_type3();
+        }
 
       } else {
         NDA_RUNTIME_ERROR << "buffer_t: unsupported type_t for non-uniform target constructor\n";
@@ -248,55 +264,73 @@ namespace triqs::utility::nfft {
       return naf_estimate;
     }
 
-    void prune_automatic_direct_kernels(bool use_dt1) {
-      if (use_dt1) {
+    void prune_unselected_direct_kernels(bool select_direct_type1) {
+      if (select_direct_type1) {
         naf_kernel_.reset();
         chain_kernel_.reset();
         return;
       }
 
       direct_type1_kernel_.reset();
-      if (use_chain_direct_)
+      if (selected_sparse_direct_is_chain_)
         naf_kernel_.reset();
       else
         chain_kernel_.reset();
     }
 
-    template <int TolDigits> static void do_nfft_impl(buffer_t &self) {
-      auto &finufft = self.template get_finufft<TolDigits>();
+    bool should_use_type3_for_n(int n) const {
+      if (finufft_path_switch_threshold_ <= 0) return !use_type3_below_switch_threshold_;
+      if (finufft_path_switch_threshold_ > state_.buf_size) return use_type3_below_switch_threshold_;
+      return use_type3_below_switch_threshold_ ? (n < finufft_path_switch_threshold_) : (n >= finufft_path_switch_threshold_);
+    }
 
+    template <int TolDigits> static void do_nfft_impl(buffer_t &self) {
       if (self.type_ == type_t::type1) {
-        if (self.state_.buf_counter < self.dispatch_buf_threshold)
+        auto &finufft = self.template get_finufft<TolDigits>();
+        if (self.state_.buf_counter < self.direct_vs_finufft_threshold_)
           self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
         else {
-          if (self.dispatch_buf_threshold > 0) self.prepare_type1_coords();
+          if (self.direct_vs_finufft_threshold_ > 0) self.template prepare_type1_coords<12>();
           finufft.execute_type1(self.state_, self.fiw_arr, self.fk_arr, self.common_factor);
         }
       } else if (self.type_ == type_t::type1_gather) {
-        self.prepare_type1_coords();
+        auto &finufft = self.template get_finufft<TolDigits>();
+        self.template prepare_type1_coords<TolDigits>();
         finufft.execute_type1_gather(self.state_, self.fiw_vec);
       } else if (self.type_ == type_t::automatic) {
-        if (self.state_.buf_counter < self.dispatch_buf_threshold) {
+        if (self.state_.buf_counter < self.direct_vs_finufft_threshold_) {
           if (self.direct_type1_kernel_)
             self.template run_direct<TolDigits>(*self.direct_type1_kernel_);
-          else if (self.use_chain_direct_ && self.chain_kernel_)
+          else if (self.selected_sparse_direct_is_chain_ && self.chain_kernel_)
             self.template run_direct<TolDigits>(*self.chain_kernel_);
           else
             self.template run_direct<TolDigits>(*self.naf_kernel_);
-        } else if (self.use_type3_) {
-          finufft.execute_type3(self.state_, self.fiw_vec);
         } else {
-          self.prepare_type1_coords();
-          finufft.execute_type1_gather(self.state_, self.fiw_vec);
+          auto &finufft = self.template get_finufft<TolDigits>();
+          if (self.should_use_type3_for_n(self.state_.buf_counter)) {
+            finufft.execute_type3(self.state_, self.fiw_vec);
+          } else {
+            self.template prepare_type1_coords<TolDigits>();
+            finufft.execute_type1_gather(self.state_, self.fiw_vec);
+          }
         }
-      } else if (self.type_ == type_t::type3)
+      } else if (self.type_ == type_t::type3) {
+        auto &finufft = self.template get_finufft<TolDigits>();
         finufft.execute_type3(self.state_, self.fiw_vec);
+      } else if (self.type_ == type_t::direct_type1)
+        self.template run_direct<TolDigits>(*self.direct_type1_kernel_);
       else if (self.type_ == type_t::direct_type3)
         self.template run_direct<TolDigits>(*self.naf_kernel_);
       else if (self.type_ == type_t::direct_chain)
         self.template run_direct<TolDigits>(*self.chain_kernel_);
       else
         self.template run_direct_type1<TolDigits>(*self.direct_type1_kernel_);
+    }
+
+    template <int TolDigits> void run_direct(kernel_direct_type1_t<Rank> &kernel) {
+      state_.fk_vec = 0;
+      kernel.template execute<12>(state_);
+      fiw_vec += state_.fk_vec;
     }
 
     template <int TolDigits, typename Kernel> void run_direct(Kernel &kernel) {
@@ -316,7 +350,7 @@ namespace triqs::utility::nfft {
     // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
     template <int TolDigits> void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
-      kernel.template execute<TolDigits>(state_);
+      kernel.template execute<12>(state_);
       scatter_to_arr();
     }
 
@@ -328,7 +362,7 @@ namespace triqs::utility::nfft {
       }
     }
 
-    void prepare_type1_coords() { apply_type1_coord_transform(state_, state_.buf_counter); }
+    template <int TolDigits> void prepare_type1_coords() { apply_type1_coord_transform<TolDigits>(state_, state_.buf_counter); }
 
     std::vector<std::array<target_mf_t, Rank>> build_uniform_target_mf(double beta) const {
       std::vector<std::array<target_mf_t, Rank>> target_mf;

@@ -77,20 +77,24 @@ namespace triqs::utility::nfft {
 
   // ---- Calibration functions ----
 
-  // Result for 3-way non-uniform dispatch calibration
-  struct nonuniform_dispatch_t {
-    int threshold;  // buffer size below which the direct kernel wins
-    bool use_dt1;   // true = direct_type1, false = NAF
-    bool use_type3; // true = FINUFFT type3 above threshold, false = type1_gather
+  // Selection plan for automatic non-uniform dispatch.
+  // There are two independent decisions:
+  // 1. Direct vs FINUFFT: below direct_vs_finufft_threshold use a direct kernel, above it use FINUFFT.
+  // 2. Inside the FINUFFT region: switch between type3 and type1_gather at finufft_path_switch_threshold.
+  struct nonuniform_dispatch_plan_t {
+    int direct_vs_finufft_threshold;
+    int finufft_path_switch_threshold;
+    bool select_direct_type1;
+    bool use_type3_below_switch_threshold;
   };
 
   // Calibrate dispatch threshold for automatic mode with non-uniform targets.
   // Compares direct kernels (direct_type1 vs sparse direct kernel) against both
   // FINUFFT paths (type1_gather vs type3), then picks the faster direct kernel
   // and the faster FINUFFT path, and computes their crossover.
-  template <int Rank, typename SparseDirectKernel, typename FinufftKernel>
-  nonuniform_dispatch_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
-                                                      SparseDirectKernel &sparse_direct_kernel, FinufftKernel &finufft_kernel) {
+  template <int TolDigits = 12, int Rank, typename SparseDirectKernel, typename FinufftKernel>
+  nonuniform_dispatch_plan_t calibrate_dispatch_nonuniform(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_type1_kernel,
+                                                           SparseDirectKernel &sparse_direct_kernel, FinufftKernel &finufft_kernel) {
     using clock = std::chrono::steady_clock;
 
     int const n_hi = std::min(4096, state.buf_size);
@@ -120,7 +124,7 @@ namespace triqs::utility::nfft {
     auto measure_type1_gather = [&](int n) {
       saver.restore();
       state.buf_counter = n;
-      apply_type1_coord_transform(state, n);
+      apply_type1_coord_transform<TolDigits>(state, n);
       dummy_fiw = 0;
       auto t0   = clock::now();
       finufft_kernel.execute_type1_gather(state, dummy_fiw);
@@ -145,31 +149,39 @@ namespace triqs::utility::nfft {
     // Pick faster direct kernel at n_lo, measure winner at n_hi
     double dt1_lo    = best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
     double sparse_lo = best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_lo);
-    bool use_dt1     = dt1_lo <= sparse_lo;
-    double dir_lo    = use_dt1 ? dt1_lo : sparse_lo;
-    double dir_hi = use_dt1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
-                              best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
+    bool const select_direct_type1 = dt1_lo <= sparse_lo;
+    double dir_lo                  = select_direct_type1 ? dt1_lo : sparse_lo;
+    double dir_hi                  = select_direct_type1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
+                                                           best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
 
-    // Measure both FINUFFT paths, pick faster at n_hi (more representative of high-n regime)
+    // Measure both FINUFFT paths. Automatic mode can dispatch between them, so calibrate
+    // both the per-n FINUFFT crossover and the direct-vs-best-FINUFFT crossover.
     double tg_lo = best_of_n(measure_type1_gather, n_lo);
     double tg_hi = best_of_n(measure_type1_gather, n_hi);
     double t3_lo = best_of_n(measure_type3, n_lo);
     double t3_hi = best_of_n(measure_type3, n_hi);
 
-    bool use_type3    = t3_hi < tg_hi;
-    double finufft_lo = use_type3 ? t3_lo : tg_lo;
-    double finufft_hi = use_type3 ? t3_hi : tg_hi;
+    bool const use_type3_below_switch_threshold = t3_lo <= tg_lo;
+    int const finufft_path_switch_threshold =
+       use_type3_below_switch_threshold ? linear_crossover(t3_lo, t3_hi, tg_lo, tg_hi, n_lo, n_hi, state.buf_size) :
+                                          linear_crossover(tg_lo, tg_hi, t3_lo, t3_hi, n_lo, n_hi, state.buf_size);
 
-    int threshold = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
-    if constexpr (Rank == 1) threshold = std::max(threshold, 96);
+    double finufft_lo = std::min(t3_lo, tg_lo);
+    double finufft_hi = std::min(t3_hi, tg_hi);
+
+    int direct_vs_finufft_threshold = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
+    if constexpr (Rank == 1) direct_vs_finufft_threshold = std::max(direct_vs_finufft_threshold, 96);
 
     saver.cleanup();
-    return {.threshold = threshold, .use_dt1 = use_dt1, .use_type3 = use_type3};
+    return {.direct_vs_finufft_threshold = direct_vs_finufft_threshold,
+            .finufft_path_switch_threshold = finufft_path_switch_threshold,
+            .select_direct_type1 = select_direct_type1,
+            .use_type3_below_switch_threshold = use_type3_below_switch_threshold};
   }
 
   // Calibrate dispatch threshold for type1 automatic mode (direct_type1 vs FINUFFT type1).
   // The direct path uses raw tau, while the FINUFFT path needs coordinate transformation.
-  template <int Rank, typename FinufftKernel>
+  template <int TolDigits = 12, int Rank, typename FinufftKernel>
   int calibrate_dispatch_type1(shared_state_t<Rank> &state, kernel_direct_type1_t<Rank> &direct_kernel, FinufftKernel &finufft_kernel,
                                nda::array<dcomplex, Rank> &fk_arr, int common_factor) {
     using clock = std::chrono::steady_clock;
@@ -194,7 +206,7 @@ namespace triqs::utility::nfft {
     auto measure_type1 = [&](int n) {
       saver.restore();
       state.buf_counter = n;
-      apply_type1_coord_transform(state, n);
+      apply_type1_coord_transform<TolDigits>(state, n);
       dummy_fiw = 0;
       auto t0   = clock::now();
       finufft_kernel.execute_type1(state, dummy_fiw, fk_arr, common_factor);
