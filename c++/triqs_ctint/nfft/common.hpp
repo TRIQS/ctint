@@ -104,10 +104,43 @@ namespace triqs::utility::nfft {
     return digits;
   }
 
-  // Transform raw tau coordinates in-place for FINUFFT type1 convention
-  template <int TolDigits = 12, int Rank> void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
+  // Transform raw tau coordinates in-place for FINUFFT type1 convention.
+  // The hot part is embarrassingly parallel in the source index j, so run a SIMD
+  // main loop over the contiguous x_arr rows and fx_arr, then finish with a scalar tail.
+  template <int TolDigits = 12, int Rank> [[gnu::flatten]] void apply_type1_coord_transform(shared_state_t<Rank> &state, int n) {
+    using dbatch = xsimd::batch<double>;
+    using cbatch = xsimd::batch<dcomplex>;
+
+    if (n <= 0) return;
+
     double const inv_beta = 1.0 / state.beta;
-    for (int j = 0; j < n; ++j) {
+    constexpr int simd_width = static_cast<int>(dbatch::size);
+    int const simd_n = n & -simd_width;
+
+    std::array<double *, Rank> x_ptr{};
+    for (int r = 0; r < Rank; ++r) x_ptr[r] = &state.x_arr(r, 0);
+    dcomplex *fx_ptr = state.fx_arr.data();
+
+    dbatch const inv_beta_vec(inv_beta);
+    dbatch const half_vec(0.5);
+    dbatch const two_pi_vec(2.0 * M_PI);
+    dbatch const pi_over_beta_vec(M_PI * inv_beta);
+
+    int j = 0;
+    for (; j < simd_n; j += simd_width) {
+      dbatch tau_sum(0.0);
+      for (int r = 0; r < Rank; ++r) {
+        dbatch tau = dbatch::load_unaligned(x_ptr[r] + j);
+        tau_sum += tau;
+        (two_pi_vec * (tau * inv_beta_vec - half_vec)).store_unaligned(x_ptr[r] + j);
+      }
+
+      auto [sin_theta, cos_theta] = triqs::utility::math::sincos<TolDigits>(pi_over_beta_vec * tau_sum);
+      cbatch phase(cos_theta, sin_theta);
+      (cbatch::load_unaligned(fx_ptr + j) * phase).store_unaligned(fx_ptr + j);
+    }
+
+    for (; j < n; ++j) {
       double tau_sum = 0.0;
       for (int r = 0; r < Rank; ++r) {
         double tau = state.x_arr(r, j);

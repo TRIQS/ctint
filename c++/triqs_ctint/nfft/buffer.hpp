@@ -96,34 +96,50 @@ namespace triqs::utility::nfft {
       fiw_arr.rebind(new_fiw_arr);
     }
 
-    void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
-      if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+    [[gnu::always_inline]] inline void push_back(std::array<double, Rank> const &tau_arr, dcomplex ftau) {
+      if (state_.x_arr.empty()) [[unlikely]] throw_uninitialized_buffer_error();
+
+      using x_arr_t = std::remove_reference_t<decltype(state_.x_arr)>;
+      static_assert(x_arr_t::is_stride_order_C());
+
+      int const idx = state_.buf_counter;
 
       if (type_ == type_t::type1 && direct_vs_finufft_threshold_ == 0) {
         double tau_sum = 0.0;
-        for (int r = 0; r < Rank; ++r) {
-          state_.x_arr(r, state_.buf_counter) = 2 * M_PI * (tau_arr[r] / state_.beta - 0.5);
-          tau_sum += tau_arr[r];
-        }
-        state_.fx_arr[state_.buf_counter] = cis(M_PI * tau_sum / state_.beta) * ftau;
+        double const pi_over_beta     = M_PI / state_.beta;
+        double const two_pi_over_beta = 2.0 * pi_over_beta;
+        poet::static_for<Rank>([&](auto r) {
+          double const tau = tau_arr[r];
+          tau_sum += tau;
+          state_.x_arr(r, idx) = std::fma(two_pi_over_beta, tau, -M_PI);
+        });
+        state_.fx_arr[idx] = cis<12>(pi_over_beta * tau_sum) * ftau;
       } else {
-        for (int r = 0; r < Rank; ++r) state_.x_arr(r, state_.buf_counter) = tau_arr[r];
-        state_.fx_arr[state_.buf_counter] = ftau;
+        poet::static_for<Rank>([&](auto r) { state_.x_arr(r, idx) = tau_arr[r]; });
+        state_.fx_arr[idx] = ftau;
       }
 
       if (++state_.buf_counter >= state_.buf_size) flush();
     }
 
     void flush() {
-      if (state_.x_arr.empty()) NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+      if (state_.x_arr.empty()) [[unlikely]] throw_uninitialized_buffer_error();
       if (state_.buf_counter == 0) return;
-      if (not do_nfft_fn_) NDA_RUNTIME_ERROR << " Nfft Buffer backend was not initialized\n";
+      if (not do_nfft_fn_) [[unlikely]] throw_uninitialized_backend_error();
       do_nfft_fn_(*this);
       state_.buf_counter = 0;
     }
 
     private:
     static constexpr int64_t max_type1_dispatch_targets = 100'000;
+
+    [[gnu::cold, noreturn]] static void throw_uninitialized_buffer_error() {
+      NDA_RUNTIME_ERROR << " Using a default-constructed NFFT Buffer is not allowed\n";
+    }
+
+    [[gnu::cold, noreturn]] static void throw_uninitialized_backend_error() {
+      NDA_RUNTIME_ERROR << " Nfft Buffer backend was not initialized\n";
+    }
 
     type_t type_ = type_t::type1;
     // Automatic non-uniform dispatch first chooses a direct kernel family
