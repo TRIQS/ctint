@@ -64,6 +64,7 @@ namespace triqs::utility::nfft {
 
     /// Initialize for type 1 (non-uniform tau -> uniform Matsubara grid)
     void init_type1(std::array<int64_t, Rank> const &niws, int /*buf_size*/, double tol) {
+      // FINUFFT orders dimensions from fastest to slowest, opposite to our rank order.
       auto Ns = std::vector(niws.rbegin(), niws.rend());
       init_bucketed_plans(type1_plans_, [&](finufft_opts &local_opts, finufft_plan *raw_plan) {
         return finufft_makeplan(1, Rank, Ns.data(), 1, 1, tol, raw_plan, &local_opts);
@@ -132,6 +133,7 @@ namespace triqs::utility::nfft {
       auto const &plan = select_type1_plan(state.buf_counter);
       set_pts(state, nullptr, plan);
       check_finufft(finufft_execute(plan.get(), state.fx_arr.data(), fk_arr.data()));
+      // The half-grid shift contributes one sign per odd mode, hence the parity factor below.
       for (auto idx_tpl : fiw_arr.indices()) {
         auto idx_sum = std::apply([](auto... idx) { return (idx + ... + 0); }, idx_tpl);
         int factor   = common_factor * (idx_sum % 2 ? -1 : 1);
@@ -143,7 +145,7 @@ namespace triqs::utility::nfft {
       auto const &plan = select_type1_plan(state.buf_counter);
       set_pts(state, nullptr, plan);
       check_finufft(finufft_execute(plan.get(), state.fx_arr.data(), gather_fk_arr.data()));
-      // Gather selected modes with precomputed signs
+      // Gather only the requested odd modes from the enclosing uniform grid.
       auto const *fk_data = gather_fk_arr.data();
       for (int64_t d = 0; d < static_cast<int64_t>(gather_indices.size()); ++d)
         fiw_vec(d) += fk_data[gather_indices[d]] * static_cast<double>(gather_signs[d]);
@@ -171,13 +173,18 @@ namespace triqs::utility::nfft {
     }
 
     private:
+    // FINUFFT plans bucketed by source count.
     std::vector<finufft_plan_ptr> type1_plans_;
     std::vector<finufft_plan_ptr> type3_plans_; // separate type3 plans (when both paths coexist)
-    nda::array<double, 2> s_arr;              // type3 target frequencies
-    std::array<int64_t, Rank> gather_niws{};  // type1_gather grid sizes
-    std::vector<int64_t> gather_indices;      // type1_gather: flat index per target
-    std::vector<int> gather_signs;            // type1_gather: sign factor per target
-    nda::array<dcomplex, Rank> gather_fk_arr; // type1_gather: FINUFFT output buffer
+
+    // Type-3 target frequencies.
+    nda::array<double, 2> s_arr;
+
+    // Type1-gather metadata: enclosing uniform grid, gather map, and output buffer.
+    std::array<int64_t, Rank> gather_niws{};
+    std::vector<int64_t> gather_indices;
+    std::vector<int> gather_signs;
+    nda::array<dcomplex, Rank> gather_fk_arr;
 
     void init_type3_targets(std::vector<std::array<target_mf_t, Rank>> const &target_mf, int64_t n_targets) {
       s_arr.resize(Rank, n_targets);
@@ -201,6 +208,7 @@ namespace triqs::utility::nfft {
 
     int select_bucket_index(int n_points, std::vector<finufft_plan_ptr> const &plans) const {
       if (plans.size() <= 1) return 0;
+      // Pick the plan tuned for the current source count.
       return detail::tuned_finufft_bucket_index<Rank, TolDigits>(n_points);
     }
 
@@ -211,11 +219,12 @@ namespace triqs::utility::nfft {
     finufft_plan_ptr const &select_type1_plan(int n_points) const { return select_plan(type1_plans_, n_points); }
 
     finufft_plan_ptr const &select_type3_plan(int n_points) const {
+      // After calibration, the surviving FINUFFT path may be stored in either vector.
       auto const &plans = type3_plans_.empty() ? type1_plans_ : type3_plans_;
       return select_plan(plans, n_points);
     }
 
-    // FINUFFT expects coordinates in reverse rank order
+    // FINUFFT expects coordinates in reverse rank order.
     void set_pts(shared_state_t<Rank> &state, nda::array<double, 2> *tgt, finufft_plan_ptr const &p) {
       auto _ = nda::range::all;
       auto n_tgt = tgt ? state.n_targets : int64_t{0};

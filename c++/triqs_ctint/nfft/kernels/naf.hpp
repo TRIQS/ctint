@@ -11,8 +11,13 @@
 
 namespace triqs::utility::nfft {
 
-  // NAF writes |2n + 1| = Σ_k ε_k 2^k with ε_k in {-1, 0, 1}, so
-  // z^{|2n + 1|} = Π_k (z^{2^k})^{ε_k} and only powers of two need tables.
+  // NAF writes e = |2n + 1| as a sparse signed binary sum
+  //
+  //   e = Σ_k ε_k 2^k,   ε_k in {-1, 0, 1},
+  //
+  // with no adjacent nonzero digits. Example: 13 = 16 - 4 + 1.
+  // Then z^e is rebuilt from the shared powers z^(2^k); ε_k = -1 means use
+  // conj(z^(2^k)). Negative Matsubara indices only add a final conjugation.
   template <int Rank> struct kernel_naf_t {
 
     kernel_naf_t() = default;
@@ -27,6 +32,7 @@ namespace triqs::utility::nfft {
           unsigned long exp   = odd_exponent_abs(state.target_n(r, d));
           auto [it, inserted] = exp_to_idx.try_emplace(exp, static_cast<int>(exp_to_idx.size()));
           if (inserted) {
+            // Store the NAF digits once per unique exponent as (row, sign) pairs.
             auto digits = compute_naf(exp);
             digit_offsets[r].push_back(static_cast<int>(digit_row_flat[r].size() + digits.size()));
             for (int digit : digits) {
@@ -49,6 +55,7 @@ namespace triqs::utility::nfft {
       sums_buf.resize(state.n_targets);
 
       if constexpr (Rank == 2) {
+        // Group equal rank-0 exponents so one lookup can be reused across the group.
         std::vector<int> order(state.n_targets);
         std::iota(order.begin(), order.end(), 0);
         std::sort(order.begin(), order.end(), [&](int lhs, int rhs) {
@@ -85,17 +92,27 @@ namespace triqs::utility::nfft {
     }
 
     private:
+    // Per-rank power-of-two tables z^(2^k), in SIMD and scalar form.
     std::array<int, Rank> num_pow2_levels{};
     std::array<std::vector<cbatch>, Rank> simd_pow2_tbl;
     std::array<std::vector<dcomplex>, Rank> scalar_pow2_tbl;
+
+    // Per-rank unique-exponent metadata for the NAF expansion.
     std::array<int, Rank> n_unique{};
     std::array<std::vector<uint16_t>, Rank> digit_row_flat;
     std::array<std::vector<uint8_t>, Rank> digit_neg_flat;
     std::array<std::vector<int>, Rank> digit_offsets;
+
+    // Target -> unique exponent lookup. For each rank:
+    //   info = 2 * unique_id + needs_conj.
     std::vector<int> target_map;
+
+    // Temporary per-flush work buffers.
     mutable std::array<std::vector<xsimd::batch<dcomplex>>, Rank> uq_simd_buf;
     mutable std::array<std::vector<dcomplex>, Rank> uq_scalar_buf;
     mutable std::vector<xsimd::batch<dcomplex>> sums_buf;
+
+    // Rank-2 grouped accumulation order: group equal rank-0 exponents together.
     std::vector<int> rank0_group_key;
     std::vector<int> rank0_group_offset;
     std::vector<int> grouped_target_idx;
@@ -104,6 +121,7 @@ namespace triqs::utility::nfft {
       poet::static_for<Rank>([&](const auto r) {
         auto &tbl = simd_pow2_tbl[r];
         using rbatch = xsimd::batch<double>;
+        // Build z^(2^k) by repeated squaring, starting from z^1.
         auto [sin_vec, cos_vec] = triqs::utility::math::sincos<TolDigits>(rbatch::load_unaligned(&state.x_arr(r, j_begin)) * pi_over_beta);
         tbl[0] = cbatch(cos_vec, sin_vec);
         for (int k = 1; k < num_pow2_levels[r]; ++k) tbl[k] = tbl[k - 1] * tbl[k - 1];
@@ -132,6 +150,7 @@ namespace triqs::utility::nfft {
 
       auto fill_unique = [&](cbatch *__restrict__ uq, auto r) {
         for (int u = 0; u < n_unique[r]; ++u) {
+          // Materialize the requested exponent z^{|2n+1|} from the shared power-of-two table.
           uq[u] = compute_unique_simd(r, u);
         }
       };
@@ -147,6 +166,7 @@ namespace triqs::utility::nfft {
       if constexpr (Rank == 1) {
         cbatch *__restrict__ sp = sums_buf.data();
         poet::dynamic_for<ilp_unroll, 1>(int64_t{0}, n_tgt, [&](int64_t d) {
+          // Rank 1 is just a gather from the unique-exponent table.
           sp[d] = xsimd::fma(fj, load_target(uq0, map_ptr[d]), sp[d]);
         });
       } else {
@@ -164,6 +184,7 @@ namespace triqs::utility::nfft {
           int const n_groups                   = static_cast<int>(rank0_group_key.size());
 
           for (int g = 0; g < n_groups; ++g) {
+            // Group by the rank-0 exponent so one lookup can be reused over many targets.
             cbatch const fj_u0 = fj * load_target(uq0, group_key[g]);
             for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
               grouped_sum[p] = xsimd::fma(fj_u0, load_target(uq1, rank1_idx[p]), grouped_sum[p]);
@@ -205,6 +226,7 @@ namespace triqs::utility::nfft {
         poet::static_for<Rank>([&](const auto r) {
           auto &tbl       = scalar_pow2_tbl[r];
           double const theta = pi_over_beta * state.x_arr(r, j);
+          // Scalar tail mirrors the SIMD phase table construction above.
           tbl[0]             = cis<TolDigits>(theta);
           for (int k = 1; k < num_pow2_levels[r]; ++k) tbl[k] = tbl[k - 1] * tbl[k - 1];
 
@@ -227,12 +249,14 @@ namespace triqs::utility::nfft {
     }
 
     template <int TolDigits> [[gnu::noinline]] void execute_phase2(shared_state_t<Rank> &state, double pi_over_beta, int64_t buf_counter_simd) {
+      // SIMD sources first, then reduce lanes, then finish the scalar tail.
       std::fill(sums_buf.begin(), sums_buf.end(), cbatch(dcomplex{0, 0}));
       for (int j = 0; j < buf_counter_simd; j += simd_size) accumulate_simd_step<TolDigits>(state, j, pi_over_beta);
 
       dcomplex *fiw_ptr = state.fk_vec.data();
       if constexpr (Rank == 2) {
         if (!grouped_target_idx.empty()) {
+          // SIMD sums are stored in grouped order; scatter them back to the original targets.
           for (std::size_t p = 0; p < grouped_target_idx.size(); ++p) fiw_ptr[grouped_target_idx[p]] += xsimd::reduce_add(sums_buf[p]);
         } else {
           for (int64_t d = 0; d < state.n_targets; ++d) fiw_ptr[d] += xsimd::reduce_add(sums_buf[d]);

@@ -105,6 +105,8 @@ namespace triqs::utility::nfft {
       int const idx = state_.buf_counter;
 
       if (type_ == type_t::type1 && direct_cutoff_ == 0) {
+        // Pure FINUFFT type1 stores points in transformed coordinates so `flush()`
+        // can hand them straight to FINUFFT with no extra preprocessing.
         double tau_sum = 0.0;
         double const pi_over_beta     = M_PI / state_.beta;
         double const two_pi_over_beta = 2.0 * pi_over_beta;
@@ -115,6 +117,7 @@ namespace triqs::utility::nfft {
         });
         state_.fx_arr[idx] = cis<12>(pi_over_beta * tau_sum) * ftau;
       } else {
+        // Every other mode keeps the raw τ values and decides the transform at flush time.
         poet::static_for<Rank>([&](auto r) { state_.x_arr(r, idx) = tau_arr[r]; });
         state_.fx_arr[idx] = ftau;
       }
@@ -141,14 +144,19 @@ namespace triqs::utility::nfft {
       NDA_RUNTIME_ERROR << " Nfft Buffer backend was not initialized\n";
     }
 
+    // Public execution mode selected by the constructor.
     type_t type_ = type_t::type1;
-    // Automatic mode first chooses the direct side, then the FINUFFT side:
-    //   n < direct_cutoff_  -> direct kernel
-    //   n >= direct_cutoff_ -> FINUFFT, with a type3/type1_gather split at finufft_switch_n_.
+    // Automatic mode is a 3-way dispatch:
+    //   1. choose the direct family (`direct_type1`, `chain`, or `naf`);
+    //   2. choose the outer direct-vs-FINUFFT cutoff;
+    //   3. inside the FINUFFT side, choose between type3 and type1_gather.
     bool use_chain_direct_  = false;
     bool type3_for_small_n_ = false;
+
+    // Buffered source state shared with the kernels.
     shared_state_t<Rank> state_;
 
+    // User-facing output views and type-1 scratch storage.
     nda::array_view<dcomplex, Rank> fiw_arr;
     nda::array_view<dcomplex, 1> fiw_vec;
     std::array<int64_t, Rank> niws{};
@@ -156,11 +164,13 @@ namespace triqs::utility::nfft {
     int common_factor = 1;
     double tol        = 1e-8;
 
+    // Backend kernels: exactly one FINUFFT tolerance bucket plus the direct candidates.
     finufft_variant_t finufft_kernel_;
     std::optional<kernel_direct_type1_t<Rank>> direct_type1_kernel_;
     std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
 
+    // Cached dispatch thresholds used at flush time.
     int direct_cutoff_      = 0;
     int finufft_switch_n_   = 0;
     do_nfft_fn_t do_nfft_fn_          = nullptr;
@@ -172,6 +182,7 @@ namespace triqs::utility::nfft {
     template <int TolDigits> auto &get_finufft() { return std::get<finufft_kernel_t<TolDigits>>(finufft_kernel_); }
 
     template <typename Builder> void with_tol_digits(Builder &&builder) {
+      // Pick one compile-time tolerance bucket once, then build only that backend.
       auto params = std::make_tuple(poet::DispatchParam<tol_digits_seq_t>{tol_digits_bucket(tol)});
       poet::dispatch(poet::throw_t, std::forward<Builder>(builder), params);
     }
@@ -186,12 +197,14 @@ namespace triqs::utility::nfft {
         state_.n_targets = n_targets;
         state_.fk_vec.resize(n_targets);
 
+        // Only small-ish uniform grids are worth calibrating against the exact direct kernel.
         auto target_mf = build_uniform_target_mf(beta_);
         state_.init_direct_common(target_mf);
         direct_type1_kernel_.emplace(state_, target_mf);
         direct_cutoff_ = calibrate_dispatch_type1<12>(state_, *direct_type1_kernel_, finufft, fk_arr, common_factor);
       }
 
+      // Flush-time dispatch is reduced to one indirect call after construction.
       do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
     }
 
@@ -226,14 +239,17 @@ namespace triqs::utility::nfft {
         auto &naf_kernel   = *naf_kernel_;
         auto &chain_kernel = *chain_kernel_;
 
-        // Automatic mode is chosen in two stages:
-        // 1. Compare the two sparse-direct candidates (`chain` and `naf`) against `direct_type1`.
-        //    Keep the sparse family with the larger direct-vs-FINUFFT crossover.
-        // 2. For that winning family, honor the calibration result that says whether the best
-        //    direct kernel is actually `direct_type1` or the sparse kernel itself.
+        // Automatic mode calibrates the two sparse families separately:
+        //   (`direct_type1` vs `chain`) and (`direct_type1` vs `naf`).
+        // Each plan already contains:
+        //   - the best direct kernel inside that family,
+        //   - the direct-vs-FINUFFT cutoff,
+        //   - the FINUFFT type3-vs-type1_gather cutoff.
         auto const chain_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
         auto const naf_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
 
+        // Pick the better sparse family, then honor the plan's answer about whether
+        // the direct side should really be sparse-direct or `direct_type1`.
         use_chain_direct_           = pick_chain_direct(chain_plan, naf_plan);
         auto const &plan            = use_chain_direct_ ? chain_plan : naf_plan;
         bool const use_direct_type1 = plan.use_direct_type1;
@@ -241,7 +257,7 @@ namespace triqs::utility::nfft {
         finufft_switch_n_           = plan.finufft_switch_n;
         type3_for_small_n_          = plan.type3_for_small_n;
 
-        // Cleanup after the selected automatic dispatch policy is fully determined.
+        // After calibration, keep only the direct kernels that the policy can still reach.
         drop_unselected_direct_kernels(use_direct_type1);
 
         // Release unused FINUFFT plans only if one path dominates over the full buffer range.
@@ -266,14 +282,17 @@ namespace triqs::utility::nfft {
 
     static double direct_cost(dispatch_plan_t const &plan) { return plan.direct_lo + plan.direct_hi; }
 
+    // Prefer the sparse family that is cheaper directly and stays profitable longer.
     static bool pick_chain_direct(dispatch_plan_t const &chain_plan, dispatch_plan_t const &naf_plan) {
       double const chain_cost = direct_cost(chain_plan);
       double const naf_cost   = direct_cost(naf_plan);
 
       if (!chain_plan.use_direct_type1 && !naf_plan.use_direct_type1) {
+        // If both plans keep their sparse kernel, compare the sparse kernels directly.
         return (chain_cost < naf_cost) || ((chain_cost == naf_cost) && (chain_plan.direct_cutoff >= naf_plan.direct_cutoff));
       }
 
+      // Otherwise prefer the family that keeps direct execution profitable for longer.
       return (chain_plan.direct_cutoff > naf_plan.direct_cutoff) ||
              ((chain_plan.direct_cutoff == naf_plan.direct_cutoff) && (chain_cost <= naf_cost));
     }
@@ -292,7 +311,9 @@ namespace triqs::utility::nfft {
         chain_kernel_.reset();
     }
 
+    // Interpret the calibrated FINUFFT crossover for the current buffer size.
     bool use_type3_for_n(int n) const {
+      // `finufft_switch_n_ <= 0` or `> buf_size` means one FINUFFT path dominates everywhere.
       if (finufft_switch_n_ <= 0) return !type3_for_small_n_;
       if (finufft_switch_n_ > state_.buf_size) return type3_for_small_n_;
       return type3_for_small_n_ ? (n < finufft_switch_n_) : (n >= finufft_switch_n_);
@@ -302,6 +323,7 @@ namespace triqs::utility::nfft {
       if (self.type_ == type_t::type1) {
         auto &finufft = self.template get_finufft<TolDigits>();
         if (self.state_.buf_counter < self.direct_cutoff_)
+          // Small uniform problems stay exact and avoid the coordinate transform entirely.
           self.run_direct_type1(*self.direct_type1_kernel_);
         else {
           if (self.direct_cutoff_ > 0) self.template prepare_type1_coords<12>();
@@ -313,6 +335,7 @@ namespace triqs::utility::nfft {
         finufft.execute_type1_gather(self.state_, self.fiw_vec);
       } else if (self.type_ == type_t::automatic) {
         if (self.state_.buf_counter < self.direct_cutoff_) {
+          // Direct side: either exact `direct_type1` or one of the sparse direct kernels.
           if (self.direct_type1_kernel_)
             self.run_direct(*self.direct_type1_kernel_);
           else if (self.use_chain_direct_ && self.chain_kernel_)
@@ -322,8 +345,10 @@ namespace triqs::utility::nfft {
         } else {
           auto &finufft = self.template get_finufft<TolDigits>();
           if (self.use_type3_for_n(self.state_.buf_counter)) {
+            // Type3 works directly with odd Matsubara frequencies.
             finufft.execute_type3(self.state_, self.fiw_vec);
           } else {
+            // type1_gather pays the type-1 transform once, then gathers the requested modes.
             self.template prepare_type1_coords<TolDigits>();
             finufft.execute_type1_gather(self.state_, self.fiw_vec);
           }
@@ -348,7 +373,7 @@ namespace triqs::utility::nfft {
     }
 
     template <int TolDigits, typename Kernel> void run_direct(Kernel &kernel) {
-      // Pad buffer counter to SIMD boundary to eliminate scalar tail loops
+      // Sparse direct kernels read full SIMD packets, so pad the inactive tail with zeros.
       int const buf_counter_padded = std::min(shared_state_t<Rank>::round_up_simd(state_.buf_counter), state_.buf_size);
 
       for (int j = state_.buf_counter; j < buf_counter_padded; ++j) {
@@ -361,7 +386,7 @@ namespace triqs::utility::nfft {
       fiw_vec += state_.fk_vec;
     }
 
-    // Direct type1 path: compute into flat fk_vec, then scatter to fiw_arr
+    // Direct type1 fills a flat buffer; uniform targets then scatter back to the rank-shaped array.
     void run_direct_type1(kernel_direct_type1_t<Rank> &kernel) {
       state_.fk_vec = 0;
       kernel.template execute<12>(state_);
@@ -387,6 +412,7 @@ namespace triqs::utility::nfft {
           target_mf.push_back(mf);
           return;
         }
+        // Uniform type1 targets are the dense fermionic box n_r in [-N_r/2, N_r/2).
         for (int64_t k = 0; k < niws[r]; ++k) {
           mf[r] = target_mf_t(static_cast<int>(k - niws[r] / 2), beta, mesh::Fermion);
           self(mf, r + 1);

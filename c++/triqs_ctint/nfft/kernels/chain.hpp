@@ -12,12 +12,14 @@
 namespace triqs::utility::nfft {
 
   // Chain kernel for odd Matsubara exponents e = |2n + 1|.
-  // If e = a + b or e = a - b, then
+  // For each rank, keep only the unique exponents and build them from z^1 by
+  // repeatedly combining rows that are already available. If e = a + b or
+  // e = a - b, then
   //
   //   z^e = z^a z^b,     z^{a-b} = z^a conj(z^b).
   //
-  // The planner builds a short addition/subtraction chain for the required
-  // exponents and reuses those synthesized rows across targets.
+  // So the planner searches for a short addition/subtraction chain for the
+  // required exponents. Negative Matsubara indices only add a final conjugation.
   template <int Rank> struct kernel_chain_t {
 
     kernel_chain_t() = default;
@@ -45,6 +47,7 @@ namespace triqs::utility::nfft {
 
         std::vector<unsigned long> unique_exponents(n_unique[r]);
         for (auto const &[exp, u] : exp_to_unique) unique_exponents[u] = exp;
+        // Plan how to synthesize every required odd exponent from a short chain.
         plans_[r] = build_rank_plan(unique_exponents);
 
         row_indices_by_rank[r].resize(n_unique[r]);
@@ -120,6 +123,8 @@ namespace triqs::utility::nfft {
     };
 
     struct rank_plan_t {
+      // row_exp[0] = 1. Each later row is synthesized from two earlier rows:
+      //   row_exp[k+1] = row_exp[lhs] +/- row_exp[rhs].
       std::vector<unsigned long> row_exp;
       std::vector<op_t> ops;
       std::vector<int> required_row_idx;
@@ -130,25 +135,43 @@ namespace triqs::utility::nfft {
     static constexpr int64_t simd_block_cache_budget_bytes = 1024 * 1024;
     static constexpr int rank1_target_unroll              = ilp_unroll;
 
+    // Per-rank addition/subtraction-chain plans.
     std::array<rank_plan_t, Rank> plans_;
+
+    // Row tables used while evaluating a flush.
+    // Rank 1 keeps a larger block table in `pow_tbl`; higher ranks use row-by-row SIMD tables.
     std::array<nda::array<dcomplex, 2>, Rank> pow_tbl;
     std::array<std::vector<dcomplex>, Rank> scalar_pow_tbl;
+    std::array<std::vector<cbatch>, Rank> simd_row_tbl_;
+
+    // Per-rank unique-exponent metadata.
     std::array<int, Rank> n_unique{};
     std::array<int, Rank> unique_entry_offsets{};
     std::array<int, Rank> uq_entry_offsets{};
     std::vector<int> unique_row_idx;
+
+    // Target -> unique exponent lookup, encoded as 2 * unique_id + needs_conj.
     std::vector<int> target_map;
-    std::array<std::vector<cbatch>, Rank> simd_row_tbl_;
+
+    // Temporary per-flush buffers.
     mutable std::vector<dcomplex> uq_scalar_buf;
     mutable std::vector<xsimd::batch<dcomplex>> sums_buf;
+
+    // Rank-2 grouped accumulation metadata.
     std::vector<int> rank0_group_key;
     std::vector<int> rank0_group_offset;
     std::vector<int> grouped_target_idx;
     std::vector<int> grouped_rank1_idx;
+
+    // Rank-1 target lookup is flattened so each target can jump straight to its synthesized row.
     std::vector<int64_t> rank1_target_row_offset;
     std::vector<uint8_t> rank1_target_needs_conj;
+
+    // Used to choose the size of the synthesized source block for Rank 1.
     int64_t table_bytes_per_source_ = 0;
 
+    // Greedy planner: add reachable required exponents first, otherwise add the helper
+    // that unlocks the most missing exponents.
     static rank_plan_t build_rank_plan(std::vector<unsigned long> const &required_exponents) {
       rank_plan_t plan;
       if (required_exponents.empty()) return plan;
@@ -217,6 +240,7 @@ namespace triqs::utility::nfft {
           if (exp_to_row.contains(exp)) continue;
           all_done = false;
           if (auto op = find_current_step(exp)) {
+            // Best case: the next required exponent is already reachable from existing rows.
             add_row(exp, *op);
             progress                 = true;
           }
@@ -248,6 +272,7 @@ namespace triqs::utility::nfft {
 
         for (auto const &[candidate, op] : candidates) {
           int64_t score = 0;
+          // Prefer helpers that unlock many missing required exponents cheaply.
           if (std::binary_search(required.begin(), required.end(), candidate)) score += 1'000'000;
           for (unsigned long exp : required)
             if (!exp_to_row.contains(exp) && reachable_with_candidate(exp, candidate)) score += plan_score_weight;
@@ -269,6 +294,7 @@ namespace triqs::utility::nfft {
       return plan;
     }
 
+    // Keep the temporary Rank-1 table small enough to stay cache-friendly.
     [[nodiscard]] int simd_source_block() const {
       if (table_bytes_per_source_ <= 0) return max_simd_source_block;
       int64_t const ideal = simd_block_cache_budget_bytes / table_bytes_per_source_;
@@ -284,6 +310,7 @@ namespace triqs::utility::nfft {
 
         for (int j = 0; j < block_len; j += simd_size) {
           using rbatch            = xsimd::batch<double>;
+          // Row 0 stores z^{1}; the rest of the rows are synthesized from the chain ops.
           auto [sin_vec, cos_vec] = triqs::utility::math::sincos<TolDigits>(rbatch::load_unaligned(&state.x_arr(r, j_begin + j)) * pi_over_beta);
           cbatch(cos_vec, sin_vec).store_unaligned(tbl + j);
         }
@@ -298,6 +325,7 @@ namespace triqs::utility::nfft {
           for (int j = 0; j < block_len; j += simd_size) {
             cbatch lhs_vec = cbatch::load_unaligned(lhs + j);
             cbatch rhs_vec = cbatch::load_unaligned(rhs + j);
+            // a - b means multiply by conj(rhs): z^{a-b} = z^a conj(z^b).
             (op.subtract_rhs ? lhs_vec * xsimd::conj(rhs_vec) : lhs_vec * rhs_vec).store_unaligned(out_row_ptr + j);
           }
         }
@@ -305,6 +333,7 @@ namespace triqs::utility::nfft {
     }
 
     template <int TolDigits> void accumulate_simd_step(shared_state_t<Rank> &state, int j_begin, double pi_over_beta) {
+      // For Rank > 1, build one SIMD packet of chain rows and accumulate it immediately.
       std::array<cbatch const *, Rank> row_base;
       std::array<int const *, Rank> row_idx_base;
       auto const *flat_row_idx = unique_row_idx.empty() ? nullptr : unique_row_idx.data();
@@ -341,6 +370,7 @@ namespace triqs::utility::nfft {
         int const n_groups                   = static_cast<int>(rank0_group_key.size());
 
         for (int g = 0; g < n_groups; ++g) {
+          // Reuse the rank-0 row over every target that shares the same rank-0 exponent.
           cbatch const fj_u0 = fj * load_target(row_base[0], row_idx_base[0], group_key[g]);
           for (int p = group_offset[g]; p < group_offset[g + 1]; ++p)
             grouped_sum[p] = xsimd::fma(fj_u0, load_target(row_base[1], row_idx_base[1], rank1_idx[p]), grouped_sum[p]);
@@ -371,6 +401,7 @@ namespace triqs::utility::nfft {
 
       for (int jb = 0; jb < buf_counter_simd; jb += source_block) {
         int const block_len = std::min(source_block, static_cast<int>(buf_counter_simd - jb));
+        // Rank 1 benefits most from synthesizing a larger source block once, then reusing it.
         synthesize_simd_block<TolDigits>(state, jb, block_len, pi_over_beta);
 
         auto compute_simd_pow                 = [&](int64_t d, int j) {
@@ -394,6 +425,7 @@ namespace triqs::utility::nfft {
 
         dcomplex const fj = state.fx_arr[j];
         poet::dynamic_for<rank1_target_unroll, 1>(int64_t{0}, n_targets, [&](int64_t d) {
+          // Each target picks the synthesized row it needs and optionally conjugates it.
           dcomplex pow = tbl[row_offset_ptr[d] / max_simd_source_block];
           fiw_ptr[d] += fj * (conj_ptr[d] ? std::conj(pow) : pow);
         });
@@ -424,6 +456,7 @@ namespace triqs::utility::nfft {
             dcomplex rhs   = tbl[op.rhs];
             tbl[static_cast<int>(op_idx) + 1] = op.subtract_rhs ? tbl[op.lhs] * std::conj(rhs) : tbl[op.lhs] * rhs;
           }
+          // Materialize the rows that are actually referenced by the targets.
           for (int u = 0; u < n_unique[r]; ++u) {
             uq[u] = tbl[rows[u]];
           }
@@ -449,6 +482,7 @@ namespace triqs::utility::nfft {
         return;
       }
 
+      // Higher ranks keep only one SIMD packet of partial sums live at a time.
       std::fill(sums_buf.begin(), sums_buf.end(), cbatch(dcomplex{0, 0}));
       for (int jb = 0; jb < buf_counter_simd; jb += simd_size) accumulate_simd_step<TolDigits>(state, jb, pi_over_beta);
 

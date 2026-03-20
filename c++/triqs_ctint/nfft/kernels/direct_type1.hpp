@@ -19,6 +19,7 @@ namespace triqs::utility::nfft {
     kernel_direct_type1_t(shared_state_t<Rank> const &state, std::vector<std::array<target_mf_t, Rank>> const & /*target_mf*/) {
       constexpr long S = static_cast<long>(cbatch::size);
 
+      // Precompute the target box once so execution only depends on the source points.
       for (int r = 0; r < Rank; ++r) {
         auto row      = state.target_n(r, nda::range::all);
         auto [mn, mx] = std::ranges::minmax_element(row);
@@ -30,9 +31,11 @@ namespace triqs::utility::nfft {
       detect_sequential(state);
 
       if (is_sequential_) {
+        // Dense uniform grids can be accumulated recursively with no gathers.
         seq_strides[Rank - 1] = 1;
         for (int r = Rank - 2; r >= 0; --r) seq_strides[r] = seq_strides[r + 1] * n_range_arr[r + 1];
       } else {
+        // Irregular targets fall back to gather tables indexed by the requested n_r values.
         for (int r = 0; r < Rank; ++r) pow_row[r].resize(n_range_padded[r]);
 
         if constexpr (Rank >= 2) {
@@ -52,13 +55,18 @@ namespace triqs::utility::nfft {
     }
 
     private:
+    // Target box geometry: n_r runs from n_min_arr[r] to n_min_arr[r] + n_range_arr[r] - 1.
     std::array<long, Rank> n_min_arr{};
     std::array<long, Rank> n_range_arr{};
     std::array<long, Rank> n_range_padded{};
+
+    // Dense-grid path metadata.
     std::array<long, Rank> seq_strides{};
+    bool is_sequential_ = false;
+
+    // Gather path tables: one odd-power row per rank, or a flat index for Rank 1.
     std::array<nda::vector<dcomplex>, Rank> pow_row;
     std::vector<long> target_idx;
-    bool is_sequential_ = false;
 
     // Factored accumulation data (Rank >= 2): group targets by rank-0 index
     struct group_t {
@@ -67,11 +75,12 @@ namespace triqs::utility::nfft {
       int64_t count;       // real targets in this group
       int64_t padded_count; // count rounded up to SIMD width
     };
+    // Rank >= 2 grouped gather layout.
     std::vector<group_t> groups_;
-    std::vector<long> factored_idx_;   // permuted rank-1+ gather indices (doubled, AoS), padded
-    std::vector<int64_t> scatter_map_; // scatter_map_[perm_d] = original target index (real entries only)
-    int64_t n_padded_targets_ = 0;    // total padded target count
-    nda::vector<dcomplex> grouped_fk_; // intermediate grouped output (padded size)
+    std::vector<long> factored_idx_;    // padded gather indices for ranks 1..R-1
+    std::vector<int64_t> scatter_map_;  // grouped slot -> original target index
+    int64_t n_padded_targets_ = 0;
+    nda::vector<dcomplex> grouped_fk_;  // grouped output before scattering back
 
     // Build factored group data: sort targets by rank-0 index, group by unique n0 values.
     // Groups are padded to SIMD width to eliminate scalar tails in the hot loop.
@@ -223,7 +232,9 @@ namespace triqs::utility::nfft {
         std::array<std::pair<cbatch, cbatch>, Rank> simd_mult;
         poet::static_for<Rank>([&](auto r) {
           double const tau = state.x_arr(r, j);
+          // z_base already includes the smallest odd exponent 2 n_min + 1.
           z_base[r]    = cis<TolDigits>(static_cast<double>(2 * n_min_arr[r] + 1) * pi_over_beta * tau);
+          // Multiplying by z_step advances n_r by one, i.e. by two in the odd exponent.
           z_step[r]    = cis<TolDigits>(step_freq * tau);
           simd_mult[r] = make_simd_multiplier(z_step[r]);
         });
@@ -251,6 +262,7 @@ namespace triqs::utility::nfft {
       for (; j + B <= state.buf_counter; j += B) {
         std::array<cbatch, B> fj_vec;
         for (int b = 0; b < B; ++b) {
+          // Precompute the whole odd-power row once for each source in the tile.
           fill_pow_row<TolDigits>(pow0_buf[b].data(), 0, state.x_arr(0, j + b), pi_over_beta);
           fj_vec[b] = cbatch(state.fx_arr[j + b]);
         }
@@ -322,6 +334,7 @@ namespace triqs::utility::nfft {
           poet::static_for<Rank>([&](auto r) { fill_pow_row<TolDigits>(pow_bufs[r][b].data(), r, state.x_arr(r, j + b), pi_over_beta); });
 
         for (auto const &g : groups_) {
+          // Inside one group, rank 0 is fixed and only the remaining ranks are gathered.
           std::array<cbatch, B> combined_vec;
           for (int b = 0; b < B; ++b) combined_vec[b] = cbatch(state.fx_arr[j + b] * pow_bufs[0][b].data()[g.pow0_offset]);
 
@@ -340,6 +353,7 @@ namespace triqs::utility::nfft {
         dcomplex const fj = state.fx_arr[j];
 
         for (auto const &g : groups_) {
+          // Rank 0 is scalar inside the group; ranks 1..R-1 are gathered SIMD products.
           cbatch const combined_vec(fj * pow_bufs[0][0].data()[g.pow0_offset]);
           dcomplex * __restrict__ out = gfk_ptr + g.start;
           for (int64_t k = 0; k < g.padded_count; k += S)

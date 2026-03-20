@@ -17,6 +17,9 @@ namespace triqs::utility::nfft {
   // Linear-fit crossover: given timings of two kernels at n_lo and n_hi,
   // find the buffer size where they cross. Returns threshold clamped to [0, buf_size+1].
   inline int linear_crossover(double a_lo, double a_hi, double b_lo, double b_hi, int n_lo, int n_hi, int buf_size) {
+    // Approximate both timings by affine models:
+    //   t_a(n) ≈ a_slope * n + a_intercept,
+    //   t_b(n) ≈ b_slope * n + b_intercept.
     double a_slope     = (a_hi - a_lo) / (n_hi - n_lo);
     double a_intercept = a_lo - a_slope * n_lo;
     double b_slope     = (b_hi - b_lo) / (n_hi - n_lo);
@@ -48,7 +51,7 @@ namespace triqs::utility::nfft {
     return best;
   }
 
-  // Save/restore calibration state (FINUFFT transforms modify x_arr/fx_arr in-place)
+  // Calibration reuses one dummy buffer and rewinds it before each timing.
   template <int Rank> struct state_saver_t {
     shared_state_t<Rank> &state;
     int n;
@@ -82,12 +85,12 @@ namespace triqs::utility::nfft {
   //   n >= direct_cutoff  -> FINUFFT
   // with a second split between type3 and type1_gather inside the FINUFFT region.
   struct dispatch_plan_t {
-    int direct_cutoff;
-    int finufft_switch_n;
-    bool use_direct_type1;
-    bool type3_for_small_n;
-    double direct_lo;
-    double direct_hi;
+    int direct_cutoff;      // direct vs best FINUFFT cutoff
+    int finufft_switch_n;   // type3 vs type1_gather cutoff inside the FINUFFT region
+    bool use_direct_type1;  // false means "keep the sparse direct kernel"
+    bool type3_for_small_n; // otherwise type1_gather handles the small-n side
+    double direct_lo;       // direct-side timing at n_lo
+    double direct_hi;       // direct-side timing at n_hi
   };
 
   // Calibrate dispatch threshold for automatic mode with non-uniform targets.
@@ -126,6 +129,7 @@ namespace triqs::utility::nfft {
     auto measure_type1_gather = [&](int n) {
       saver.restore();
       state.buf_counter = n;
+      // type1_gather needs the type-1 coordinate transform before FINUFFT sees the points.
       apply_type1_coord_transform<TolDigits>(state, n);
       dummy_fiw = 0;
       auto t0   = clock::now();
@@ -148,11 +152,12 @@ namespace triqs::utility::nfft {
     measure_kernel(sparse_direct_kernel, n_lo);
     measure_kernel(direct_type1_kernel, n_lo);
 
-    // Pick faster direct kernel at n_lo, measure winner at n_hi
+    // First choose the direct family at a small representative size.
     double dt1_lo    = best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_lo);
     double sparse_lo = best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_lo);
     bool const use_direct_type1 = dt1_lo <= sparse_lo;
     double dir_lo               = use_direct_type1 ? dt1_lo : sparse_lo;
+    // Then only keep timing the winner on the direct side.
     double dir_hi               = use_direct_type1 ? best_of_n([&](int n) { return measure_kernel(direct_type1_kernel, n); }, n_hi) :
                                                      best_of_n([&](int n) { return measure_kernel(sparse_direct_kernel, n); }, n_hi);
 
@@ -163,6 +168,7 @@ namespace triqs::utility::nfft {
     double t3_lo = best_of_n(measure_type3, n_lo);
     double t3_hi = best_of_n(measure_type3, n_hi);
 
+    // Keep the faster FINUFFT path on the small-n side, then fit their crossover.
     bool const type3_for_small_n = t3_lo <= tg_lo;
     int const finufft_switch_n   =
        type3_for_small_n ? linear_crossover(t3_lo, t3_hi, tg_lo, tg_hi, n_lo, n_hi, state.buf_size) :
@@ -171,7 +177,9 @@ namespace triqs::utility::nfft {
     double finufft_lo = std::min(t3_lo, tg_lo);
     double finufft_hi = std::min(t3_hi, tg_hi);
 
+    // Finally compare "best direct" against "best FINUFFT" to get the outer cutoff.
     int direct_cutoff = linear_crossover(dir_lo, dir_hi, finufft_lo, finufft_hi, n_lo, n_hi, state.buf_size);
+    // Rank 1 tends to favor direct kernels for very small buffers even when the linear fit is noisy.
     if constexpr (Rank == 1) direct_cutoff = std::max(direct_cutoff, 96);
 
     saver.cleanup();
@@ -210,6 +218,7 @@ namespace triqs::utility::nfft {
     auto measure_type1 = [&](int n) {
       saver.restore();
       state.buf_counter = n;
+      // FINUFFT type1 works on transformed coordinates and rephased source values.
       apply_type1_coord_transform<TolDigits>(state, n);
       dummy_fiw = 0;
       auto t0   = clock::now();

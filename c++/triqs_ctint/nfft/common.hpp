@@ -23,6 +23,8 @@ namespace triqs::utility::nfft {
   using nda::array_view;
   using dcomplex = std::complex<double>;
 
+  // High-accuracy callers stay on libm `sincos`; lower tolerances can use the
+  // polynomial approximation from `sincos.hpp`.
   template <int TolDigits = 12> inline dcomplex cis(double theta) {
     if constexpr (TolDigits >= 12) {
       double s, c;
@@ -49,11 +51,16 @@ namespace triqs::utility::nfft {
   // ---- Shared state between buffer_t and kernel structs ----
 
   template <int Rank> struct shared_state_t {
+    // Buffer geometry and current fill level.
     int buf_size    = 0;
     double beta     = 0;
     int buf_counter = 0;
+
+    // Buffered source points (τ_j, f_j).
     nda::array<double, 2> x_arr;    // (Rank, buf_size)
     nda::vector<dcomplex> fx_arr;   // (buf_size)
+
+    // Output / target metadata shared by the direct kernels.
     nda::vector<dcomplex> fk_vec;   // (n_targets) -- output for direct kernels
     int64_t n_targets = 0;
     nda::array<long, 2> target_n;   // (Rank, n_targets) -- Matsubara indices
@@ -61,6 +68,7 @@ namespace triqs::utility::nfft {
     void init_direct_common(std::vector<std::array<target_mf_t, Rank>> const &target_mf) {
       beta = target_mf[0][0].beta;
       target_n.resize(Rank, n_targets);
+      // Direct kernels only need the fermionic indices n_r, not the full mf objects.
       for (int r = 0; r < Rank; ++r)
         for (int64_t d = 0; d < n_targets; ++d) target_n(r, d) = target_mf[d][r].n;
     }
@@ -82,6 +90,7 @@ namespace triqs::utility::nfft {
 
   using tol_digits_seq_t = std::integer_sequence<int, 6, 8, 10, 12>;
 
+  // Collapse a runtime tolerance to the small set of compile-time kernels we support.
   constexpr int tol_digits_bucket(double tol) {
     if (tol <= 1e-12) return 12;
     if (tol <= 1e-10) return 10;
@@ -135,9 +144,11 @@ namespace triqs::utility::nfft {
       for (int r = 0; r < Rank; ++r) {
         dbatch tau = dbatch::load_unaligned(x_ptr[r] + j);
         tau_sum += tau;
+        // x_r = 2π(τ_r / β - 1/2) puts the nodes in the NUFFT convention.
         (two_pi_vec * (tau * inv_beta_vec - half_vec)).store_unaligned(x_ptr[r] + j);
       }
 
+      // Multiply by exp(i π Σ_r τ_r / β) so odd Matsubara modes become an integer FFT.
       auto [sin_theta, cos_theta] = triqs::utility::math::sincos<TolDigits>(pi_over_beta_vec * tau_sum);
       cbatch phase(cos_theta, sin_theta);
       (cbatch::load_unaligned(fx_ptr + j) * phase).store_unaligned(fx_ptr + j);
@@ -150,6 +161,7 @@ namespace triqs::utility::nfft {
         tau_sum += tau;
         state.x_arr(r, j) = 2 * M_PI * (tau * inv_beta - 0.5);
       }
+      // Scalar tail matches the SIMD path above.
       state.fx_arr[j] *= cis<TolDigits>(M_PI * tau_sum * inv_beta);
     }
   }
@@ -167,6 +179,8 @@ namespace triqs::utility::nfft {
   //   F_d += Σ_j f_j p_d(j)
   //
   // for `Unroll` targets at once over a SIMD-rounded source block.
+  // The inner loop reuses the same SIMD source packet `f_j` across several
+  // targets, which is where the extra ILP comes from.
   template <int Unroll, typename SimdPowFunc>
   [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets, int n_sources_simd, dcomplex *fx_data, dcomplex *fiw_ptr,
                                                             SimdPowFunc &&compute_simd_pow) {
@@ -180,12 +194,15 @@ namespace triqs::utility::nfft {
       std::array<cbatch, Unroll> acc{};
       for (int j = 0; j < n_sources_simd; j += simd_size) {
         cbatch fj = cbatch::load_unaligned(fx_data + j);
+        // One source SIMD packet updates `Unroll` target accumulators.
         poet::static_for<Unroll>([&](const auto i) { acc[i] = xsimd::fma(fj, compute_simd_pow(d + i, j), acc[i]); });
       }
 
+      // Reduce each target accumulator once, after the full source sweep.
       poet::static_for<Unroll>([&](const auto i) { fiw_ptr[d + i] += xsimd::reduce_add(acc[i]); });
     }
 
+    // Tail: same formula, just without target blocking.
     for (; d < n_targets; ++d) {
       cbatch acc{};
       for (int j = 0; j < n_sources_simd; j += simd_size)
