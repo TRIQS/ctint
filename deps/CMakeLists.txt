@@ -65,6 +65,7 @@ set(FINUFFT_USE_OPENMP OFF)
 set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Architecture flags for finufft (empty = portable baseline)")
 set(FINUFFT_USE_DUCC0 ON)
 set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
+set(FINUFFT_ARCH_FLAGS "")
 external_dependency(finufft
   GIT_REPO https://github.com/diamondinoia/finufft
   GIT_TAG experimental
