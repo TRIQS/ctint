@@ -12,6 +12,9 @@ namespace triqs_ctint::measures {
   // Quartic operator block-structure classification
   enum class quartic_case_t { AAAA, AABB, ABAB };
 
+  // Classification of bilinear operator pair type for quartic measurements
+  enum class quartic_op_type { normal, anom_cdcd_cc, anom_cc_cdcd };
+
   struct quartic_block_info_t {
     quartic_case_t case_type;
     int bl_det1, bl_det2;
@@ -37,9 +40,10 @@ namespace triqs_ctint::measures {
     int idx_cdag_B, idx_c_B;
   };
 
-  // Group of quartic entries sharing case type and block indices
+  // Group of quartic entries sharing case type, block indices, and operator type
   struct quartic_group_t {
     quartic_case_t case_type;
+    quartic_op_type op_type = quartic_op_type::normal;
     int bl_det1, bl_det2;
     std::vector<quartic_entry_t> entries;
     // Pre-allocated scratch arrays of shape (L, entries.size()), filled each MC step

@@ -251,19 +251,30 @@ namespace triqs::operators {
     TRIQS_RUNTIME_ERROR << "Error: Failed to retrieve integer indices for operator";
   }
 
-  // Function that takes a bosonic operator Op = Sum_i a_i c^+(bi, ui) c(bi, vi)
-  // and returns a vector<tuple> with v[i] = (b_i, a_i, (c^+(bi, ui), c(bi, vi)))
+  // Classification of bilinear operator monomials
+  enum class bilinear_type { cdag_c, cdag_cdag, c_c };
+
+  // Function that takes a bilinear operator Op = Sum_i a_i X_i Y_i (where X,Y are c or c†)
+  // and returns a vector<tuple> with v[i] = (coef_i, type_i, (bl_X, bl_Y), (idx_X, idx_Y))
   inline auto get_terms(many_body_operator const &A, hilbert_space::gf_struct_t const &gf_struct) {
-    std::vector<std::tuple<std::complex<double>, std::pair<int, int>, std::pair<int, int>>> terms;
+    std::vector<std::tuple<std::complex<double>, bilinear_type, std::pair<int, int>, std::pair<int, int>>> terms;
     for (auto const &term : A) {
       auto const &m = term.monomial;
-      if (m.size() != 2 or !m[0].dagger or m[1].dagger)
-        TRIQS_RUNTIME_ERROR << " Monomial in bosonic operator of chiAB measurement not of the proper form c^+ c \n";
+      if (m.size() != 2) TRIQS_RUNTIME_ERROR << "chiAB operator monomial must have exactly 2 operators, got " << m.size();
+
+      bilinear_type type;
+      if (m[0].dagger && !m[1].dagger)
+        type = bilinear_type::cdag_c;
+      else if (m[0].dagger && m[1].dagger)
+        type = bilinear_type::cdag_cdag;
+      else if (!m[0].dagger && !m[1].dagger)
+        type = bilinear_type::c_c;
+      else
+        TRIQS_RUNTIME_ERROR << "Unexpected c c† monomial (not in canonical form)";
+
       auto [bl1, i] = get_int_indices(m[0], gf_struct);
       auto [bl2, j] = get_int_indices(m[1], gf_struct);
-      auto bl_pair  = std::make_pair(bl1, bl2);
-      auto idx_pair = std::make_pair(i, j);
-      terms.emplace_back(term.coef, bl_pair, idx_pair);
+      terms.emplace_back(term.coef, type, std::make_pair(bl1, bl2), std::make_pair(i, j));
     }
     return terms;
   }

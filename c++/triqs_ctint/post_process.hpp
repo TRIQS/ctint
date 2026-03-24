@@ -9,6 +9,8 @@
 
 namespace triqs_ctint {
 
+  using triqs::operators::bilinear_type;
+
   /// Calculate the connected part of the two-particle Green function from M4_iw and M_iw
   chi4_iw_t G2_conn_from_M4(chi4_iw_t::const_view_type M4_iw, g_reg_iw_cv_t M_iw, g_reg_iw_cv_t G0_iw);
   /// Calculate the connected part of the two-particle Green function from M4pp_iw and M_iw
@@ -230,7 +232,7 @@ namespace triqs_ctint {
                                                        std::vector<many_body_operator> const &A_op_vec,
                                                        std::vector<many_body_operator> const &B_op_vec) {
 
-    using op_term_t = std::tuple<dcomplex, std::pair<int, int>, std::pair<int, int>>;
+    using op_term_t = std::tuple<dcomplex, bilinear_type, std::pair<int, int>, std::pair<int, int>>;
     std::vector<std::vector<op_term_t>> A_vec;
     std::vector<std::vector<op_term_t>> B_vec;
 
@@ -240,13 +242,19 @@ namespace triqs_ctint {
     auto chiAB_tau = gf<mesh::dlr_imtime, matrix_valued>{chi2_tau(0, 0).mesh(), make_shape(A_vec.size(), B_vec.size())};
 
     for (auto [j, B] : enumerate(B_vec))
-      for (auto &[coef_B, bl_pair_B, idx_pair_B] : B) {
+      for (auto &[coef_B, type_B, bl_pair_B, idx_pair_B] : B) {
+
+        if (type_B != bilinear_type::cdag_c)
+          TRIQS_RUNTIME_ERROR << "chiAB_from_chi2 only supports c†c operators, got anomalous operator in B";
 
         auto [idx_cdag_B, idx_c_B] = idx_pair_B;
         auto [bl_cdag_B, bl_c_B]   = bl_pair_B;
 
         for (auto [i, A] : enumerate(A_vec))
-          for (auto &[coef_A, bl_pair_A, idx_pair_A] : A) {
+          for (auto &[coef_A, type_A, bl_pair_A, idx_pair_A] : A) {
+
+            if (type_A != bilinear_type::cdag_c)
+              TRIQS_RUNTIME_ERROR << "chiAB_from_chi2 only supports c†c operators, got anomalous operator in A";
 
             auto [idx_cdag_A, idx_c_A] = idx_pair_A;
             auto [bl_cdag_A, bl_c_A]   = bl_pair_A;
