@@ -13,6 +13,7 @@ set(all_tests
   static/plaquette
   static/hubbard_atom_nfft
   static/static_obs
+  static/pairing_susceptibility
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens
