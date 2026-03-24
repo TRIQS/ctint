@@ -80,8 +80,8 @@ namespace triqs_ctint {
     G0hat_t()                            = default;
     G0hat_t(G0hat_t const &)             = default;
     G0hat_t(G0hat_t &&)                  = default;
-    G0hat_t &operator=(G0hat_t const &)  = default;
-    G0hat_t &operator=(G0hat_t &&)       = default;
+    G0hat_t &operator=(G0hat_t const &)  = delete;
+    G0hat_t &operator=(G0hat_t &&)       = delete;
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
       // Contractions between operators of the same vertex get an alpha shift
