@@ -18,6 +18,47 @@ from triqs_hartree_fock import ImpuritySolver as HFSolver
 import numpy as np
 
 
+# === Alpha tensor validation and clipping
+
+def _validate_and_clip_alpha(alpha):
+    """
+    Validate symmetry properties of the alpha tensor and clip values to the
+    physical window. Each 2x2 alpha matrix corresponds to a 1-particle density
+    matrix rho. Both rho and (1 - rho) must be positive definite, which requires
+    diagonal elements in [0, 1] and |off-diagonal| <= 0.5.
+    """
+    eps = 1e-5
+    clamp = lambda x, lo, hi: min(max(x, lo), hi)
+    is_complex = np.iscomplexobj(alpha)
+
+    for n in range(alpha.shape[0]):
+        for s in range(alpha.shape[3]):
+            a = alpha[n, :, :, s]
+
+            if is_complex:
+                if a[1, 0] != np.conj(a[0, 1]):
+                    raise RuntimeError(f"Alpha tensor is not hermitian for term {n}, s={s}: "
+                                       f"alpha[1,0]={a[1,0]}, conj(alpha[0,1])={np.conj(a[0, 1])}")
+                for i in range(2):
+                    if a[i, i].imag != 0:
+                        raise RuntimeError(f"Alpha tensor has non-real diagonal for term {n}, s={s}: "
+                                           f"alpha[{i},{i}]={a[i, i]}")
+                if abs(a[0, 1]) > 0.5 + eps:
+                    raise RuntimeError(f"Alpha tensor |off-diagonal|={abs(a[0, 1]):.6f} > {0.5 + eps} "
+                                       f"for term {n}, s={s}")
+            else:
+                if a[1, 0] != a[0, 1]:
+                    raise RuntimeError(f"Alpha tensor is not symmetric for term {n}, s={s}: "
+                                       f"alpha[1,0]={a[1, 0]}, alpha[0,1]={a[0, 1]}")
+                a[0, 1] = clamp(a[0, 1], -0.5 - eps, 0.5 + eps)
+                a[1, 0] = clamp(a[1, 0], -0.5 - eps, 0.5 + eps)
+
+            a[0, 0] = clamp(a[0, 0].real, -eps, 1 + eps)
+            a[1, 1] = clamp(a[1, 1].real, -eps, 1 + eps)
+
+    return alpha
+
+
 # === Some utility functions
 
 def mpi_print(arg):
@@ -177,6 +218,7 @@ class Solver(SolverCore):
                                 alpha[n_terms + d, 0, 0, s] = hf_solver.density[bl1][a, a] + sgn * delta[0]
                                 alpha[n_terms + d, 1, 1, s] = hf_solver.density[bl2][b, b] + sgn * delta[0]
 
+        alpha = _validate_and_clip_alpha(alpha)
         alpha = mpi.bcast(alpha, root=0)
 
         # Make sure to set n_s as provided by the user
@@ -294,7 +336,7 @@ class Solver(SolverCore):
                             alpha[n_terms + d, 0, 0, 1] = 0.5 - delta[0]
                             alpha[n_terms + d, 1, 1, 1] = 0.5 + delta[0]
 
-        return alpha
+        return _validate_and_clip_alpha(alpha)
 
     def solve(self, **solve_params):
         r"""
