@@ -116,6 +116,7 @@ void run_nfft_bench(benchmark::State &state, buffer_t<Rank> &buf, std::vector<st
     for (int64_t i = 0; i < n_points; ++i) buf.push_back(taus[i], vals[i]);
     buf.flush();
   }
+  state.SetComplexityN(n_points);
 }
 
 // Generate random tau/value pairs
@@ -137,5 +138,5 @@ template <int Rank> std::pair<std::vector<std::array<double, Rank>>, std::vector
 inline int64_t n_points_rank2(int64_t k) { return std::max<int64_t>(k * k / (n_orb * n_orb), 1); }
 
 // clang-format off
-#define K_ARGS ->Arg(8)->Arg(16)->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)->Unit(benchmark::kMicrosecond)
+#define K_ARGS ->Arg(8)->Arg(16)->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)->Unit(benchmark::kMicrosecond)->Complexity()
 // clang-format on

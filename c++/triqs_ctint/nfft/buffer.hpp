@@ -7,7 +7,9 @@
 #include "common.hpp"
 #include "kernels.hpp"
 #include "calibration.hpp"
+#include <mutex>
 #include <optional>
+#include <unordered_map>
 #include <variant>
 
 namespace triqs::utility::nfft {
@@ -146,11 +148,8 @@ namespace triqs::utility::nfft {
 
     // Public execution mode selected by the constructor.
     type_t type_ = type_t::type1;
-    // Automatic mode is a 3-way dispatch:
-    //   1. choose the direct family (`direct_type1`, `chain`, or `naf`);
-    //   2. choose the outer direct-vs-FINUFFT cutoff;
-    //   3. inside the FINUFFT side, choose between type3 and type1_gather.
-    bool use_chain_direct_  = false;
+    // Automatic mode keeps a size-dependent direct model, then falls back to the
+    // measured FINUFFT cutoffs outside the direct region.
     bool type3_for_small_n_ = false;
 
     // Buffered source state shared with the kernels.
@@ -169,11 +168,12 @@ namespace triqs::utility::nfft {
     std::optional<kernel_direct_type1_t<Rank>> direct_type1_kernel_;
     std::optional<kernel_chain_t<Rank>> chain_kernel_;
     std::optional<kernel_naf_t<Rank>> naf_kernel_;
+    std::optional<direct_dispatch_model_t> direct_dispatch_model_;
 
     // Cached dispatch thresholds used at flush time.
-    int direct_cutoff_      = 0;
-    int finufft_switch_n_   = 0;
-    do_nfft_fn_t do_nfft_fn_          = nullptr;
+    int direct_cutoff_    = 0;
+    int finufft_switch_n_ = 0;
+    do_nfft_fn_t do_nfft_fn_ = nullptr;
 
     template <int TolDigits> auto &emplace_finufft() {
       return finufft_kernel_.template emplace<finufft_kernel_t<TolDigits>>();
@@ -236,31 +236,33 @@ namespace triqs::utility::nfft {
         direct_type1_kernel_.emplace(state_, target_mf);
         chain_kernel_.emplace(state_);
 
-        auto &naf_kernel   = *naf_kernel_;
-        auto &chain_kernel = *chain_kernel_;
+        auto const key = dispatch_cache_key(target_mf, state_.buf_size, TolDigits);
+        static std::mutex cache_mutex;
+        static std::unordered_map<uint64_t, dispatch_plan_t> cache;
 
-        // Automatic mode calibrates the two sparse families separately:
-        //   (`direct_type1` vs `chain`) and (`direct_type1` vs `naf`).
-        // Each plan already contains:
-        //   - the best direct kernel inside that family,
-        //   - the direct-vs-FINUFFT cutoff,
-        //   - the FINUFFT type3-vs-type1_gather cutoff.
-        auto const chain_plan = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, chain_kernel, finufft);
-        auto const naf_plan   = calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, naf_kernel, finufft);
+        auto load_cached_plan = [&]() -> std::optional<dispatch_plan_t> {
+          std::lock_guard lock(cache_mutex);
+          if (auto it = cache.find(key); it != cache.end()) return it->second;
+          return std::nullopt;
+        };
 
-        // Pick the better sparse family, then honor the plan's answer about whether
-        // the direct side should really be sparse-direct or `direct_type1`.
-        use_chain_direct_           = pick_chain_direct(chain_plan, naf_plan);
-        auto const &plan            = use_chain_direct_ ? chain_plan : naf_plan;
-        bool const use_direct_type1 = plan.use_direct_type1;
-        direct_cutoff_              = plan.direct_cutoff;
-        finufft_switch_n_           = plan.finufft_switch_n;
-        type3_for_small_n_          = plan.type3_for_small_n;
+        auto store_cached_plan = [&](dispatch_plan_t const &plan) {
+          std::lock_guard lock(cache_mutex);
+          cache.emplace(key, plan);
+        };
 
-        // After calibration, keep only the direct kernels that the policy can still reach.
-        drop_unselected_direct_kernels(use_direct_type1);
+        auto const plan = [&]() {
+          if (auto cached = load_cached_plan()) return *cached;
+          auto measured_plan =
+             calibrate_dispatch_nonuniform<TolDigits>(state_, *direct_type1_kernel_, *chain_kernel_, *naf_kernel_, finufft);
+          store_cached_plan(measured_plan);
+          return measured_plan;
+        }();
+        direct_cutoff_       = plan.direct_cutoff;
+        finufft_switch_n_    = plan.finufft_switch_n;
+        type3_for_small_n_   = plan.type3_for_small_n;
+        direct_dispatch_model_ = plan.direct_model;
 
-        // Release unused FINUFFT plans only if one path dominates over the full buffer range.
         if (finufft_switch_n_ <= 0) {
           if (type3_for_small_n_)
             finufft.release_type3();
@@ -280,40 +282,12 @@ namespace triqs::utility::nfft {
       do_nfft_fn_ = &buffer_t::template do_nfft_impl<TolDigits>;
     }
 
-    static double direct_cost(dispatch_plan_t const &plan) { return plan.direct_lo + plan.direct_hi; }
-
-    // Prefer the sparse family that is cheaper directly and stays profitable longer.
-    static bool pick_chain_direct(dispatch_plan_t const &chain_plan, dispatch_plan_t const &naf_plan) {
-      double const chain_cost = direct_cost(chain_plan);
-      double const naf_cost   = direct_cost(naf_plan);
-
-      if (!chain_plan.use_direct_type1 && !naf_plan.use_direct_type1) {
-        // If both plans keep their sparse kernel, compare the sparse kernels directly.
-        return (chain_cost < naf_cost) || ((chain_cost == naf_cost) && (chain_plan.direct_cutoff >= naf_plan.direct_cutoff));
-      }
-
-      // Otherwise prefer the family that keeps direct execution profitable for longer.
-      return (chain_plan.direct_cutoff > naf_plan.direct_cutoff) ||
-             ((chain_plan.direct_cutoff == naf_plan.direct_cutoff) && (chain_cost <= naf_cost));
+    direct_backend_t pick_direct_backend(int n) const {
+      if (!direct_dispatch_model_) throw_uninitialized_backend_error();
+      return direct_dispatch_model_->pick(n);
     }
 
-    void drop_unselected_direct_kernels(bool use_direct_type1) {
-      if (use_direct_type1) {
-        naf_kernel_.reset();
-        chain_kernel_.reset();
-        return;
-      }
-
-      direct_type1_kernel_.reset();
-      if (use_chain_direct_)
-        naf_kernel_.reset();
-      else
-        chain_kernel_.reset();
-    }
-
-    // Interpret the calibrated FINUFFT crossover for the current buffer size.
     bool use_type3_for_n(int n) const {
-      // `finufft_switch_n_ <= 0` or `> buf_size` means one FINUFFT path dominates everywhere.
       if (finufft_switch_n_ <= 0) return !type3_for_small_n_;
       if (finufft_switch_n_ > state_.buf_size) return type3_for_small_n_;
       return type3_for_small_n_ ? (n < finufft_switch_n_) : (n >= finufft_switch_n_);
@@ -335,20 +309,22 @@ namespace triqs::utility::nfft {
         finufft.execute_type1_gather(self.state_, self.fiw_vec);
       } else if (self.type_ == type_t::automatic) {
         if (self.state_.buf_counter < self.direct_cutoff_) {
-          // Direct side: either exact `direct_type1` or one of the sparse direct kernels.
-          if (self.direct_type1_kernel_)
-            self.run_direct(*self.direct_type1_kernel_);
-          else if (self.use_chain_direct_ && self.chain_kernel_)
-            self.template run_direct<TolDigits>(*self.chain_kernel_);
-          else
-            self.template run_direct<TolDigits>(*self.naf_kernel_);
+          switch (self.pick_direct_backend(self.state_.buf_counter)) {
+            case direct_backend_t::direct_type1:
+              self.run_direct(*self.direct_type1_kernel_);
+              break;
+            case direct_backend_t::direct_naf:
+              self.template run_direct<TolDigits>(*self.naf_kernel_);
+              break;
+            case direct_backend_t::direct_chain:
+              self.template run_direct<TolDigits>(*self.chain_kernel_);
+              break;
+          }
         } else {
           auto &finufft = self.template get_finufft<TolDigits>();
           if (self.use_type3_for_n(self.state_.buf_counter)) {
-            // Type3 works directly with odd Matsubara frequencies.
             finufft.execute_type3(self.state_, self.fiw_vec);
           } else {
-            // type1_gather pays the type-1 transform once, then gathers the requested modes.
             self.template prepare_type1_coords<TolDigits>();
             finufft.execute_type1_gather(self.state_, self.fiw_vec);
           }
