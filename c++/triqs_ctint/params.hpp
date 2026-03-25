@@ -156,6 +156,9 @@ namespace triqs_ctint {
     /// Number of positive bosonic Matsubara frequencies in M3
     int n_iW_M3 = 32;
 
+    /// Compress the DLR2D imaginary frequency grid
+    bool dlr2d_compress_grid = false;
+
     /// Measure M3pp(tau)
     bool measure_M3pp_tau = false;
     /// Measure M3ph(tau)

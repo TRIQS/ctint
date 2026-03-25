@@ -11,7 +11,7 @@ namespace triqs_ctint::measures {
      : params(params_), qmc_config(qmc_config_), buf_arrarr(params_.n_blocks()), G0_tau(std::move(G0_tau_)) {
 
     // Construct DLR2D Matsubara mesh
-    mesh::dlr2d_imfreq M3pp_iw_mesh{params.beta, params.dlr_wmax, params.dlr_eps, mesh::PP};
+    mesh::dlr2d_imfreq M3pp_iw_mesh{params.beta, params.dlr_wmax, params.dlr_eps, mesh::PP, params.dlr2d_compress_grid};
 
     // Init measurement container and capture view
     results->M3pp_iw_nfft = make_block2_gf(M3pp_iw_mesh, params.gf_struct);
