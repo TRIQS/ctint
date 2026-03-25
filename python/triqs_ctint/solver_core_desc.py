@@ -66,6 +66,16 @@ c.add_member(c_name = "auto_corr_time",
              read_only= True,
              doc = r"""Auto-correlation time""")
 
+c.add_member(c_name = "warmup_cycles_done",
+             c_type = "int64_t",
+             read_only= True,
+             doc = r"""Number of warmup cycles actually performed""")
+
+c.add_member(c_name = "length_cycle_used",
+             c_type = "int",
+             read_only= True,
+             doc = r"""The length_cycle value used during accumulation (after auto-determination)""")
+
 c.add_member(c_name = "warmup_time",
              c_type = "double",
              read_only= True,
@@ -417,9 +427,15 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_cycles                      | int                             | --                                      | Number of MC cycles                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| length_cycle                  | int                             | 100                                     | Length of a MC cycles                                                                                                                 |
+| length_cycle                  | int                             | 0                                       | Length of a MC cycle (0: auto from autocorrelation time)                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_warmup_cycles               | int                             | 5000                                    | Number of warmup cycles                                                                                                               |
+| max_length_cycle              | int                             | 5000                                    | Maximum allowed length_cycle when auto-determined                                                                                     |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| target_auto_corr_time         | double                          | 2.0                                     | Target autocorrelation time in units of length_cycle                                                                                  |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_warmup_cycles               | int                             | 0                                       | Number of warmup cycles (0: auto convergence detection)                                                                               |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| max_warmup_cycles             | int                             | 100000                                  | Maximum warmup cycles for automatic warmup                                                                                            |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | random_seed                   | int                             | 34788+928374*mpi::communicator().rank() | Random seed of the random generator                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -542,9 +558,15 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_cycles                      | int                             | --                                      | Number of MC cycles                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| length_cycle                  | int                             | 100                                     | Length of a MC cycles                                                                                                                 |
+| length_cycle                  | int                             | 0                                       | Length of a MC cycle (0: auto from autocorrelation time)                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_warmup_cycles               | int                             | 5000                                    | Number of warmup cycles                                                                                                               |
+| max_length_cycle              | int                             | 5000                                    | Maximum allowed length_cycle when auto-determined                                                                                     |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| target_auto_corr_time         | double                          | 2.0                                     | Target autocorrelation time in units of length_cycle                                                                                  |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| n_warmup_cycles               | int                             | 0                                       | Number of warmup cycles (0: auto convergence detection)                                                                               |
++-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+| max_warmup_cycles             | int                             | 100000                                  | Maximum warmup cycles for automatic warmup                                                                                            |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | random_seed                   | int                             | 34788+928374*mpi::communicator().rank() | Random seed of the random generator                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -672,13 +694,28 @@ c.add_member(c_name = "n_cycles",
 
 c.add_member(c_name = "length_cycle",
              c_type = "int",
-             initializer = """ 100 """,
-             doc = r"""Length of a MC cycles""")
+             initializer = """ 0 """,
+             doc = r"""Length of a MC cycle (0: automatically determined from autocorrelation time)""")
+
+c.add_member(c_name = "max_length_cycle",
+             c_type = "int",
+             initializer = """ 5000 """,
+             doc = r"""Maximum allowed length_cycle when auto-determined (safety cap)""")
+
+c.add_member(c_name = "target_auto_corr_time",
+             c_type = "double",
+             initializer = """ 2.0 """,
+             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=0)""")
 
 c.add_member(c_name = "n_warmup_cycles",
              c_type = "int",
-             initializer = """ 5000 """,
-             doc = r"""Number of warmup cycles""")
+             initializer = """ 0 """,
+             doc = r"""Number of warmup cycles (0: automatic convergence detection)""")
+
+c.add_member(c_name = "max_warmup_cycles",
+             c_type = "int",
+             initializer = """ 100000 """,
+             doc = r"""Maximum number of warmup cycles when using automatic warmup (safety cap)""")
 
 c.add_member(c_name = "random_seed",
              c_type = "int",
@@ -986,13 +1023,28 @@ c.add_member(c_name = "n_cycles",
 
 c.add_member(c_name = "length_cycle",
              c_type = "int",
-             initializer = """ 100 """,
-             doc = r"""Length of a MC cycles""")
+             initializer = """ 0 """,
+             doc = r"""Length of a MC cycle (0: automatically determined from autocorrelation time)""")
+
+c.add_member(c_name = "max_length_cycle",
+             c_type = "int",
+             initializer = """ 5000 """,
+             doc = r"""Maximum allowed length_cycle when auto-determined (safety cap)""")
+
+c.add_member(c_name = "target_auto_corr_time",
+             c_type = "double",
+             initializer = """ 2.0 """,
+             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=0)""")
 
 c.add_member(c_name = "n_warmup_cycles",
              c_type = "int",
-             initializer = """ 5000 """,
-             doc = r"""Number of warmup cycles""")
+             initializer = """ 0 """,
+             doc = r"""Number of warmup cycles (0: automatic convergence detection)""")
+
+c.add_member(c_name = "max_warmup_cycles",
+             c_type = "int",
+             initializer = """ 100000 """,
+             doc = r"""Maximum number of warmup cycles when using automatic warmup (safety cap)""")
 
 c.add_member(c_name = "random_seed",
              c_type = "int",

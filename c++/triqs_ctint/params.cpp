@@ -38,7 +38,10 @@ namespace triqs_ctint {
     h5_write(grp, "alpha", sp.alpha);
     h5_write(grp, "n_cycles", sp.n_cycles);
     h5_write(grp, "length_cycle", sp.length_cycle);
+    h5_write(grp, "max_length_cycle", sp.max_length_cycle);
+    h5_write(grp, "target_auto_corr_time", sp.target_auto_corr_time);
     h5_write(grp, "n_warmup_cycles", sp.n_warmup_cycles);
+    h5_write(grp, "max_warmup_cycles", sp.max_warmup_cycles);
     h5_write(grp, "random_seed", sp.random_seed);
     h5_write(grp, "random_name", sp.random_name);
     h5_write(grp, "use_double_insertion", sp.use_double_insertion);
@@ -89,7 +92,10 @@ namespace triqs_ctint {
     h5_read(grp, "alpha", sp.alpha);
     h5_read(grp, "n_cycles", sp.n_cycles);
     h5_read(grp, "length_cycle", sp.length_cycle);
+    h5::try_read(grp, "max_length_cycle", sp.max_length_cycle);
+    h5::try_read(grp, "target_auto_corr_time", sp.target_auto_corr_time);
     h5_read(grp, "n_warmup_cycles", sp.n_warmup_cycles);
+    h5::try_read(grp, "max_warmup_cycles", sp.max_warmup_cycles);
     h5_read(grp, "random_name", sp.random_name);
     h5_read(grp, "use_double_insertion", sp.use_double_insertion);
     h5::try_read(grp, "insertion_types", sp.insertion_types);
