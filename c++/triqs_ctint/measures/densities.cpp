@@ -76,9 +76,11 @@ namespace triqs_ctint::measures {
     using triqs::stat::log_binning;
 
     // Auto-correlation time from log-binning
-    results_->auto_corr_time = 0.0;
+    // Require min_samples=32 per bin for ~25% relative error on variance estimate
+    constexpr int min_samples = 32;
+    results_->auto_corr_time  = 0.0;
     for (auto &log_acc : log_accs_) {
-      auto [mean, errs, taus, effs] = log_acc.mean_errors_and_taus(comm);
+      auto [mean, errs, taus, effs] = log_acc.mean_errors_and_taus(comm, min_samples);
       if (!taus.empty()) { results_->auto_corr_time = std::max(results_->auto_corr_time, std::real(taus.back())); }
       log_acc = log_binning<dcomplex>{dcomplex{0.0}, -1};
     }
