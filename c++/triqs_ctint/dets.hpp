@@ -28,14 +28,14 @@ namespace triqs_ctint {
     /// The orbital (or non-block) index
     int u;
 
-    /// The label of the vertex (position in h_int)
-    int vertex_label = 0;
+    /// The label of the vertex (position in h_int). Defaults to -1 for external operators.
+    int vertex_label = -1;
 
-    /// The position in the quartic operator (cdag_0 c_0 cdag_1 c_1)
-    int pos = 0;
+    /// The position in the quartic operator (cdag_0 c_0 cdag_1 c_1). Defaults to -1 for external operators.
+    int pos = -1;
 
-    /// The auxiliary spin
-    int s = 0;
+    /// The auxiliary spin. Defaults to -1 for external operators.
+    int s = -1;
 
     /// Lexicographical sorting of arg_t. This determines the order of row and columns inside the dets.
     bool operator<(arg_t const &x) const { return std::tie(tau, u, vertex_label, pos, s) < std::tie(x.tau, x.u, x.vertex_label, x.pos, x.s); }
@@ -84,11 +84,13 @@ namespace triqs_ctint {
     G0hat_t &operator=(G0hat_t &&)       = delete;
 
     g_tau_t::target_t::scalar_t operator()(c_t const &c, cdag_t const &cdag) const {
-      // Contractions between operators of the same vertex get an alpha shift
-      // Use tau-equality to check if cdag and c are from the same vertex
+      // Equal-time contractions between operators of the same interaction vertex get an alpha shift.
+      // External measurement operators carry vertex_label == -1 and must not receive an alpha shift.
       if (c.tau == cdag.tau) {
-        auto res = G0_shift_tau.data()(0, c.u, cdag.u) + (c.u == cdag.u ? 1 : 0) - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
-        return res;
+        TRIQS_ASSERT2(c.vertex_label == cdag.vertex_label,
+                       "Equal-time operators must have the same vertex_label:\n  " << c << "\n  " << cdag);
+        auto G0_val = G0_shift_tau.data()(0, c.u, cdag.u) + (c.u == cdag.u ? 1 : 0);
+        return c.vertex_label < 0 ? G0_val : G0_val - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
       }
       // Compute sign and dtau via cyclic_difference
       double sign  = cdag.tau > c.tau ? -1.0 : 1.0;
