@@ -38,7 +38,7 @@ namespace triqs_ctint {
         // Construct the factory and insert into list
         auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), amplitudes = std::move(amplitudes), &rng] {
           int n             = rng(indices.size());
-          tau_t t           = tau_t::get_random(rng);
+          tau_t t           = tau_t::random(rng);
           int s             = rng(n_s);
           double prop_proba = 1.0 / (beta * indices.size() * n_s);
           return vertex_t{indices[n], t, t, t, t, amplitudes[n] / n_s, prop_proba, n, s};
@@ -93,8 +93,8 @@ namespace triqs_ctint {
         auto l = [beta = params.beta, n_s = params.n_s, indices = std::move(indices), labels = std::move(labels), D0_tau_lst = std::move(D0_tau_lst),
                   &rng] {
           int n             = rng(indices.size());
-          tau_t t           = tau_t::get_random(rng);
-          tau_t tp          = tau_t::get_random(rng);
+          tau_t t           = tau_t::random(rng);
+          tau_t tp          = tau_t::random(rng);
           auto [sig, dtau]  = cyclic_difference(t, tp);
           int s             = rng(n_s);
           double prop_proba = 1.0 / (beta * beta * indices.size() * n_s);
@@ -142,8 +142,8 @@ namespace triqs_ctint {
       if (indices.size() > 0) {
         auto l = [beta = params.beta, indices = std::move(indices), Jperp_tau_lst = std::move(Jperp_tau_lst), &rng] {
           int n             = rng(indices.size());
-          tau_t t           = tau_t::get_random(rng);
-          tau_t tp          = tau_t::get_random(rng);
+          tau_t t           = tau_t::random(rng);
+          tau_t tp          = tau_t::random(rng);
           auto [sig, dtau]  = cyclic_difference(t, tp);
           double prop_proba = 1.0 / (beta * beta * indices.size());
           return vertex_t{indices[n], t, t, tp, tp, Jperp_tau_lst[n](dtau) / 2.0, prop_proba}; // We add two identical terms above -> Divide by 2

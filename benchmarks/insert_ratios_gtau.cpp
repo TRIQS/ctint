@@ -26,8 +26,8 @@ static auto make_g0_shift_tau(double beta, long n_tau, long n_orb) {
 }
 
 // Fill a det_manip to a given size by inserting random operators
-static void fill_det(det_t &det, long target_size, double beta, long n_orb, std::mt19937 &rng) {
-  std::uniform_int_distribution<uint32_t> tau_dist(10, tau_t::n_max - 10);
+static void fill_det(det_t &det, long target_size, double beta, long n_orb, std::mt19937_64 &rng) {
+  std::uniform_int_distribution<std::uint64_t> tau_dist(10, tau_t::n_max - 10);
   std::uniform_int_distribution<int> orb_dist(0, n_orb - 1);
 
   for (long i = 0; i < target_size; ++i) {

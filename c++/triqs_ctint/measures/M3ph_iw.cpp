@@ -91,7 +91,7 @@ namespace triqs_ctint::measures {
           auto Ginv_ji = det.inverse_matrix(j, i);
 
           // Fill M, Note: Minus sign from the shift of -tau_i
-          buf_arrarr(bl)(u_j, u_i).push_back({tau_j, beta - tau_i}, -Ginv_ji);
+          buf_arrarr(bl)(u_j, u_i).push_back({double(tau_j), beta - double(tau_i)}, -Ginv_ji);
 
           //Fill GMG, GM, MG
           for (int abar_u : range(bl_size)) {
@@ -110,8 +110,8 @@ namespace triqs_ctint::measures {
       for (auto m : range(bl_size)) {
         for (auto n : range(bl_size)) {
           for (long p = 0; p < k; ++p) {
-            buf_arrarr_GM(bl)(m, n).push_back({beta - det.get_x(p).tau}, arr_GM(m, n, p));
-            buf_arrarr_MG(bl)(m, n).push_back({det.get_y(p).tau}, arr_MG(m, n, p));
+            buf_arrarr_GM(bl)(m, n).push_back({beta - double(det.get_x(p).tau)}, arr_GM(m, n, p));
+            buf_arrarr_MG(bl)(m, n).push_back({double(det.get_y(p).tau)}, arr_MG(m, n, p));
           }
         }
       }

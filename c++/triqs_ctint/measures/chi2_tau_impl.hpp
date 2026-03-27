@@ -47,26 +47,26 @@ namespace triqs_ctint::measures {
                   cdag_t cdag_a, cdag_c;
                   c_t c_b, c_d;
 
-                  auto tau_point  = make_tau_t(double(tau));
+                  auto tau_point  = tau_t::from_double(double(tau));
                   auto taup_point = tau_point;
 
                   // Time-Ordering
-                  tau_point.n += 3;  // tau -> tau^{+++}
-                  taup_point.n += 2; // taup -> tau^{++}
+                  tau_point  = tau_point + tau_t{std::uint64_t{3}};  // tau -> tau^{+++}
+                  taup_point = taup_point + tau_t{std::uint64_t{2}}; // taup -> tau^{++}
 
                   if constexpr (Chan == Chan_t::PP) { // Particle-particle channel
 
                     cdag_a = cdag_t{tau_point, a};
-                    c_b    = c_t{tau_t::get_zero_plus(), b};
+                    c_b    = c_t{tau_t::epsilon(), b};
                     cdag_c = cdag_t{taup_point, c};
-                    c_d    = c_t{tau_t::get_zero(), d};
+                    c_d    = c_t{tau_t::zero(), d};
 
                   } else if constexpr (Chan == Chan_t::PH) { // Particle-hole channel
 
                     cdag_a = cdag_t{tau_point, a};
                     c_b    = c_t{taup_point, b};
-                    cdag_c = cdag_t{tau_t::get_zero_plus(), c};
-                    c_d    = c_t{tau_t::get_zero(), d};
+                    cdag_c = cdag_t{tau_t::epsilon(), c};
+                    c_d    = c_t{tau_t::zero(), d};
                   }
 
                   if (bl1 == bl2)

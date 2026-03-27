@@ -17,7 +17,7 @@ namespace triqs_ctint {
   solver_core::solver_core(constr_params_t const &p) : constr_params(p) {
 
     // Set inverse temperature for all $\tau$ points
-    tau_t::beta = p.beta;
+    tau_t::set_beta(p.beta);
 
     // Allocate essential QMC containers on DLR mesh (symmetrize=true for hermiticity checks)
     G0_iw        = g_iw_t{{p.beta, Fermion, p.dlr_wmax, p.dlr_eps, true}, p.gf_struct};

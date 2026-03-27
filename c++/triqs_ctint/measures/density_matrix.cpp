@@ -37,8 +37,8 @@ namespace triqs_ctint::measures {
       nda::array<c_t, 1> cs(bl_size);
       nda::array<cdag_t, 1> cdags(bl_size);
       for (int a = 0; a < bl_size; ++a) {
-        cs(a)    = c_t{tau_t::get_zero(), a};
-        cdags(a) = cdag_t{tau_t::get_zero_plus(), a};
+        cs(a)    = c_t{tau_t::zero(), a};
+        cdags(a) = cdag_t{tau_t::epsilon(), a};
       }
 
       // Single batched call: insert_ratios_matrix returns ratios(b,a) for (c_b, cdag_a)

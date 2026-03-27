@@ -36,7 +36,7 @@ namespace triqs_ctint::measures {
 
     // Precompute uniform tau grid: tau_k = k * beta / L for k = 0, ..., L-1
     tau_points_.resize(L_);
-    for (long k = 0; k < L_; ++k) tau_points_[k] = make_tau_t(k * params.beta / L_);
+    for (long k = 0; k < L_; ++k) tau_points_[k] = tau_t::from_double(k * params.beta / L_);
 
     // Maps for grouping
     std::map<int, bilinear_group_t> bilinear_map;
@@ -129,7 +129,7 @@ namespace triqs_ctint::measures {
       auto &det = qmc_config.dets[grp.bl_det];
       for (long l = 0; l < L_; ++l) {
         auto tau      = tau_points_[l];
-        auto tau_plus = tau_t{tau.n + 1};
+        auto tau_plus = tau + tau_t::epsilon();
         for (long e = 0; e < static_cast<long>(grp.entries.size()); ++e) {
           auto const &entry = grp.entries[e];
           grp.cs(l, e)     = c_t{tau, entry.idx_c};
@@ -147,10 +147,10 @@ namespace triqs_ctint::measures {
         auto tau = tau_points_[l];
         for (long e = 0; e < static_cast<long>(grp.entries.size()); ++e) {
           auto const &entry  = grp.entries[e];
-          grp.c_B(l, e)     = c_t{tau_t{tau.n}, entry.idx_c_B};
-          grp.cdag_B(l, e)  = cdag_t{tau_t{tau.n + 1}, entry.idx_cdag_B};
-          grp.c_A(l, e)     = c_t{tau_t{tau.n + 2}, entry.idx_c_A};
-          grp.cdag_A(l, e)  = cdag_t{tau_t{tau.n + 3}, entry.idx_cdag_A};
+          grp.c_B(l, e)     = c_t{tau, entry.idx_c_B};
+          grp.cdag_B(l, e)  = cdag_t{tau + tau_t{std::uint64_t{1}}, entry.idx_cdag_B};
+          grp.c_A(l, e)     = c_t{tau + tau_t{std::uint64_t{2}}, entry.idx_c_A};
+          grp.cdag_A(l, e)  = cdag_t{tau + tau_t{std::uint64_t{3}}, entry.idx_cdag_A};
         }
       }
 
