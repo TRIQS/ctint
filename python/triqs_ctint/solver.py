@@ -203,7 +203,7 @@ class Solver(SolverCore):
                 sgn = 1 - 2 * s # delta sign for each aux spin component
                 alpha[n, 0, 0, s] = n00 - np.sign(coeff) * sgn * delta[0]
                 alpha[n, 0, 1, s] = n01 + sgn * delta[1] * has_offdiag
-                alpha[n, 1, 0, s] = n01 + np.sign(coeff) * sgn * delta[1] * has_offdiag
+                alpha[n, 1, 0, s] = np.conj(n01) + np.sign(coeff) * sgn * delta[1] * has_offdiag
                 alpha[n, 1, 1, s] = n11 + sgn * delta[0]
 
         # Fill D0 alpha entries with per-orbital diagonal densities
