@@ -40,7 +40,7 @@ def _validate_and_clip_alpha(alpha):
                     raise RuntimeError(f"Alpha tensor is not hermitian for term {n}, s={s}: "
                                        f"alpha[1,0]={a[1,0]}, conj(alpha[0,1])={np.conj(a[0, 1])}")
                 for i in range(2):
-                    if a[i, i].imag != 0:
+                    if abs(a[i, i].imag) > 1e-12:
                         raise RuntimeError(f"Alpha tensor has non-real diagonal for term {n}, s={s}: "
                                            f"alpha[{i},{i}]={a[i, i]}")
                 if abs(a[0, 1]) > 0.5 + eps:
