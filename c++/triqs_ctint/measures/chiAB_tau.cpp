@@ -95,7 +95,7 @@ namespace triqs_ctint::measures {
     // Precompute tau points from the DLR mesh
     L_ = tau_mesh.size();
     tau_points_.reserve(L_);
-    for (auto tau : tau_mesh) tau_points_.push_back(make_tau_t(double(tau)));
+    for (auto tau : tau_mesh) tau_points_.push_back(tau_t::from_double(double(tau)));
 
     // Flatten map to vector, pre-allocate scratch arrays, and fill constant side
     groups_.reserve(group_map.size());
@@ -113,18 +113,18 @@ namespace triqs_ctint::measures {
           switch (grp.op_type) {
             case quartic_op_type::normal:
               // B-side (time 0): one row + one col
-              grp.c_B(l, e)    = c_t{tau_t::get_zero(), entry.idx_c_B};
-              grp.cdag_B(l, e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_B};
+              grp.c_B(l, e)    = c_t{tau_t::zero(), entry.idx_c_B};
+              grp.cdag_B(l, e) = cdag_t{tau_t::epsilon(), entry.idx_cdag_B};
               break;
             case quartic_op_type::anom_cdcd_cc:
               // B-side (time 0): two cols
-              grp.c_A(l, e) = c_t{tau_t::get_zero_plus(), entry.idx_c_A};
-              grp.c_B(l, e) = c_t{tau_t::get_zero(), entry.idx_c_B};
+              grp.c_A(l, e) = c_t{tau_t::epsilon(), entry.idx_c_A};
+              grp.c_B(l, e) = c_t{tau_t::zero(), entry.idx_c_B};
               break;
             case quartic_op_type::anom_cc_cdcd:
               // B-side (time 0): two rows
-              grp.cdag_A(l, e) = cdag_t{tau_t::get_zero_plus(), entry.idx_cdag_A};
-              grp.cdag_B(l, e) = cdag_t{tau_t::get_zero(), entry.idx_cdag_B};
+              grp.cdag_A(l, e) = cdag_t{tau_t::epsilon(), entry.idx_cdag_A};
+              grp.cdag_B(l, e) = cdag_t{tau_t::zero(), entry.idx_cdag_B};
               break;
           }
         }
@@ -142,8 +142,8 @@ namespace triqs_ctint::measures {
       // Fill tau-varying side of the operator arrays
       for (long l = 0; l < L_; ++l) {
         auto tau     = tau_points_[l];
-        auto tau_lo  = tau_t{tau.n + 2}; // second operator in A (earlier infinitesimal)
-        auto tau_hi  = tau_t{tau.n + 3}; // first operator in A (later infinitesimal)
+        auto tau_lo  = tau + tau_t{std::uint64_t{2}}; // second operator in A (earlier infinitesimal)
+        auto tau_hi  = tau + tau_t{std::uint64_t{3}}; // first operator in A (later infinitesimal)
         for (long e = 0; e < E; ++e) {
           auto const &entry = grp.entries[e];
           switch (grp.op_type) {

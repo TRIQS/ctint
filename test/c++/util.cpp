@@ -66,7 +66,7 @@ TEST(util, get_op_indices) { // NOLINT
 TEST(util, cyclic_difference) { // NOLINT
 
   double beta = 10.0;
-  tau_t::beta = 10.0;
+  tau_t::set_beta(10.0);
 
   double t1 = 5.0;
   EXPECT_EQ(std::make_pair(1.0, 0.0), cyclic_difference(t1, t1));

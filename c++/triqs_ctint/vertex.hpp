@@ -5,71 +5,16 @@
 
 #pragma once
 #include "./types.hpp"
+#include <triqs/utility/tau_t.hpp>
 #include <triqs/det_manip/det_manip.hpp>
 
 namespace triqs_ctint {
 
-  /**
-   * A point in imaginary time, i.e. $\tau \in [0,\beta]$, but defined on a very fine grid.
-   * The position in the segment is given by an uint32_t, i.e. a very long integer.
-   * This allows exact comparisons, which notoriously dangerous on floating point number.
-   */
-  struct tau_t {
+  /// Imaginary-time type, provided by TRIQS.
+  using tau_t = triqs::utility::tau_t;
 
-    /// Maximum value that can be stored inside a uint32_t
-    static constexpr uint32_t n_max = std::numeric_limits<uint32_t>::max();
-
-    /// Inverse temperature associated with all $\tau$ points
-    static double beta;
-
-    /// $\tau$ value, represented as an integer on a very fine grid
-    uint32_t n = 0;
-
-    /// Get a random point in $[0,\beta[$
-    template <typename RNG> static tau_t get_random(RNG &rng) { return tau_t{rng(n_max)}; }
-
-    /// Cast to corresponding double value in $[0,\beta]$
-    operator double() const { return beta * double(n) / n_max; }
-
-    // --- Comparison operators
-    bool operator==(const tau_t &tau) const { return n == tau.n; }
-    bool operator!=(const tau_t &tau) const { return n != tau.n; }
-    bool operator<(const tau_t &tau) const { return n < tau.n; }
-    bool operator>(const tau_t &tau) const { return n > tau.n; }
-    bool operator<=(const tau_t &tau) const { return n <= tau.n; }
-    bool operator>=(const tau_t &tau) const { return n >= tau.n; }
-
-    /// Operator allowing output to std::ostream
-    friend std::ostream &operator<<(std::ostream &out, tau_t const &tau) {
-      return out << double(tau) << " [tau_t : beta = " << tau.beta << " n = " << tau.n << "]";
-    }
-
-    /// Return \tau = 0
-    static constexpr tau_t get_zero() { return tau_t{0}; }
-
-    /// Return \tau = 0^{+} = 0 + \delta
-    static constexpr tau_t get_zero_plus() { return tau_t{1}; }
-
-    /// Return \tau = 0^{++} = 0 + 2*\delta
-    static constexpr tau_t get_zero_plus_plus() { return tau_t{2}; }
-
-    /// Return \tau = \beta
-    static constexpr tau_t get_beta() { return tau_t{n_max}; }
-
-    /// Return \tau = beta^{-} = \beta - \delta
-    static constexpr tau_t get_beta_minus() { return tau_t{n_max - 1}; }
-
-    /// Return \tau = beta^{--} = \beta - 2*\delta
-    static constexpr tau_t get_beta_minus_minus() { return tau_t{n_max - 2}; }
-  };
-
-  /// Calculate the time-difference of two tau points shifted to the interval [0,\beta] as well
-  /// as the sign change resulting from the shift in a fermionic function
-  std::pair<double, double> cyclic_difference(tau_t const &tau1, tau_t const &tau2);
-  std::pair<double, double> cyclic_difference(double tau1, double tau2);
-
-  // Generate a tau_t-object from a double
-  tau_t make_tau_t(double tau);
+  /// Bring cyclic_difference into this namespace.
+  using triqs::utility::cyclic_difference;
 
   /**
    * Type representing the set of discrete quantum numbers for the vertices of
@@ -94,7 +39,7 @@ namespace triqs_ctint {
   std::ostream &operator<<(std::ostream &os, vertex_idx_t const &v);
 
   /**
-   * Type representing an interaction vertex of the microscopic model at hand. 
+   * Type representing an interaction vertex of the microscopic model at hand.
    * Can be inserted in the Monte-Carlo move.
    */
   struct vertex_t {

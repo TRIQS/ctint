@@ -93,8 +93,7 @@ namespace triqs_ctint {
         return c.vertex_label < 0 ? G0_val : G0_val - alpha(c.vertex_label, cdag.pos, c.pos, c.s);
       }
       // Compute sign and dtau via cyclic_difference
-      double sign  = cdag.tau > c.tau ? -1.0 : 1.0;
-      double dtau  = double(tau_t{c.tau.n - cdag.tau.n});
+      auto [sign, dtau] = cyclic_difference(c.tau, cdag.tau);
       // Compute mesh data index directly: idx = clamp(round(dtau * delta_inv), 0, n_tau-1)
       long idx     = std::clamp(static_cast<long>(dtau * delta_inv_ + 0.5), 0L, n_tau_ - 1);
       return sign * G0_shift_tau.data()(idx, c.u, cdag.u);
