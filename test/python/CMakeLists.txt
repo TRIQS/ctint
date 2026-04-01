@@ -13,6 +13,9 @@ set(all_tests
   static/plaquette
   static/static_obs
   static/pairing_susceptibility
+  static/static_obs_general
+  static/chirality_TT
+  static/chirality_T
   dynamic/all_continuousBoson
   dynamic/all
   dynamic/densdens
