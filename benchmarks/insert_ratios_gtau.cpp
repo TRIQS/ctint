@@ -26,7 +26,7 @@ static auto make_g0_shift_tau(double beta, long n_tau, long n_orb) {
 }
 
 // Fill a det_manip to a given size by inserting random operators
-static void fill_det(det_t &det, long target_size, double beta, long n_orb, std::mt19937_64 &rng) {
+static void fill_det(det_t &det, long target_size, long n_orb, std::mt19937_64 &rng) {
   std::uniform_int_distribution<std::uint64_t> tau_dist(10, tau_t::n_max - 10);
   std::uniform_int_distribution<int> orb_dist(0, n_orb - 1);
 
@@ -55,10 +55,10 @@ class InsertRatiosGtau : public benchmark::Fixture {
 
   gf<imtime, matrix_real_valued> g0;
   std::unique_ptr<det_t> det;
-  std::mt19937 rng{12345};
+  std::mt19937_64 rng{12345};
 
   void SetUp(benchmark::State const &) {
-    tau_t::beta = beta;
+    tau_t::set_beta(beta);
     g0 = make_g0_shift_tau(beta, n_tau, n_orb);
 
     // Create alpha (trivial: zeros)
@@ -66,7 +66,7 @@ class InsertRatiosGtau : public benchmark::Fixture {
     alpha() = 0.0;
 
     det = std::make_unique<det_t>(G0hat_t{g0, alpha}, 1000);
-    fill_det(*det, det_N, beta, n_orb, rng);
+    fill_det(*det, det_N, n_orb, rng);
   }
 
   void TearDown(benchmark::State const &) { det.reset(); }
@@ -74,7 +74,7 @@ class InsertRatiosGtau : public benchmark::Fixture {
 
 // Benchmark insert_ratios with rank-2 array (L, E) — mimics AABB A-side
 BENCHMARK_F(InsertRatiosGtau, insert_ratios_rank2)(benchmark::State &state) {
-  std::uniform_int_distribution<uint32_t> tau_dist(10, tau_t::n_max - 10);
+  std::uniform_int_distribution<std::uint64_t> tau_dist(10, tau_t::n_max - 10);
   std::uniform_int_distribution<int> orb_dist(0, n_orb - 1);
 
   // Build rank-2 arrays (L, E)
@@ -97,7 +97,7 @@ BENCHMARK_F(InsertRatiosGtau, insert_ratios_rank2)(benchmark::State &state) {
 
 // Benchmark insert2_ratios with broadcast (L,E) x (E) — mimics AAAA case
 BENCHMARK_F(InsertRatiosGtau, insert2_ratios_broadcast)(benchmark::State &state) {
-  std::uniform_int_distribution<uint32_t> tau_dist(10, tau_t::n_max - 10);
+  std::uniform_int_distribution<std::uint64_t> tau_dist(10, tau_t::n_max - 10);
   std::uniform_int_distribution<int> orb_dist(0, n_orb - 1);
 
   // A-side: rank-2 (L, E) — tau varies
@@ -116,8 +116,8 @@ BENCHMARK_F(InsertRatiosGtau, insert2_ratios_broadcast)(benchmark::State &state)
   nda::array<c_t, 1> c_B(E);
   nda::array<cdag_t, 1> cdag_B(E);
   for (long e = 0; e < E; ++e) {
-    c_B(e)    = c_t{tau_t::get_zero(), orb_dist(rng)};
-    cdag_B(e) = cdag_t{tau_t::get_zero_plus(), orb_dist(rng)};
+    c_B(e)    = c_t{tau_t::zero(), orb_dist(rng)};
+    cdag_B(e) = cdag_t{tau_t::epsilon(), orb_dist(rng)};
   }
 
   for (auto _ : state) {
@@ -128,7 +128,7 @@ BENCHMARK_F(InsertRatiosGtau, insert2_ratios_broadcast)(benchmark::State &state)
 
 // Benchmark just the f-evaluation loop (B and C matrix construction) in isolation
 BENCHMARK_F(InsertRatiosGtau, f_evaluation_loop)(benchmark::State &state) {
-  std::uniform_int_distribution<uint32_t> tau_dist(10, tau_t::n_max - 10);
+  std::uniform_int_distribution<std::uint64_t> tau_dist(10, tau_t::n_max - 10);
   std::uniform_int_distribution<int> orb_dist(0, n_orb - 1);
 
   long K = L * E;
