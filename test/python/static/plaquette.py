@@ -103,14 +103,10 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["M4_iw"] = S.M4_iw
     arch["M4pp_iw"] = S.M4pp_iw
     arch["M4ph_iw"] = S.M4ph_iw
-    # M3pp_iw_nfft and M3ph_iw_nfft live on DLR2D meshes whose construction
-    # is currently BLAS-implementation dependent. This may be changed in the
-    # future. For now we exclude these quantities from the test comparison.
-    # The tau variants already cover these measurements.
-    #arch["M3pp_iw_nfft"] = S.M3pp_iw_nfft
-    #arch["M3ph_iw_nfft"] = S.M3ph_iw_nfft
-    #arch["M3pp_iw_nfft_full"] = S.M3pp_iw_nfft_full
-    #arch["M3ph_iw_nfft_full"] = S.M3ph_iw_nfft_full
+    arch["M3pp_iw_nfft"] = S.M3pp_iw_nfft
+    arch["M3ph_iw_nfft"] = S.M3ph_iw_nfft
+    arch["M3pp_iw_nfft_full"] = S.M3pp_iw_nfft_full
+    arch["M3ph_iw_nfft_full"] = S.M3ph_iw_nfft_full
     arch["M3pp_tau"] = S.M3pp_tau
     arch["M3ph_tau"] = S.M3ph_tau
     arch["M3xph_tau"] = S.M3xph_tau
