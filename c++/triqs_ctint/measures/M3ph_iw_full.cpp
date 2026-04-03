@@ -4,6 +4,7 @@
 // See LICENSE in the root of this distribution for details.
 
 #include "./M3ph_iw_full.hpp"
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -117,30 +118,10 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr_MG)
       for (auto &buf : buf_arr) buf.flush();
 
-    for (int bl1 : range(params.n_blocks()))
-      for (int bl2 : range(params.n_blocks())) {
-        int bl1_size     = M[bl1].target_shape()[0];
-        int bl2_size     = M[bl2].target_shape()[0];
-        auto const &M1   = M[bl1];
-        auto const &GMG2 = GMG(bl2);
-        auto const &GM1  = GM[bl1];
-        auto const &MG2  = MG[bl2];
-        auto &M3ph_iw    = M3ph_iw_(bl1, bl2);
-
-        // Loop over full frequency grid
-        for (auto mp : M3ph_iw.mesh()) {
-          auto [mp1, mp2] = mp;
-          auto iw1        = mp1.value(); // matsubara_freq
-          auto iw2        = mp2.value(); // matsubara_freq
-          for (int i : range(bl1_size))
-            for (int j : range(bl1_size))
-              for (int k : range(bl2_size))
-                for (int l : range(bl2_size)) {
-                  // M1 is on same prod mesh; access transposed (iw2, iw1)
-                  M3ph_iw[mp](i, j, k, l) += sign * M1[closest_mesh_pt(iw2, iw1)](j, i) * GMG2(l, k);
-                  if (bl1 == bl2) { M3ph_iw[mp](i, j, k, l) -= sign * GM1[iw1](l, i) * MG2[iw2](j, k); }
-                }
-        }
+    for (auto bl1 : range(params.n_blocks()))
+      for (auto bl2 : range(params.n_blocks())) {
+        auto const bl2_size = GMG(bl2).shape()[0];
+        simd::full_iw3ph_accumulate(sign, M, GMG, GM, MG, M3ph_iw_, bl1, bl2, bl2_size);
       }
   }
 

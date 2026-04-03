@@ -4,7 +4,7 @@
 // See LICENSE in the root of this distribution for details.
 
 #include "./M4_iw.hpp"
-#include <cmath>
+#include "./iw_accumulate.hpp"
 
 namespace triqs_ctint::measures {
 
@@ -51,30 +51,10 @@ namespace triqs_ctint::measures {
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush(); // Flush remaining points from all buffers
 
-    auto const &iw_mesh = std::get<0>(M4_iw_(0, 0).mesh());
-
-    for (int bl1 : range(params.n_blocks())) // FIXME c++17 Loops
-      for (int bl2 : range(params.n_blocks())) {
-        int bl1_size   = M[bl1].target_shape()[0];
-        int bl2_size   = M[bl2].target_shape()[0];
-        auto const &M1 = M[bl1];
-        auto const &M2 = M[bl2];
-        auto &M4       = M4_iw_(bl1, bl2);
-
-        for (auto iw1 : iw_mesh)
-          for (auto iw2 : iw_mesh)
-            for (auto iw3 : iw_mesh)
-              for (int i : range(bl1_size))
-                for (int j : range(bl1_size)) {
-                  auto M1val = M1[iw2.value(), iw1](j, i);
-
-                  for (int k : range(bl2_size))
-                    for (int l : range(bl2_size)) {
-                      auto iw4 = iw1 + iw3 - iw2;
-                      M4[iw1, iw2, iw3](i, j, k, l) += sign * M1val * M2[iw4, iw3](l, k);
-                      if (bl1 == bl2) { M4[iw1, iw2, iw3](i, j, k, l) -= sign * M1[iw4, iw1](l, i) * M2[iw2.value(), iw3](j, k); }
-                    }
-                }
+    for (auto bl1 : range(params.n_blocks()))
+      for (auto bl2 : range(params.n_blocks())) {
+        auto const bl2_size = M[bl2].target_shape()[0];
+        simd::iw4_accumulate(sign, M, M4_iw_, bl1, bl2, bl2_size);
       }
   }
 
