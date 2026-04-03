@@ -1,3 +1,15 @@
+# Set Python-visible boolean variables for compile flags
+if(GTAU_IS_COMPLEX)
+  set(GTAU_IS_COMPLEX_BOOL "True")
+else()
+  set(GTAU_IS_COMPLEX_BOOL "False")
+endif()
+if(INTERACTION_IS_COMPLEX)
+  set(INTERACTION_IS_COMPLEX_BOOL "True")
+else()
+  set(INTERACTION_IS_COMPLEX_BOOL "False")
+endif()
+
 # Configure the version
 configure_file(version.py.in version.py)
 
