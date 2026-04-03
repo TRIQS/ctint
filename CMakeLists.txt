@@ -89,6 +89,10 @@ if(Build_Tests)
   enable_testing()
 endif()
 
+# Complex-valued variant modules (built in addition to the default real variant)
+option(GTAU_IS_COMPLEX "Additionally build complex G(tau) variant" OFF)
+option(INTERACTION_IS_COMPLEX "Additionally build complex G(tau)+interaction variant" OFF)
+
 # Performance-tuning flags for project targets
 option(Enable_Project_Performance_Flags "Enable additional project-local compiler tuning flags outside Debug builds" ON)
 

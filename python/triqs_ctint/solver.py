@@ -3,13 +3,38 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE in the root of this distribution for details.
 
-from .solver_core import SolverCore
-from .version import gtau_is_complex, interaction_is_complex
 from triqs.gf import *
 from triqs.utility import mpi
 from triqs_hartree_fock import ImpuritySolver as HFSolver
 
 import numpy as np
+
+
+# === Variant dispatch
+
+def _get_solver_core(gtau_is_complex, interaction_is_complex):
+    """Import and return the SolverCore class for the requested variant."""
+    if interaction_is_complex:
+        if not gtau_is_complex:
+            raise ValueError("interaction_is_complex requires gtau_is_complex=True")
+        try:
+            from ._complex_all.solver_core import SolverCore
+        except ImportError:
+            raise ImportError(
+                "Complex interaction variant not available. "
+                "Rebuild with -DINTERACTION_IS_COMPLEX=ON")
+        return SolverCore
+    elif gtau_is_complex:
+        try:
+            from ._complex_gtau.solver_core import SolverCore
+        except ImportError:
+            raise ImportError(
+                "Complex G(tau) variant not available. "
+                "Rebuild with -DGTAU_IS_COMPLEX=ON")
+        return SolverCore
+    else:
+        from .solver_core import SolverCore
+        return SolverCore
 
 
 # === Alpha tensor validation and clipping
@@ -63,14 +88,18 @@ def mpi_print(arg):
 
 # === The SolverCore Wrapper
 
-class Solver(SolverCore):
+class Solver:
 
-    def __init__(self, **constr_params):
+    def __init__(self, *, gtau_is_complex=False, interaction_is_complex=False, **constr_params):
         """
         Initialise the solver.
 
         Parameters
         ----------
+        gtau_is_complex : bool
+               Use the complex-valued G(tau) variant of the solver.
+        interaction_is_complex : bool
+               Use the complex-valued interaction variant (requires gtau_is_complex=True).
         beta : scalar
                Inverse temperature.
         gf_struct : list of pairs [ (str,int), ...]
@@ -91,10 +120,15 @@ class Solver(SolverCore):
         n_tau_dynamical_interactions : int, optional
                Number of tau pts for D0_tau and jperp_tau (Default 10001)
         """
-        constr_params['gf_struct'] = fix_gf_struct_type(constr_params['gf_struct'])
+        self._gtau_is_complex = gtau_is_complex
 
-        # Initialise the core solver
-        SolverCore.__init__(self, **constr_params)
+        SolverCore = _get_solver_core(gtau_is_complex, interaction_is_complex)
+        constr_params['gf_struct'] = fix_gf_struct_type(constr_params['gf_struct'])
+        self._core = SolverCore(**constr_params)
+
+    def __getattr__(self, name):
+        # Delegate attribute access to the underlying SolverCore instance
+        return getattr(self._core, name)
 
 
     def _indices_from_quartic_term(self, term):
@@ -139,7 +173,7 @@ class Solver(SolverCore):
             w_max=dlr_wmax,
             eps=dlr_eps,
             dc=False,
-            force_real=not gtau_is_complex
+            force_real=not self._gtau_is_complex
         )
 
         # Copy G0_iw to the HF solver (same DLR mesh)
@@ -169,7 +203,7 @@ class Solver(SolverCore):
             n_D0_total = n_bl * n_bl * R * R
 
         # Build alpha tensor from HF density with delta shift for n_s spin components
-        alpha = np.zeros((n_terms + n_D0_total, 2, 2, n_s), dtype=complex if gtau_is_complex else float)
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, n_s), dtype=complex if self._gtau_is_complex else float)
         for n, (term, coeff) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             n00 = hf_solver.density[bl0][u0p, u0]
@@ -257,7 +291,7 @@ class Solver(SolverCore):
             n_D0_total = n_bl * n_bl * R * R
 
         assert solve_params['n_s'] == 2
-        alpha = np.zeros((n_terms + n_D0_total, 2, 2, 2), dtype=complex if gtau_is_complex else float)
+        alpha = np.zeros((n_terms + n_D0_total, 2, 2, 2), dtype=complex if self._gtau_is_complex else float)
         for l, (term, _) in enumerate(h_int):
             bl0, bl1, u0, u0p, u1, u1p = self._indices_from_quartic_term(term)
             same_block = bl0 == bl1
@@ -337,5 +371,5 @@ class Solver(SolverCore):
                 mpi_print(str(alpha[..., s]))
             solve_params['alpha'] = alpha
 
-        solve_status = SolverCore.solve(self, **solve_params)
+        solve_status = self._core.solve(**solve_params)
         return solve_status

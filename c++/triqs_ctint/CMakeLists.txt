@@ -1,46 +1,86 @@
 file(GLOB_RECURSE sources *.cpp)
-add_library(${PROJECT_NAME}_c ${sources})
-add_library(${PROJECT_NAME}::${PROJECT_NAME}_c ALIAS ${PROJECT_NAME}_c)
 
-# Link against triqs and enable warnings
-target_link_libraries(${PROJECT_NAME}_c
-  PUBLIC
-    triqs
-    $<BUILD_INTERFACE:${PROJECT_NAME}_performance_flags>
-  PRIVATE
-    $<BUILD_INTERFACE:${PROJECT_NAME}_warnings>
-)
+# ========= Variant Library Function ==========
 
-# Configure target and compilation
-set_target_properties(${PROJECT_NAME}_c PROPERTIES
-  POSITION_INDEPENDENT_CODE ON
-  VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-)
-target_include_directories(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/c++>)
-target_include_directories(${PROJECT_NAME}_c SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-target_link_directories(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/c++>)
-target_link_directories(${PROJECT_NAME}_c INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_LIBDIR}>)
-target_compile_definitions(${PROJECT_NAME}_c PUBLIC
-				CTINT_GIT_HASH=${PROJECT_GIT_HASH}
-				TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
-				$<$<CONFIG:Debug>:CTINT_DEBUG>
-				$<$<CONFIG:Debug>:TRIQS_DEBUG>
-				$<$<CONFIG:Debug>:TRIQS_ARRAYS_ENFORCE_BOUNDCHECK>
-				$<$<BOOL:${GTAU_IS_COMPLEX}>:GTAU_IS_COMPLEX>
-				$<$<BOOL:${INTERACTION_IS_COMPLEX}>:INTERACTION_IS_COMPLEX>
-			  )
+function(add_ctint_library TARGET_NAME)
+  cmake_parse_arguments(ARG "" "" "COMPILE_DEFS" ${ARGN})
 
-if(INTERACTION_IS_COMPLEX AND NOT GTAU_IS_COMPLEX)
-  message(FATAL_ERROR "INTERACTION_IS_COMPLEX requires GTAU_IS_COMPLEX=ON")
+  add_library(${TARGET_NAME} ${sources})
+  add_library(${PROJECT_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
+
+  # Link against triqs and enable warnings
+  target_link_libraries(${TARGET_NAME}
+    PUBLIC
+      triqs
+      finufft
+      xsimd
+      poet::poet
+      $<BUILD_INTERFACE:${PROJECT_NAME}_performance_flags>
+    PRIVATE
+      $<BUILD_INTERFACE:${PROJECT_NAME}_warnings>
+  )
+
+  # Configure target and compilation
+  set_target_properties(${TARGET_NAME} PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+  )
+  target_include_directories(${TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/c++>)
+  target_include_directories(${TARGET_NAME} SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+  target_link_directories(${TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/c++>)
+  target_link_directories(${TARGET_NAME} INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_LIBDIR}>)
+  target_compile_definitions(${TARGET_NAME} PUBLIC
+    CTINT_GIT_HASH=${PROJECT_GIT_HASH}
+    TRIQS_GIT_HASH=${TRIQS_GIT_HASH}
+    $<$<CONFIG:Debug>:CTINT_DEBUG>
+    $<$<CONFIG:Debug>:TRIQS_DEBUG>
+    $<$<CONFIG:Debug>:TRIQS_ARRAYS_ENFORCE_BOUNDCHECK>
+    ${ARG_COMPILE_DEFS}
+  )
+
+  # Sanitizers
+  foreach(san IN ITEMS asan ubsan msan tsan)
+    string(TOUPPER ${san} SAN)
+    if(${SAN})
+      if(NOT TARGET ${san})
+        find_package(sanitizer REQUIRED COMPONENTS ${san})
+      endif()
+      target_link_libraries(${TARGET_NAME} PUBLIC $<BUILD_INTERFACE:${san}>)
+    endif()
+  endforeach()
+
+  install(TARGETS ${TARGET_NAME} EXPORT ${PROJECT_NAME}-targets DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endfunction()
+
+# ========= Dynamic Analyzer Options ==========
+
+option(ASAN OFF "Compile library and executables with LLVM Address Sanitizer")
+option(UBSAN OFF "Compile library and executables with LLVM Undefined Behavior Sanitizer")
+option(MSAN OFF "Compile library and executables with LLVM Memory Sanitizer")
+option(TSAN OFF "Compile library and executables with LLVM Thread Sanitizer")
+
+# ========= Build Library Variants ==========
+
+# Always build the real variant
+add_ctint_library(${PROJECT_NAME}_c)
+
+# Optionally build complex G(tau) variant
+if(GTAU_IS_COMPLEX)
+  add_ctint_library(${PROJECT_NAME}_c_complex_gtau COMPILE_DEFS GTAU_IS_COMPLEX)
 endif()
 
-# Install library and headers
-install(TARGETS ${PROJECT_NAME}_c EXPORT ${PROJECT_NAME}-targets DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# Optionally build complex G(tau) + interaction variant
+if(INTERACTION_IS_COMPLEX)
+  if(NOT GTAU_IS_COMPLEX)
+    message(FATAL_ERROR "INTERACTION_IS_COMPLEX requires GTAU_IS_COMPLEX=ON")
+  endif()
+  add_ctint_library(${PROJECT_NAME}_c_complex_all COMPILE_DEFS GTAU_IS_COMPLEX INTERACTION_IS_COMPLEX)
+endif()
+
+# Install headers (once)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 
-# ========= Additional Dependencies ==========
-
-target_link_libraries(${PROJECT_NAME}_c PUBLIC finufft xsimd poet::poet)
+# Also install dependency targets (once)
 install(TARGETS finufft xsimd EXPORT triqs_ctint-targets)
 
 # ========= Static Analyzer Checks ==========
@@ -80,38 +120,4 @@ if(ANALYZE_SOURCES)
     message(STATUS "cppcheck not found in $PATH. Please consider installing cppcheck for additional checks!")
   endif()
 
-endif()
-
-# ========= Dynamic Analyzer Checks ==========
-
-option(ASAN OFF "Compile library and executables with LLVM Address Sanitizer")
-if(ASAN)
-  if(NOT TARGET asan)
-    find_package(sanitizer REQUIRED COMPONENTS asan)
-  endif()
-  target_link_libraries(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:asan>)
-endif()
-
-option(UBSAN OFF "Compile library and executables with LLVM Undefined Behavior Sanitizer")
-if(UBSAN)
-  if(NOT TARGET ubsan)
-    find_package(sanitizer REQUIRED COMPONENTS ubsan)
-  endif()
-  target_link_libraries(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:ubsan>)
-endif()
-
-option(MSAN OFF "Compile library and executables with LLVM Memory Sanitizer")
-if(MSAN)
-  if(NOT TARGET msan)
-    find_package(sanitizer REQUIRED COMPONENTS msan)
-  endif()
-  target_link_libraries(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:msan>)
-endif()
-
-option(TSAN OFF "Compile library and executables with LLVM Thread Sanitizer")
-if(TSAN)
-  if(NOT TARGET tsan)
-    find_package(sanitizer REQUIRED COMPONENTS tsan)
-  endif()
-  target_link_libraries(${PROJECT_NAME}_c PUBLIC $<BUILD_INTERFACE:tsan>)
 endif()
