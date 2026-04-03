@@ -81,7 +81,15 @@ namespace triqs_ctint {
       post_process({constr_params, last_solve_params.value()});
     }
 
-    static std::string hdf5_format() { return "CTINT_SolverCore"; }
+    static std::string hdf5_format() {
+#if defined(INTERACTION_IS_COMPLEX)
+      return "CTINT_SolverCore_complex_all";
+#elif defined(GTAU_IS_COMPLEX)
+      return "CTINT_SolverCore_complex_gtau";
+#else
+      return "CTINT_SolverCore";
+#endif
+    }
 
     // Function that writes the solver_core to hdf5 file
     friend void h5_write(h5::group h5group, std::string subgroup_name, solver_core const &s) {
