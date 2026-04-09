@@ -54,18 +54,16 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix M on DLR2D mesh
-    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<dlr2d_imfreq, matrix_valued, M_layout> M;
+    // Contiguous orbital rows for SIMD vectorization in accumulation kernels
+    using simd_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
 
-    // Matrix NFFT buffer for M (factored product-grid DFT), one per block
-    std::vector<nfft::matrix_buffer_t<M_layout>> M_bufs;
+    // Scattering matrix M on DLR2D mesh (factored product-grid DFT)
+    block_gf<dlr2d_imfreq, matrix_valued, simd_layout> M;
+    std::vector<nfft::matrix_buffer_t<simd_layout>> M_bufs;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
-    using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, GM_layout> GM;
-    using MG_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, MG_layout> MG;
+    block_gf<imfreq, matrix_valued, simd_layout> GM;
+    block_gf<imfreq, matrix_valued, simd_layout> MG;
     array<array<dcomplex, 2, nda::F_layout>, 1> GMG;
 
   };

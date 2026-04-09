@@ -57,10 +57,9 @@ namespace triqs_ctint::measures {
     block_gf<prod<imfreq, imfreq>, matrix_valued> M;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
-    using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, GM_layout> GM;
-    using MG_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, MG_layout> MG;
+    using simd_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
+    block_gf<imfreq, matrix_valued, simd_layout> GM;
+    block_gf<imfreq, matrix_valued, simd_layout> MG;
     array<array<dcomplex, 2, nda::F_layout>, 1> GMG;
   };
 

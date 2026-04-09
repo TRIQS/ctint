@@ -52,8 +52,8 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix using type1 NFFT on uniform imfreq mesh
-    using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, GM_layout> GM;
+    using simd_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
+    block_gf<imfreq, matrix_valued, simd_layout> GM;
   };
 
 } // namespace triqs_ctint::measures

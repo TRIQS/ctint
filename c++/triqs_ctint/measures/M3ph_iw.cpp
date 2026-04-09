@@ -65,45 +65,26 @@ namespace triqs_ctint::measures {
     Z += sign;
 
     // Reset all accumulators
-    for (auto &gmg : GMG) gmg() = 0;
-    M()  = 0;
+    M() = 0;
     GM() = 0;
     MG() = 0;
 
-    double beta = params.beta;
-
-    // Phase 1: M construction via factored product-grid DFT
-    for (int bl : range(params.n_blocks())) {
-      auto &det = qmc_config.dets[bl];
-      long k    = det.size();
-      if (k == 0) continue;
-
-      auto Ginv = det.inverse_matrix();
-
-      // Compute M on DLR2D mesh via factored product-grid DFT
-      std::vector<double> x(k), y(k);
-      std::vector<int> u_x(k), u_y(k);
-      for (long j = 0; j < k; ++j) {
-        x[j]   = double(det.get_y(j).tau);
-        u_x[j] = det.get_y(j).u;
-      }
-      for (long i = 0; i < k; ++i) {
-        y[i]   = beta - double(det.get_x(i).tau);
-        u_y[i] = det.get_x(i).u;
-      }
-      auto neg_Ginv = nda::matrix<dcomplex>(-Ginv);
-      M_bufs[bl].push_product(x.data(), u_x.data(), k, y.data(), u_y.data(), k, neg_Ginv);
-    }
-
-    // Phase 2: GM/MG/GMG construction (BLAS GEMM + NFFT scatter + flush)
     for (int bl : range(params.n_blocks())) {
       auto &det   = qmc_config.dets[bl];
-      int bl_size = GM[bl].target_shape()[0];
+      int bl_size = M[bl].target_shape()[0];
       long k      = det.size();
-      if (k == 0) continue;
+      if (k == 0) { GMG(bl)() = 0; continue; }
 
       auto Ginv = det.inverse_matrix();
 
+      // M on DLR2D mesh via factored product-grid DFT
+      std::vector<double> x(k), y(k);
+      std::vector<int> u_x(k), u_y(k);
+      for (long j = 0; j < k; ++j) { x[j] = double(det.get_y(j).tau); u_x[j] = det.get_y(j).u; }
+      for (long i = 0; i < k; ++i) { y[i] = params.beta - double(det.get_x(i).tau); u_y[i] = det.get_x(i).u; }
+      M_bufs[bl].push_product(x.data(), u_x.data(), k, y.data(), u_y.data(), k, nda::matrix<dcomplex>(-Ginv));
+
+      // Build X(a, i) = G0(tau_i)(u_i, a) and Y(b, j) = -G0(beta - tau_j)(b, u_j)
       auto X = nda::matrix<dcomplex>(bl_size, k);
       for (long i = 0; i < k; ++i) {
         auto &[tau_i, u_i, _, _, _] = det.get_x(i);
@@ -114,19 +95,23 @@ namespace triqs_ctint::measures {
       auto Y = nda::matrix<dcomplex>(bl_size, k);
       for (long j = 0; j < k; ++j) {
         auto &[tau_j, u_j, _, _, _] = det.get_y(j);
-        auto G0_j                   = G0_tau[bl][closest_mesh_pt(beta - tau_j)];
+        auto G0_j                   = G0_tau[bl][closest_mesh_pt(params.beta - tau_j)];
         for (int b = 0; b < bl_size; ++b) Y(b, j) = -G0_j(b, u_j);
       }
 
+      // W = Y * Ginv via BLAS GEMM, GMG = X * W^T
       auto W  = Y * Ginv;
       GMG(bl) = X * nda::transpose(W);
 
+      // GM: scatter W to NFFT buffers
       for (long i = 0; i < k; ++i) {
         auto &[tau_i, u_i, _, _, _] = det.get_x(i);
         for (int m : range(bl_size))
-          buf_arrarr_GM(bl)(m, u_i).push_back({beta - double(tau_i)}, dcomplex(-bl_size) * W(m, i));
+          buf_arrarr_GM(bl)(m, u_i).push_back({params.beta - double(tau_i)}, dcomplex(-bl_size) * W(m, i));
       }
+      for (auto &buf : buf_arrarr_GM(bl)) buf.flush();
 
+      // MG: scatter orbital-summed X * Ginv^T to NFFT buffers
       auto XsumScatter = nda::matrix<dcomplex>(bl_size, k);
       XsumScatter()    = 0;
       for (long i = 0; i < k; ++i) {
@@ -137,20 +122,13 @@ namespace triqs_ctint::measures {
       }
       auto MG_temp = XsumScatter * nda::transpose(Ginv);
 
-      for (long j = 0; j < k; ++j) {
-        auto tau_j = double(det.get_y(j).tau);
+      for (long j = 0; j < k; ++j)
         for (int n : range(bl_size))
-          for (int m : range(bl_size))
-            buf_arrarr_MG(bl)(m, n).push_back({tau_j}, MG_temp(n, j));
-      }
+          for (int m : range(bl_size)) buf_arrarr_MG(bl)(m, n).push_back({double(det.get_y(j).tau)}, MG_temp(n, j));
+      for (auto &buf : buf_arrarr_MG(bl)) buf.flush();
     }
 
-    for (auto &buf_arr : buf_arrarr_GM)
-      for (auto &buf : buf_arr) buf.flush();
-    for (auto &buf_arr : buf_arrarr_MG)
-      for (auto &buf : buf_arr) buf.flush();
-
-    // Phase 3: Accumulation kernel
+    // Accumulation kernel
     for (auto bl1 : range(params.n_blocks()))
       for (auto bl2 : range(params.n_blocks())) {
         auto const bl2_size = GMG(bl2).shape()[0];
