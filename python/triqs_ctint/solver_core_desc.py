@@ -427,13 +427,13 @@ c.add_method("""void solve (**solve_params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_cycles                      | int                             | --                                      | Number of MC cycles                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| length_cycle                  | int                             | 0                                       | Length of a MC cycle (0: auto from autocorrelation time)                                                                              |
+| length_cycle                  | int                             | -1                                      | Length of a MC cycle (-1: auto from autocorrelation time)                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_length_cycle              | int                             | 5000                                    | Maximum allowed length_cycle when auto-determined                                                                                     |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | target_auto_corr_time         | double                          | 2.0                                     | Target autocorrelation time in units of length_cycle                                                                                  |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_warmup_cycles               | int                             | 0                                       | Number of warmup cycles (0: auto convergence detection)                                                                               |
+| n_warmup_cycles               | int                             | -1                                      | Number of warmup cycles (-1: auto convergence detection)                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_warmup_cycles             | int                             | 100000                                  | Maximum warmup cycles for automatic warmup                                                                                            |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -558,13 +558,13 @@ c.add_method("""void prepare_G0_shift_iw (**params_t)""",
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | n_cycles                      | int                             | --                                      | Number of MC cycles                                                                                                                   |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| length_cycle                  | int                             | 0                                       | Length of a MC cycle (0: auto from autocorrelation time)                                                                              |
+| length_cycle                  | int                             | -1                                      | Length of a MC cycle (-1: auto from autocorrelation time)                                                                              |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_length_cycle              | int                             | 5000                                    | Maximum allowed length_cycle when auto-determined                                                                                     |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | target_auto_corr_time         | double                          | 2.0                                     | Target autocorrelation time in units of length_cycle                                                                                  |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
-| n_warmup_cycles               | int                             | 0                                       | Number of warmup cycles (0: auto convergence detection)                                                                               |
+| n_warmup_cycles               | int                             | -1                                      | Number of warmup cycles (-1: auto convergence detection)                                                                               |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
 | max_warmup_cycles             | int                             | 100000                                  | Maximum warmup cycles for automatic warmup                                                                                            |
 +-------------------------------+---------------------------------+-----------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
@@ -694,8 +694,8 @@ c.add_member(c_name = "n_cycles",
 
 c.add_member(c_name = "length_cycle",
              c_type = "int",
-             initializer = """ 0 """,
-             doc = r"""Length of a MC cycle (0: automatically determined from autocorrelation time)""")
+             initializer = """ -1 """,
+             doc = r"""Length of a MC cycle (-1: automatically determined from autocorrelation time)""")
 
 c.add_member(c_name = "max_length_cycle",
              c_type = "int",
@@ -705,12 +705,12 @@ c.add_member(c_name = "max_length_cycle",
 c.add_member(c_name = "target_auto_corr_time",
              c_type = "double",
              initializer = """ 2.0 """,
-             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=0)""")
+             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=-1)""")
 
 c.add_member(c_name = "n_warmup_cycles",
              c_type = "int",
-             initializer = """ 0 """,
-             doc = r"""Number of warmup cycles (0: automatic convergence detection)""")
+             initializer = """ -1 """,
+             doc = r"""Number of warmup cycles (-1: automatic convergence detection)""")
 
 c.add_member(c_name = "max_warmup_cycles",
              c_type = "int",
@@ -1023,8 +1023,8 @@ c.add_member(c_name = "n_cycles",
 
 c.add_member(c_name = "length_cycle",
              c_type = "int",
-             initializer = """ 0 """,
-             doc = r"""Length of a MC cycle (0: automatically determined from autocorrelation time)""")
+             initializer = """ -1 """,
+             doc = r"""Length of a MC cycle (-1: automatically determined from autocorrelation time)""")
 
 c.add_member(c_name = "max_length_cycle",
              c_type = "int",
@@ -1034,12 +1034,12 @@ c.add_member(c_name = "max_length_cycle",
 c.add_member(c_name = "target_auto_corr_time",
              c_type = "double",
              initializer = """ 2.0 """,
-             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=0)""")
+             doc = r"""Target autocorrelation time in units of length_cycle (used when length_cycle=-1)""")
 
 c.add_member(c_name = "n_warmup_cycles",
              c_type = "int",
-             initializer = """ 0 """,
-             doc = r"""Number of warmup cycles (0: automatic convergence detection)""")
+             initializer = """ -1 """,
+             doc = r"""Number of warmup cycles (-1: automatic convergence detection)""")
 
 c.add_member(c_name = "max_warmup_cycles",
              c_type = "int",

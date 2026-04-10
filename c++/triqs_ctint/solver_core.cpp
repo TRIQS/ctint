@@ -108,8 +108,8 @@ namespace triqs_ctint {
     }
 
     // Determine cycle length for warmup phase
-    int warmup_cycle_length = (params.length_cycle > 0) ? params.length_cycle : 100;
-    bool auto_warmup        = (params.n_warmup_cycles <= 0);
+    int warmup_cycle_length = (params.length_cycle >= 0) ? params.length_cycle : 100;
+    bool auto_warmup        = (params.n_warmup_cycles < 0);
 
     // Warmup
     if (auto_warmup) {
@@ -199,7 +199,7 @@ namespace triqs_ctint {
 
     // Automatic length_cycle calibration
     int effective_length_cycle = params.length_cycle;
-    bool auto_length_cycle     = (params.length_cycle <= 0);
+    bool auto_length_cycle     = (params.length_cycle < 0);
     if (auto_length_cycle) {
       report(3) << "\nCalibrating length_cycle ..." << std::endl;
       mc.set_verbosity(0);
