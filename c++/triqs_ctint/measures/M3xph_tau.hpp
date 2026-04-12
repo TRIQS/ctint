@@ -5,7 +5,7 @@
 
 #pragma once
 #include "../qmc_config.hpp"
-#include "../nfft/buffer.hpp"
+#include <triqs/utility/nfft/buffer.hpp>
 #include "../container_set.hpp"
 
 namespace triqs_ctint::measures {

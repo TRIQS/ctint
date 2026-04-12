@@ -56,35 +56,6 @@ if(PythonSupport)
   )
 endif()
 
-# -- finufft --
-# BUILD_ALWAYS: c++/triqs_ctint absorbs finufft's objects into libtriqs_ctint_c.a via
-# $<TARGET_OBJECTS:>, which does not work on the IMPORTED target of a system finufft.
-# finufft fetches xsimd transitively; keep the xsimd ref explicit so ctint does not drift.
-set(FINUFFT_USE_OPENMP OFF)
-# Default to a portable finufft build: its -march=native default crashes (SIGILL) when a cross-CPU build cache is reused. Override with -DFINUFFT_ARCH_FLAGS=native for a local perf build.
-set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Architecture flags for finufft (empty = portable baseline)")
-set(FINUFFT_USE_DUCC0 ON)
-set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION ON)
-set(FINUFFT_ARCH_FLAGS "")
-external_dependency(finufft
-  GIT_REPO https://github.com/diamondinoia/finufft
-  GIT_TAG experimental
-  BUILD_ALWAYS
-  EXCLUDE_FROM_ALL
-)
-
-# -- poet --
-set(POET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(POET_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(POET_BUILD_DEVEL OFF CACHE BOOL "" FORCE)
-external_dependency(poet
-  GIT_REPO https://github.com/DiamonDinoia/poet
-  GIT_TAG main
-  BUILD_ALWAYS
-  EXCLUDE_FROM_ALL
-)
-
-
 # -- GTest --
 external_dependency(GTest
   GIT_REPO https://github.com/google/googletest
