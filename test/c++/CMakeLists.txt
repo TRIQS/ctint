@@ -9,7 +9,6 @@ set(all_tests
   plaquette.cpp
   util.cpp
   gf_real_imag.cpp
-  nfft_buf.cpp
   solver_hdf5.cpp
 )
 #file(GLOB_RECURSE all_tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
@@ -40,5 +39,3 @@ foreach(test ${all_tests})
     )
   endif()
 endforeach()
-
-target_link_libraries(nfft_buf finufft)

@@ -9,12 +9,10 @@ function(add_ctint_library TARGET_NAME)
   add_library(${PROJECT_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
   # Link against triqs and enable warnings
+  # finufft, xsimd, poet come transitively through triqs (TRIQS_WITH_NFFT)
   target_link_libraries(${TARGET_NAME}
     PUBLIC
       triqs
-      finufft
-      xsimd
-      poet::poet
       $<BUILD_INTERFACE:${PROJECT_NAME}_performance_flags>
     PRIVATE
       $<BUILD_INTERFACE:${PROJECT_NAME}_warnings>
@@ -80,8 +78,7 @@ endif()
 # Install headers (once)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
 
-# Also install dependency targets (once)
-install(TARGETS finufft xsimd EXPORT triqs_ctint-targets)
+# finufft, xsimd, poet are now provided by triqs — no need to install separately
 
 # ========= Static Analyzer Checks ==========
 
