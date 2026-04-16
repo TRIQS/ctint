@@ -23,6 +23,12 @@ namespace triqs_ctint {
     /// Average perturbation order
     double average_k;
 
+    /// Error bar for average sign
+    std::optional<double> average_sign_error;
+
+    /// Error bar for average perturbation order
+    std::optional<double> average_k_error;
+
     /// Auto-correlation time
     double auto_corr_time;
 
@@ -196,6 +202,8 @@ namespace triqs_ctint {
       h5_write(grp, "average_sign", c.average_sign);
       h5_write(grp, "nmeasures", c.nmeasures);
       h5_write(grp, "average_k", c.average_k);
+      h5_write(grp, "average_sign_error", c.average_sign_error);
+      h5_write(grp, "average_k_error", c.average_k_error);
       h5_write(grp, "auto_corr_time", c.auto_corr_time);
       h5_write(grp, "warmup_time", c.warmup_time);
       h5_write(grp, "accumulation_time", c.accumulation_time);
@@ -259,6 +267,8 @@ namespace triqs_ctint {
       h5_read(grp, "average_sign", c.average_sign);
       h5::try_read(grp, "nmeasures", c.nmeasures);
       h5::try_read(grp, "average_k", c.average_k);
+      h5::try_read(grp, "average_sign_error", c.average_sign_error);
+      h5::try_read(grp, "average_k_error", c.average_k_error);
       h5::try_read(grp, "auto_corr_time", c.auto_corr_time);
       h5::try_read(grp, "warmup_time", c.warmup_time);
       h5::try_read(grp, "accumulation_time", c.accumulation_time);

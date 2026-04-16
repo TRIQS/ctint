@@ -51,6 +51,16 @@ c.add_member(c_name = "average_k",
              read_only= True,
              doc = r"""Average perturbation order""")
 
+c.add_member(c_name = "average_sign_error",
+             c_type = "std::optional<double>",
+             read_only= True,
+             doc = r"""Error bar for average sign""")
+
+c.add_member(c_name = "average_k_error",
+             c_type = "std::optional<double>",
+             read_only= True,
+             doc = r"""Error bar for average perturbation order""")
+
 c.add_member(c_name = "auto_corr_time",
              c_type = "double",
              read_only= True,

@@ -6,6 +6,7 @@
 #pragma once
 #include "../qmc_config.hpp"
 #include "../container_set.hpp"
+#include <triqs/stat/lin_binning.hpp>
 
 namespace triqs_ctint::measures {
 
@@ -14,7 +15,7 @@ namespace triqs_ctint::measures {
 
     average_k(params_t const &, qmc_config_t const &qmc_config_, container_set *results);
 
-    /// Accumulate average sign
+    /// Accumulate average perturbation order
     void accumulate(mc_weight_t);
 
     /// Reduce and normalize
@@ -29,6 +30,10 @@ namespace triqs_ctint::measures {
 
     // Reference to double for accumulation
     double &average_k_;
+    std::optional<double> &average_k_error_;
+
+    // Linear binning for error estimation
+    triqs::stat::lin_binning<dcomplex> k_bins_;
 
     // Accumulation counter
     long long N = 0;
