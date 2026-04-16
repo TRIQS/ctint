@@ -8,5 +8,6 @@
 
 from .solver import Solver
 from .solver_core import SolverCore, ConstrParamsT, SolveParamsT
+from .solve_generic import solve_generic
 
-__all__ = ['Solver', 'SolverCore', 'ConstrParamsT', 'SolveParamsT']
+__all__ = ['Solver', 'SolverCore', 'ConstrParamsT', 'SolveParamsT', 'solve_generic']
