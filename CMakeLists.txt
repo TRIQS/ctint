@@ -126,7 +126,10 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 add_compile_options($<$<CONFIG:Debug>:-ggdb3>)
 
 # Increase constexpr evaluation depth for DP table computation in nfft/common.hpp
-add_compile_options(-fconstexpr-steps=10000000)
+add_compile_options(
+  $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=100000000>
+  $<$<CXX_COMPILER_ID:Clang,AppleClang>:-fconstexpr-steps=10000000>
+)
 
 # Create an Interface target for compiler warnings
 add_library(${PROJECT_NAME}_warnings INTERFACE)
