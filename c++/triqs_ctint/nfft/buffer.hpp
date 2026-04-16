@@ -383,7 +383,8 @@ namespace triqs::utility::nfft {
       std::vector<std::array<target_mf_t, Rank>> target_mf;
       target_mf.reserve(state_.n_targets);
 
-      auto recurse = [&](this auto &&self, std::array<target_mf_t, Rank> &mf, int r) -> void {
+      // Use generic lambda + self-reference instead of deducing-this to work around GCC 15 ICE.
+      auto recurse = [&](auto &self, std::array<target_mf_t, Rank> &mf, int r) -> void {
         if (r == Rank) {
           target_mf.push_back(mf);
           return;
@@ -391,11 +392,11 @@ namespace triqs::utility::nfft {
         // Uniform type1 targets are the dense fermionic box n_r in [-N_r/2, N_r/2).
         for (int64_t k = 0; k < niws[r]; ++k) {
           mf[r] = target_mf_t(static_cast<int>(k - niws[r] / 2), beta, mesh::Fermion);
-          self(mf, r + 1);
+          self(self, mf, r + 1);
         }
       };
       std::array<target_mf_t, Rank> mf{};
-      recurse(mf, 0);
+      recurse(recurse, mf, 0);
       return target_mf;
     }
   };
