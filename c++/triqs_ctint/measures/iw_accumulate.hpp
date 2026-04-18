@@ -102,25 +102,35 @@ namespace triqs_ctint::measures {
       using batch1_t = make_sized_batch_t<std::complex<double>, std::max(std::min(bl1_batch, max_width), min_width)>;
       using batch2_t = make_sized_batch_t<std::complex<double>, std::max(std::min(bl2_batch, max_width), min_width)>;
 
+      const auto bl2square                = bl2_size * bl2_size;
+      const auto *const RESTRICT M2a_data = M2a.data();
+
+      // Preload M2a batches once; they are invariant across the (i, j) loop.
+      constexpr int MAX_M2A_BATCHES = 16;
+      std::array<batch1_t, MAX_M2A_BATCHES> M2a_batches;
+      const auto n_batches = bl2square / batch1_t::size;
+      if constexpr (bl1_batch >= min_width) {
+        for (long b = 0; b < n_batches; ++b) M2a_batches[b] = batch1_t::load_unaligned(M2a_data + b * batch1_t::size);
+      }
+
       for (const auto i : range(bl1_size))
         for (const auto j : range(bl1_size)) {
           uint64_t index                = 0;
           const auto M1val              = M1a(j, i) * sign;
-          const auto bl2square          = bl2_size * bl2_size;
           auto *const RESTRICT acc_base = &acc(i, j, 0, 0);
 
-          // M1a * M2a update
+          // M1a * M2a update — M2a is preloaded
           if constexpr (bl1_batch >= min_width) {
             const auto M1_v           = batch1_t{M1val};
             const auto truncated_size = bl2square & -(batch1_t::size);
-            for (; index < truncated_size; index += batch1_t::size) {
-              const auto batch    = batch1_t::load_unaligned(acc_base + index);
-              const auto M2_batch = batch1_t::load_unaligned(M2a.data() + index);
-              const auto result   = xsimd::fma(M1_v, M2_batch, batch);
+            long b                    = 0;
+            for (; index < truncated_size; index += batch1_t::size, ++b) {
+              const auto batch  = batch1_t::load_unaligned(acc_base + index);
+              const auto result = xsimd::fma(M1_v, M2a_batches[b], batch);
               result.store_unaligned(acc_base + index);
             }
           }
-          for (; index < bl2square; ++index) { acc_base[index] = xsimd::fma(M1val, M2a.data()[index], acc_base[index]); }
+          for (; index < bl2square; ++index) { acc_base[index] = xsimd::fma(M1val, M2a_data[index], acc_base[index]); }
 
           // M2b * M1b update only on diagonal blocks
           if constexpr (diagonal) {
