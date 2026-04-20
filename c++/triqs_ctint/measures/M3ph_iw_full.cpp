@@ -66,51 +66,72 @@ namespace triqs_ctint::measures {
 
     double beta = params.beta;
 
-    // Init intermediate scattering matrices
+    // Compute M via type1 NFFT, and GMG, GM, MG via BLAS GEMM
     for (int bl : range(params.n_blocks())) {
       auto &det   = qmc_config.dets[bl];
       int bl_size = GM[bl].target_shape()[0];
       long k      = det.size();
+      if (k == 0) continue;
 
-      auto arr_GM = nda::zeros<dcomplex>(bl_size, bl_size, k);
-      auto arr_MG = nda::zeros<dcomplex>(bl_size, bl_size, k);
+      // Get full inverse matrix
+      auto Ginv = det.inverse_matrix(); // k x k
 
+      // Build X(a, i) = G0(tau_i)(u_i, a) -- one G0 lookup per i
+      auto X = nda::matrix<dcomplex>(bl_size, k);
+      for (long i = 0; i < k; ++i) {
+        auto &[tau_i, u_i, _, _, _] = det.get_x(i);
+        auto G0_i                   = G0_tau[bl][closest_mesh_pt(double(tau_i))];
+        for (int a = 0; a < bl_size; ++a) X(a, i) = G0_i(u_i, a);
+      }
+
+      // Build Y(b, j) = -G0(beta - tau_j)(b, u_j) -- one G0 lookup per j
+      auto Y = nda::matrix<dcomplex>(bl_size, k);
+      for (long j = 0; j < k; ++j) {
+        auto &[tau_j, u_j, _, _, _] = det.get_y(j);
+        auto G0_j                   = G0_tau[bl][closest_mesh_pt(beta - tau_j)];
+        for (int b = 0; b < bl_size; ++b) Y(b, j) = -G0_j(b, u_j);
+      }
+
+      // Compute M on full 2D grid via type1 NFFT
       for (long i = 0; i < k; ++i) {
         auto &[tau_i, u_i, _, _, _] = det.get_x(i);
         for (long j = 0; j < k; ++j) {
           auto &[tau_j, u_j, _, _, _] = det.get_y(j);
-
-          auto Ginv_ji = det.inverse_matrix(j, i);
-
-          // Fill M, Note: Minus sign from the shift of -tau_i
-          buf_arrarr(bl)(u_j, u_i).push_back({double(tau_j), beta - double(tau_i)}, -Ginv_ji);
-
-          //Fill GM, Note: Minus signs from the shifts of -tau_j and -tau_i cancel
-          for (int b_u : range(bl_size)) { arr_GM(b_u, u_i, i) += G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, u_j) * Ginv_ji; }
-
-          //Fill GMG and MG
-          for (int abar_u : range(bl_size)) {
-            auto G0_ia = G0_tau[bl][closest_mesh_pt(double(tau_i))](u_i, abar_u);
-            arr_MG(u_j, abar_u, j) += Ginv_ji * G0_ia;
-            for (int b_u : range(bl_size)) {
-              // Note: Minus sign from the shift of -tau_j
-              auto G0_bj = -G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, u_j);
-              GMG(bl)(b_u, abar_u) += G0_bj * Ginv_ji * G0_ia;
-            }
-          }
+          buf_arrarr(bl)(u_j, u_i).push_back({double(tau_j), beta - double(tau_i)}, -Ginv(j, i));
         }
       }
-      for (auto m : range(bl_size)) {
-        for (auto n : range(bl_size)) {
-          for (long p = 0; p < k; ++p) {
-            buf_arrarr_GM(bl)(m, n).push_back({beta - double(det.get_x(p).tau)}, arr_GM(m, n, p));
-            buf_arrarr_MG(bl)(m, n).push_back({double(det.get_y(p).tau)}, arr_MG(m, n, p));
-          }
-        }
+
+      // W = Y * Ginv via BLAS GEMM: (bl_size, k) * (k, k) -> (bl_size, k)
+      auto W = Y * Ginv;
+
+      // GMG = X * W^T via BLAS GEMM: (bl_size, k) * (k, bl_size) -> (bl_size, bl_size)
+      GMG(bl) = X * nda::transpose(W);
+
+      // GM: scatter W into NFFT buffers (factor -bl_size from redundant abar_u loop in original)
+      for (long i = 0; i < k; ++i) {
+        auto &[tau_i, u_i, _, _, _] = det.get_x(i);
+        for (int m : range(bl_size)) buf_arrarr_GM(bl)(m, u_i).push_back({beta - double(tau_i)}, dcomplex(-bl_size) * W(m, i));
+      }
+
+      // MG: scatter XsumScatter * Ginv^T into NFFT buffers
+      auto XsumScatter = nda::matrix<dcomplex>(bl_size, k);
+      XsumScatter()    = 0;
+      for (long i = 0; i < k; ++i) {
+        auto u_i    = det.get_x(i).u;
+        dcomplex xs = 0;
+        for (int a = 0; a < bl_size; ++a) xs += X(a, i);
+        XsumScatter(u_i, i) = xs;
+      }
+      auto MG_temp = XsumScatter * nda::transpose(Ginv);
+
+      for (long j = 0; j < k; ++j) {
+        auto tau_j = double(det.get_y(j).tau);
+        for (int n : range(bl_size))
+          for (int m : range(bl_size)) buf_arrarr_MG(bl)(m, n).push_back({tau_j}, MG_temp(n, j));
       }
     }
 
-    // Flush remaining points from all buffers
+    // Flush remaining points from all NFFT buffers
     for (auto &buf_arr : buf_arrarr)
       for (auto &buf : buf_arr) buf.flush();
     for (auto &buf_arr : buf_arrarr_GM)

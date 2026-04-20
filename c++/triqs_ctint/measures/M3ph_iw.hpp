@@ -6,7 +6,9 @@
 #pragma once
 #include "../qmc_config.hpp"
 #include <triqs/utility/nfft/buffer.hpp>
+#include <triqs/utility/nfft/matrix_buffer.hpp>
 #include "../container_set.hpp"
+
 
 namespace triqs_ctint::measures {
 
@@ -45,18 +47,19 @@ namespace triqs_ctint::measures {
     // The average sign
     mc_weight_t Z = 0.0;
 
-    // Container of nfft_buffers. buf_arrarr(block)(u_i,u_j)
-    array<array<nfft::buffer_t<2>, 2>, 1> buf_arrarr;
+    // Container of nfft_buffers for GM and MG (type1 NFFT, uniform grid)
     array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_GM;
     array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_MG;
 
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Intermediate scattering matrix M on DLR2D mesh (type3 NFFT)
+    // Intermediate scattering matrix M on DLR2D mesh
     using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
     block_gf<dlr2d_imfreq, matrix_valued, M_layout> M;
-    std::vector<std::array<mesh::matsubara_freq, 2>> target_mf_M;
+
+    // Matrix NFFT buffer for M (factored product-grid DFT), one per block
+    std::vector<nfft::matrix_buffer_t<M_layout>> M_bufs;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
     using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
@@ -64,6 +67,7 @@ namespace triqs_ctint::measures {
     using MG_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
     block_gf<imfreq, matrix_valued, MG_layout> MG;
     array<array<dcomplex, 2, nda::F_layout>, 1> GMG;
+
   };
 
 } // namespace triqs_ctint::measures

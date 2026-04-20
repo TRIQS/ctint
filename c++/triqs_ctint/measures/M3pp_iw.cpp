@@ -37,27 +37,29 @@ namespace triqs_ctint::measures {
     // Reset intermediate scattering matrix
     GM() = 0;
 
-    // Init intermediate scattering matrices
+    // Compute GM = G0 * M^{-1} via BLAS GEMM instead of O(k^2 * bl_size) scalar loop
     for (int bl : range(params.n_blocks())) {
       auto &det   = qmc_config.dets[bl];
       int bl_size = GM[bl].target_shape()[0];
       long k      = det.size();
+      if (k == 0) continue;
 
-      auto arr_GM = nda::zeros<dcomplex>(bl_size, bl_size, k);
-
-      for (long i = 0; i < k; ++i) {
-        auto &[tau_i, u_i, _, _, _] = det.get_x(i);
-        for (long j = 0; j < k; ++j) {
-          auto &[tau_j, u_j, _, _, _] = det.get_y(j);
-          auto G0_bj               = G0_tau[bl][closest_mesh_pt(params.beta - tau_j)];
-          auto Ginv_ji             = det.inverse_matrix(j, i);
-          for (int b_u : range(bl_size)) arr_GM(b_u, u_i, i) += G0_bj(b_u, u_j) * Ginv_ji;
-        }
+      // Build Y(b, j) = G0(beta - tau_j)(b, u_j) — one G0 lookup per j instead of per (i,j)
+      auto Y = nda::matrix<dcomplex>(bl_size, k);
+      for (long j = 0; j < k; ++j) {
+        auto &[tau_j, u_j, _, _, _] = det.get_y(j);
+        auto G0_j                   = G0_tau[bl][closest_mesh_pt(params.beta - tau_j)];
+        for (int b = 0; b < bl_size; ++b) Y(b, j) = G0_j(b, u_j);
       }
 
-      for (int m : range(bl_size))
-        for (int n : range(bl_size))
-          for (long i = 0; i < k; ++i) buf_arrarr(bl)(m, n).push_back({params.beta - det.get_x(i).tau}, arr_GM(m, n, i));
+      // W = Y * Ginv via BLAS GEMM: (bl_size, k) * (k, k) -> (bl_size, k)
+      auto W = Y * det.inverse_matrix();
+
+      // Push non-zero entries to NFFT buffers (skip orbital indices with zero contribution)
+      for (long i = 0; i < k; ++i) {
+        auto &[tau_i, u_i, _, _, _] = det.get_x(i);
+        for (int m : range(bl_size)) buf_arrarr(bl)(m, u_i).push_back({params.beta - tau_i}, W(m, i));
+      }
 
       for (auto &buf : buf_arrarr(bl)) buf.flush();
     }

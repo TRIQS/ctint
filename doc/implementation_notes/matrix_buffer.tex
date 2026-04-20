@@ -1,0 +1,100 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=2.5cm]{geometry}
+
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\newcommand{\orb}{n_{\mathrm{orb}}}
+
+\title{Factored product-grid DFT for the scattering matrix}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Definition}
+
+In the M3ph measurement, the scattering matrix $M$ on a 2D target mesh $\{(w^x_t, w^y_t)\}_{t=1}^{N_T}$
+is defined by
+\begin{equation}\label{eq:M}
+  M_t(u,v) \;=\; \sum_{\substack{j:\, u_j^x = u \\ i:\, u_i^y = v}}
+    V(j,i)\; \ee^{\ii\, w^x_t\, x_j}\; \ee^{\ii\, w^y_t\, y_i} \,,
+\end{equation}
+where $j = 0,\dots,k_x{-}1$ and $i = 0,\dots,k_y{-}1$ index the source points
+on a product grid with coordinates $(x_j, y_i)$,
+orbital labels $(u_j^x, u_i^y) \in \{0,\dots,\orb{-}1\}$,
+and $V(j,i)$ is the value matrix (typically $-G^{-1}(j,i)$).
+
+The target frequencies $(w^x_t, w^y_t)$ are fermionic Matsubara frequencies
+from a DLR2D or product mesh, with $N_T$ target points.
+
+
+\section{Naive per-element approach}
+
+The per-element \texttt{buffer\_t<2>} approach computes~\eqref{eq:M}
+independently for each orbital pair $(u, v)$.
+Buffer $(u, v)$ receives only the subset of source points where
+$u_j^x = u$ and $u_i^y = v$, then transforms them to all $N_T$ targets.
+
+The total cost is $\mathcal{O}(N_T \cdot k_x \cdot k_y)$:
+for each of the $N_T$ target points, the sum runs over all $k_x \cdot k_y$
+source pairs (distributed across $\orb^2$ buffers).
+The same $\tau$ values appear in multiple buffers (a given $y_i$ participates
+in $k_x$ different pairs), but the per-buffer approach cannot share this work.
+
+
+\section{Factored approach}
+
+The product-grid structure of the source points allows factoring the 2D
+DFT into two 1D operations.
+
+\paragraph{Step 1: Precompute exponential tables.}
+Extract the sets of unique target frequencies in each dimension:
+$\{w^x_\alpha\}_{\alpha=1}^{N_x}$ and $\{w^y_\beta\}_{\beta=1}^{N_y}$,
+with $N_x, N_y \ll N_T$ in general.
+For each source point and unique frequency, precompute
+\begin{equation}
+  E^x(j, \alpha) = \ee^{\ii\, w^x_\alpha\, x_j}\,,\qquad
+  E^y(i, \beta)  = \ee^{\ii\, w^y_\beta\,  y_i}\,.
+\end{equation}
+
+\paragraph{Step 2: Inner sum (factor out $y$-dimension).}
+For each unique $w^y_\beta$, compute the intermediate matrix
+\begin{equation}\label{eq:R}
+  R_\beta(j, v) \;=\; \sum_{i:\, u_i^y = v} V(j, i)\; E^y(i, \beta)\,.
+\end{equation}
+This sums over all $k_y$ source points in the $y$-dimension,
+scattering by orbital index $v$.
+Cost: $\mathcal{O}(N_y \cdot k_x \cdot k_y)$.
+
+\paragraph{Step 3: Outer sum (accumulate over $x$-dimension).}
+For each target point $t$ with frequency pair $(w^x_\alpha, w^y_\beta)$,
+accumulate
+\begin{equation}\label{eq:M_factored}
+  M_t(u, v) \;\mathrel{+}=\; \sum_{j:\, u_j^x = u} E^x(j, \alpha)\; R_\beta(j, v)\,.
+\end{equation}
+This sums over $k_x$ source points per target, scattering by orbital $u$.
+Cost: $\mathcal{O}(N_T \cdot k_x \cdot \orb)$.
+
+
+\section{Complexity comparison}
+
+\begin{center}
+\begin{tabular}{lcc}
+  \hline
+  & Per-element & Factored \\
+  \hline
+  Exp evaluations & $\mathcal{O}(N_T \cdot (k_x + k_y))$ & $\mathcal{O}(N_x \cdot k_x + N_y \cdot k_y)$ \\
+  Multiply-adds   & $\mathcal{O}(N_T \cdot k_x \cdot k_y)$ & $\mathcal{O}(N_y \cdot k_x \cdot k_y + N_T \cdot k_x \cdot \orb)$ \\
+  \hline
+\end{tabular}
+\end{center}
+
+The factored approach wins when $N_y \ll N_T$ and $\orb \ll k_y$, both of which hold
+in practice.
+For the 4$\times$4 plaquette benchmark ($k = 629$, $N_T = 715$,
+$N_x \approx N_y \approx 30$, $\orb = 16$):
+factored $\approx 19\text{M}$ ops vs.\ naive $\approx 283\text{M}$ ops ($\sim$15$\times$ reduction).
+
+\end{document}

@@ -45,7 +45,7 @@ namespace triqs_ctint::measures {
     // The average sign
     mc_weight_t Z = 0.0;
 
-    // Container of nfft_buffers
+    // Container of nfft_buffers for M (type1 Rank=2, uniform 2D grid), GM, MG (type1 Rank=1)
     array<array<nfft::buffer_t<2>, 2>, 1> buf_arrarr;
     array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_GM;
     array<array<nfft::buffer_t<1>, 2>, 1> buf_arrarr_MG;
@@ -54,8 +54,7 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix M on full uniform 2D grid (type1 NFFT)
-    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
-    block_gf<prod<imfreq, imfreq>, matrix_valued, M_layout> M;
+    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
     using GM_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
