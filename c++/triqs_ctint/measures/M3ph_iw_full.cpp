@@ -71,6 +71,35 @@ namespace triqs_ctint::measures {
 
       auto Ginv = det.inverse_matrix();
 
+      // Single-orbital fast path: fused (i, j) loop over M, GMG, GM, MG avoids
+      // GEMV overhead that dominates at bl_size=1 where GEMMs do not amortize.
+      if (bl_size == 1) {
+        auto arr_GM = nda::zeros<dcomplex>(k);
+        auto arr_MG = nda::zeros<dcomplex>(k);
+        GMG(bl)()   = 0;
+        for (long i = 0; i < k; ++i) {
+          auto tau_i = double(det.get_x(i).tau);
+          auto G0_i  = G0_tau[bl][closest_mesh_pt(tau_i)](0, 0);
+          for (long j = 0; j < k; ++j) {
+            auto tau_j = double(det.get_y(j).tau);
+            auto G0_j  = -G0_tau[bl][closest_mesh_pt(params.beta - tau_j)](0, 0);
+            auto g_ji  = Ginv(j, i);
+            buf_arrarr(bl)(0, 0).push_back({tau_j, params.beta - tau_i}, -g_ji);
+            GMG(bl)(0, 0) += G0_j * g_ji * G0_i;
+            arr_GM(i) += -G0_j * g_ji;
+            arr_MG(j) += g_ji * G0_i;
+          }
+        }
+        for (long p = 0; p < k; ++p) {
+          buf_arrarr_GM(bl)(0, 0).push_back({params.beta - double(det.get_x(p).tau)}, arr_GM(p));
+          buf_arrarr_MG(bl)(0, 0).push_back({double(det.get_y(p).tau)}, arr_MG(p));
+        }
+        for (auto &buf : buf_arrarr(bl)) buf.flush();
+        for (auto &buf : buf_arrarr_GM(bl)) buf.flush();
+        for (auto &buf : buf_arrarr_MG(bl)) buf.flush();
+        continue;
+      }
+
       // M on full 2D grid via type1 NFFT
       for (long i = 0; i < k; ++i) {
         auto &[tau_i, u_i, _, _, _] = det.get_x(i);

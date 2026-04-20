@@ -343,6 +343,30 @@ namespace triqs_ctint::measures {
          auto const MG2      = MG[bl2];
          auto &M3            = M3_iw(bl1, bl2);
 
+         // Scalar fast path for n_orb=1: avoid process_inner_loop SIMD machinery
+         // whose batch path never fires at bl_size=1 but still adds per-mp overhead.
+         if constexpr (bl1_batch == 1 && bl2_batch == 1) {
+           if (bl1_size == 1 && bl2_size == 1) {
+             auto const GMG2_00 = GMG2(0, 0);
+             if (bl1 == bl2) {
+               for (auto mp : M3.mesh()) {
+                 auto [mp1, mp2] = mp;
+                 auto iw1        = mp1.value();
+                 auto iw2        = mp2.value();
+                 M3[mp](0, 0, 0, 0) += sign * (M1[closest_mesh_pt(iw2, iw1)](0, 0) * GMG2_00 - GM1[iw1](0, 0) * MG2[iw2](0, 0));
+               }
+             } else {
+               for (auto mp : M3.mesh()) {
+                 auto [mp1, mp2] = mp;
+                 auto iw1        = mp1.value();
+                 auto iw2        = mp2.value();
+                 M3[mp](0, 0, 0, 0) += sign * M1[closest_mesh_pt(iw2, iw1)](0, 0) * GMG2_00;
+               }
+             }
+             return;
+           }
+         }
+
          for (auto mp : M3.mesh()) {
            auto [mp1, mp2]  = mp;
            auto iw1         = mp1.value();
@@ -363,6 +387,19 @@ namespace triqs_ctint::measures {
       auto const GM1      = GM[bl1];
       auto const GM2      = GM[bl2];
       auto &M3            = M3_iw(bl1, bl2);
+
+      // Scalar fast path for n_orb=1 (always diagonal in bl for pp).
+      if constexpr (bl1_batch == 1 && bl2_batch == 1) {
+        if (bl1_size == 1 && bl2_size == 1) {
+          for (auto mp : M3.mesh()) {
+            auto [mp1, mp2] = mp;
+            auto iw1        = mp1.value();
+            auto iw2        = mp2.value();
+            M3[mp](0, 0, 0, 0) += sign * GM1[iw1](0, 0) * GM2[iw2](0, 0);
+          }
+          return;
+        }
+      }
 
       for (auto mp : M3.mesh()) {
         auto [mp1, mp2]  = mp;
