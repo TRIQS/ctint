@@ -9,202 +9,200 @@
 
 namespace triqs_ctint {
 
-  /// The parameters for the solver construction
+  /// Parameters used for constructing the solver class.
   struct constr_params_t {
 
-    /// Number of tau points for gf<imtime, matrix_valued>
+    /// Number of imaginary-time points for the single-particle quantities.
     int n_tau = 5001;
 
-    /// DLR bandwidth cutoff w_max (= Lambda / beta) for single-particle quantities
+    /// DLR bandwidth cutoff \f$ w_{max} = \Lambda / \beta \f$ for the single-particle quantities.
     double dlr_wmax;
 
-    /// DLR error tolerance epsilon for single-particle quantities
+    /// DLR error tolerance \f$ \epsilon \f$ for the single-particle quantities.
     double dlr_eps = 1e-10;
 
-    /// Inverse temperature
+    /// Inverse temperature \f$ \beta \f$.
     double beta;
 
-    /// block structure of the gf
+    /// Structure of the Green's function (names and sizes of blocks).
     gf_struct_t gf_struct;
 
-    /// Switch for dynamic density-density interaction
+    /// Use a dynamic density-density interaction?
     bool use_D = false;
 
-    /// Switch for dynamic spin-spin interaction
+    /// Use a dynamic spin-spin interaction?
     bool use_Jperp = false;
 
-    /// Number of tau pts for D0_tau and jperp_tau
+    /// Number of imaginary-time points for \f$ D_0(\tau) \f$ and \f$ J_\perp(\tau) \f$.
     int n_tau_dynamical_interactions = this->n_tau;
 
-    /// Number of block indeces for the Green function
+    /// Number of blocks of the Green's function.
     int n_blocks() const { return gf_struct.size(); }
 
-    /// Names of block indeces for the Green function
+    /// Names of the blocks of the Green's function.
     auto block_names() const {
       std::vector<std::string> v;
       for (auto const &bl : gf_struct) v.push_back(bl.first);
       return v;
     }
 
-    /// Write constr_params_t to hdf5
+    /// Write constr_params_t to hdf5.
     friend void h5_write(h5::group h5group, std::string subgroup_name, constr_params_t const &cp);
 
-    /// Read constr_params_t from hdf5
+    /// Read constr_params_t from hdf5.
     friend void h5_read(h5::group h5group, std::string subgroup_name, constr_params_t &cp);
   };
 
-  /// The parameters for the solve function
+  /// Parameters passed to the solve method of the solver class.
   struct solve_params_t {
 
     // ----------- System Specific -----------
 
-    /// Interaction Hamiltonian
+    /// Interacting part of the local Hamiltonian.
     many_body_operator h_int;
 
     // ----------- QMC Specific -----------
 
-    /// Number of auxiliary spins
+    /// Number of auxiliary spins.
     int n_s = 2;
 
-    /// Alpha tensor
+    /// The \f$ \alpha \f$ tensor used in the determinantal expansion.
     alpha_t alpha;
 
-    /// Number of MC cycles
+    /// Number of QMC cycles.
     int n_cycles;
 
-    /// Length of a MC cycles
+    /// Length of a single QMC cycle.
     int length_cycle = 100;
 
-    /// Number of warmup cycles
+    /// Number of cycles for thermalization.
     int n_warmup_cycles = 5000;
 
-    /// Random seed of the random generator
+    /// Seed for the random number generator.
     int random_seed = 34788 + 928374 * mpi::communicator().rank();
 
-    /// Name of the random generator
+    /// Name of the random number generator.
     std::string random_name = "";
 
-    /// Use double insertion
+    /// Use double insertion?
     bool use_double_insertion = true;
 
-    /// Types of insertions to use
+    /// Types of insertions to use.
     std::vector<int> insertion_types = {};
 
-    /// Use auxiliary spin-flip insertion (requires n_s = 2)
+    /// Use auxiliary spin-flip insertion (requires \f$ n_s = 2 \f$)?
     bool use_auxiliary_spin_flip = false;
 
-    /// Maximum running time in seconds (-1 : no limit)
+    /// Maximum runtime in seconds, use -1 to set infinite.
     int max_time = -1;
 
-    /// Maximum pertubation order which is accepted in move::insert/remove
-    /// (<0 : unlimited)
+    /// Maximum perturbation order accepted during insertion and removal moves (use -1 for unlimited).
     int max_order = -1;
 
-    /// Verbosity
+    /// Verbosity level.
     int verbosity = mpi::communicator().rank() == 0 ? 3 : 0;
 
-    /// Catch exceptions on nodes and rethrow on rank 0
+    /// Catch exceptions on the nodes and rethrow them on rank 0?
     bool rethrow_exception = true;
 
     // ----------- Measurements -----------
 
-    /// Measure Sign only mode
+    /// Measure the sign only?
     bool measure_sign_only = false;
 
-    /// Measure the MC sign
+    /// Measure the Monte-Carlo sign?
     bool measure_average_sign = true;
 
-    /// Measure the average perturbation order
+    /// Measure the average perturbation order?
     bool measure_average_k = true;
 
-    /// Measure the auto-correlation time
+    /// Measure the auto-correlation time?
     bool measure_auto_corr_time = true;
 
-    /// Measure the average perturbation order distribution
+    /// Measure the perturbation-order distribution?
     bool measure_histogram = false;
 
-    /// Measure the density matrix by operator insertion
+    /// Measure the density by operator insertion?
     bool measure_density = true;
 
-    /// Measure M(tau)
+    /// Measure \f$ M(\tau) \f$?
     bool measure_M_tau = true;
 
-    /// Measure M(iomega) using nfft
+    /// Measure \f$ M(i\omega) \f$ using NFFT?
     bool measure_M_iw = false;
 
-    /// Measure M4(iw) NFFT
+    /// Measure \f$ M^{(4)}(i\omega) \f$ using NFFT?
     bool measure_M4_iw = false;
-    /// Measure M4pp(iw) NFFT
+    /// Measure \f$ M^{(4)}_{pp}(i\omega) \f$ using NFFT?
     bool measure_M4pp_iw = false;
-    /// Measure M4ph(iw) NFFT
+    /// Measure \f$ M^{(4)}_{ph}(i\omega) \f$ using NFFT?
     bool measure_M4ph_iw = false;
-    /// Number of positive bosonic Matsubara frequencies in M4
+    /// Number of positive bosonic Matsubara frequencies in \f$ M^{(4)} \f$.
     int n_iW_M4 = 32;
-    /// Number of positive fermionic Matsubara frequencies in M4
+    /// Number of positive fermionic Matsubara frequencies in \f$ M^{(4)} \f$.
     int n_iw_M4 = 32;
 
-    /// Measure M3pp(iw)
+    /// Measure \f$ M^{(3)}_{pp}(i\omega) \f$?
     bool measure_M3pp_iw = false;
-    /// Measure M3ph(iw)
+    /// Measure \f$ M^{(3)}_{ph}(i\omega) \f$?
     bool measure_M3ph_iw = false;
-    /// Number of positive fermionic Matsubara frequencies in M3
+    /// Number of positive fermionic Matsubara frequencies in \f$ M^{(3)} \f$.
     int n_iw_M3 = 64;
-    /// Number of positive bosonic Matsubara frequencies in M3
+    /// Number of positive bosonic Matsubara frequencies in \f$ M^{(3)} \f$.
     int n_iW_M3 = 32;
-    /// Measure M3pp(tau)
+    /// Measure \f$ M^{(3)}_{pp}(\tau) \f$?
     bool measure_M3pp_tau = false;
-    /// Measure M3ph(tau)
+    /// Measure \f$ M^{(3)}_{ph}(\tau) \f$?
     bool measure_M3ph_tau = false;
-    /// Measure M3xph(tau)
+    /// Measure \f$ M^{(3)}_{xph}(\tau) \f$?
     bool measure_M3xph_tau = false;
-    /// Number of imaginary time points in M3
+    /// Number of imaginary-time points in \f$ M^{(3)} \f$.
     int n_tau_M3 = 201;
 
-    /// Measure of chi2pp by insertion
+    /// Measure \f$ \chi^{(2)}_{pp}(\tau) \f$ by insertion?
     bool measure_chi2pp_tau = false;
-    /// Measure of chi2ph by insertion
+    /// Measure \f$ \chi^{(2)}_{ph}(\tau) \f$ by insertion?
     bool measure_chi2ph_tau = false;
-    /// Number of imaginary time points in chi2
+    /// Number of imaginary-time points in \f$ \chi^{(2)} \f$.
     int n_tau_chi2 = 201;
-    /// Number of positive Matsubara frequencies in chi2
+    /// Number of positive Matsubara frequencies in \f$ \chi^{(2)} \f$.
     int n_iw_chi2 = 32;
 
-    /// Measure of chiAB by insertion
+    /// Measure \f$ \chi_{AB}(\tau) \f$ by insertion?
     bool measure_chiAB_tau = false;
-    /// The list of all operators A
+    /// List of all operators \f$ A \f$.
     std::vector<many_body_operator> chi_A_vec = {};
-    /// The list of all operators B
+    /// List of all operators \f$ B \f$.
     std::vector<many_body_operator> chi_B_vec = {};
 
-    /// Size of the Nfft buffer
+    /// Size of the NFFT buffer.
     int nfft_buf_size = 100000;
 
-    /// Tolerance for the NFFT transform
+    /// Tolerance for the NFFT transform.
     double nfft_tol = 1e-8;
 
-    /// Perform post processing
+    /// Perform post-processing?
     bool post_process = true;
 
-    /// The maximum size of the determinant matrix before a resize
+    /// The maximum size of the determinant matrix before a resize.
     int det_init_size = 1000;
 
-    /// Max number of ops before the test of deviation of the det, M^-1 is performed.
+    /// Maximum number of operations before testing the accuracy of \f$ \det(M) \f$ and \f$ M^{-1} \f$.
     int det_n_operations_before_check = 100;
 
-    /// Threshold for determinant precision warnings
+    /// Threshold for determinant precision warnings.
     double det_precision_warning = 1.e-8;
 
-    /// Threshold for determinant precision error
+    /// Threshold for determinant precision errors.
     double det_precision_error = 1.e-5;
 
-    /// Bound for the determinant matrix being singular: abs(det) < singular_threshold.
-    /// For negative threshold check if !isnormal(abs(det)).
+    /// Bound for the determinant matrix being singular (if \f$ < 0 \f$, checks for subnormal numbers instead).
     double det_singular_threshold = -1;
 
-    /// Write constr_params_t to hdf5
+    /// Write solve_params_t to hdf5.
     friend void h5_write(h5::group h5group, std::string subgroup_name, solve_params_t const &sp);
 
-    /// Read constr_params_t from hdf5
+    /// Read solve_params_t from hdf5.
     friend void h5_read(h5::group h5group, std::string subgroup_name, solve_params_t &sp);
   };
 

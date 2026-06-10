@@ -10,26 +10,26 @@
 
 namespace triqs_ctint {
 
-  /// The Solver class
+  /// The CT-INT solver.
   class solver_core : public container_set {
 
     public:
-    /// Noninteracting Green Function in Matsubara frequencies
+    /// Non-interacting Green's function \f$ G_0(i\omega) \f$ in Matsubara frequencies.
     g_iw_t G0_iw;
 
-    /// The inverse of the noninteracting Green Function
+    /// Inverse of the non-interacting Green's function \f$ G_0^{-1}(i\omega) \f$.
     g_iw_t G0_iw_inv;
 
-    /// Dynamic density-density interaction in Matsubara frequencies (DLR mesh)
+    /// Dynamic density-density interaction \f$ D_0(i\omega) \f$ in Matsubara frequencies (DLR mesh).
     std::optional<block2_gf<mesh::dlr_imfreq, matrix_valued>> D0_iw;
 
-    /// Dynamic spin-spin interaction in Matsubara frequencies (DLR mesh)
+    /// Dynamic spin-spin interaction \f$ J_\perp(i\omega) \f$ in Matsubara frequencies (DLR mesh).
     std::optional<gf<mesh::dlr_imfreq, matrix_valued>> Jperp_iw;
 
     /**
-     * Construct a CTINT solver
+     * Construct a CT-INT solver.
      *
-     * @param construct_parameters Set of parameters specific to the CTINT solver
+     * @param constr_params Set of parameters used to construct the solver.
      */
     CPP2PY_ARG_AS_DICT
     solver_core(constr_params_t const &constr_params_);
@@ -42,27 +42,27 @@ namespace triqs_ctint {
     solver_core &operator=(solver_core &&p)      = default;
 
     /**
-     * Solve method that performs CTINT calculation
+     * Solve the impurity problem with a CT-INT calculation.
      *
-     * @param solve_params_t Set of parameters specific to the CTINT run
+     * @param solve_params Set of parameters used for the solve.
      */
     CPP2PY_ARG_AS_DICT
     void solve(solve_params_t const &solve_params);
 
-    /// The shifted noninteracting Green Function in Matsubara frequencies
+    /// The shifted non-interacting Green's function in Matsubara frequencies.
     g_iw_t G0_shift_iw;
 
-    /// The shifted noninteracting Green Function in imaginary time
+    /// The shifted non-interacting Green's function in imaginary time.
     g_tau_t G0_shift_tau;
 
-    // Calculate G0_shift_tau given G0_iw
+    /// Calculate the shifted non-interacting Green's function given \f$ G_0(i\omega) \f$.
     CPP2PY_ARG_AS_DICT
     void prepare_G0_shift_iw(params_t const &params);
 
-    // Struct containing the parameters relevant for the solver construction
+    /// Parameters used to construct the solver.
     constr_params_t constr_params;
 
-    // Struct containing the parameters relevant for the solve process
+    /// Parameters used in the last solve (empty until the solver has been run).
     std::optional<solve_params_t> last_solve_params;
 
     private:
