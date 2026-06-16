@@ -84,16 +84,17 @@ namespace triqs_ctint::measures {
           // Fill M, Note: Minus sign from the shift of -tau_i
           buf_arrarr(bl)(u_j, u_i).push_back({double(tau_j), beta - double(tau_i)}, -Ginv_ji);
 
-          //Fill GMG, GM, MG
+          //Fill GM, Note: Minus signs from the shifts of -tau_j and -tau_i cancel
+          for (int b_u : range(bl_size)) { arr_GM(b_u, u_i, i) += G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, u_j) * Ginv_ji; }
+
+          //Fill GMG and MG
           for (int abar_u : range(bl_size)) {
             auto G0_ia = G0_tau[bl][closest_mesh_pt(double(tau_i))](u_i, abar_u);
+            arr_MG(u_j, abar_u, j) += Ginv_ji * G0_ia;
             for (int b_u : range(bl_size)) {
               // Note: Minus sign from the shift of -tau_j
               auto G0_bj = -G0_tau[bl][closest_mesh_pt(beta - tau_j)](b_u, u_j);
-              GMG(bl)(abar_u, b_u) += G0_bj * Ginv_ji * G0_ia;
-              // Note: Minus sign from the shift of -tau_i
-              arr_GM(b_u, u_i, i) += -G0_bj * Ginv_ji;
-              arr_MG(b_u, u_i, j) += Ginv_ji * G0_ia;
+              GMG(bl)(b_u, abar_u) += G0_bj * Ginv_ji * G0_ia;
             }
           }
         }
@@ -129,8 +130,8 @@ namespace triqs_ctint::measures {
         // Loop over full frequency grid
         for (auto mp : M3ph_iw.mesh()) {
           auto [mp1, mp2] = mp;
-          auto iw1 = mp1.value(); // matsubara_freq
-          auto iw2 = mp2.value(); // matsubara_freq
+          auto iw1        = mp1.value(); // matsubara_freq
+          auto iw2        = mp2.value(); // matsubara_freq
           for (int i : range(bl1_size))
             for (int j : range(bl1_size))
               for (int k : range(bl2_size))
