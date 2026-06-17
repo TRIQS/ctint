@@ -98,10 +98,12 @@ namespace triqs::utility {
      * @param type        Transform algorithm:
      *                    - nfft_type_t::type3: Use FINUFFT type 3 (good for many targets)
      *                    - nfft_type_t::direct: Explicit DFT with SIMD (good for few targets)
-     * @param tol_        FINUFFT tolerance for type3 (default 1e-15). Ignored for direct.
+     * @param tol_        FINUFFT tolerance for type3 (default 1e-13). Ignored for direct.
+     *                    Note: at upsampfac=2 FINUFFT caps the kernel width, so type3 cannot
+     *                    reach 1e-15 (would need ns=17 > 16); 1e-13 is the practical default.
      */
-    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_,
-               nfft_type_t type, double tol_ = 1e-15)
+    nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<std::array<mesh::matsubara_freq, Rank>> target_mf_, int buf_size_, nfft_type_t type,
+               double tol_ = 1e-13)
        : nfft_type(type),
          fiw_vec(std::move(fiw_vec_)),
          buf_size(buf_size_),
@@ -186,7 +188,7 @@ namespace triqs::utility {
      * Accepts a flat vector of matsubara_freq instead of vector<array<matsubara_freq, 1>>.
      */
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_, nfft_type_t type,
-               double tol_ = 1e-15)
+               double tol_ = 1e-13)
       requires(Rank == 1)
        : nfft_buf_t(std::move(fiw_vec_), to_array_vector(target_mf_), buf_size_, type, tol_) {}
 

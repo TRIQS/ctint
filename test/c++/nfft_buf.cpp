@@ -438,9 +438,11 @@ TEST_F(Nfft, Type3_vs_Type1_3D) { // NOLINT
   std::uniform_real_distribution<double> dist(0.0, 1.0);
 
   // Type 1: 3D uniform grid
+  // Note: at upsampfac=2 FINUFFT caps the kernel width at 16, so 1e-15 is unreachable in 3D
+  // (would need ns=17). Use 1e-13 to match the type3 buffer this test is compared against.
   auto giw_type1 =
      gf<prod<imfreq, imfreq, imfreq>>{{{beta, Fermion, small_niw}, {beta, Fermion, small_niw}, {beta, Fermion, small_niw}}, shape};
-  nfft_buf_t<3> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta);
+  nfft_buf_t<3> buf1(slice_target_to_scalar(giw_type1, 0, 0).data(), buf_size, beta, 1e-13);
 
   // Type 3: all (omega_n1, omega_n2, omega_n3) triples
   int64_t n_per_dim = 2 * small_niw;
