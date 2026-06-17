@@ -79,7 +79,6 @@ class Solver(SolverCore):
         mpi_print("Determine alpha-tensor using triqs_hartree_fock")
 
         gf_struct = self.constr_params['gf_struct']
-        beta = self.constr_params['beta']
         h_int = solve_params['h_int']
         delta = solve_params.pop('delta', [0.1, 0.1])
         n_s = solve_params.get('n_s', 2)
@@ -88,14 +87,10 @@ class Solver(SolverCore):
         # The number of terms in h_int determines the leading dimension of alpha
         n_terms = len(list(h_int))
 
-        # Create HF solver instance with same DLR parameters as ctint
-        dlr_wmax = self.constr_params['dlr_wmax']
-        dlr_eps = self.constr_params['dlr_eps']
+        # Create HF solver instance on the same DLR mesh as ctint
         hf_solver = HFSolver(
             gf_struct=gf_struct,
-            beta=beta,
-            w_max=dlr_wmax,
-            eps=dlr_eps,
+            mesh=self.G0_iw.mesh,
             dc=False,
             force_real=True
         )
