@@ -24,11 +24,11 @@ D_mat = matrix([[0.0,-D],[-D,0.0]])
 
 ######## simulation parameters ########
 n_cyc = 1000
-# NFFT transform accuracy, set far below the fixed h5diff tolerance used at the end.
-# The machine-dependent NFFT auto-dispatch can shift NFFT-derived
+# NFFT transform accuracy, set far below the fixed h5diff tolerance (1e-8)
+# used at the end. The machine-dependent NFFT auto-dispatch can shift NFFT-derived
 # observables (M4_iw, M3*, chi2*, chi3*/G2) by a value-dependent multiple of nfft_tol between runs; keeping
 # nfft_tol well under the comparison tolerance keeps that drift far below it.
-nfft_tol = 1e-14
+nfft_tol = 1e-12
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['single_block']
@@ -82,4 +82,6 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chiAB_iw"] = S.chiAB_iw
 
 # -------- Compare ---------
-h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=1e-4)
+# Fixed comparison tolerance, kept well above nfft_tol so the machine-dependent
+# NFFT dispatch drift stays far below it (see nfft_tol above).
+h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=1e-8)

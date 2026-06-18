@@ -18,11 +18,11 @@ beta = 2.0  # Inverse temperature
 
 ######## simulation parameters ########
 n_cyc = 50
-# NFFT transform accuracy, set far below the fixed h5diff tolerance used at the end.
-# The machine-dependent NFFT auto-dispatch can shift NFFT-derived
-# observables (M4_iw, M3*, chi2*, chi3*/G2) by a value-dependent multiple of nfft_tol between runs; keeping
-# nfft_tol well under the comparison tolerance keeps that drift far below it.
-nfft_tol = 1e-14
+# NFFT transform accuracy, set far below the fixed h5diff tolerance (1e-8)
+# used at the end. The machine-dependent NFFT auto-dispatch can shift NFFT-derived
+# observables (M_iw, M3*, M4*, chi2*) by a value-dependent multiple of nfft_tol between runs; keeping nfft_tol
+# well under the comparison tolerance keeps that drift far below it.
+nfft_tol = 1e-12
 
 # --------- Define hopping matrix and interaction hamiltonian ----------
 
@@ -115,4 +115,6 @@ with HDFArchive("%s.out.h5"%test_name,'w') as arch:
     arch["chiAB_tau"] = S.chiAB_tau
 
 # -------- Compare ---------
-h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=2e-5)
+# Fixed comparison tolerance, kept well above nfft_tol so the machine-dependent
+# NFFT dispatch drift stays far below it (see nfft_tol above).
+h5diff("%s.out.h5"%test_name, "%s.ref.h5"%test_name, precision=1e-8)
