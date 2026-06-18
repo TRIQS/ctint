@@ -78,8 +78,9 @@ namespace triqs_ctint {
     /// Number of cycles for thermalization.
     int n_warmup_cycles = 5000;
 
-    /// Seed for the random number generator.
-    int random_seed = 34788 + 928374 * mpi::communicator().rank();
+    /// Seed for the random number generator (shared by all MPI ranks; the rank is used as the
+    /// spawn key to derive an independent stream per rank, see triqs::mc_tools::random_generator).
+    int random_seed = 34788;
 
     /// Name of the random number generator.
     std::string random_name = "";
