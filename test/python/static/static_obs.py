@@ -59,9 +59,9 @@ if mpi.is_master_node():
     # Test 1: Bilinear vs densities
     n_up_0_static = S.static_obs[0].real
     n_dn_0_static = S.static_obs[1].real
-    # gf_struct is [("up", 2), ("dn", 2)] -> sorted as [("dn", 2), ("up", 2)]
-    n_up_0_dens = S.densities[1][0]  # "up" block is index 1
-    n_dn_0_dens = S.densities[0][0]  # "dn" block is index 0
+    # The solver preserves the given gf_struct block order [("up", 2), ("dn", 2)]
+    n_up_0_dens = S.densities[0][0]  # "up" block is index 0
+    n_dn_0_dens = S.densities[1][0]  # "dn" block is index 1
 
     print(f"n_up_0 from static_obs: {n_up_0_static:.10f}")
     print(f"n_up_0 from densities:  {n_up_0_dens:.10f}")
