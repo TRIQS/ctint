@@ -18,6 +18,11 @@ beta = 100.0  # Inverse temperature
 
 ######## simulation parameters ########
 n_cyc = 50
+# NFFT transform accuracy, set far below the fixed h5diff tolerance used at the end.
+# The machine-dependent NFFT auto-dispatch can shift NFFT-derived
+# observables (M4_iw, M3*, chi2*, chi3*/G2) by a value-dependent multiple of nfft_tol between runs; keeping
+# nfft_tol well under the comparison tolerance keeps that drift far below it.
+nfft_tol = 1e-14
 
 # --------- Define hopping matrix and interaction hamiltonian ----------
 
@@ -70,6 +75,7 @@ S.solve(h_int=h_int,
         n_iw_M4 = 2,
         n_iW_M4 = 2,
         nfft_buf_size = 100000,
+        nfft_tol = nfft_tol,
         measure_M3pp_iw = True,
         measure_M3ph_iw = True,
         measure_M3pp_tau = True,

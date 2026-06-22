@@ -60,8 +60,8 @@ endif()
 # Note: finufft will fetch xsimd v14 via CPM, which we use for ctint
 set(FINUFFT_USE_OPENMP OFF)
 external_dependency(finufft
-  GIT_REPO https://github.com/Wentzell/finufft
-  GIT_TAG DLR2D
+  GIT_REPO https://github.com/flatironinstitute/finufft
+  GIT_TAG v2.5.1
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )

@@ -16,6 +16,11 @@ beta = 10.0
 
 ######## simulation parameters ########
 n_cyc = 1000
+# NFFT transform accuracy, set far below the fixed h5diff tolerance used at the end.
+# The machine-dependent NFFT auto-dispatch can shift NFFT-derived
+# observables (M4_iw, M3*, chi2*, chi3*/G2) by a value-dependent multiple of nfft_tol between runs; keeping
+# nfft_tol well under the comparison tolerance keeps that drift far below it.
+nfft_tol = 1e-14
 
 # --------- set up static interactions and the block structure ---------
 block_names = ['dn','up']
@@ -59,6 +64,7 @@ S.solve(h_int=h_int,
         measure_M4_iw = True,
         n_iw_M4 = 5,
         nfft_buf_size = 50,
+        nfft_tol = nfft_tol,
         measure_M3pp_tau = True,
         measure_M3ph_tau = True,
         measure_M3xph_tau = True,
