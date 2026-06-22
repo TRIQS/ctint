@@ -10,7 +10,7 @@ This module exposes :class:`Solver`, a Python wrapper around
 """
 
 from .solver_core import SolverCore, ConstrParamsT, SolveParamsT
-from triqs.gf import *
+from triqs.gfs import *
 from triqs.utility import mpi
 from triqs_hartree_fock import ImpuritySolver as HFSolver
 

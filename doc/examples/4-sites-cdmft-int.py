@@ -1,4 +1,4 @@
-from triqs.gf import *
+from triqs.gfs import *
 from triqs.lattice.tight_binding import *
 from triqs.lattice.bz_patch import *
 from triqs.dos.hilbert_transform import *

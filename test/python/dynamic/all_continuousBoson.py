@@ -2,11 +2,11 @@ from triqs_ctint import Solver
 
 from itertools import product
 import triqs.utility.mpi as mpi
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import *
 from triqs.operators import *
 from triqs.utility.h5diff import h5diff
-from triqs.gf.descriptors import Function
+from triqs.gfs.descriptors import Function
 from numpy import linspace
 
 test_name = 'all_continuousBoson'
