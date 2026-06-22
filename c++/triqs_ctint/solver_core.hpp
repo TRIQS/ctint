@@ -4,6 +4,7 @@
 // See LICENSE in the root of this distribution for details.
 
 #pragma once
+#include <triqs/utility/macros.hpp>
 #include "./params.hpp"
 #include "./qmc_config.hpp"
 #include "./container_set.hpp"
@@ -27,11 +28,10 @@ namespace triqs_ctint {
     std::optional<gf<mesh::dlr_imfreq, matrix_valued>> Jperp_iw;
 
     /**
-     * Construct a CT-INT solver.
+     * @brief Construct a CT-INT solver.
      *
-     * @param constr_params Set of parameters used to construct the solver.
+     * @param constr_params_ Set of parameters used to construct the solver.
      */
-    CPP2PY_ARG_AS_DICT
     solver_core(constr_params_t const &constr_params_);
 
     // Delete assignement operator because of const members
@@ -46,7 +46,6 @@ namespace triqs_ctint {
      *
      * @param solve_params Set of parameters used for the solve.
      */
-    CPP2PY_ARG_AS_DICT
     void solve(solve_params_t const &solve_params);
 
     /// The shifted non-interacting Green's function in Matsubara frequencies.
@@ -56,8 +55,7 @@ namespace triqs_ctint {
     g_tau_t G0_shift_tau;
 
     /// Calculate the shifted non-interacting Green's function given \f$ G_0(i\omega) \f$.
-    CPP2PY_ARG_AS_DICT
-    void prepare_G0_shift_iw(params_t const &params);
+    C2PY_IGNORE void prepare_G0_shift_iw(params_t const &params);
 
     /// Parameters used to construct the solver.
     constr_params_t constr_params;
@@ -77,7 +75,7 @@ namespace triqs_ctint {
     void post_process(params_t const &p);
 
     public:
-    // Allow the user to retrigger post-processing with the last set of parameters
+    /// Retrigger post-processing with the last set of parameters.
     void post_process() {
       if (not last_solve_params) TRIQS_RUNTIME_ERROR << "You need to run the solver once before you post-process";
       post_process({constr_params, last_solve_params.value()});
@@ -103,7 +101,7 @@ namespace triqs_ctint {
     }
 
     // Function that read all containers to hdf5 file
-    CPP2PY_IGNORE
+    C2PY_IGNORE
     static solver_core h5_read_construct(h5::group h5group, std::string subgroup_name) {
       auto grp           = h5group.open_group(subgroup_name);
       auto constr_params = h5_read<constr_params_t>(grp, "constr_params");

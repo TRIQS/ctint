@@ -1,6 +1,6 @@
 # ##############################################################################
 #
-# triqs_ctint - An example application using triqs and cpp2py
+# triqs_ctint - An example application using triqs and c2py
 #
 # Copyright (C) 2016-2019 N. Wentzel, O. Parcollet
 # Copyright (C) 2019-2020 Simons Foundation
@@ -30,7 +30,7 @@ project(triqs_ctint VERSION 4.0.0 LANGUAGES CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############
-# Load TRIQS and CPP2PY
+# Load TRIQS
 find_package(TRIQS 4.0 REQUIRED)
 
 # Get the git hash & print status

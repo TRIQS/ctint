@@ -4,14 +4,9 @@
 # See LICENSE in the root of this distribution for details.
 
 
-import warnings
-#warnings.simplefilter(action='ignore', category=FutureWarning)
-#
-#r"""
-#DOC
-#
-#"""
-from .solver import Solver
-from .solver_core import SolverCore
+"""TRIQS/ctint — continuous-time interaction-expansion impurity solver."""
 
-__all__ = ['Solver','SolverCore']
+from .solver import Solver
+from .solver_core import SolverCore, ConstrParamsT, SolveParamsT
+
+__all__ = ['Solver', 'SolverCore', 'ConstrParamsT', 'SolveParamsT']

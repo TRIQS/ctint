@@ -38,5 +38,5 @@ if mpi.is_master_node(): HDFArchive('Solver.h5', 'w')['S'] = S
 
 # Rerun the Solver and Compare
 S_old = HDFArchive('Solver.h5', 'r')['S']
-S_old.solve(**S_old.last_solve_params)
+S_old.solve(S_old.last_solve_params)
 assert_block_gfs_are_close(S_old.G_iw, S.G_iw, 1e-14)
