@@ -67,30 +67,9 @@ class Solver(SolverCore):
 
 
     def _indices_from_quartic_term(self, term):
-        r"""Extract the block and orbital indices from a quartic operator term.
+        """Return (b0, b1, u0, u0p, u1, u1p) for a quartic term cdag cdag c c.
 
-        A quartic term has the structure
-
-        .. math::
-
-            U_l\, c^\dagger_{b_0 u_0} c^\dagger_{b_1 u_1}
-            c_{b_1 u_1'} c_{b_0 u_0'},
-
-        where :math:`b` denotes a Green's-function block and :math:`u` an orbital
-        within that block.
-
-        Parameters
-        ----------
-        term : sequence
-            A single monomial of the interaction Hamiltonian, i.e. a sequence of
-            four ``(dagger, (block, orbital))`` operator entries as produced by
-            iterating over a TRIQS :class:`~triqs.operators.Operator`.
-
-        Returns
-        -------
-        tuple
-            The tuple ``(b0, b1, u0, u0p, u1, u1p)`` of block labels and orbital
-            indices appearing in the term.
+        :meta private:
         """
         bl0, u0 = term[0][1]
         bl1, u1 = term[1][1]
@@ -205,28 +184,9 @@ class Solver(SolverCore):
         return alpha
 
     def _initialize_hf_sigma_from_alpha(self, hf_solver, h_int, alpha_prev, delta):
-        r"""Warm-start the Hartree-Fock self-energy from a previous :math:`\alpha`-tensor.
+        """Warm-start hf_solver.Sigma_HF from a previous alpha tensor (modified in place).
 
-        Inverts the :math:`\delta`-shift used when building :math:`\alpha` and
-        maps the resulting self-consistent tensor back onto an approximate static
-        self-energy :math:`\Sigma_\mathrm{HF}`, following the Hartree-Fock
-        equations. This provides an initial guess for the self-consistency loop.
-
-        Parameters
-        ----------
-        hf_solver : triqs_hartree_fock.ImpuritySolver
-            The Hartree-Fock solver whose ``Sigma_HF`` is modified in place.
-        h_int : triqs.operators.Operator
-            The local interaction Hamiltonian :math:`\hat H_\mathrm{int}`.
-        alpha_prev : numpy.ndarray
-            The :math:`\alpha`-tensor of the previous solve, of shape
-            ``(n_terms, 2, 2, n_s)``.
-        delta : sequence of float
-            The two-component :math:`\delta`-shift used to build ``alpha_prev``.
-
-        Returns
-        -------
-        None
+        :meta private:
         """
         gf_struct = self.constr_params.gf_struct
 
