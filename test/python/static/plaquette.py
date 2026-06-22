@@ -2,7 +2,7 @@ from triqs_ctint import Solver
 
 from itertools import product
 import triqs.utility.mpi as mpi
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import *
 from triqs.operators import c, c_dag, n
 from triqs.utility.h5diff import h5diff

@@ -1,6 +1,6 @@
 from numpy import zeros,matrix, array,sinh,cosh, cos, sin, exp, arctan, linspace
 import triqs.utility.mpi as mpi
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import *
 from triqs.operators import *
 from triqs_ctint import SolverCore

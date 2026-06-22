@@ -1,6 +1,6 @@
 from triqs_ctint import Solver
 
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import HDFArchive
 from triqs.utility import mpi
 from triqs.utility.comparison_tests import *

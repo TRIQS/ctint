@@ -1,4 +1,4 @@
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import *
 from triqs.operators import *
 import numpy
@@ -6,7 +6,7 @@ from numpy import zeros,matrix
 from numpy import array,sinh,cosh, cos, sin, exp, arctan, linspace
 from math import sqrt, pi
 import triqs.utility.mpi as mpi
-from triqs.gf.descriptors import Function
+from triqs.gfs.descriptors import Function
 from triqs_ctint import SolverCore
 
 ######## parameters fixed from outside ########

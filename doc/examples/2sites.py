@@ -1,5 +1,5 @@
 from triqs_ctint import SolverCore
-from triqs.gf import *
+from triqs.gfs import *
 from h5 import *
 import numpy as np
 
