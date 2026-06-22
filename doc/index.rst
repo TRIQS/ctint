@@ -64,6 +64,7 @@ problem. Learn how to use it in the :ref:`documentation`.
 
    install
    documentation
+   examples/examples
    implementation
    issues
    ChangeLog.md

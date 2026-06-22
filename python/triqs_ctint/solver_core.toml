@@ -1,0 +1,4 @@
+package_name = "triqs_ctint"
+documentation = "The TRIQS ctint solver"
+namespaces = "triqs_ctint"
+match_names = "triqs_ctint::(solver_core|constr_params_t|solve_params_t)"

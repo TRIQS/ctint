@@ -4,14 +4,6 @@
 Documentation
 *************
 
-C++ reference manual
-====================
-
-.. toctree::
-   :maxdepth: 5
-
-   cpp2rst_generated/triqs_ctint/solver_core
-
 Python reference manual
 =======================
 
@@ -20,4 +12,12 @@ Python reference manual
    :template: autosummary_module_template.rst
    :recursive:
 
-   triqs_ctint
+   triqs_ctint.post_process
+   triqs_ctint.solver
+   triqs_ctint.solver_core
+
+Links to all relevant solver parameters:
+
+* :doc:`Construction parameters <_autosummary/triqs_ctint.solver_core.ConstrParamsT>`
+
+* :doc:`Solve parameters <_autosummary/triqs_ctint.solver_core.SolveParamsT>`
