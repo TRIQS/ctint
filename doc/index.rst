@@ -22,7 +22,7 @@ Hamiltonian of the problem has the form
 .. sidebar:: ctint |PROJECT_VERSION|
 
    This is the homepage of ctint Version |PROJECT_VERSION|.
-   For changes see the :ref:`changelog page <changelog>`.
+   For changes see the :doc:`changelog page <ChangeLog>`.
       
       .. image:: _static/logo_github.png
          :width: 65%
@@ -67,5 +67,5 @@ problem. Learn how to use it in the :ref:`documentation`.
    examples/examples
    implementation
    issues
-   ChangeLog.md
+   ChangeLog
    about

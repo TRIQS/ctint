@@ -4,6 +4,12 @@
 Documentation
 *************
 
+
+C++ reference manual
+====================
+
+The C++ reference manual can be found `here <./doxygen/index.html>`_.
+
 Python reference manual
 =======================
 
