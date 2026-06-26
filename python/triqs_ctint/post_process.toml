@@ -1,4 +1,4 @@
 package_name = "triqs_ctint"
 documentation = "Postprocess utilities."
 namespaces = "triqs_ctint"
-match_names = "triqs_ctint::(G2_conn_from_M4|G2pp_conn_from_M4pp|G2ph_conn_from_M4ph|F_from_G2c|Fpp_from_G2pp_conn|Fph_from_G2ph_conn|G2_from_G2c|G2pp_from_G2pp_conn|G2ph_from_G2ph_conn|chi_tilde_ph_from_G2ph_conn|chi3_from_M3_PP|chi3_from_M3_PH|chi2_from_chi2_conn_PP|chi2_from_chi2_conn_PH|chiAB_from_chi2_PP|chiAB_from_chi2_PH|chi2_conn_from_M3_PP|chi2_conn_from_M3_PH)$"
+match_names = "triqs_ctint::(G2_conn_from_M4|G2pp_conn_from_M4pp|G2ph_conn_from_M4ph|F_from_G2c|Fpp_from_G2pp_conn|Fph_from_G2ph_conn|G2_from_G2c|G2pp_from_G2pp_conn|G2ph_from_G2ph_conn|chi_tilde_ph_from_G2ph_conn|chi3_from_M3_PP|chi3_from_M3_PH|chiAB_from_chi2_PP|chiAB_from_chi2_PH)$"

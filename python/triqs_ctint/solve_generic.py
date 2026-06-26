@@ -8,11 +8,11 @@ consistent with the cthyb and ctseg generic interfaces.
 
 import triqs.utility.mpi as mpi
 
-from triqs.gf import (
+from triqs.gfs import (
     MeshDLRImFreq, MeshImFreq,
     iOmega_n,
 )
-from triqs.gf.tools import inverse
+from triqs.gfs.tools import inverse
 from triqs.solver_utils import SolverResults, make_gf_dlr_imfreq
 
 from triqs_ctint import Solver
