@@ -51,7 +51,7 @@ endif()
 if(PythonSupport)
   external_dependency(triqs_hartree_fock
     GIT_REPO https://github.com/TRIQS/hartree_fock
-    VERSION 3.3
+    VERSION 4.0
     GIT_TAG unstable
   )
 endif()
