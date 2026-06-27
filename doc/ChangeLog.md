@@ -1,5 +1,64 @@
 # Changelog
 
+## Version 4.0.0
+
+CTINT version 4.0.0 is a compatibility release for TRIQS version 4.0.0 that
+* ports the Python bindings from cpp2py to the new c2py + clair framework
+* migrates the single-particle and bosonic quantities to the DLR Matsubara mesh
+* introduces a new per-term alpha tensor with support for dynamic interactions
+* replaces nfft with finufft for the non-uniform Fourier transforms
+* uses the latest [app4triqs](https://github.com/TRIQS/app4triqs) skeleton
+* migrates the Jenkins CI to the new k8s-based system
+* fixes a number of application issues
+
+We provide a more detailed description of the changes below.
+
+### Bindings (c2py + clair)
+* Port the Python bindings from cpp2py to c2py + clair
+* Generate the `solver_core` and `post_process` Python modules via `c2py_add_module`
+* Disable C++20 module scanning for clair-c2py compatibility
+* Update the doxygen documentation in the public headers (`params.hpp`, `container_set.hpp`, `post_process.hpp`, `solver_core.hpp`) for the c2py docstring pipeline
+
+### DLR
+* Migrate the single-particle and bosonic quantities to the DLR Matsubara mesh
+* Adjust the ctint solver to use the DLR mesh version of the Hartree-Fock solver
+* Use the mesh-based `triqs_hartree_fock` API for the alpha determination
+
+### Alpha tensor
+* Implement a new per-term alpha tensor and start the search from the last alpha
+* Restore dynamic D0 interactions for the new per-term alpha tensor
+* Allow `n_s = 2` for non-density-density terms
+* Add an auxiliary spin-flip move
+
+### NFFT / finufft
+* Replace nfft with finufft (v2.5.1) for the non-uniform Fourier transforms; set `nfft_tol=1e-14`
+* Extend `nfft_buf_t` with type-3 and direct DFT modes and refactor the direct NUDFT kernel with rank-specialized algorithms
+* Build finufft with a portable architecture by default (no `-march=native`)
+* Relax the default finufft type-3 tolerance to 1e-13
+
+### Measurements
+* Migrate `auto_corr_time` to the new TRIQS `log_binning` API and add density observables
+* Add error-bar estimation for `average_sign` and `average_k`
+* Enable `measure_density` by default
+
+### General
+* Port ctint to TRIQS 4.0 (`triqs.gf` -> `triqs.gfs`)
+* Use `parity_sort`/`insertion_sort` for insert and remove moves
+* Add `rethrow_exception` to `solve_params_t` and backwards compatibility for insertion parameters
+* Install `triqs_hartree_fock` as part of the ctint installation
+* Convert the implementation notes to reStructuredText and update them for the new alpha tensor
+
+### cmake / deps
+* Bump the `triqs_hartree_fock` dependency version to 4.0
+* Increase the h5diff test tolerance to 5e-5 for BLAS portability
+
+### jenkins / ghactions
+* Migrate the Jenkins CI to the new k8s-based system (#26)
+* Synchronize the GitHub Actions configuration with app4triqs
+
+We thank all contributors: Marco Barbone, Jennifer Coulter, Thomas Hahn, Alexander Hampel, Marcel Klett, Henri Menke, Dylan Simon, Nils Wentzell
+
+
 ## Version 3.1.0
 
 CTINT version 3.1.0 is a compatibility
