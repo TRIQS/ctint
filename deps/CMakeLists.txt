@@ -52,7 +52,7 @@ if(PythonSupport)
   external_dependency(triqs_hartree_fock
     GIT_REPO https://github.com/TRIQS/hartree_fock
     VERSION 4.0
-    GIT_TAG unstable
+    GIT_TAG 4.0.x
   )
 endif()
 
@@ -72,7 +72,7 @@ external_dependency(finufft
 set(POET_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 external_dependency(poet
   GIT_REPO https://github.com/DiamonDinoia/poet
-  GIT_TAG main
+  GIT_TAG v0.0.0
   BUILD_ALWAYS
   EXCLUDE_FROM_ALL
 )
