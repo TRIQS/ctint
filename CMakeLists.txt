@@ -26,7 +26,7 @@ cmake_policy(VERSION ${CMAKE_VERSION})
 
 # ############
 # Define Project
-project(triqs_ctint VERSION 4.0.0 LANGUAGES CXX)
+project(triqs_ctint VERSION 4.0.1 LANGUAGES CXX)
 get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
 
 # ############
