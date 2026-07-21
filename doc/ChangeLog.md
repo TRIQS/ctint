@@ -1,5 +1,21 @@
 # Changelog
 
+## Version 4.0.1
+
+CTINT version 4.0.1 is a patch release that pins the build dependencies for
+the 4.0.x release branch and loosens a numerical test tolerance so the
+dynamic-interaction tests pass with the reference BLAS used in the conda-forge
+build environment.
+
+We thank all contributors: Nils Wentzell
+
+Find below an itemized list of changes in this release.
+
+### General
+* Pin c2py (0.9.x), triqs_hartree_fock (4.0.x) and poet (v0.0.0) for the 4.0.x release
+* Loosen the h5diff tolerance of the dynamic-interaction tests (all, all_continuousBoson, densdens, jperp) from 5e-5 to 1e-4
+
+
 ## Version 4.0.0
 
 CTINT version 4.0.0 is a compatibility release for TRIQS version 4.0.0 that
