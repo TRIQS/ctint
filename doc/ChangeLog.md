@@ -1,5 +1,43 @@
 # Changelog
 
+## Version 4.0.2
+
+CTINT version 4.0.2 is a patch release that cleans up the installed interface
+and the packaging of the 4.0.x release branch. The install tree no longer ships
+or re-exports any third-party dependency, a downstream C++ consumer of the
+installed headers no longer fails on a missing header, and the conda package
+builds against the host dependencies. It further drops the poet dependency and
+updates the documentation website.
+
+We thank all contributors: Alexander Hampel, Dylan Simon, Nils Wentzell, Thomas Hahn
+
+Find below an itemized list of changes in this release.
+
+### General
+* Remove the `triqs/arrays/block_matrix.hpp` shim, as ctint does not use the `triqs::arrays::block_matrix<T>` template anywhere: its own `block_matrix_t` is a `std::vector<matrix<...>>`. The dead include in `types.hpp` only ever resolved against the bundled shim, which is not installed, so a downstream C++ consumer of the installed ctint headers failed to resolve it
+* Replace the poet dependency with an in-house `detail::static_for`, removing the dependency, its cmake resolution and its git clone
+* Move the FINUFFT and xsimd code out of the installed `nfft_buf.hpp` into a new `nfft_buf.cpp`, so neither dependency forces its headers into our prefix, and store the `finufft_opts` as a constructor local rather than a member of every `nfft_buf_t`
+* Trim the public surface of `nfft_buf.hpp` by dropping the dead `nfft_buf_t` deduction guides and moving `to_array_vector` into `detail`
+* Remove an unused private member from the `average_sign` measure
+
+### doc
+* Fix the documentation website URLs to not use the `triqs_` prefix
+* Add a version switcher flyout and use dedicated cmake variables to set the displayed version and to distinguish unstable from release branches
+* Add a canonical URL pointing to `latest/` for SEO
+
+### cmake
+* Drop finufft and xsimd from the installed interface: both are build-time only dependencies now, finufft's objects are absorbed into `libtriqs_ctint_c.a`, and the exported interface names only triqs, shrinking the install tree from 158 to 51 files
+* Resolve fftw with `find_library` at consumer configure time instead of baking the absolute paths from finufft's own `fftlibs` list into `triqs_ctint-config.cmake`
+* Stop bundling the `triqs_hartree_fock` python module, which was installed twice for a from-source build and pointed at a `deps/triqs_hartree_fock` path that only exists for a manual source checkout
+* Declare `BUILD_DEBIAN_PACKAGE` with the other project options
+
+### packaging
+* Build the conda package against the host dependencies: `triqs_hartree_fock` and fftw become host and run requirements resolved via `-DBuild_Deps=IfNotFound`, and finufft is fetched as a release tarball since conda-forge ships no C++ package for it
+
+### gh-actions
+* Switch the macOS CI runners to macos-26
+
+
 ## Version 4.0.1
 
 CTINT version 4.0.1 is a patch release that pins the build dependencies for
