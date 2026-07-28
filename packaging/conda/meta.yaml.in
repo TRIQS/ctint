@@ -20,6 +20,8 @@ requirements:
     - {{ compiler('cxx') }}
   host:
     - triqs {{ '.'.join(version.split('.')[:2]) }}
+    - triqs_hartree_fock {{ '.'.join(version.split('.')[:2]) }}
+    - fftw
     - boost-cpp
     - hdf5
     - {{ mpi }}
@@ -28,6 +30,8 @@ requirements:
     - python
   run:
     - {{ pin_compatible("triqs", max_pin="x.x") }}
+    - {{ pin_compatible("triqs_hartree_fock", max_pin="x.x") }}
+    - fftw
     - boost-cpp
     - hdf5
     - {{ mpi }}
