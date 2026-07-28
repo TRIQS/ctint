@@ -87,7 +87,9 @@ namespace triqs_ctint::measures {
             auto tau_j = double(det.get_y(j).tau);
             auto G0_j  = -G0_tau[bl][closest_mesh_pt(params.beta - tau_j)](0, 0);
             auto g_ji  = Ginv(j, i);
-            buf_arrarr(bl)(0, 0).push_back({tau_j, params.beta - tau_i}, -g_ji);
+            // Coordinates in (beta - tau_i, tau_j) order so the NFFT lands M already transposed:
+            // the kernel wants M(iw1, iw2) and would otherwise have to read it strided.
+            buf_arrarr(bl)(0, 0).push_back({params.beta - tau_i, tau_j}, -g_ji);
             GMG(bl)(0, 0) += G0_j * g_ji * G0_i;
             arr_GM(i) += -G0_j * g_ji;
             arr_MG(j) += g_ji * G0_i;
@@ -108,7 +110,8 @@ namespace triqs_ctint::measures {
         auto &[tau_i, u_i, _, _, _] = det.get_x(i);
         for (long j = 0; j < k; ++j) {
           auto &[tau_j, u_j, _, _, _] = det.get_y(j);
-          buf_arrarr(bl)(u_j, u_i).push_back({double(tau_j), params.beta - double(tau_i)}, -Ginv(j, i));
+          // See the bl_size == 1 branch: transposed coordinate order, so M arrives as M(iw1, iw2).
+          buf_arrarr(bl)(u_j, u_i).push_back({params.beta - double(tau_i), double(tau_j)}, -Ginv(j, i));
         }
       }
       for (auto &buf : buf_arrarr(bl)) buf.flush();
