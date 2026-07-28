@@ -30,8 +30,12 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION include FILES_MATCHING
 
 # ========= Additional Dependencies ==========
 
-target_link_libraries(${PROJECT_NAME}_c PUBLIC finufft xsimd)
-install(TARGETS finufft xsimd EXPORT triqs_ctint-targets)
+# xsimd and finufft are needed only to compile nfft_buf.cpp; BUILD_INTERFACE is enough
+target_link_libraries(${PROJECT_NAME}_c PRIVATE $<BUILD_INTERFACE:xsimd> $<BUILD_INTERFACE:finufft::finufft>)
+
+# Absorb finufft into our own archive
+# fftw dependency is resolved by triqs_ctint-config.cmake
+target_sources(${PROJECT_NAME}_c PRIVATE $<TARGET_OBJECTS:finufft> $<TARGET_OBJECTS:finufft_common>)
 
 # ========= Static Analyzer Checks ==========
 

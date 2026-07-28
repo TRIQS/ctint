@@ -26,6 +26,15 @@ set(@PROJECT_NAME@_ROOT @CMAKE_INSTALL_PREFIX@ CACHE STRING "@PROJECT_NAME@ root
 # Include the exported targets of this project
 include(@CMAKE_INSTALL_FULL_LIBDIR@/cmake/@PROJECT_NAME@/@PROJECT_NAME@-targets.cmake)
 
+# fftw is the only external dependency of the finufft code absorbed into our static archive.
+# Resolved here rather than in the exported targets file, which would hard-code this machine's
+# paths. find_library rather than find_package(FFTW3): the installed FFTW3Config.cmake is the old
+# variable-based kind and exposes no imported target (FFTW3LibraryDepends.cmake is OPTIONAL, absent).
+find_library(@PROJECT_NAME@_FFTW3  NAMES fftw3  REQUIRED)
+find_library(@PROJECT_NAME@_FFTW3F NAMES fftw3f REQUIRED)
+set_property(TARGET @PROJECT_NAME@::@PROJECT_NAME@_c APPEND PROPERTY
+             INTERFACE_LINK_LIBRARIES ${@PROJECT_NAME@_FFTW3} ${@PROJECT_NAME@_FFTW3F})
+
 message(STATUS "Found @PROJECT_NAME@-config.cmake with version @PROJECT_VERSION@, hash = @PROJECT_GIT_HASH@, root = @CMAKE_INSTALL_PREFIX@")
 
 # Was the Project built with Documentation?
