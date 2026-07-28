@@ -7,11 +7,10 @@
 
 namespace triqs_ctint::measures {
 
-  average_sign::average_sign(params_t const &, qmc_config_t const &qmc_config_, container_set *results)
+  average_sign::average_sign(params_t const &, qmc_config_t const &, container_set *results)
      : average_sign_(results->average_sign),
        average_sign_error_(results->average_sign_error),
        nmeasures(results->nmeasures),
-       qmc_config(qmc_config_),
        sign_bins_(dcomplex{0.0}, 128, 1) {
     average_sign_ = 0.0;
     nmeasures     = 0;
