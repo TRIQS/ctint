@@ -18,10 +18,7 @@
 namespace triqs::utility {
 
   namespace detail {
-    // Opaque handle for the FINUFFT plan, defined in nfft_buf.cpp so that using this header
-    // requires no FINUFFT header. The stateless deleter is empty-base-optimised, so the
-    // unique_ptr member below stays pointer-sized, and its out-of-line operator() sidesteps
-    // default_delete's requirement that the pointee be a complete type.
+    // Opaque handle for the FINUFFT plan defined in nfft_buf.cpp to avoid dependency on FINUFFT headers
     struct nfft_plan;
     struct nfft_plan_deleter {
       void operator()(nfft_plan *) const;
@@ -228,86 +225,6 @@ namespace triqs::utility {
 
     // Function to check whether buffer is empty
     bool is_empty() const { return buf_counter == 0; }
-
-    // For fermionic frequencies: omega_n = (2n+1) * pi / beta.
-    // Direct kernels always work with the absolute odd exponent |2n+1|.
-    static constexpr unsigned long odd_exponent_abs(long n) {
-      long odd = 2 * n + 1;
-      return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
-    }
-
-    static constexpr bool is_prime(long x) {
-      if (x < 2) return false;
-      if (x == 2) return true;
-      if (x % 2 == 0) return false;
-      for (long i = 3; i * i <= x; i += 2)
-        if (x % i == 0) return false;
-      return true;
-    }
-
-    static constexpr int max_prime_sum_terms = 8;
-    static constexpr int prime_sum_precompute_size = 128;
-
-    // Tunable number of SIMD accumulators for direct kernels.
-    // `n_acc_bitwise` is used by the Rank-1 bitwise power-of-two kernel.
-    // `n_acc_prime` is used by the Rank>1 prime-sum kernel.
-    static constexpr int n_acc_bitwise = 4;
-    static constexpr int n_acc_prime = 4;
-    // for rank 2 large sizes 8 is better but I think finufft will be faster anyway at that point
-
-    struct prime_sum_entry_t {
-      std::array<int, max_prime_sum_terms> terms{};
-      int size = 0;
-    };
-
-    static constexpr prime_sum_entry_t express_as_prime_sum_ct(long n) {
-      prime_sum_entry_t out{};
-      while (n > 0 && out.size < max_prime_sum_terms) {
-        if (n == 1) {
-          out.terms[out.size++] = 1;
-          break;
-        }
-        if (n == 2 || n == 3) {
-          out.terms[out.size++] = static_cast<int>(n);
-          break;
-        }
-        if (n == 4) {
-          out.terms[out.size++] = 2;
-          out.terms[out.size++] = 2;
-          break;
-        }
-
-        long p = n;
-        while (p > 1 && !is_prime(p)) --p;
-        out.terms[out.size++] = static_cast<int>(p);
-        n -= p;
-      }
-      return out;
-    }
-
-    static constexpr auto precomputed_prime_sums = [] {
-      std::array<prime_sum_entry_t, prime_sum_precompute_size> table{};
-      for (int n = 0; n < prime_sum_precompute_size; ++n) table[n] = express_as_prime_sum_ct(n);
-      return table;
-    }();
-
-    static constexpr bool check_precomputed_prime_sums() {
-      for (int n = 0; n < prime_sum_precompute_size; ++n) {
-        long sum = 0;
-        for (int i = 0; i < precomputed_prime_sums[n].size; ++i) sum += precomputed_prime_sums[n].terms[i];
-        if (sum != n) return false;
-      }
-      return true;
-    }
-
-    static_assert(check_precomputed_prime_sums(), "prime-sum precompute table is invalid");
-
-    // Helper: express n as sum of primes with repetition: n = p1 + p2 + ... + pk.
-    static std::vector<int> express_as_prime_sum(long n) {
-      if (n < 1) return {};
-      auto entry = express_as_prime_sum_ct(n);
-      return {entry.terms.begin(), entry.terms.begin() + entry.size};
-    }
 
     // Accumulates n_acc independent targets at once: SIMD over buffer elements, instruction-level
     // parallelism across the targets. Defined in nfft_buf.cpp, where the SIMD types live.

@@ -49,6 +49,100 @@ namespace triqs::utility {
   } // namespace detail
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Exponent decomposition for the direct kernels
+  //
+  // None of this depends on Rank, so it lives here as file-local free functions
+  // rather than as static members of nfft_buf_t. Used only when setting up the
+  // per-target exponent lists in the non-uniform-target constructor.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  namespace {
+
+    // For fermionic frequencies: omega_n = (2n+1) * pi / beta.
+    // Direct kernels always work with the absolute odd exponent |2n+1|.
+    constexpr unsigned long odd_exponent_abs(long n) {
+      long odd = 2 * n + 1;
+      return static_cast<unsigned long>(odd >= 0 ? odd : -odd);
+    }
+
+    constexpr bool is_prime(long x) {
+      if (x < 2) return false;
+      if (x == 2) return true;
+      if (x % 2 == 0) return false;
+      for (long i = 3; i * i <= x; i += 2)
+        if (x % i == 0) return false;
+      return true;
+    }
+
+    constexpr int max_prime_sum_terms       = 8;
+    constexpr int prime_sum_precompute_size = 128;
+
+    // Tunable number of SIMD accumulators for direct kernels.
+    // `n_acc_bitwise` is used by the Rank-1 bitwise power-of-two kernel.
+    // `n_acc_prime` is used by the Rank>1 prime-sum kernel.
+    constexpr int n_acc_bitwise = 4;
+    constexpr int n_acc_prime   = 4;
+    // for rank 2 large sizes 8 is better but I think finufft will be faster anyway at that point
+
+    struct prime_sum_entry_t {
+      std::array<int, max_prime_sum_terms> terms{};
+      int size = 0;
+    };
+
+    constexpr prime_sum_entry_t express_as_prime_sum_ct(long n) {
+      prime_sum_entry_t out{};
+      while (n > 0 && out.size < max_prime_sum_terms) {
+        if (n == 1) {
+          out.terms[out.size++] = 1;
+          break;
+        }
+        if (n == 2 || n == 3) {
+          out.terms[out.size++] = static_cast<int>(n);
+          break;
+        }
+        if (n == 4) {
+          out.terms[out.size++] = 2;
+          out.terms[out.size++] = 2;
+          break;
+        }
+
+        long p = n;
+        while (p > 1 && !is_prime(p)) --p;
+        out.terms[out.size++] = static_cast<int>(p);
+        n -= p;
+      }
+      return out;
+    }
+
+    // Compile-time self-check of express_as_prime_sum_ct: every decomposition must sum back to n.
+    // The table exists only to drive the static_assert below; the runtime helper recomputes.
+    constexpr auto precomputed_prime_sums = [] {
+      std::array<prime_sum_entry_t, prime_sum_precompute_size> table{};
+      for (int n = 0; n < prime_sum_precompute_size; ++n) table[n] = express_as_prime_sum_ct(n);
+      return table;
+    }();
+
+    constexpr bool check_precomputed_prime_sums() {
+      for (int n = 0; n < prime_sum_precompute_size; ++n) {
+        long sum = 0;
+        for (int i = 0; i < precomputed_prime_sums[n].size; ++i) sum += precomputed_prime_sums[n].terms[i];
+        if (sum != n) return false;
+      }
+      return true;
+    }
+
+    static_assert(check_precomputed_prime_sums(), "prime-sum precompute table is invalid");
+
+    // Helper: express n as sum of primes with repetition: n = p1 + p2 + ... + pk.
+    std::vector<int> express_as_prime_sum(long n) {
+      if (n < 1) return {};
+      auto entry = express_as_prime_sum_ct(n);
+      return {entry.terms.begin(), entry.terms.begin() + entry.size};
+    }
+
+  } // namespace
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Construction and destruction
   // ═══════════════════════════════════════════════════════════════════════════
 
