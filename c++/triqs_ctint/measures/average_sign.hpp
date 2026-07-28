@@ -30,9 +30,6 @@ namespace triqs_ctint::measures {
     std::optional<double> &average_sign_error_;
     uint64_t &nmeasures;
 
-    // The Monte-Carlo configuration
-    qmc_config_t const &qmc_config;
-
     // Linear binning for error estimation
     triqs::stat::lin_binning<dcomplex> sign_bins_;
 
