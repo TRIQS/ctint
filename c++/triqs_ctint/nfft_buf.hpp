@@ -23,20 +23,17 @@ namespace triqs::utility {
     struct nfft_plan_deleter {
       void operator()(nfft_plan *) const;
     };
+
+    // Helper to convert vector<T> to vector<array<T, 1>> for the Rank=1 convenience constructor
+    inline std::vector<std::array<mesh::matsubara_freq, 1>> to_array_vector(std::vector<mesh::matsubara_freq> const &v) {
+      std::vector<std::array<mesh::matsubara_freq, 1>> result;
+      result.reserve(v.size());
+      for (auto const &mf : v) result.push_back({mf});
+      return result;
+    }
   } // namespace detail
 
-  using nda::array_view;
-  using dcomplex = std::complex<double>;
-
   enum class nfft_type_t { type1, type3, direct };
-
-  // Helper to convert vector<T> to vector<array<T, 1>> for Rank=1 convenience constructor
-  inline std::vector<std::array<mesh::matsubara_freq, 1>> to_array_vector(std::vector<mesh::matsubara_freq> const &v) {
-    std::vector<std::array<mesh::matsubara_freq, 1>> result;
-    result.reserve(v.size());
-    for (auto const &mf : v) result.push_back({mf});
-    return result;
-  }
 
   template <int Rank> struct nfft_buf_t {
 
@@ -58,7 +55,7 @@ namespace triqs::utility {
      * @param beta_     Inverse temperature. All tau values must be in [0, beta).
      * @param tol_      FINUFFT tolerance (default 1e-15).
      */
-    nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-15);
+    nfft_buf_t(nda::array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_ = 1e-15);
 
     /**
      * Non-uniform target constructor: type3 (FINUFFT) or direct DFT
@@ -90,7 +87,7 @@ namespace triqs::utility {
     nfft_buf_t(nda::array_view<dcomplex, 1> fiw_vec_, std::vector<mesh::matsubara_freq> const &target_mf_, int buf_size_, nfft_type_t type,
                double tol_ = 1e-13)
       requires(Rank == 1)
-       : nfft_buf_t(std::move(fiw_vec_), to_array_vector(target_mf_), buf_size_, type, tol_) {}
+       : nfft_buf_t(std::move(fiw_vec_), detail::to_array_vector(target_mf_), buf_size_, type, tol_) {}
 
     ~nfft_buf_t();
 
@@ -101,7 +98,7 @@ namespace triqs::utility {
     nfft_buf_t &operator=(nfft_buf_t &&rhs) noexcept;
 
     /// Rebind nfft buffer to new accumulation container of same shape
-    void rebind(array_view<dcomplex, Rank> new_fiw_arr) {
+    void rebind(nda::array_view<dcomplex, Rank> new_fiw_arr) {
       flush();
       TRIQS_ASSERT((new_fiw_arr.shape() == fiw_arr.shape() or fiw_arr.empty())
                    and " Nfft Buffer: Rebind to array of different shape not allowed ");
@@ -226,12 +223,6 @@ namespace triqs::utility {
     // Function to check whether buffer is empty
     bool is_empty() const { return buf_counter == 0; }
 
-    // Accumulates n_acc independent targets at once: SIMD over buffer elements, instruction-level
-    // parallelism across the targets. Defined in nfft_buf.cpp, where the SIMD types live.
-    template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>
-    [[gnu::always_inline]] inline void accumulate_targets_ilp(int64_t n_targets_total, int64_t buf_counter_simd, dcomplex *fiw_ptr,
-                                                             SimdPowFunc &&compute_simd_pow, ScalarPowFunc &&compute_scalar_pow);
-
     // Perform NFFT transform and accumulate
     void do_nfft();
 
@@ -258,18 +249,5 @@ namespace triqs::utility {
     // Direct DFT dispatcher: bitwise decomposition for Rank 1, prime-sum for Rank>1
     void do_direct();
   };
-
-  // Deduction guides for nfft_buf_t
-
-  // Type 1: deduce Rank from output array
-  template <int Rank>
-  nfft_buf_t(nda::array_view<dcomplex, Rank>, int, double, double) -> nfft_buf_t<Rank>;
-
-  // Type 3/direct: deduce Rank from target frequency array
-  template <std::size_t N>
-  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<std::array<mesh::matsubara_freq, N>>, int, nfft_type_t, double) -> nfft_buf_t<static_cast<int>(N)>;
-
-  // Convenience: vector<matsubara_freq> implies Rank=1
-  nfft_buf_t(nda::array_view<dcomplex, 1>, std::vector<mesh::matsubara_freq> const &, int, nfft_type_t, double) -> nfft_buf_t<1>;
 
 } // namespace triqs::utility

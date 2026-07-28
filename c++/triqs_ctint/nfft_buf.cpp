@@ -147,7 +147,7 @@ namespace triqs::utility {
   // ═══════════════════════════════════════════════════════════════════════════
 
   template <int Rank>
-  nfft_buf_t<Rank>::nfft_buf_t(array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_)
+  nfft_buf_t<Rank>::nfft_buf_t(nda::array_view<dcomplex, Rank> fiw_arr_, int buf_size_, double beta_, double tol_)
      : fiw_arr(std::move(fiw_arr_)),
        niws(nda::stdutil::make_std_array<int64_t>(fiw_arr.shape())),
        buf_size(buf_size_),
@@ -294,88 +294,97 @@ namespace triqs::utility {
   //
   // **Parameters:**
   // - n_acc: Number of independent accumulators (typically 4-8)
+  // - fx: Buffered f(tau_j) values, buf_counter entries
+  // - buf_counter: Number of buffered elements
+  // - buf_counter_simd: buf_counter floored to a multiple of the SIMD width
   // - compute_simd_pow: Lambda computing exp(iω*τ) for SIMD-aligned buffer indices
   // - compute_scalar_pow: Lambda computing exp(iω*τ) for scalar tail elements
   //
-  template <int Rank>
-  template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>
-  void nfft_buf_t<Rank>::accumulate_targets_ilp(int64_t n_targets_total, int64_t buf_counter_simd, dcomplex *fiw_ptr,
-                                                SimdPowFunc &&compute_simd_pow, ScalarPowFunc &&compute_scalar_pow) {
-    using cbatch                    = xsimd::batch<dcomplex>;  // SIMD type for complex numbers
-    constexpr std::size_t simd_size = cbatch::size;            // Typically 2-4 depending on CPU
+  // Nothing here depends on Rank or on any other nfft_buf_t member, so it is a file-local free
+  // function rather than a member template, keeping the declaration out of the installed header.
+  //
+  namespace {
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helper: Single-target accumulation (used for remainder targets)
-    // ─────────────────────────────────────────────────────────────────────────
-    // Computes: fiw[d] += Σ_j f(tau_j) * exp(iω_d*tau_j)
-    auto accumulate_one = [&](int64_t d) {
-      // SIMD loop: process buffer in chunks of simd_size
-      cbatch sum_vec(dcomplex{0, 0});  // Initialize SIMD accumulator to zero
-      for (int j = 0; j < buf_counter_simd; j += simd_size) {
-        cbatch fj  = cbatch::load_unaligned(fx_arr.data() + j);  // Load f(tau_j) [simd_size elements]
-        cbatch pow = compute_simd_pow(d, j);                      // Compute exp(iω_d*tau_j) [vectorized]
-        sum_vec    = xsimd::fma(fj, pow, sum_vec);                // Fused multiply-add: sum += fj * pow
+    template <int n_acc, typename SimdPowFunc, typename ScalarPowFunc>
+    [[gnu::always_inline]] inline void accumulate_targets_ilp(dcomplex const *fx, int buf_counter, int64_t buf_counter_simd, int64_t n_targets_total,
+                                                              dcomplex *fiw_ptr, SimdPowFunc &&compute_simd_pow, ScalarPowFunc &&compute_scalar_pow) {
+      using cbatch                    = xsimd::batch<dcomplex>; // SIMD type for complex numbers
+      constexpr std::size_t simd_size = cbatch::size;           // Typically 2-4 depending on CPU
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // Helper: Single-target accumulation (used for remainder targets)
+      // ─────────────────────────────────────────────────────────────────────────
+      // Computes: fiw[d] += Σ_j f(tau_j) * exp(iω_d*tau_j)
+      auto accumulate_one = [&](int64_t d) {
+        // SIMD loop: process buffer in chunks of simd_size
+        cbatch sum_vec(dcomplex{0, 0}); // Initialize SIMD accumulator to zero
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          cbatch fj  = cbatch::load_unaligned(fx + j); // Load f(tau_j) [simd_size elements]
+          cbatch pow = compute_simd_pow(d, j);         // Compute exp(iω_d*tau_j) [vectorized]
+          sum_vec    = xsimd::fma(fj, pow, sum_vec);   // Fused multiply-add: sum += fj * pow
+        }
+        // Reduce SIMD vector to scalar by summing all lanes
+        dcomplex sum = xsimd::reduce_add(sum_vec);
+
+        // Scalar tail: handle remaining buffer elements that don't fit in SIMD
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex pow = compute_scalar_pow(d, j);
+          sum += fx[j] * pow;
+        }
+
+        fiw_ptr[d] += sum; // Accumulate into output
+      };
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // Main ILP Loop: Process n_acc targets simultaneously
+      // ─────────────────────────────────────────────────────────────────────────
+      // Round down to nearest multiple of n_acc
+      int64_t const n_targets_main = (n_targets_total / n_acc) * n_acc;
+      int64_t d                    = 0;
+
+      for (; d < n_targets_main; d += n_acc) {
+        // Initialize n_acc independent SIMD accumulators (one per target in this batch)
+        std::array<cbatch, n_acc> sum_vecs;
+        detail::static_for<n_acc>([&](const auto acc_idx) { sum_vecs[acc_idx] = cbatch(dcomplex{0, 0}); });
+
+        // ═══ SIMD Loop: Vectorize over buffer elements ═══
+        for (int j = 0; j < buf_counter_simd; j += simd_size) {
+          // Load f(tau_j) once - shared across all n_acc targets
+          cbatch fj = cbatch::load_unaligned(fx + j);
+
+          // Unroll over n_acc accumulators at compile time
+          // This creates n_acc independent FMA dependency chains, enabling ILP
+          // The CPU can execute these in parallel pipelines
+          detail::static_for<n_acc>([&](const auto acc_idx) {
+            cbatch pow        = compute_simd_pow(d + acc_idx, j);       // exp(iω_{d+k}*tau_j)
+            sum_vecs[acc_idx] = xsimd::fma(fj, pow, sum_vecs[acc_idx]); // Independent accumulation
+          });
+        }
+
+        // ═══ Reduce Phase: SIMD vectors → scalars ═══
+        std::array<dcomplex, n_acc> sums;
+        detail::static_for<n_acc>([&](const auto acc_idx) { sums[acc_idx] = xsimd::reduce_add(sum_vecs[acc_idx]); });
+
+        // ═══ Scalar Tail: Process remaining non-SIMD-aligned elements ═══
+        for (int j = buf_counter_simd; j < buf_counter; ++j) {
+          dcomplex fj = fx[j];
+          detail::static_for<n_acc>([&](const auto acc_idx) {
+            dcomplex pow = compute_scalar_pow(d + acc_idx, j);
+            sums[acc_idx] += fj * pow;
+          });
+        }
+
+        // ═══ Write-back Phase: Store results to output array ═══
+        detail::static_for<n_acc>([&](const auto acc_idx) { fiw_ptr[d + acc_idx] += sums[acc_idx]; });
       }
-      // Reduce SIMD vector to scalar by summing all lanes
-      dcomplex sum = xsimd::reduce_add(sum_vec);
 
-      // Scalar tail: handle remaining buffer elements that don't fit in SIMD
-      for (int j = buf_counter_simd; j < buf_counter; ++j) {
-        dcomplex pow = compute_scalar_pow(d, j);
-        sum += fx_arr[j] * pow;
-      }
-
-      fiw_ptr[d] += sum;  // Accumulate into output
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Main ILP Loop: Process n_acc targets simultaneously
-    // ─────────────────────────────────────────────────────────────────────────
-    // Round down to nearest multiple of n_acc
-    int64_t const n_targets_main = (n_targets_total / n_acc) * n_acc;
-    int64_t d                    = 0;
-
-    for (; d < n_targets_main; d += n_acc) {
-      // Initialize n_acc independent SIMD accumulators (one per target in this batch)
-      std::array<cbatch, n_acc> sum_vecs;
-      detail::static_for<n_acc>([&](const auto acc_idx) { sum_vecs[acc_idx] = cbatch(dcomplex{0, 0}); });
-
-      // ═══ SIMD Loop: Vectorize over buffer elements ═══
-      for (int j = 0; j < buf_counter_simd; j += simd_size) {
-        // Load f(tau_j) once - shared across all n_acc targets
-        cbatch fj = cbatch::load_unaligned(fx_arr.data() + j);
-
-        // Unroll over n_acc accumulators at compile time
-        // This creates n_acc independent FMA dependency chains, enabling ILP
-        // The CPU can execute these in parallel pipelines
-        detail::static_for<n_acc>([&](const auto acc_idx) {
-          cbatch pow            = compute_simd_pow(d + acc_idx, j);  // exp(iω_{d+k}*tau_j)
-          sum_vecs[acc_idx] = xsimd::fma(fj, pow, sum_vecs[acc_idx]);  // Independent accumulation
-        });
-      }
-
-      // ═══ Reduce Phase: SIMD vectors → scalars ═══
-      std::array<dcomplex, n_acc> sums;
-      detail::static_for<n_acc>([&](const auto acc_idx) { sums[acc_idx] = xsimd::reduce_add(sum_vecs[acc_idx]); });
-
-      // ═══ Scalar Tail: Process remaining non-SIMD-aligned elements ═══
-      for (int j = buf_counter_simd; j < buf_counter; ++j) {
-        dcomplex fj = fx_arr[j];
-        detail::static_for<n_acc>([&](const auto acc_idx) {
-          dcomplex pow = compute_scalar_pow(d + acc_idx, j);
-          sums[acc_idx] += fj * pow;
-        });
-      }
-
-      // ═══ Write-back Phase: Store results to output array ═══
-      detail::static_for<n_acc>([&](const auto acc_idx) { fiw_ptr[d + acc_idx] += sums[acc_idx]; });
+      // ─────────────────────────────────────────────────────────────────────────
+      // Remainder Loop: Handle final targets when n_targets % n_acc != 0
+      // ─────────────────────────────────────────────────────────────────────────
+      for (; d < n_targets_total; ++d) accumulate_one(d);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Remainder Loop: Handle final targets when n_targets % n_acc != 0
-    // ─────────────────────────────────────────────────────────────────────────
-    for (; d < n_targets_total; ++d) accumulate_one(d);
-  }
+  } // namespace
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FINUFFT-backed transforms
@@ -534,7 +543,7 @@ namespace triqs::utility {
 
     // ─── Call unified ILP accumulation template ───
     // This computes: fiw[d] += Σ_j f(tau_j) * exp(iω_d*tau_j) for all targets d
-    accumulate_targets_ilp<n_acc_bitwise>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+    accumulate_targets_ilp<n_acc_bitwise>(fx_arr.data(), buf_counter, buf_counter_simd, n_targets, fiw_ptr, compute_simd_pow, compute_scalar_pow);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -707,7 +716,7 @@ namespace triqs::utility {
     };
 
     // ─── Call unified ILP accumulation template ───
-    accumulate_targets_ilp<n_acc_prime>(n_targets, buf_counter_simd, fiw_ptr, compute_simd_pow, compute_scalar_pow);
+    accumulate_targets_ilp<n_acc_prime>(fx_arr.data(), buf_counter, buf_counter_simd, n_targets, fiw_ptr, compute_simd_pow, compute_scalar_pow);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
