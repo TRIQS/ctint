@@ -11,13 +11,23 @@
 #include <memory>
 #include <vector>
 #include <bit>
+#include <utility>
+#include <type_traits>
 #include <triqs/mesh/matsubara_freq.hpp>
 
 #include "finufft.h"
 #include <xsimd/xsimd.hpp>
-#include <poet/poet.hpp>
 
 namespace triqs::utility {
+
+  namespace detail {
+    // Compile-time unrolled loop over [0, N): invokes f with std::integral_constant<int, I> for
+    // each I. Used to unroll small, compile-time-sized loops in the NFFT kernels. The index is
+    // int, matching the int Rank / n_acc bounds and keeping the target-index arithmetic signed.
+    template <int N, typename F> constexpr void static_for(F &&f) {
+      [&]<std::size_t... Is>(std::index_sequence<Is...>) { (f(std::integral_constant<int, Is>{}), ...); }(std::make_index_sequence<N>{});
+    }
+  } // namespace detail
 
   inline void check_finufft(int err) {
     if (err > 0) NDA_RUNTIME_ERROR << "Error in FINUFFT: " << err << "\n";
@@ -488,9 +498,7 @@ namespace triqs::utility {
       for (; d < n_targets_main; d += n_acc) {
         // Initialize n_acc independent SIMD accumulators (one per target in this batch)
         std::array<cbatch, n_acc> sum_vecs;
-        poet::static_for<n_acc>([&](const auto acc_idx) {
-          sum_vecs[acc_idx] = cbatch(dcomplex{0, 0});
-        });
+        detail::static_for<n_acc>([&](const auto acc_idx) { sum_vecs[acc_idx] = cbatch(dcomplex{0, 0}); });
 
         // ═══ SIMD Loop: Vectorize over buffer elements ═══
         for (int j = 0; j < buf_counter_simd; j += simd_size) {
@@ -500,7 +508,7 @@ namespace triqs::utility {
           // Unroll over n_acc accumulators at compile time
           // This creates n_acc independent FMA dependency chains, enabling ILP
           // The CPU can execute these in parallel pipelines
-          poet::static_for<n_acc>([&](const auto acc_idx) {
+          detail::static_for<n_acc>([&](const auto acc_idx) {
             cbatch pow            = compute_simd_pow(d + acc_idx, j);  // exp(iω_{d+k}*tau_j)
             sum_vecs[acc_idx] = xsimd::fma(fj, pow, sum_vecs[acc_idx]);  // Independent accumulation
           });
@@ -508,23 +516,19 @@ namespace triqs::utility {
 
         // ═══ Reduce Phase: SIMD vectors → scalars ═══
         std::array<dcomplex, n_acc> sums;
-        poet::static_for<n_acc>([&](const auto acc_idx) {
-          sums[acc_idx] = xsimd::reduce_add(sum_vecs[acc_idx]);
-        });
+        detail::static_for<n_acc>([&](const auto acc_idx) { sums[acc_idx] = xsimd::reduce_add(sum_vecs[acc_idx]); });
 
         // ═══ Scalar Tail: Process remaining non-SIMD-aligned elements ═══
         for (int j = buf_counter_simd; j < buf_counter; ++j) {
           dcomplex fj = fx_arr[j];
-          poet::static_for<n_acc>([&](const auto acc_idx) {
+          detail::static_for<n_acc>([&](const auto acc_idx) {
             dcomplex pow = compute_scalar_pow(d + acc_idx, j);
             sums[acc_idx] += fj * pow;
           });
         }
 
         // ═══ Write-back Phase: Store results to output array ═══
-        poet::static_for<n_acc>([&](const auto acc_idx) {
-          fiw_ptr[d + acc_idx] += sums[acc_idx];
-        });
+        detail::static_for<n_acc>([&](const auto acc_idx) { fiw_ptr[d + acc_idx] += sums[acc_idx]; });
       }
 
       // ─────────────────────────────────────────────────────────────────────────
@@ -757,8 +761,7 @@ namespace triqs::utility {
       // This is done once per rank, then reused for all targets.
 
       // Use compile-time loop over ranks (unrolled at compile time)
-      poet::static_for<Rank>([&](const auto r) {
-
+      detail::static_for<Rank>([&](const auto r) {
         // ─── Step 1: Compute base phase factors z_r for this rank ───
         std::vector<dcomplex> z_vals(buf_counter);
         for (int j = 0; j < buf_counter; ++j) {
@@ -834,7 +837,7 @@ namespace triqs::utility {
         cbatch pow_prod;  // Will accumulate product across all ranks
 
         // Loop over each dimension/rank (compile-time unroll)
-        poet::static_for<Rank>([&](const auto r) {
+        detail::static_for<Rank>([&](const auto r) {
           // Start with identity for this rank
           cbatch rank_pow(dcomplex{1.0, 0.0});
 
@@ -860,7 +863,7 @@ namespace triqs::utility {
       // ─── Scalar Power Computation Lambda (identical logic, non-vectorized) ───
       auto compute_scalar_pow = [&](int64_t d, int j) -> dcomplex {
         dcomplex pow_prod{1.0, 0.0};
-        poet::static_for<Rank>([&](const auto r) {
+        detail::static_for<Rank>([&](const auto r) {
           dcomplex rank_pow{1.0, 0.0};
           auto const &prime_indices = target_prime_sums[r][d];
           for (int prime_idx : prime_indices) {
