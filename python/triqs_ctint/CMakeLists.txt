@@ -12,9 +12,6 @@ set(PYTHON_LIB_DEST ${TRIQS_PYTHON_LIB_DEST_ROOT}/${PROJECT_NAME})
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/version.py DESTINATION ${PYTHON_LIB_DEST})
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${TRIQS_PYTHON_LIB_DEST_ROOT} FILES_MATCHING PATTERN "*.py")
 
-# Install triqs_hartree_fock dependency (pure Python)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/deps/triqs_hartree_fock/python/triqs_hartree_fock DESTINATION ${TRIQS_PYTHON_LIB_DEST_ROOT} FILES_MATCHING PATTERN "*.py")
-
 # Fetch c2py (provides c2py_add_module)
 include(FetchContent)
 FetchContent_Declare(

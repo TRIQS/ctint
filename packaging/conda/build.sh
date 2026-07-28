@@ -12,9 +12,12 @@ mpiexec="mpiexec --allow-run-as-root"
 
 source $PREFIX/share/triqs/triqsvars.sh
 
+# Override the default Build_Deps=Always so that triqs_hartree_fock is taken from the host
+# environment rather than cloned; finufft still builds from the tarball unpacked under deps/.
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=Release \
+    -DBuild_Deps=IfNotFound \
     ..
 
 make -j${CPU_COUNT} VERBOSE=1

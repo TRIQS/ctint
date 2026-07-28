@@ -8,7 +8,6 @@
 
 #include <triqs/gfs.hpp>
 #include <triqs/mesh.hpp>
-#include <triqs/arrays/block_matrix.hpp>
 #include <triqs/operators/many_body_operator.hpp>
 #include <triqs/hilbert_space/fundamental_operator_set.hpp>
 #include <triqs/operators/util/extractors.hpp>
