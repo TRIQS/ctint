@@ -1,23 +1,13 @@
 #pragma once
-#include <xsimd/xsimd.hpp>
 #include <poet/poet.hpp>
 
 #include <array>
 #include <cassert>
 #include <complex>
-#include <cstdint>
 #include <utility>
 
 #include "../types.hpp"
-
-// C99 restrict is not standard C++; every compiler triqs builds with spells it differently.
-#if defined(_MSC_VER)
-#define TRIQS_RESTRICT __restrict
-#elif defined(__GNUC__) // also clang, icx, nvc++
-#define TRIQS_RESTRICT __restrict__
-#else
-#define TRIQS_RESTRICT
-#endif
+#include "./iw_simd.hpp"
 
 // M3/M4 iw-accumulate kernels.
 //
@@ -37,206 +27,7 @@
 // have statically known trip counts and fully unroll. N == 0 selects the runtime-length path.
 namespace triqs_ctint::measures {
   namespace {
-    using cplx = std::complex<double>;
-
-    // Largest block size served by a compile-time-length kernel.
-    inline constexpr int max_block = 8;
-
-    // ------------------------------------------------------------------- lane widths
-
-    // Narrowest/widest double batch the ISA actually provides.
-    template <class T, auto N> constexpr auto narrowest_batch() {
-      if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-        return narrowest_batch<T, N * 2>();
-      } else {
-        return N;
-      }
-    }
-    template <class T, auto N> constexpr auto widest_batch() {
-      if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-        return widest_batch<T, N / 2>();
-      } else {
-        return N;
-      }
-    }
-
-    // Counted in doubles: 2 -> 128-bit, 4 -> 256-bit, 8 -> 512-bit. Both are discovered, not
-    // assumed: an ISA need not provide a 128-bit double batch, so min_lanes is not always 2.
-    inline constexpr long min_lanes = long(narrowest_batch<double, 1>());
-    inline constexpr long max_lanes = long(widest_batch<double, 64>());
-
-    template <long W> using vec = xsimd::make_sized_batch_t<double, W>;
-
-    // --------------------------------------------- complex arithmetic on packed pairs
-
-    // Complex data is interleaved (re,im,re,im,...), so a W-lane batch holds W/2 complex.
-    // Swap real/imag within each pair: lane i <-> i^1.
-    struct swap_re_im {
-      static constexpr std::uint64_t get(std::uint64_t i, std::uint64_t) { return i ^ 1u; }
-    };
-    template <long W>
-    inline constexpr auto swap_re_im_mask = xsimd::make_batch_constant<std::uint64_t, swap_re_im, typename vec<W>::arch_type>();
-
-    // (cr + i*ci) * x: one swizzle + one vfmaddsub231pd.
-    template <long W> XSIMD_INLINE vec<W> scale_by_complex(const vec<W> cr, const vec<W> ci, const vec<W> x) noexcept {
-      return xsimd::fmas(cr, x, ci * xsimd::swizzle(x, swap_re_im_mask<W>));
-    }
-
-    // ------------------------------------------------------------------ length cover
-
-    // Widest-first cover of D contiguous doubles: as many W-wide ops as fit, then halve W.
-    // Halving stops at min_lanes, so a remainder narrower than that would be dropped silently.
-    //
-    // Each tile writes exactly the bytes it covers. Covering D with masked max_lanes tiles instead
-    // issues 2.3x fewer instructions but runs 2.2x slower at N=3: a masked store writes a subset of
-    // a max_lanes range that the next row's load overlaps, blocking store-to-load forwarding.
-    template <long D, long W = max_lanes, long Off = 0, class Op> XSIMD_INLINE void for_each_tile(Op op) noexcept {
-      static_assert(D % min_lanes == 0, "for_each_tile would leave an uncovered tail: D must be a multiple of min_lanes");
-      if constexpr (Off >= D) {
-        return;
-      } else if constexpr (D - Off >= W) {
-        op.template operator()<Off, W>();
-        for_each_tile<D, W, Off + W>(op);
-      } else if constexpr (W > min_lanes) {
-        for_each_tile<D, W / 2, Off>(op);
-      }
-    }
-
-    // -------------------------------------------------- scaled accumulation primitives
-    //
-    // Two operations: acc += c*x, and the fused acc += c1*x1 - c2*x2 in one pass over acc.
-    // The suffix names the operand shape, not the arithmetic.
-
-    // An (i,j)-invariant operand held in vector registers: 2*Len doubles as full_count widest
-    // tiles plus at most one min_lanes tail. Len == N*N, so 2*Len % max_lanes is 0 (N even) or
-    // min_lanes (N odd). Tile indices must be compile-time (poet::static_for) or the array
-    // spills to memory. Len == 0 is the "nothing to hold" case and costs nothing.
-    //
-    // At the top of the range (Len == 64, N == 8) this wants 16 of the 32 zmm registers live
-    // across the whole (i,j) loop and so spills: it trades spill stores for not re-loading the
-    // operand on every (i,j).
-    template <long Len> struct held_operand {
-      static constexpr long lanes = 2 * Len, full_count = lanes / max_lanes, tail_lanes = lanes % max_lanes;
-      static_assert(tail_lanes == 0 || tail_lanes == min_lanes);
-      std::array<vec<max_lanes>, full_count> full;
-      vec<min_lanes> tail;
-      explicit held_operand(const cplx *TRIQS_RESTRICT x) noexcept {
-        const auto *TRIQS_RESTRICT xd = reinterpret_cast<const double *>(x);
-        poet::static_for<full_count>([&]<auto Tile>() { full[Tile] = vec<max_lanes>::load_unaligned(xd + Tile * max_lanes); });
-        if constexpr (tail_lanes) tail = vec<min_lanes>::load_unaligned(xd + full_count * max_lanes);
-      }
-    };
-
-    // acc[0:Len] += c * x, with x already held in registers.
-    template <long Len> XSIMD_INLINE void add_scaled_held(const cplx c, const held_operand<Len> &x, cplx *TRIQS_RESTRICT acc) noexcept {
-      using held              = held_operand<Len>;
-      auto *TRIQS_RESTRICT ad = reinterpret_cast<double *>(acc);
-      poet::static_for<held::full_count>([&]<auto Tile>() {
-        using batch = vec<max_lanes>;
-        auto av     = batch::load_unaligned(ad + Tile * max_lanes);
-        av += scale_by_complex<max_lanes>(batch(c.real()), batch(c.imag()), x.full[Tile]);
-        av.store_unaligned(ad + Tile * max_lanes);
-      });
-      if constexpr (held::tail_lanes) {
-        using batch        = vec<min_lanes>;
-        constexpr long off = held::full_count * max_lanes;
-        auto av            = batch::load_unaligned(ad + off);
-        av += scale_by_complex<min_lanes>(batch(c.real()), batch(c.imag()), x.tail);
-        av.store_unaligned(ad + off);
-      }
-    }
-
-    // acc[0:Len] += c1 * x1[0:Len] - c2 * x2[0:Len], both terms in one pass over acc.
-    template <long Len>
-    void add_scaled_minus_tiled(const cplx c1, const cplx *TRIQS_RESTRICT x1, const cplx c2, const cplx *TRIQS_RESTRICT x2,
-                        cplx *TRIQS_RESTRICT acc) noexcept {
-      const auto *TRIQS_RESTRICT x1d = reinterpret_cast<const double *>(x1);
-      const auto *TRIQS_RESTRICT x2d = reinterpret_cast<const double *>(x2);
-      auto *TRIQS_RESTRICT ad        = reinterpret_cast<double *>(acc);
-      for_each_tile<2 * Len>([&]<long Off, long W>() {
-        using batch = vec<W>;
-        auto av     = batch::load_unaligned(ad + Off);
-        av += scale_by_complex<W>(batch(c1.real()), batch(c1.imag()), batch::load_unaligned(x1d + Off))
-           - scale_by_complex<W>(batch(c2.real()), batch(c2.imag()), batch::load_unaligned(x2d + Off));
-        av.store_unaligned(ad + Off);
-      });
-    }
-
-    // Small-block bodies for !prefer_simd. These stay separate functions: written as loops at
-    // their call sites in accumulate_block they cost 12% at N=2.
-    template <long Len> void add_scaled_plain(const cplx c, const cplx *TRIQS_RESTRICT x, cplx *TRIQS_RESTRICT acc) noexcept {
-      for (long l = 0; l < Len; ++l) acc[l] += c * x[l];
-    }
-    template <long Len>
-    void add_scaled_minus_plain(const cplx c1, const cplx *TRIQS_RESTRICT x1, const cplx c2, const cplx *TRIQS_RESTRICT x2,
-                                cplx *TRIQS_RESTRICT acc) noexcept {
-      for (long l = 0; l < Len; ++l) acc[l] += c1 * x1[l] - c2 * x2[l];
-    }
-
-    // Runtime-length variants, for blocks wider than max_block.
-    void add_scaled_runtime(const cplx c, const cplx *TRIQS_RESTRICT x, cplx *TRIQS_RESTRICT acc, const long len) noexcept {
-      const auto *TRIQS_RESTRICT xd = reinterpret_cast<const double *>(x);
-      auto *TRIQS_RESTRICT ad       = reinterpret_cast<double *>(acc);
-      using batch                   = vec<max_lanes>;
-      const batch cr(c.real()), ci(c.imag());
-      // max_lanes is a power of two, so the mask truncates to the last whole batch.
-      const long vec_lanes = (2 * len) & -max_lanes;
-      for (long off = 0; off < vec_lanes; off += max_lanes) {
-        auto av = batch::load_unaligned(ad + off);
-        av += scale_by_complex<max_lanes>(cr, ci, batch::load_unaligned(xd + off));
-        av.store_unaligned(ad + off);
-      }
-      for (long l = vec_lanes / 2; l < len; ++l) acc[l] += c * x[l];
-    }
-    void add_scaled_minus_runtime(const cplx c1, const cplx *TRIQS_RESTRICT x1, const cplx c2, const cplx *TRIQS_RESTRICT x2, cplx *TRIQS_RESTRICT acc,
-                          const long len) noexcept {
-      const auto *TRIQS_RESTRICT x1d = reinterpret_cast<const double *>(x1);
-      const auto *TRIQS_RESTRICT x2d = reinterpret_cast<const double *>(x2);
-      auto *TRIQS_RESTRICT ad        = reinterpret_cast<double *>(acc);
-      using batch                    = vec<max_lanes>;
-      const batch c1r(c1.real()), c1i(c1.imag()), c2r(c2.real()), c2i(c2.imag());
-      const long vec_lanes = (2 * len) & -max_lanes;
-      for (long off = 0; off < vec_lanes; off += max_lanes) {
-        auto av = batch::load_unaligned(ad + off);
-        av += scale_by_complex<max_lanes>(c1r, c1i, batch::load_unaligned(x1d + off))
-           - scale_by_complex<max_lanes>(c2r, c2i, batch::load_unaligned(x2d + off));
-        av.store_unaligned(ad + off);
-      }
-      for (long l = vec_lanes / 2; l < len; ++l) acc[l] += c1 * x1[l] - c2 * x2[l];
-    }
-
-    // ------------------------------------------------------------ single-orbital rank-1 update
-
-    // At bl_size == 1 every block axis has length 1, so accumulate_block has nothing to vectorize
-    // and would pay its dispatch once per mesh point. Both full-mesh M3 updates are separable in
-    // the two mesh indices there, so they accumulate along the contiguous iw2 axis instead: one
-    // scaled add per acc row. Only the two full-mesh kernels are separable -- dlr2d's mesh is
-    // sparse (no product structure) and the uniform iw3pp reads GM2 skewed as GM2[iW - iw].
-    //
-    // inline, not static: only the full-mesh kernels instantiate these, so internal linkage
-    // would trip -Wunused-function in every other TU that includes this header.
-    inline void add_scaled_outer(const cplx c, const cplx *TRIQS_RESTRICT x1, const cplx *TRIQS_RESTRICT x2, cplx *TRIQS_RESTRICT acc,
-                            const long n1, const long n2) noexcept {
-      for (long i1 = 0; i1 < n1; ++i1) add_scaled_runtime(c * x1[i1], x2, acc + i1 * n2, n2);
-    }
-
-    // acc(iw1, iw2) += c * m(iw1, iw2) - c2 * x1(iw1) * x2(iw2), both terms in one pass over acc.
-    inline void add_scaled_minus_outer(const cplx c, const cplx *TRIQS_RESTRICT m, const cplx c2, const cplx *TRIQS_RESTRICT x1,
-                                     const cplx *TRIQS_RESTRICT x2, cplx *TRIQS_RESTRICT acc, const long n1, const long n2) noexcept {
-      for (long i1 = 0; i1 < n1; ++i1) add_scaled_minus_runtime(c, m + i1 * n2, c2 * x1[i1], x2, acc + i1 * n2, n2);
-    }
-
     // ------------------------------------------------------------ block accumulation
-
-    // Hand-vectorize over (k,l) only for blocks spanning at least two widest vectors: N >= 3 on
-    // AVX-512, N >= 2 on AVX2/SSE. Below that the plain loop is faster, even though clang and gcc
-    // auto-vectorize it to the same swizzle+vfmaddsub form -- the cost sits in the surrounding
-    // view machinery rather than the vector ops, so the threshold is empirical.
-    //
-    // It keys on the block size N, not on the individual run length: the diagonal path gates an
-    // N-long fused add on it, so at N=3 on AVX-512 a 3-complex run takes the vector body even
-    // though it is shorter than one widest vector.
-    template <int N> inline constexpr bool prefer_simd = long{N} * N >= max_lanes;
 
     // acc(i,j,k,l) += sign * M1a(j,i) * M2a(l,k)  [- sign * M1b(l,i) * M2b(j,k) on the diagonal].
     // N == bl2_size at compile time; N == 0 selects the runtime-length path.
@@ -250,40 +41,119 @@ namespace triqs_ctint::measures {
       static_assert(std::decay_t<decltype(acc.indexmap())>::is_stride_order_C(), "acc must be C-ordered: its (i,j) planes are walked linearly");
       assert(acc.indexmap().is_contiguous());
 
-      // M2a is (i,j)-invariant: hold it in registers once, not once per (i,j). Length 0 (every
-      // path that does not want it) makes held_operand empty and its construction a no-op.
-      constexpr long held_len                   = (N > 0 && !diagonal && prefer_simd<N>) ? long{N} * N : 0;
       const cplx *const TRIQS_RESTRICT M2a_flat = M2a.data();
-      const held_operand<held_len> M2a_held{M2a_flat};
+      const auto *const TRIQS_RESTRICT M2a_d    = reinterpret_cast<const double *>(M2a_flat);
+
+      // The !diagonal path reads all N*N of M2a on every (i,j), so hold it in vector registers
+      // for the whole loop: 2*N*N doubles as `held_full` widest tiles plus, when N is odd, one
+      // min_simd tail. Tile indices must be compile-time (poet::static_for) or the array spills.
+      //
+      // At N == 8 this wants 16 of the 32 zmm live across the loop and does spill: it trades
+      // spill stores for not re-loading the operand on every (i,j).
+      constexpr bool hold      = N > 0 && !diagonal && prefer_simd<N>;
+      constexpr long held_full = hold ? 2 * long{N} * N / max_simd : 0;
+      constexpr long held_tail = hold ? 2 * long{N} * N % max_simd : 0;
+      static_assert(held_tail == 0 || held_tail == min_simd);
+      std::array<vec<max_simd>, held_full> M2a_full;
+      vec<min_simd> M2a_tail{};
+      if constexpr (hold) {
+        const auto *TRIQS_RESTRICT xd = reinterpret_cast<const double *>(M2a_flat);
+        poet::static_for<held_full>([&]<auto Tile>() { M2a_full[Tile] = vec<max_simd>::load_unaligned(xd + Tile * max_simd); });
+        if constexpr (held_tail) M2a_tail = vec<min_simd>::load_unaligned(xd + held_full * max_simd);
+      }
 
       // The acc(i,j,:,:) planes are contiguous and consecutive, so walk them with a pointer.
       // Re-deriving &acc(i,j,0,0) costs an nda 4-index offset plus view refcounting, which at
       // small N dominates the arithmetic.
       const long plane_len       = (N > 0) ? long{N} * N : bl2_size * bl2_size;
       cplx *TRIQS_RESTRICT plane = acc.data();
+      using wide                 = vec<max_simd>;
       for (long i = 0; i < bl1_size; ++i) {
         const cplx *const TRIQS_RESTRICT M1b_col = &M1b(0, i);
+        // The restrict-qualified base pointers stay outside the k loops below. Declared inside one,
+        // each iteration opens a fresh restrict scope, so clang can no longer tell that the store to
+        // acc leaves M1b(:,i) alone and re-loads plus re-swizzles it on every k.
+        const auto *const TRIQS_RESTRICT M1b_d = reinterpret_cast<const double *>(M1b_col);
         for (long j = 0; j < bl1_size; ++j, plane += plane_len) {
-          const cplx c1 = M1a(j, i) * sign;
+          const cplx c1                    = M1a(j, i) * sign;
+          auto *const TRIQS_RESTRICT acc_d = reinterpret_cast<double *>(plane);
+
           if constexpr (N == 0) {
+            // Runtime block size: whole widest vectors then a scalar tail. max_simd is a power of
+            // two, so the mask truncates to the last whole batch.
             if constexpr (!diagonal) {
-              add_scaled_runtime(c1, M2a_flat, plane, plane_len);
+              const long lanes = (2 * plane_len) & -max_simd;
+              const wide cr(c1.real()), ci(c1.imag());
+              for (long off = 0; off < lanes; off += max_simd) {
+                auto av = wide::load_unaligned(acc_d + off);
+                av += cmul(cr, ci, wide::load_unaligned(M2a_d + off));
+                av.store_unaligned(acc_d + off);
+              }
+              for (long l = lanes / 2; l < plane_len; ++l) plane[l] += c1 * M2a_flat[l];
             } else {
-              for (long k = 0; k < bl2_size; ++k)
-                add_scaled_minus_runtime(c1, M2a_flat + k * bl2_size, M2b(j, k) * sign, M1b_col, plane + k * bl2_size, bl2_size);
+              const long lanes = (2 * bl2_size) & -max_simd;
+              const wide c1r(c1.real()), c1i(c1.imag());
+              for (long k = 0; k < bl2_size; ++k) {
+                const cplx c2 = M2b(j, k) * sign;
+                const wide c2r(c2.real()), c2i(c2.imag());
+                const long base = 2 * k * bl2_size;
+                for (long off = 0; off < lanes; off += max_simd) {
+                  auto av = wide::load_unaligned(acc_d + base + off);
+                  av += cmul(c1r, c1i, wide::load_unaligned(M2a_d + base + off)) - cmul(c2r, c2i, wide::load_unaligned(M1b_d + off));
+                  av.store_unaligned(acc_d + base + off);
+                }
+                for (long l = lanes / 2; l < bl2_size; ++l) plane[k * bl2_size + l] += c1 * M2a_flat[k * bl2_size + l] - c2 * M1b_col[l];
+              }
             }
+
           } else if constexpr (!diagonal) {
-            if constexpr (prefer_simd<N>)
-              add_scaled_held<held_len>(c1, M2a_held, plane);
-            else
-              add_scaled_plain<long{N} * N>(c1, M2a_flat, plane);
+            // plane[0 : N*N] += c1 * M2a, the operand already in registers.
+            if constexpr (prefer_simd<N>) {
+              const wide cr(c1.real()), ci(c1.imag());
+              poet::static_for<held_full>([&]<auto Tile>() {
+                auto av = wide::load_unaligned(acc_d + Tile * max_simd);
+                av += cmul(cr, ci, M2a_full[Tile]);
+                av.store_unaligned(acc_d + Tile * max_simd);
+              });
+              if constexpr (held_tail) {
+                using narrow = vec<min_simd>;
+                auto av      = narrow::load_unaligned(acc_d + held_full * max_simd);
+                av += cmul(narrow(c1.real()), narrow(c1.imag()), M2a_tail);
+                av.store_unaligned(acc_d + held_full * max_simd);
+              }
+            } else
+              for (long l = 0; l < long{N} * N; ++l) plane[l] += c1 * M2a_flat[l];
+
           } else {
             for (int k = 0; k < N; ++k) {
               const cplx c2 = M2b(j, k) * sign;
-              if constexpr (prefer_simd<N>)
-                add_scaled_minus_tiled<N>(c1, M2a_flat + long{k} * N, c2, M1b_col, plane + long{k} * N);
-              else
-                add_scaled_minus_plain<N>(c1, M2a_flat + long{k} * N, c2, M1b_col, plane + long{k} * N);
+              // plane[k*N : k*N + N) += c1 * M2a(:,k) - c2 * M1b(:,i), both terms in one pass.
+              if constexpr (prefer_simd<N>) {
+                // 2*N contiguous doubles: as many widest ops as fit, then the even remainder as at
+                // most one 4-wide plus one 2-wide op. Each op writes exactly the bytes it covers.
+                // Covering the remainder with a masked widest store instead issues 2.3x fewer
+                // instructions but runs 2.2x slower at N=3: that store writes a subset of a widest
+                // range which the next k's load overlaps, blocking store-to-load forwarding.
+                static_assert(min_simd == 2 && max_simd <= 8,
+                              "the remainder cover below enumerates the cases for min_simd == 2, max_simd <= 8");
+                constexpr long len = 2 * long{N}, rem = len % max_simd;
+                const long base    = long{k} * len;
+                auto op            = [&](auto w, const long off) {
+                  using batch = typename decltype(w)::type;
+                  auto av     = batch::load_unaligned(acc_d + base + off);
+                  av += cmul(batch(c1.real()), batch(c1.imag()), batch::load_unaligned(M2a_d + base + off))
+                     - cmul(batch(c2.real()), batch(c2.imag()), batch::load_unaligned(M1b_d + off));
+                  av.store_unaligned(acc_d + base + off);
+                };
+                long off = 0;
+                for (; off + max_simd <= len; off += max_simd) op(width<max_simd>, off);
+                if constexpr (rem >= 4) {
+                  op(width<4>, off);
+                  off += 4;
+                }
+                if constexpr (rem % 4) op(width<min_simd>, off);
+              } else
+                for (int l = 0; l < N; ++l) plane[k * N + l] += c1 * M2a_flat[k * N + l] - c2 * M1b_col[l];
             }
           }
         }
@@ -472,13 +342,48 @@ namespace triqs_ctint::measures {
          // acc(iw1, iw2) += sign * GMG2 * M(iw1, iw2) [- sign * GM1(iw1) * MG2(iw2) on the diagonal].
          // Term 1 has a constant coefficient over the whole plane and M shares M3's mesh, so off the
          // diagonal it is one scaled add over the full plane; on the diagonal the two terms fuse per row.
+         // At bl_size == 1 every block axis has length 1, so accumulate_block has nothing to
+         // vectorize and would pay its dispatch once per mesh point. Both terms are separable in
+         // the two mesh indices here, so accumulate along the contiguous iw2 axis instead: one
+         // scaled add per acc row. Only the two full-mesh kernels are separable -- dlr2d's mesh is
+         // sparse (no product structure) and the uniform iw3pp reads GM2 skewed as GM2[iW - iw].
          if constexpr (N == 1) {
-           const auto n1 = M3.data().shape()[0], n2 = M3.data().shape()[1];
-           const auto c1 = sign * GMG2(0, 0);
-           if constexpr (diagonal)
-             add_scaled_minus_outer(c1, M1.data().data(), sign, GM1.data().data(), MG2.data().data(), M3.data().data(), n1, n2);
-           else
-             add_scaled_runtime(c1, M1.data().data(), M3.data().data(), n1 * n2);
+           const long n1                          = M3.data().shape()[0], n2 = M3.data().shape()[1];
+           const cplx c1                          = sign * GMG2(0, 0);
+           const cplx *const TRIQS_RESTRICT m     = M1.data().data();
+           cplx *const TRIQS_RESTRICT acc         = M3.data().data();
+           const auto *const TRIQS_RESTRICT m_d   = reinterpret_cast<const double *>(m);
+           auto *const TRIQS_RESTRICT acc_d       = reinterpret_cast<double *>(acc);
+           using wide                             = vec<max_simd>;
+           const wide c1r(c1.real()), c1i(c1.imag());
+           if constexpr (diagonal) {
+             // acc(iw1,:) += c1 * M(iw1,:) - sign * GM1(iw1) * MG2(:), both terms in one pass.
+             const cplx *const TRIQS_RESTRICT gm1   = GM1.data().data();
+             const auto *const TRIQS_RESTRICT mg2_d = reinterpret_cast<const double *>(MG2.data().data());
+             const cplx *const TRIQS_RESTRICT mg2   = MG2.data().data();
+             const long lanes                       = (2 * n2) & -max_simd;
+             for (long i1 = 0; i1 < n1; ++i1) {
+               const cplx c2 = sign * gm1[i1];
+               const wide c2r(c2.real()), c2i(c2.imag());
+               const long base = 2 * i1 * n2;
+               for (long off = 0; off < lanes; off += max_simd) {
+                 auto av = wide::load_unaligned(acc_d + base + off);
+                 av += cmul(c1r, c1i, wide::load_unaligned(m_d + base + off)) - cmul(c2r, c2i, wide::load_unaligned(mg2_d + off));
+                 av.store_unaligned(acc_d + base + off);
+               }
+               for (long l = lanes / 2; l < n2; ++l) acc[i1 * n2 + l] += c1 * m[i1 * n2 + l] - c2 * mg2[l];
+             }
+           } else {
+             // Term 1 has a constant coefficient over the whole plane and M shares M3's mesh, so it
+             // is one scaled add over the flat plane.
+             const long len = n1 * n2, lanes = (2 * len) & -max_simd;
+             for (long off = 0; off < lanes; off += max_simd) {
+               auto av = wide::load_unaligned(acc_d + off);
+               av += cmul(c1r, c1i, wide::load_unaligned(m_d + off));
+               av.store_unaligned(acc_d + off);
+             }
+             for (long l = lanes / 2; l < len; ++l) acc[l] += c1 * m[l];
+           }
            return;
          }
 
@@ -505,8 +410,28 @@ namespace triqs_ctint::measures {
       auto &M3            = M3_iw(bl1, bl2);
 
       // acc(iw1, iw2) += sign * GM1(iw1) * GM2(iw2). Diagonal pairs never reach here (they cancel).
+      // Same separable single-orbital shortcut as full_iw3ph: a rank-1 outer product, one scaled
+      // add per acc row along the contiguous iw2 axis.
       if constexpr (N == 1) {
-        add_scaled_outer(sign, GM1.data().data(), GM2.data().data(), M3.data().data(), M3.data().shape()[0], M3.data().shape()[1]);
+        const long n1                          = M3.data().shape()[0], n2 = M3.data().shape()[1];
+        const cplx *const TRIQS_RESTRICT gm1   = GM1.data().data();
+        const cplx *const TRIQS_RESTRICT gm2   = GM2.data().data();
+        cplx *const TRIQS_RESTRICT acc         = M3.data().data();
+        const auto *const TRIQS_RESTRICT gm2_d = reinterpret_cast<const double *>(gm2);
+        auto *const TRIQS_RESTRICT acc_d       = reinterpret_cast<double *>(acc);
+        using wide                             = vec<max_simd>;
+        const long lanes                       = (2 * n2) & -max_simd;
+        for (long i1 = 0; i1 < n1; ++i1) {
+          const cplx c = sign * gm1[i1];
+          const wide cr(c.real()), ci(c.imag());
+          const long base = 2 * i1 * n2;
+          for (long off = 0; off < lanes; off += max_simd) {
+            auto av = wide::load_unaligned(acc_d + base + off);
+            av += cmul(cr, ci, wide::load_unaligned(gm2_d + off));
+            av.store_unaligned(acc_d + base + off);
+          }
+          for (long l = lanes / 2; l < n2; ++l) acc[i1 * n2 + l] += c * gm2[l];
+        }
         return;
       }
 

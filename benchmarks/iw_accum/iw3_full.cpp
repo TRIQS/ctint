@@ -93,9 +93,12 @@ namespace {
           if (bl1 == bl2) {
             const auto *gm1 = GM[bl1].data().data();
             const auto *mg2 = MG[bl2].data().data();
-            for (long i1 = 0; i1 < n1; ++i1) add_scaled_minus_runtime(c1, m + i1 * n2, sign * gm1[i1], mg2, acc + i1 * n2, n2);
+            for (long i1 = 0; i1 < n1; ++i1) {
+              const auto c2 = sign * gm1[i1];
+              for (long i2 = 0; i2 < n2; ++i2) acc[i1 * n2 + i2] += c1 * m[i1 * n2 + i2] - c2 * mg2[i2];
+            }
           } else {
-            add_scaled_runtime(c1, m, acc, n1 * n2);
+            for (long k = 0; k < n1 * n2; ++k) acc[k] += c1 * m[k];
           }
         }
     }

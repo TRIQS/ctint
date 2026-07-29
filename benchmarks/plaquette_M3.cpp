@@ -50,6 +50,7 @@ int main() { // NOLINT
   pc.beta      = beta;
   pc.gf_struct = gf_struct;
   pc.n_tau     = 201;
+  pc.dlr_wmax  = 10.0;
 
   solver_core S(pc);
 
@@ -61,9 +62,12 @@ int main() { // NOLINT
 
   // --------- Solve! ----------
   long n_terms = std::distance(h_int.begin(), h_int.end());
-  alpha_t alpha(n_terms, 2, 2, 1);
+  alpha_t alpha(n_terms, 2, 2, 2);
   double const delta = 0.1;
-  for (long l = 0; l < n_terms; ++l) { alpha(l, range::all, range::all, 0) = nda::matrix<g_tau_scalar_t>{{0.5 - delta, 0.}, {0., 0.5 + delta}}; };
+  for (long l = 0; l < n_terms; ++l) {
+    alpha(l, range::all, range::all, 0) = nda::matrix<g_tau_scalar_t>{{0.5 - delta, 0.}, {0., 0.5 + delta}};
+    alpha(l, range::all, range::all, 1) = nda::matrix<g_tau_scalar_t>{{0.5 + delta, 0.}, {0., 0.5 - delta}};
+  }
 
   solve_params_t ps;
   ps.h_int           = h_int;
