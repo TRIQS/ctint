@@ -1,5 +1,5 @@
 [![build](https://github.com/TRIQS/ctint/workflows/build/badge.svg)](https://github.com/TRIQS/ctint/actions?query=workflow%3Abuild)
-[![DOI](https://zenodo.org/badge/136229601.svg)](https://doi.org/10.5281/zenodo.15598402)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15598402.svg)](https://doi.org/10.5281/zenodo.15598402)
 
 triqs_ctint
 ===========
