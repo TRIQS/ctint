@@ -51,6 +51,7 @@ int main() { // NOLINT
   pc.gf_struct = gf_struct;
   pc.n_tau     = 201;
   pc.dlr_wmax  = 10.0;
+  pc.dlr_eps   = 1e-6; // 1e-10 spends 5 min building the DLR2D mesh for a 15 s accumulation
 
   solver_core S(pc);
 
