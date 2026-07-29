@@ -167,99 +167,6 @@ namespace triqs_ctint::measures {
     // neither does any ph kernel or iw4pp (distinct M1b/M2b).
     template <int N, bool diagonal> inline constexpr bool pp_pair_cancels = (N == 1 && diagonal);
 
-    // ======================== M4 kernels (uniform mesh) ========================
-
-    constexpr auto iw4ph_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &M, auto &M4_iw,
-                                                                      const auto bl1, const auto bl2) noexcept {
-      auto const &[iW_mesh, iw_mesh, _] = M4_iw(0, 0).mesh();
-      auto const &M1                    = M[bl1];
-      auto const &M2                    = M[bl2];
-      auto const bl1_size               = M1.target_shape()[0];
-      auto const bl2_size               = M2.target_shape()[0];
-      auto &M4                          = M4_iw(bl1, bl2);
-
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          for (auto iwp : iw_mesh) {
-            const auto M1a = M1[iW + iw, iw.value()];
-            const auto M2a = M2[iwp.value(), iW + iwp];
-            const auto M1b = M1[iwp.value(), iw.value()];
-            const auto M2b = M2[iW + iw, iW + iwp];
-            auto acc       = M4[iW, iw, iwp];
-            accumulate_block<N, diagonal>(sign, M1a, M2a, M1b, M2b, acc, bl1_size, bl2_size);
-          }
-        }
-      }
-    };
-
-    constexpr auto iw4pp_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &M, auto &M4_iw,
-                                                                      const auto bl1, const auto bl2) noexcept {
-      auto const &[iW_mesh, iw_mesh, _] = M4_iw(0, 0).mesh();
-      auto const &M1                    = M[bl1];
-      auto const &M2                    = M[bl2];
-      auto const bl1_size               = M1.target_shape()[0];
-      auto const bl2_size               = M2.target_shape()[0];
-      auto &M4                          = M4_iw(bl1, bl2);
-
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          for (auto iwp : iw_mesh) {
-            const auto M1a = M1[iW - iwp, iw.value()];
-            const auto M2a = M2[iwp.value(), iW - iw];
-            const auto M1b = M1[iwp.value(), iw.value()];
-            const auto M2b = M2[iW - iwp, iW - iw];
-            auto acc       = M4[iW, iw, iwp];
-            accumulate_block<N, diagonal>(sign, M1a, M2a, M1b, M2b, acc, bl1_size, bl2_size);
-          }
-        }
-      }
-    };
-
-    // ======================== M3 kernels (uniform mesh) ========================
-
-    constexpr auto iw3pp_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &GM, auto &M3_iw,
-                                                                      const auto bl1, const auto bl2) noexcept {
-      if constexpr (pp_pair_cancels<N, diagonal>) return;
-      auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
-      auto const bl1_size           = GM[bl1].target_shape()[0];
-      auto const bl2_size           = GM[bl2].target_shape()[0];
-      auto const &GM1               = GM[bl1];
-      auto const &GM2               = GM[bl2];
-      auto &M3                      = M3_iw(bl1, bl2);
-
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          const auto M1a = GM1[iw.value()];
-          const auto M2a = GM2[iW - iw];
-          auto acc       = M3[iW, iw];
-          accumulate_block<N, diagonal>(sign, M1a, M2a, M1a, M2a, acc, bl1_size, bl2_size);
-        }
-      }
-    };
-
-    constexpr auto iw3ph_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &M, const auto &GMG,
-                                                                      const auto &GM, const auto &MG, auto &M3_iw,
-                                                                      const auto bl1, const auto bl2) noexcept {
-      auto const [iW_mesh, iw_mesh] = M3_iw(0, 0).mesh();
-      auto const bl1_size           = M[bl1].target_shape()[0];
-      auto const bl2_size           = M[bl2].target_shape()[0];
-      auto const &M1                = M[bl1];
-      auto const &GMG2              = GMG(bl2);
-      auto const &GM1               = GM[bl1];
-      auto const &MG2               = MG(bl2);
-      auto &M3                      = M3_iw(bl1, bl2);
-
-      for (auto iW : iW_mesh) {
-        for (auto iw : iw_mesh) {
-          const auto M1a = M1[iW + iw, iw.value()];
-          const auto M1b = GM1[iw.value()];
-          const auto M2b = MG2[iW + iw];
-          auto acc       = M3[iW, iw];
-          accumulate_block<N, diagonal>(sign, M1a, GMG2, M1b, M2b, acc, bl1_size, bl2_size);
-        }
-      }
-    };
-
     // ======================== M3 DLR2D kernels ========================
 
     constexpr auto dlr2d_iw3ph_accumulate_kernel =
@@ -432,25 +339,6 @@ namespace triqs_ctint::measures {
       poet::dispatch([&]<int N, int D>() { kernel.template operator()<N, static_cast<bool>(D)>(std::forward<decltype(args)>(args)...); },
                      poet::dispatch_param<poet::inclusive_range<0, max_block>>{n},
                      poet::dispatch_param<poet::inclusive_range<0, 1>>{diagonal});
-    }
-
-    // M4 dispatchers
-    void iw4ph_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
-      kernel_dispatch<iw4ph_accumulate_kernel>(bl2_size, bl1 == bl2, sign, M, M4_iw, bl1, bl2);
-    }
-
-    void iw4pp_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
-      kernel_dispatch<iw4pp_accumulate_kernel>(bl2_size, bl1 == bl2, sign, M, M4_iw, bl1, bl2);
-    }
-
-    // M3 uniform mesh dispatchers
-    void iw3ph_accumulate(const mc_weight_t sign, const auto &M, const auto &GMG, const auto &GM, const auto &MG, auto &M3_iw, const auto bl1,
-                          const auto bl2, const auto bl2_size) noexcept {
-      kernel_dispatch<iw3ph_accumulate_kernel>(bl2_size, bl1 == bl2, sign, M, GMG, GM, MG, M3_iw, bl1, bl2);
-    }
-
-    void iw3pp_accumulate(const mc_weight_t sign, const auto &GM, auto &M3_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
-      kernel_dispatch<iw3pp_accumulate_kernel>(bl2_size, bl1 == bl2, sign, GM, M3_iw, bl1, bl2);
     }
 
     // M3 DLR2D dispatchers

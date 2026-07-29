@@ -13,8 +13,7 @@
 
 namespace triqs_ctint::measures {
 
-  void iw4_accumulate(const mc_weight_t sign, M4_M_t const &M, chi4_iw_v_t M4, const int bl1, const int bl2,
-                      const long bl2_size) noexcept {
+  void iw4_accumulate(const mc_weight_t sign, M4_M_t const &M, chi4_iw_v_t M4, const int bl1, const int bl2, const long bl2_size) noexcept {
     // Dispatch once per block pair, outside the mesh sweep: inside, N and diagonal are compile-time
     // so every accumulation loop has a known trip count and unrolls. A block size beyond max_block
     // maps to N == 0, the runtime-length path.
@@ -46,20 +45,14 @@ namespace triqs_ctint::measures {
 
                static_assert(std::decay_t<decltype(M2a.indexmap())>::is_stride_order_Fortran(),
                              "M2a must store its target transposed: it is read as M2a.data()[k*N + l]");
-               static_assert(std::decay_t<decltype(M1b.indexmap())>::is_stride_order_Fortran(),
-                             "M1b must store its target transposed: the column M1b(:,i) is read contiguously");
-               static_assert(std::decay_t<decltype(acc.indexmap())>::is_stride_order_C(),
-                             "acc must be C-ordered: its (i,j) planes are walked linearly");
-               assert(acc.indexmap().is_contiguous());
-
                const cplx *const TRIQS_RESTRICT M2a_flat = M2a.data();
                const auto *const TRIQS_RESTRICT M2a_d    = reinterpret_cast<const double *>(M2a_flat);
 
                // Off the diagonal every (i,j) reads all N*N of M2a, so hold it in vector registers
-               // for the (i,j) loop: 2*N*N doubles as `held_full` widest tiles plus, when N is odd,
-               // one min_simd tail. The tile indices must be compile-time (poet::static_for) or the
-               // array spills. At N == 8 this wants 16 of the 32 zmm live across the loop and does
-               // spill, trading spill stores for not re-loading the operand on every (i,j).
+               // across the loops below: 2*N*N doubles as `held_full` widest tiles plus, when N is
+               // odd, one min_simd tail. The tile indices must be compile-time (poet::static_for) or
+               // the array spills. At N == 8 this wants 16 of the 32 zmm live and does spill,
+               // trading spill stores for not re-loading the operand on every (i,j).
                constexpr bool hold      = N > 0 && !diagonal && prefer_simd<N>;
                constexpr long held_full = hold ? 2 * long{N} * N / max_simd : 0;
                constexpr long held_tail = hold ? 2 * long{N} * N % max_simd : 0;
@@ -70,6 +63,12 @@ namespace triqs_ctint::measures {
                  poet::static_for<held_full>([&]<auto Tile>() { M2a_full[Tile] = vec<max_simd>::load_unaligned(M2a_d + Tile * max_simd); });
                  if constexpr (held_tail) M2a_tail = vec<min_simd>::load_unaligned(M2a_d + held_full * max_simd);
                }
+
+               static_assert(std::decay_t<decltype(M1b.indexmap())>::is_stride_order_Fortran(),
+                             "M1b must store its target transposed: the column M1b(:,i) is read contiguously");
+               static_assert(std::decay_t<decltype(acc.indexmap())>::is_stride_order_C(),
+                             "acc must be C-ordered: its (i,j) planes are walked linearly");
+               assert(acc.indexmap().is_contiguous());
 
                // The acc(i,j,:,:) planes are contiguous and consecutive, so walk them with a
                // pointer. Re-deriving &acc(i,j,0,0) costs an nda 4-index offset plus view
@@ -140,8 +139,8 @@ namespace triqs_ctint::measures {
                          static_assert(min_simd == 2 && max_simd <= 8,
                                        "the remainder cover below enumerates the cases for min_simd == 2, max_simd <= 8");
                          constexpr long len = 2 * long{N}, rem = len % max_simd;
-                         const long base    = long{k} * len;
-                         auto op            = [&](auto w, const long off) {
+                         const long base = long{k} * len;
+                         auto op         = [&](auto w, const long off) {
                            using batch = typename decltype(w)::type;
                            auto av     = batch::load_unaligned(acc_d + base + off);
                            av += cmul(batch(c1.real()), batch(c1.imag()), batch::load_unaligned(M2a_d + base + off))

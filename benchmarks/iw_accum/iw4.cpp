@@ -1,8 +1,9 @@
-// Micro-benchmark for the M4 iw-accumulate kernels (measures/iw_accumulate.hpp).
+// Micro-benchmark for the three M4 iw-accumulate functions (M4_iw.cpp, M4ph_iw.cpp, M4pp_iw.cpp).
 // Sweeps n_orb (=block size) so the compile-time-length dispatch is exercised across
 // the small-block regime where it matters and into the memory-bound large-block regime.
 #include "../../c++/triqs_ctint/measures/M4_iw.hpp"
-#include "../../c++/triqs_ctint/measures/iw_accumulate.hpp"
+#include "../../c++/triqs_ctint/measures/M4ph_iw.hpp"
+#include "../../c++/triqs_ctint/measures/M4pp_iw.hpp"
 
 #include <triqs/gfs.hpp>
 #include <triqs/mesh.hpp>
@@ -66,8 +67,8 @@ namespace {
 
   // Pass by forwarding reference: M/M4 must bind by reference, not be copied per call.
   void iw4(benchmark::State &st) { run<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(st); }
-  void iw4ph(benchmark::State &st) { run<[](auto &&...a) { measures::simd::iw4ph_accumulate(decltype(a)(a)...); }>(st); }
-  void iw4pp(benchmark::State &st) { run<[](auto &&...a) { measures::simd::iw4pp_accumulate(decltype(a)(a)...); }>(st); }
+  void iw4ph(benchmark::State &st) { run<[](auto &&...a) { measures::iw4ph_accumulate(decltype(a)(a)...); }>(st); }
+  void iw4pp(benchmark::State &st) { run<[](auto &&...a) { measures::iw4pp_accumulate(decltype(a)(a)...); }>(st); }
 
   // Correctness probe: one deterministic pass on fresh data, report the summed M4 (re/im).
   void chk(benchmark::State &st) {

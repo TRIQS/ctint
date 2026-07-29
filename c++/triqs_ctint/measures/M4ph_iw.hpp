@@ -10,6 +10,13 @@
 
 namespace triqs_ctint::measures {
 
+  // Same accumulation as iw4_accumulate, over the ph mesh (iW, iw, iwp):
+  //
+  //   M4(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k)   [second term bl1 == bl2 only]
+  //
+  // Defined in M4ph_iw.cpp, declared here so benchmarks/iw_accum/iw4.cpp can drive it per block size.
+  void iw4ph_accumulate(mc_weight_t sign, M4_M_t const &M, chi4_iw_v_t M4ph, int bl1, int bl2, long bl2_size) noexcept;
+
   /**
   * Measure of $M^4_{abcd}(\tau_a, \tau_b, \tau_c)$
   *
@@ -40,7 +47,7 @@ namespace triqs_ctint::measures {
     qmc_config_t const &qmc_config;
 
     // Container for the accumulation
-    block2_gf_view<prod<imfreq, imfreq, imfreq>, tensor_valued<4>> M4ph_iw_;
+    chi4_iw_v_t M4ph_iw_;
 
     // The average sign
     mc_weight_t Z = 0.0;
@@ -49,8 +56,7 @@ namespace triqs_ctint::measures {
     array<array<nfft::buffer_t<2>, 2>, 1> buf_arrarr;
 
     // Intermediate scattering matrix in the measurement of M4
-    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
-    block_gf<prod<imfreq, imfreq>, matrix_valued, M_layout> M;
+    M4_M_t M;
   };
 
 } // namespace triqs_ctint::measures
