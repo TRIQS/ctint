@@ -80,15 +80,12 @@ namespace triqs_ctint::measures {
     // take their runtime-length path.
     inline constexpr int max_block = 8;
 
-    // Hand-vectorize over (k,l) only for blocks spanning at least two widest vectors: N >= 3 on
-    // AVX-512, N >= 2 on AVX2/SSE. Below that the plain loop is faster, even though clang and gcc
-    // auto-vectorize it to the same swizzle+vfmaddsub form -- the cost sits in the surrounding
-    // view machinery rather than the vector ops, so the threshold is empirical.
-    //
-    // It keys on the block size N, not on the individual run length: the diagonal path gates an
-    // N-long fused add on it, so at N=3 on AVX-512 a 3-complex run takes the vector body even
-    // though it is shorter than one widest vector.
-    template <int N> inline constexpr bool prefer_simd = long{N} * N >= max_simd;
+    // True once an N*N plane's 2*N*N doubles fill a widest vector; the accumulation loops then take
+    // their hand-written vector body over the plane. Keyed on the block size, not on the run length
+    // -- the diagonal path gates runs shorter than one vector on it too. The plain-loop fallback is
+    // only viable where consecutive planes are contiguous: over strided planes the compiler turns
+    // it into gather/scatter over acc.
+    template <int N> inline constexpr bool prefer_simd = 2 * long{N} * N >= max_simd;
 
   } // namespace
 } // namespace triqs_ctint::measures
