@@ -50,27 +50,21 @@ namespace triqs_ctint::measures {
 
     template <long W> using vec = xsimd::make_sized_batch_t<double, W>;
 
-    // Tag that names a batch width at a call site, so a lambda can be told which width to use
-    // without the `.template operator()<W>()` spelling.
-    template <long W> inline constexpr std::type_identity<vec<W>> width{};
+    // Every run covered below is an even number of doubles -- interleaved complex -- so a cover
+    // exists as long as the narrowest batch divides two. Were it wider, the halving would run past
+    // it looking for a fit and ask for vec<1>, which is void.
+    static_assert(min_simd == 2, "simd_cover needs a 2-double batch to close an even run");
 
     // Widest-first cover of Len contiguous doubles: as many W-wide ops as fit, then halve W. Each
-    // op(width<W>, offset) writes exactly the bytes it covers, so a load overlapping an earlier
-    // store can forward from it -- one masked widest store would need fewer instructions but writes
-    // a subset of a widest range.
-    //
-    // The halving stops at min_simd, so a run that is not a multiple of it has no cover. Leaving
-    // that silent would drop the trailing elements with no diagnostic, hence the static_assert.
+    // op(std::type_identity<batch>, offset) writes exactly the bytes it covers, so a load
+    // overlapping an earlier store can forward from it -- one masked widest store would need fewer
+    // instructions but writes a subset of a widest range.
     template <long Len, long W = max_simd, long Off = 0, class F> XSIMD_INLINE void simd_cover(const F &op) noexcept {
-      if constexpr (Off >= Len) {
-        return;
-      } else if constexpr (Len - Off >= W) {
-        op(width<W>, Off);
+      if constexpr (Len - Off >= W) {
+        op(std::type_identity<vec<W>>{}, Off);
         simd_cover<Len, W, Off + W>(op);
-      } else if constexpr (W > min_simd) {
+      } else if constexpr (Off < Len) {
         simd_cover<Len, W / 2, Off>(op);
-      } else {
-        static_assert(Off >= Len, "run length is not a multiple of the narrowest batch");
       }
     }
 
