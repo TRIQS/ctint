@@ -132,29 +132,15 @@ namespace triqs_ctint::measures {
                        const cplx c2 = M2b(j, k) * sgn;
                        // plane[k*N : k*N + N) += c1 * M2a(:,k) - c2 * M1b(:,i), in one pass over acc.
                        if constexpr (prefer_simd<N>) {
-                         // 2*N contiguous doubles: as many widest ops as fit, then the even
-                         // remainder as at most one 4-wide plus one 2-wide op, each writing exactly
-                         // the bytes it covers. A single masked widest store would cover the
-                         // remainder in far fewer instructions but writes a subset of a widest range
-                         // that the next k's load overlaps, blocking store-to-load forwarding.
-                         static_assert(min_simd == 2 && max_simd <= 8,
-                                       "the remainder cover below enumerates the cases for min_simd == 2, max_simd <= 8");
-                         constexpr long len = 2 * long{N}, rem = len % max_simd;
-                         const long base = long{k} * len;
-                         auto op         = [&](auto w, const long off) {
+                         // 2*N contiguous doubles, covered widest-batch-first.
+                         const long base = long{k} * 2 * long{N};
+                         simd_cover<2 * long{N}>([&](auto w, const long off) {
                            using batch = typename decltype(w)::type;
                            auto av     = batch::load_unaligned(acc_d + base + off);
                            av += cmul(batch(c1.real()), batch(c1.imag()), batch::load_unaligned(M2a_d + base + off))
                               - cmul(batch(c2.real()), batch(c2.imag()), batch::load_unaligned(M1b_d + off));
                            av.store_unaligned(acc_d + base + off);
-                         };
-                         long off = 0;
-                         for (; off + max_simd <= len; off += max_simd) op(width<max_simd>, off);
-                         if constexpr (rem >= 4) {
-                           op(width<4>, off);
-                           off += 4;
-                         }
-                         if constexpr (rem % 4) op(width<min_simd>, off);
+                         });
                        } else
                          for (int l = 0; l < N; ++l) plane[k * N + l] += c1 * M2a_flat[k * N + l] - c2 * M1b_col[l];
                      }
