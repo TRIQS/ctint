@@ -85,13 +85,13 @@ namespace {
       return s;
     }
 
-    void ph_general(const mc_weight_t sign) {
+    void ph_general(const mc_weight_t sign, chi3_iw_v_t &m3) {
       for (int bl1 = 0; bl1 < n_blocks; ++bl1)
-        for (int bl2 = 0; bl2 < n_blocks; ++bl2) measures::full_iw3ph_accumulate(sign, M, GMG, GM, MG, M3, bl1, bl2, GMG(bl2).shape()[0]);
+        for (int bl2 = 0; bl2 < n_blocks; ++bl2) measures::full_iw3ph_accumulate(sign, M, GMG, GM, MG, m3, bl1, bl2, GMG(bl2).shape()[0]);
     }
-    void pp_general(const mc_weight_t sign) {
+    void pp_general(const mc_weight_t sign, chi3_iw_v_t &m3) {
       for (int bl1 = 0; bl1 < n_blocks; ++bl1)
-        for (int bl2 = 0; bl2 < n_blocks; ++bl2) measures::full_iw3pp_accumulate(sign, GM, M3, bl1, bl2, GM[bl2].target_shape()[0]);
+        for (int bl2 = 0; bl2 < n_blocks; ++bl2) measures::full_iw3pp_accumulate(sign, GM, m3, bl1, bl2, GM[bl2].target_shape()[0]);
     }
     // Exactly the arithmetic of full_iw3ph_accumulate_kernel's N==1 branch, called without the
     // kernel plumbing: isolates the branch itself from the dispatch around it.
@@ -215,28 +215,29 @@ namespace {
 
   template <auto body> void run(benchmark::State &st) {
     fixture fx(static_cast<int>(st.range(0)));
+    chi3_iw_v_t m3{fx.M3};
     const auto sign = mc_weight_t{1.0};
     for (auto _ : st) {
-      body(fx, sign);
+      body(fx, m3, sign);
       benchmark::DoNotOptimize(fx.M3(0, 0).data().data());
       benchmark::ClobberMemory();
     }
   }
 
   void iw3ph_full(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.ph_general(s); }>(st);
+    run<[](fixture &f, chi3_iw_v_t &m3, mc_weight_t s) { f.ph_general(s, m3); }>(st);
   }
   void iw3pp_full(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.pp_general(s); }>(st);
+    run<[](fixture &f, chi3_iw_v_t &m3, mc_weight_t s) { f.pp_general(s, m3); }>(st);
   }
   void iw3ph_full_rank1(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.ph_rank1(s); }>(st);
+    run<[](fixture &f, chi3_iw_v_t &, mc_weight_t s) { f.ph_rank1(s); }>(st);
   }
   void iw3ph_full_scalar1(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.ph_scalar(s); }>(st);
+    run<[](fixture &f, chi3_iw_v_t &, mc_weight_t s) { f.ph_scalar(s); }>(st);
   }
   void iw3pp_full_scalar1(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.pp_scalar(s); }>(st);
+    run<[](fixture &f, chi3_iw_v_t &, mc_weight_t s) { f.pp_scalar(s); }>(st);
   }
 
   // Element-wise count, but the size of the disagreement is measured against the scale of the
@@ -266,14 +267,16 @@ namespace {
       for (int n_orb = 1; n_orb <= max_block + 1; ++n_orb) {
         const auto tag = std::to_string(n_orb);
         fixture a(n_orb, probe_n_iw), b(n_orb, probe_n_iw);
-        a.ph_general(1.0);
+        chi3_iw_v_t av{a.M3};
+        a.ph_general(1.0, av);
         b.ph_reference(1.0);
         auto [ph_bad, ph_rel]            = compare(a, b);
         st.counters["ph" + tag + "_ne"]  = double(ph_bad);
         st.counters["ph" + tag + "_rel"] = ph_rel;
 
         fixture c(n_orb, probe_n_iw), d(n_orb, probe_n_iw);
-        c.pp_general(1.0);
+        chi3_iw_v_t cv{c.M3};
+        c.pp_general(1.0, cv);
         d.pp_reference(1.0);
         auto [pp_bad, pp_rel]            = compare(c, d);
         st.counters["pp" + tag + "_ne"]  = double(pp_bad);
@@ -286,7 +289,8 @@ namespace {
   void chk(benchmark::State &st) {
     for (auto _ : st) {
       fixture a(1), b(1);
-      a.ph_general(1.0);
+      chi3_iw_v_t av{a.M3};
+      a.ph_general(1.0, av);
       b.ph_scalar(1.0);
       st.counters["ph_gen"] = a.checksum();
       st.counters["ph_ref"] = b.checksum();
@@ -294,7 +298,8 @@ namespace {
       e.ph_rank1(1.0);
       st.counters["ph_rk1"] = e.checksum();
       fixture c(1), d(1);
-      c.pp_general(1.0);
+      chi3_iw_v_t cv{c.M3};
+      c.pp_general(1.0, cv);
       d.pp_scalar(1.0);
       st.counters["pp_gen"] = c.checksum();
       st.counters["pp_ref"] = d.checksum();

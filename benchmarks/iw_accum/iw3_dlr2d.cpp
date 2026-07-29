@@ -69,13 +69,13 @@ namespace {
 
     long mesh_size() const { return M3(0, 0).mesh().size(); }
 
-    void ph_general(const mc_weight_t sign) {
+    void ph_general(const mc_weight_t sign, chi3_dlr2d_iw_v_t &m3) {
       for (int bl1 = 0; bl1 < n_blocks; ++bl1)
-        for (int bl2 = 0; bl2 < n_blocks; ++bl2) dlr2d_iw3ph_accumulate(sign, M, GMG, GM, MG, M3, bl1, bl2, GMG(bl2).shape()[0]);
+        for (int bl2 = 0; bl2 < n_blocks; ++bl2) dlr2d_iw3ph_accumulate(sign, M, GMG, GM, MG, m3, bl1, bl2, GMG(bl2).shape()[0]);
     }
-    void pp_general(const mc_weight_t sign) {
+    void pp_general(const mc_weight_t sign, chi3_dlr2d_iw_v_t &m3) {
       for (int bl1 = 0; bl1 < n_blocks; ++bl1)
-        for (int bl2 = 0; bl2 < n_blocks; ++bl2) dlr2d_iw3pp_accumulate(sign, GM, M3, bl1, bl2, GM[bl2].target_shape()[0]);
+        for (int bl2 = 0; bl2 < n_blocks; ++bl2) dlr2d_iw3pp_accumulate(sign, GM, m3, bl1, bl2, GM[bl2].target_shape()[0]);
     }
 
     // acc(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k), the second term on
@@ -157,14 +157,16 @@ namespace {
       for (int n_orb = 1; n_orb <= max_block + 1; ++n_orb) {
         const auto tag = std::to_string(n_orb);
         fixture a(n_orb, mesh::PH), b(n_orb, mesh::PH);
-        a.ph_general(1.0);
+        chi3_dlr2d_iw_v_t av{a.M3};
+        a.ph_general(1.0, av);
         b.ph_reference(1.0);
         auto [ph_bad, ph_rel]            = compare(a, b);
         st.counters["ph" + tag + "_ne"]  = double(ph_bad);
         st.counters["ph" + tag + "_rel"] = ph_rel;
 
         fixture c(n_orb, mesh::PP), d(n_orb, mesh::PP);
-        c.pp_general(1.0);
+        chi3_dlr2d_iw_v_t cv{c.M3};
+        c.pp_general(1.0, cv);
         d.pp_reference(1.0);
         auto [pp_bad, pp_rel]            = compare(c, d);
         st.counters["pp" + tag + "_ne"]  = double(pp_bad);
@@ -176,18 +178,19 @@ namespace {
 
   template <auto body> void run(benchmark::State &st) {
     fixture fx(static_cast<int>(st.range(0)), mesh::PH);
+    chi3_dlr2d_iw_v_t m3{fx.M3};
     const auto sign = mc_weight_t{1.0};
     for (auto _ : st) {
-      body(fx, sign);
+      body(fx, m3, sign);
       benchmark::DoNotOptimize(fx.M3(0, 0).data().data());
       benchmark::ClobberMemory();
     }
   }
   void iw3ph_dlr2d(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.ph_general(s); }>(st);
+    run<[](fixture &f, chi3_dlr2d_iw_v_t &m3, mc_weight_t s) { f.ph_general(s, m3); }>(st);
   }
   void iw3pp_dlr2d(benchmark::State &st) {
-    run<[](fixture &f, mc_weight_t s) { f.pp_general(s); }>(st);
+    run<[](fixture &f, chi3_dlr2d_iw_v_t &m3, mc_weight_t s) { f.pp_general(s, m3); }>(st);
   }
 
 } // namespace

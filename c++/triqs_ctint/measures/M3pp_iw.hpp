@@ -15,7 +15,7 @@ namespace triqs_ctint::measures {
   //   M3(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k)   [second term bl1 == bl2 only]
   //
   // Defined in M3pp_iw.cpp.
-  void dlr2d_iw3pp_accumulate(mc_weight_t sign, M3_G_t const &GM, chi3_dlr2d_iw_v_t M3, int bl1, int bl2, long bl2_size) noexcept;
+  void dlr2d_iw3pp_accumulate(mc_weight_t sign, M3_G_t const &GM, chi3_dlr2d_iw_v_t &M3, int bl1, int bl2, long bl2_size) noexcept;
 
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$

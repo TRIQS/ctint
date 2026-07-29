@@ -16,7 +16,7 @@ namespace triqs_ctint::measures {
   //   M3(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k)   [second term bl1 == bl2 only]
   //
   // Defined in M3ph_iw.cpp.
-  void dlr2d_iw3ph_accumulate(mc_weight_t sign, M3_M_t const &M, M3_GMG_t const &GMG, M3_G_t const &GM, M3_G_t const &MG, chi3_dlr2d_iw_v_t M3,
+  void dlr2d_iw3ph_accumulate(mc_weight_t sign, M3_M_t const &M, M3_GMG_t const &GMG, M3_G_t const &GM, M3_G_t const &MG, chi3_dlr2d_iw_v_t &M3,
                               int bl1, int bl2, long bl2_size) noexcept;
 
   /**

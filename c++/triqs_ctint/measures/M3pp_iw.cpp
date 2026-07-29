@@ -13,7 +13,7 @@
 
 namespace triqs_ctint::measures {
 
-  void dlr2d_iw3pp_accumulate(const mc_weight_t sign, M3_G_t const &GM, chi3_dlr2d_iw_v_t M3, const int bl1, const int bl2,
+  void dlr2d_iw3pp_accumulate(const mc_weight_t sign, M3_G_t const &GM, chi3_dlr2d_iw_v_t &M3, const int bl1, const int bl2,
                               const long bl2_size) noexcept {
     // Dispatch once per block pair, outside the mesh sweep: inside, N and diagonal are compile-time
     // so every accumulation loop has a known trip count and unrolls. A block size beyond max_block
