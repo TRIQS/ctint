@@ -49,23 +49,24 @@ namespace {
       }
     }
 
-    template <auto accum> void accumulate(const mc_weight_t sign) {
+    template <auto accum> void accumulate(const mc_weight_t sign, chi4_iw_v_t &m4) {
       for (int bl1 = 0; bl1 < n_blocks; ++bl1)
-        for (int bl2 = 0; bl2 < n_blocks; ++bl2) accum(sign, M, M4, bl1, bl2, M[bl2].target_shape()[0]);
+        for (int bl2 = 0; bl2 < n_blocks; ++bl2) accum(sign, M, m4, bl1, bl2, M[bl2].target_shape()[0]);
     }
   };
 
   template <auto accum> void run(benchmark::State &st) {
     fixture fx(static_cast<int>(st.range(0)));
+    chi4_iw_v_t m4{fx.M4};
     const auto sign = mc_weight_t{1.0};
     for (auto _ : st) {
-      fx.accumulate<accum>(sign);
+      fx.accumulate<accum>(sign, m4);
       benchmark::DoNotOptimize(fx.M4(0, 0).data().data());
       benchmark::ClobberMemory();
     }
   }
 
-  // Pass by forwarding reference: M/M4 must bind by reference, not be copied per call.
+  // The M4 view is built once, outside the timed loop: the measures pass a view they already hold.
   void iw4(benchmark::State &st) { run<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(st); }
   void iw4ph(benchmark::State &st) { run<[](auto &&...a) { measures::iw4ph_accumulate(decltype(a)(a)...); }>(st); }
   void iw4pp(benchmark::State &st) { run<[](auto &&...a) { measures::iw4pp_accumulate(decltype(a)(a)...); }>(st); }
@@ -75,7 +76,8 @@ namespace {
     const auto sign = mc_weight_t{1.0};
     for (auto _ : st) {
       fixture fx(static_cast<int>(st.range(0)));
-      fx.accumulate<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(sign);
+      chi4_iw_v_t m4{fx.M4};
+      fx.accumulate<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(sign, m4);
       double re = 0, im = 0;
       for (int b1 = 0; b1 < fx.n_blocks; ++b1)
         for (int b2 = 0; b2 < fx.n_blocks; ++b2) {

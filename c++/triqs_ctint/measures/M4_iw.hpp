@@ -16,7 +16,7 @@ namespace triqs_ctint::measures {
   //                - sign * M[bl1][iw4,iw1](l,i) * M[bl2][iw2,iw3](j,k)   [bl1 == bl2 only]
   //
   // Defined in M4_iw.cpp, declared here so benchmarks/iw_accum/iw4.cpp can drive it per block size.
-  void iw4_accumulate(mc_weight_t sign, M4_M_t const &M, chi4_iw_v_t M4, int bl1, int bl2, long bl2_size) noexcept;
+  void iw4_accumulate(mc_weight_t sign, M4_M_t const &M, chi4_iw_v_t &M4, int bl1, int bl2, long bl2_size) noexcept;
 
   /**
   * Measure of $M^4_{abcd}(\tau_a, \tau_b, \tau_c)$
