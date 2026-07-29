@@ -169,30 +169,6 @@ namespace triqs_ctint::measures {
 
     // ======================== M4 kernels (uniform mesh) ========================
 
-    constexpr auto iw4_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &M, auto &M4_iw,
-                                                                    const auto bl1, const auto bl2) noexcept {
-      auto &[iw_mesh, _, _] = M4_iw(0, 0).mesh();
-      auto const &M1        = M[bl1];
-      auto const &M2        = M[bl2];
-      auto const bl1_size   = M1.target_shape()[0];
-      auto const bl2_size   = M2.target_shape()[0];
-      auto &M4              = M4_iw(bl1, bl2);
-
-      for (const auto &iw1 : iw_mesh) {
-        for (const auto &iw2 : iw_mesh) {
-          for (const auto &iw3 : iw_mesh) {
-            const auto iw4 = iw1 + iw3 - iw2;
-            const auto M1a = M1[iw2.value(), iw1];
-            const auto M2a = M2[iw4, iw3];
-            const auto M1b = M1[iw4, iw1];
-            const auto M2b = M2[iw2.value(), iw3];
-            auto acc       = M4[iw1, iw2, iw3];
-            accumulate_block<N, diagonal>(sign, M1a, M2a, M1b, M2b, acc, bl1_size, bl2_size);
-          }
-        }
-      }
-    };
-
     constexpr auto iw4ph_accumulate_kernel = []<int N, bool diagonal>(const mc_weight_t sign, const auto &M, auto &M4_iw,
                                                                       const auto bl1, const auto bl2) noexcept {
       auto const &[iW_mesh, iw_mesh, _] = M4_iw(0, 0).mesh();
@@ -459,10 +435,6 @@ namespace triqs_ctint::measures {
     }
 
     // M4 dispatchers
-    void iw4_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
-      kernel_dispatch<iw4_accumulate_kernel>(bl2_size, bl1 == bl2, sign, M, M4_iw, bl1, bl2);
-    }
-
     void iw4ph_accumulate(const mc_weight_t sign, const auto &M, auto &M4_iw, const auto bl1, const auto bl2, const auto bl2_size) noexcept {
       kernel_dispatch<iw4ph_accumulate_kernel>(bl2_size, bl1 == bl2, sign, M, M4_iw, bl1, bl2);
     }

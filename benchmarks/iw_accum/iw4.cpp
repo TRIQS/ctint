@@ -1,6 +1,7 @@
 // Micro-benchmark for the M4 iw-accumulate kernels (measures/iw_accumulate.hpp).
 // Sweeps n_orb (=block size) so the compile-time-length dispatch is exercised across
 // the small-block regime where it matters and into the memory-bound large-block regime.
+#include "../../c++/triqs_ctint/measures/M4_iw.hpp"
 #include "../../c++/triqs_ctint/measures/iw_accumulate.hpp"
 
 #include <triqs/gfs.hpp>
@@ -22,12 +23,10 @@ namespace {
 
   struct fixture {
     gf_struct_t gf_struct;
-    // Must match the real measures (M4_iw.hpp): the target matrix is transposed in memory, which
-    // is what makes M2a.data()[k*N+l] == M2a(l,k) and &M1b(0,i)+l == M1b(l,i) in the kernels.
-    using M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
-    using M_t      = block_gf<mesh::prod<mesh::imfreq, mesh::imfreq>, matrix_valued, M_layout>;
-    M_t M;
-    block2_gf<mesh::prod<mesh::imfreq, mesh::imfreq, mesh::imfreq>, tensor_valued<4>> M4;
+    // The same containers the real measures use, so the transposed M layout the kernels rely on
+    // cannot drift out of sync with them.
+    M4_M_t M;
+    chi4_iw_t M4;
     int n_blocks;
 
     explicit fixture(int n_orb) : gf_struct{{"dn", n_orb}, {"up", n_orb}}, n_blocks(2) {
@@ -38,7 +37,7 @@ namespace {
 
       mesh::imfreq iw_mesh_large{beta, Fermion, 3 * n_iw};
       mesh::prod<mesh::imfreq, mesh::imfreq> M_mesh{iw_mesh_large, iw_mesh};
-      M = M_t{M_mesh, gf_struct};
+      M = M4_M_t{M_mesh, gf_struct};
 
       // Deterministic non-trivial fill so the arithmetic is real and reproducible.
       for (int bl = 0; bl < n_blocks; ++bl) {
@@ -66,7 +65,7 @@ namespace {
   }
 
   // Pass by forwarding reference: M/M4 must bind by reference, not be copied per call.
-  void iw4(benchmark::State &st) { run<[](auto &&...a) { measures::simd::iw4_accumulate(decltype(a)(a)...); }>(st); }
+  void iw4(benchmark::State &st) { run<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(st); }
   void iw4ph(benchmark::State &st) { run<[](auto &&...a) { measures::simd::iw4ph_accumulate(decltype(a)(a)...); }>(st); }
   void iw4pp(benchmark::State &st) { run<[](auto &&...a) { measures::simd::iw4pp_accumulate(decltype(a)(a)...); }>(st); }
 
@@ -75,7 +74,7 @@ namespace {
     const auto sign = mc_weight_t{1.0};
     for (auto _ : st) {
       fixture fx(static_cast<int>(st.range(0)));
-      fx.accumulate<[](auto &&...a) { measures::simd::iw4_accumulate(decltype(a)(a)...); }>(sign);
+      fx.accumulate<[](auto &&...a) { measures::iw4_accumulate(decltype(a)(a)...); }>(sign);
       double re = 0, im = 0;
       for (int b1 = 0; b1 < fx.n_blocks; ++b1)
         for (int b2 = 0; b2 < fx.n_blocks; ++b2) {

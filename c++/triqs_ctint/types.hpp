@@ -139,8 +139,17 @@ namespace triqs_ctint {
   /// Container type of two-particle Green and Vertex functions in Matsubara frequencies
   using chi4_iw_t = block2_gf<prod<imfreq, imfreq, imfreq>, tensor_valued<4>>;
 
+  /// A view to a chi4_iw_t
+  using chi4_iw_v_t = chi4_iw_t::view_type;
+
   /// Container type of two-particle Green and Vertex functions in imaginary time
   using chi4_tau_t = block2_gf<prod<imtime, imtime, imtime>, tensor_valued<4>>;
+
+  /// Intermediate scattering matrix of the M4 measures. Its target matrix is stored transposed, so
+  /// element (l,k) sits at data()[k*n + l] and l is the contiguous axis. That is what lets the
+  /// accumulation loops scale a contiguous run of complex by a coefficient constant over the run.
+  using M4_M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
+  using M4_M_t      = block_gf<prod<imfreq, imfreq>, matrix_valued, M4_M_layout>;
 
   // Declare some placeholders for the rest of the code. Use anonymous namespace for proper linkage
   // in this code, all variables with trailing _ are placeholders by convention.
