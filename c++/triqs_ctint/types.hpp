@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the root of this distribution for details.
 
-
 #pragma once
 
 #include <triqs/gfs.hpp>
@@ -60,7 +59,7 @@ namespace triqs_ctint {
   using alpha_t = array<g_tau_scalar_t, 4>;
 
   /// Container type of one-particle Green and Vertex functions on DLR Matsubara frequencies
-  using g_iw_t    = block_gf<mesh::dlr_imfreq, matrix_valued>;
+  using g_iw_t     = block_gf<mesh::dlr_imfreq, matrix_valued>;
   using g_dlr_iw_t = g_iw_t; // explicit alias used by M_iw measurement
 
   /// Container type on DLR Matsubara frequencies (view types)
@@ -150,6 +149,20 @@ namespace triqs_ctint {
   /// accumulation loops scale a contiguous run of complex by a coefficient constant over the run.
   using M4_M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 1, 3, 2})>;
   using M4_M_t      = block_gf<prod<imfreq, imfreq>, matrix_valued, M4_M_layout>;
+
+  /// Same transposed target storage as M4_M_layout, one mesh axis fewer: the intermediate matrices
+  /// of the M3 measures. M3_M_t is M3ph's M on the DLR2D grid, M3_G_t the GM/MG on the uniform grid.
+  using M3_M_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
+  using M3_M_t      = block_gf<mesh::dlr2d_imfreq, matrix_valued, M3_M_layout>;
+  using M3_G_t      = block_gf<imfreq, matrix_valued, M3_M_layout>;
+
+  /// M3ph's G*M*G: one target matrix per block, transposed like the operands above. It is the only
+  /// operand of the ph update that does not depend on the frequency mesh point.
+  using M3_GMG_t = array<array<dcomplex, 2, nda::F_layout>, 1>;
+
+  /// M3ph_iw_full's M on the full uniform 2D grid. Its target is only ever read element-wise, so it
+  /// carries no layout requirement.
+  using M3_M_full_t = block_gf<prod<imfreq, imfreq>, matrix_valued>;
 
   // Declare some placeholders for the rest of the code. Use anonymous namespace for proper linkage
   // in this code, all variables with trailing _ are placeholders by convention.

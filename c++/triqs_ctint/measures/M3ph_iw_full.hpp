@@ -10,6 +10,14 @@
 
 namespace triqs_ctint::measures {
 
+  // The ph update over the full uniform 2D mesh:
+  //
+  //   M3(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k)   [second term bl1 == bl2 only]
+  //
+  // Defined in M3ph_iw_full.cpp.
+  void full_iw3ph_accumulate(mc_weight_t sign, M3_M_full_t const &M, M3_GMG_t const &GMG, M3_G_t const &GM, M3_G_t const &MG, chi3_iw_v_t M3, int bl1,
+                             int bl2, long bl2_size) noexcept;
+
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$ on full frequency grid
   *
@@ -54,13 +62,12 @@ namespace triqs_ctint::measures {
     g_tau_cv_t G0_tau;
 
     // Intermediate scattering matrix M on full uniform 2D grid (type1 NFFT)
-    block_gf<prod<imfreq, imfreq>, matrix_valued> M;
+    M3_M_full_t M;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
-    using simd_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-    block_gf<imfreq, matrix_valued, simd_layout> GM;
-    block_gf<imfreq, matrix_valued, simd_layout> MG;
-    array<array<dcomplex, 2, nda::F_layout>, 1> GMG;
+    M3_G_t GM;
+    M3_G_t MG;
+    M3_GMG_t GMG;
   };
 
 } // namespace triqs_ctint::measures

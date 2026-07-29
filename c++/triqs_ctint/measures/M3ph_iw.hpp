@@ -9,8 +9,15 @@
 #include <triqs/utility/nfft/matrix_buffer.hpp>
 #include "../container_set.hpp"
 
-
 namespace triqs_ctint::measures {
+
+  // The ph update over the sparse DLR2D mesh:
+  //
+  //   M3(i,j,k,l) += sign * M1a(j,i) * M2a(l,k) - sign * M1b(l,i) * M2b(j,k)   [second term bl1 == bl2 only]
+  //
+  // Defined in M3ph_iw.cpp.
+  void dlr2d_iw3ph_accumulate(mc_weight_t sign, M3_M_t const &M, M3_GMG_t const &GMG, M3_G_t const &GM, M3_G_t const &MG, chi3_dlr2d_iw_v_t M3,
+                              int bl1, int bl2, long bl2_size) noexcept;
 
   /**
   * Measure of $M^3_{abcd}(i\omega_1, i\omega_2)$
@@ -54,18 +61,14 @@ namespace triqs_ctint::measures {
     // The non-interacting Green function
     g_tau_cv_t G0_tau;
 
-    // Contiguous orbital rows for SIMD vectorization in accumulation kernels
-    using simd_layout = nda::contiguous_layout_with_stride_order<nda::encode(std::array{0, 2, 1})>;
-
     // Scattering matrix M on DLR2D mesh (factored product-grid DFT)
-    block_gf<dlr2d_imfreq, matrix_valued, simd_layout> M;
-    std::vector<nfft::matrix_buffer_t<simd_layout>> M_bufs;
+    M3_M_t M;
+    std::vector<nfft::matrix_buffer_t<M3_M_layout>> M_bufs;
 
     // Intermediate scattering matrices GM, MG on uniform imfreq mesh (type1 NFFT)
-    block_gf<imfreq, matrix_valued, simd_layout> GM;
-    block_gf<imfreq, matrix_valued, simd_layout> MG;
-    array<array<dcomplex, 2, nda::F_layout>, 1> GMG;
-
+    M3_G_t GM;
+    M3_G_t MG;
+    M3_GMG_t GMG;
   };
 
 } // namespace triqs_ctint::measures
