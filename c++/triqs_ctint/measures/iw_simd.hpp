@@ -50,24 +50,6 @@ namespace triqs_ctint::measures {
 
     template <long W> using vec = xsimd::make_sized_batch_t<double, W>;
 
-    // Every run covered below is an even number of doubles -- interleaved complex -- so a cover
-    // exists as long as the narrowest batch divides two. Were it wider, the halving would run past
-    // it looking for a fit and ask for vec<1>, which is void.
-    static_assert(min_simd == 2, "simd_cover needs a 2-double batch to close an even run");
-
-    // Widest-first cover of Len contiguous doubles: as many W-wide ops as fit, then halve W. Each
-    // op(std::type_identity<batch>, offset) writes exactly the bytes it covers, so a load
-    // overlapping an earlier store can forward from it -- one masked widest store would need fewer
-    // instructions but writes a subset of a widest range.
-    template <long Len, long W = max_simd, long Off = 0, class F> XSIMD_INLINE void simd_cover(const F &op) noexcept {
-      if constexpr (Len - Off >= W) {
-        op(std::type_identity<vec<W>>{}, Off);
-        simd_cover<Len, W, Off + W>(op);
-      } else if constexpr (Off < Len) {
-        simd_cover<Len, W / 2, Off>(op);
-      }
-    }
-
     // --------------------------------------------- complex arithmetic on packed pairs
 
     // Complex data is interleaved (re,im,re,im,...), so a W-lane batch holds W/2 complex.
@@ -94,12 +76,14 @@ namespace triqs_ctint::measures {
     // take their runtime-length path.
     inline constexpr int max_block = 8;
 
-    // True once an N*N plane's 2*N*N doubles fill a widest vector; the accumulation loops then take
-    // their hand-written vector body over the plane. Keyed on the block size, not on the run length
-    // -- the diagonal path gates runs shorter than one vector on it too. The plain-loop fallback is
-    // only viable where consecutive planes are contiguous: over strided planes the compiler turns
-    // it into gather/scatter over acc.
-    template <int N> inline constexpr bool prefer_simd = 2 * long{N} * N >= max_simd;
+    // True once an N*N plane's 2*N*N doubles fill a widest vector, which is what makes it worth
+    // keeping that operand live in registers across the (i,j) loops. Below it the operand is
+    // narrower than one vector and fma_run reloads it, which costs nothing extra.
+    //
+    // This decides register residency only. Every run is vectorized whatever N is: fma_run
+    // walks the power-of-two widths from max_simd down to min_simd and takes the widest that
+    // fits, so N == 1 gets a 2-double batch rather than a scalar loop.
+    template <int N> inline constexpr bool worth_holding = 2 * long{N} * N >= max_simd;
 
   } // namespace
 } // namespace triqs_ctint::measures

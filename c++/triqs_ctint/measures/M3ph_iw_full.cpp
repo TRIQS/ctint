@@ -13,6 +13,51 @@
 
 namespace triqs_ctint::measures {
 
+  namespace {
+    // One contiguous run of interleaved complex, len doubles == len/2 values:
+    //
+    //   acc[m] += c1 * a[m]                 (Diag == false)
+    //   acc[m] += c1 * a[m] - c2 * b[m]     (Diag == true)
+    //
+    // Len == 0 defers the length to the runtime argument. Widest batch first, then half, down to
+    // min_simd; whatever is narrower than the narrowest batch finishes one complex at a time. With
+    // Len > 0 every bound here is a constant, so the loops unroll and nothing branches.
+    //
+    // Only acc is restrict: that is the one fact the loop needs (nothing else touches the
+    // accumulator). a and b are read-only, and the non-diagonal calls pass the same pointer twice.
+    template <bool Diag, long Len, long Width = max_simd>
+    XSIMD_INLINE void fma_run(double *TRIQS_RESTRICT acc, const double *a, const double *b, const cplx c1, const cplx c2,
+                              const long runtime_len = 0) noexcept {
+      using batch        = vec<Width>;
+      const long len     = (Len > 0) ? Len : runtime_len;
+      const long covered = len - len % Width; // doubles this width takes; the rest drops to half
+      const batch c1r(c1.real()), c1i(c1.imag());
+      for (long start = 0; start < covered; start += Width) {
+        auto av = cfma(c1r, c1i, batch::load_unaligned(a + start), batch::load_unaligned(acc + start));
+        if constexpr (Diag) av -= cmul(batch(c2.real()), batch(c2.imag()), batch::load_unaligned(b + start));
+        av.store_unaligned(acc + start);
+      }
+
+      constexpr long tail_len = Len % Width;
+      constexpr long half     = Width / 2;
+      if constexpr (Len == 0 || tail_len != 0) {
+        if constexpr (half >= min_simd) {
+          fma_run<Diag, tail_len, half>(acc + covered, a + covered, b + covered, c1, c2, len - covered);
+        } else {
+          const long rest                  = (len - covered) / 2; // leftover complex, narrower than any batch
+          auto *const TRIQS_RESTRICT acc_c = reinterpret_cast<cplx *>(acc + covered);
+          const auto *const a_c            = reinterpret_cast<const cplx *>(a + covered);
+          const auto *const b_c            = reinterpret_cast<const cplx *>(b + covered);
+          for (long start = 0; start < rest; ++start) {
+            cplx v = c1 * a_c[start];
+            if constexpr (Diag) v -= c2 * b_c[start];
+            acc_c[start] += v;
+          }
+        }
+      }
+    }
+  } // namespace
+
   void full_iw3ph_accumulate(const mc_weight_t sign, M3_M_full_t const &M, M3_GMG_t const &GMG, M3_G_t const &GM, M3_G_t const &MG, chi3_iw_v_t &M3,
                              const int bl1, const int bl2, const long bl2_size) noexcept {
     // Dispatch once per block pair, outside the mesh sweep: inside, N and diagonal are compile-time
@@ -45,33 +90,18 @@ namespace triqs_ctint::measures {
          if constexpr (N == 1) {
            const long n1 = acc_bl.data().shape()[0], n2 = acc_bl.data().shape()[1];
            const cplx c1                        = sgn * M2a(0, 0);
-           const cplx *const TRIQS_RESTRICT m   = M1.data().data();
-           cplx *const TRIQS_RESTRICT acc       = acc_bl.data().data();
-           const auto *const TRIQS_RESTRICT m_d = reinterpret_cast<const double *>(m);
-           auto *const TRIQS_RESTRICT acc_d     = reinterpret_cast<double *>(acc);
-           using wide                           = vec<max_simd>;
-           const wide c1r(c1.real()), c1i(c1.imag());
+           const auto *const TRIQS_RESTRICT m_d = reinterpret_cast<const double *>(M1.data().data());
+           auto *const TRIQS_RESTRICT acc_d     = reinterpret_cast<double *>(acc_bl.data().data());
            if constexpr (diagonal) {
              const cplx *const TRIQS_RESTRICT gm1   = GM1.data().data();
-             const cplx *const TRIQS_RESTRICT mg2   = MG2.data().data();
-             const auto *const TRIQS_RESTRICT mg2_d = reinterpret_cast<const double *>(mg2);
-             const long lanes                       = (2 * n2) & -max_simd;
+             const auto *const TRIQS_RESTRICT mg2_d = reinterpret_cast<const double *>(MG2.data().data());
+             const long row_len                     = 2 * n2;
              for (long i1 = 0; i1 < n1; ++i1) {
-               const cplx c2 = sgn * gm1[i1];
-               const wide c2r(c2.real()), c2i(c2.imag());
-               const long base = 2 * i1 * n2;
-               for (long off = 0; off < lanes; off += max_simd) {
-                 auto av = wide::load_unaligned(acc_d + base + off);
-                 av += cmul(c1r, c1i, wide::load_unaligned(m_d + base + off)) - cmul(c2r, c2i, wide::load_unaligned(mg2_d + off));
-                 av.store_unaligned(acc_d + base + off);
-               }
-               for (long l = lanes / 2; l < n2; ++l) acc[i1 * n2 + l] += c1 * m[i1 * n2 + l] - c2 * mg2[l];
+               const long row_start = i1 * row_len;
+               fma_run<true, 0>(acc_d + row_start, m_d + row_start, mg2_d, c1, sgn * gm1[i1], row_len);
              }
            } else {
-             const long len = n1 * n2, lanes = (2 * len) & -max_simd;
-             for (long off = 0; off < lanes; off += max_simd)
-               cfma(c1r, c1i, wide::load_unaligned(m_d + off), wide::load_unaligned(acc_d + off)).store_unaligned(acc_d + off);
-             for (long l = lanes / 2; l < len; ++l) acc[l] += c1 * m[l];
+             fma_run<false, 0>(acc_d, m_d, m_d, c1, {}, 2 * n1 * n2);
            }
            return;
          }
@@ -81,21 +111,28 @@ namespace triqs_ctint::measures {
          const cplx *const TRIQS_RESTRICT M2a_flat = M2a.data();
          const auto *const TRIQS_RESTRICT M2a_d    = reinterpret_cast<const double *>(M2a_flat);
 
-         // Off the diagonal every (i,j) reads all N*N of M2a, so hold it in vector registers
-         // across the loops below: 2*N*N doubles as `held_full` widest tiles plus, when N is
-         // odd, one min_simd tail. The tile indices must be compile-time (poet::static_for) or
-         // the array spills. At N == 8 this wants 16 of the 32 zmm live and does spill,
-         // trading spill stores for not re-loading the operand on every (i,j).
-         constexpr bool hold      = N > 0 && !diagonal && prefer_simd<N>;
-         constexpr long held_full = hold ? 2 * long{N} * N / max_simd : 0;
-         constexpr long held_tail = hold ? 2 * long{N} * N % max_simd : 0;
-         static_assert(held_tail == 0 || held_tail == min_simd);
-         std::array<vec<max_simd>, held_full> M2a_full;
+         // Run geometry. A length of 0 means the block size is only known at run time, which is what
+         // fma_run's Len == 0 defers to its runtime argument.
+         constexpr long ct_row_len   = 2 * long{N};    // doubles in one acc row
+         constexpr long ct_plane_len = ct_row_len * N; // doubles in one acc(i,j) plane
+
+         // Off the diagonal every (i,j) reads all of M2a, so hold it in vector registers across the loops
+         // below: the plane as `tiles` widest vectors plus, when N is odd, one min_simd tail. The tile
+         // indices must be compile-time (poet::static_for) or the array spills. At N == 8 this wants 16 of
+         // the 32 zmm live and does spill, trading spill stores for not re-loading the operand on every
+         // (i,j).
+         constexpr bool hold       = N > 0 && !diagonal && worth_holding<N>;
+         constexpr long tiles      = hold ? ct_plane_len / max_simd : 0;
+         constexpr long tail_start = tiles * max_simd;
+         constexpr long tail_len   = hold ? ct_plane_len % max_simd : 0;
+         static_assert(tail_len == 0 || tail_len == min_simd, "the held plane needs a narrowest-batch tail to close an even run");
+         std::array<vec<max_simd>, tiles> M2a_full;
          vec<min_simd> M2a_tail{};
-         if constexpr (hold) {
-           poet::static_for<held_full>([&]<auto Tile>() { M2a_full[Tile] = vec<max_simd>::load_unaligned(M2a_d + Tile * max_simd); });
-           if constexpr (held_tail) M2a_tail = vec<min_simd>::load_unaligned(M2a_d + held_full * max_simd);
-         }
+         poet::static_for<tiles>([&]<auto Tile>() {
+           constexpr auto start = Tile * max_simd;
+           M2a_full[Tile]       = vec<max_simd>::load_unaligned(M2a_d + start);
+         });
+         if constexpr (tail_len) M2a_tail = vec<min_simd>::load_unaligned(M2a_d + tail_start);
 
          for (auto mp : acc_bl.mesh()) {
            auto [mp1, mp2] = mp;
@@ -114,7 +151,8 @@ namespace triqs_ctint::measures {
            // The acc(i,j,:,:) planes are contiguous and consecutive, so walk them with a
            // pointer. Re-deriving &acc(i,j,0,0) costs an nda 4-index offset plus view
            // refcounting, which at small N dominates the arithmetic itself.
-           const long plane_len       = (N > 0) ? long{N} * N : bl2_size * bl2_size;
+           const long nrow            = (N > 0) ? long{N} : bl2_size; // rows in an acc(i,j) plane
+           const long plane_len       = nrow * nrow;                  // complex in one plane
            cplx *TRIQS_RESTRICT plane = acc.data();
            using wide                 = vec<max_simd>;
            for (long i = 0; i < bl1_size; ++i) {
@@ -127,63 +165,30 @@ namespace triqs_ctint::measures {
                const cplx c1                    = M1a(j, i) * sgn;
                auto *const TRIQS_RESTRICT acc_d = reinterpret_cast<double *>(plane);
 
-               if constexpr (N == 0) {
-                 // Runtime block size: whole widest vectors, then a scalar tail. max_simd is a
-                 // power of two, so the mask truncates to the last whole batch.
-                 if constexpr (!diagonal) {
-                   const long lanes = (2 * plane_len) & -max_simd;
-                   const wide cr(c1.real()), ci(c1.imag());
-                   for (long off = 0; off < lanes; off += max_simd)
-                     cfma(cr, ci, wide::load_unaligned(M2a_d + off), wide::load_unaligned(acc_d + off)).store_unaligned(acc_d + off);
-                   for (long l = lanes / 2; l < plane_len; ++l) plane[l] += c1 * M2a_flat[l];
-                 } else {
-                   const long lanes = (2 * bl2_size) & -max_simd;
-                   const wide c1r(c1.real()), c1i(c1.imag());
-                   for (long k = 0; k < bl2_size; ++k) {
-                     const cplx c2 = M2b(j, k) * sgn;
-                     const wide c2r(c2.real()), c2i(c2.imag());
-                     const long base = 2 * k * bl2_size;
-                     for (long off = 0; off < lanes; off += max_simd) {
-                       auto av = wide::load_unaligned(acc_d + base + off);
-                       av += cmul(c1r, c1i, wide::load_unaligned(M2a_d + base + off)) - cmul(c2r, c2i, wide::load_unaligned(M1b_d + off));
-                       av.store_unaligned(acc_d + base + off);
-                     }
-                     for (long l = lanes / 2; l < bl2_size; ++l) plane[k * bl2_size + l] += c1 * M2a_flat[k * bl2_size + l] - c2 * M1b_col[l];
-                   }
+               if constexpr (hold) {
+                 // plane(k,l) += c1 * M2a(l,k), the operand already sitting in registers.
+                 const wide cr(c1.real()), ci(c1.imag());
+                 poet::static_for<tiles>([&]<auto Tile>() {
+                   constexpr auto start = Tile * max_simd;
+                   cfma(cr, ci, M2a_full[Tile], wide::load_unaligned(acc_d + start)).store_unaligned(acc_d + start);
+                 });
+                 if constexpr (tail_len) {
+                   using narrow = vec<min_simd>;
+                   cfma(narrow(c1.real()), narrow(c1.imag()), M2a_tail, narrow::load_unaligned(acc_d + tail_start))
+                      .store_unaligned(acc_d + tail_start);
                  }
 
-               } else if constexpr (!diagonal) {
-                 // plane[0 : N*N) += c1 * M2a, the operand already sitting in registers.
-                 if constexpr (prefer_simd<N>) {
-                   const wide cr(c1.real()), ci(c1.imag());
-                   poet::static_for<held_full>([&]<auto Tile>() {
-                     cfma(cr, ci, M2a_full[Tile], wide::load_unaligned(acc_d + Tile * max_simd)).store_unaligned(acc_d + Tile * max_simd);
-                   });
-                   if constexpr (held_tail) {
-                     using narrow       = vec<min_simd>;
-                     constexpr long off = held_full * max_simd;
-                     cfma(narrow(c1.real()), narrow(c1.imag()), M2a_tail, narrow::load_unaligned(acc_d + off)).store_unaligned(acc_d + off);
-                   }
-                 } else
-                   for (long l = 0; l < long{N} * N; ++l) plane[l] += c1 * M2a_flat[l];
+               } else if constexpr (diagonal) {
+                 // Row by row, so that M1b(:,i) is read once per row:
+                 //   plane(k,:) += c1 * M2a(:,k) - c2(k) * M1b(:,i)
+                 for (long k = 0; k < nrow; ++k) {
+                   const long row_start = k * 2 * nrow;
+                   fma_run<true, ct_row_len>(acc_d + row_start, M2a_d + row_start, M1b_d, c1, M2b(j, k) * sgn, 2 * nrow);
+                 }
 
                } else {
-                 for (int k = 0; k < N; ++k) {
-                   const cplx c2 = M2b(j, k) * sgn;
-                   // plane[k*N : k*N + N) += c1 * M2a(:,k) - c2 * M1b(:,i), in one pass over acc.
-                   if constexpr (prefer_simd<N>) {
-                     // 2*N contiguous doubles, covered widest-batch-first.
-                     const long base = long{k} * 2 * long{N};
-                     simd_cover<2 * long{N}>([&](auto w, const long off) {
-                       using batch = typename decltype(w)::type;
-                       auto av     = batch::load_unaligned(acc_d + base + off);
-                       av += cmul(batch(c1.real()), batch(c1.imag()), batch::load_unaligned(M2a_d + base + off))
-                          - cmul(batch(c2.real()), batch(c2.imag()), batch::load_unaligned(M1b_d + off));
-                       av.store_unaligned(acc_d + base + off);
-                     });
-                   } else
-                     for (int l = 0; l < N; ++l) plane[k * N + l] += c1 * M2a_flat[k * N + l] - c2 * M1b_col[l];
-                 }
+                 // The plane is contiguous, so its rows are one run: plane += c1 * M2a.
+                 fma_run<false, ct_plane_len>(acc_d, M2a_d, M1b_d, c1, {}, 2 * plane_len);
                }
              }
            }
