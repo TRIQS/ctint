@@ -184,12 +184,16 @@ namespace triqs::utility {
        fx_arr(buf_size_),
        tol(tol_) {
 
+    // Contiguous staging buffer for every non-uniform type. fiw_vec may be a
+    // strided slice, so the kernels write here and the result is added back
+    // stride-aware.
+    fk_vec.resize(n_targets);
+
     if (type == nfft_type_t::type3) {
       // Extract frequencies from matsubara_freq for FINUFFT type 3
       s_arr.resize(Rank, n_targets);
       for (int r = 0; r < Rank; ++r)
         for (int64_t d = 0; d < n_targets; ++d) s_arr(r, d) = std::imag(dcomplex(target_mf_[d][r]));
-      fk_vec.resize(n_targets);
       finufft_opts opts{};
       finufft_default_opts(&opts);
       opts.nthreads = 1;
@@ -463,7 +467,7 @@ namespace triqs::utility {
 
     double const pi_over_beta      = M_PI / beta;
     int64_t const buf_counter_simd = buf_counter & -simd_size;  // Floor to SIMD alignment
-    dcomplex *fiw_ptr              = fiw_vec.data();            // Output pointer
+    dcomplex *fiw_ptr              = fk_vec.data();             // Output pointer, contiguous staging buffer
 
     // ═══════════════════════════════════════════════════════════════════════
     // Phase 1: Build Power-of-Two Table via Repeated Squaring
@@ -589,7 +593,7 @@ namespace triqs::utility {
 
     double const pi_over_beta      = M_PI / beta;
     int64_t const buf_counter_simd = buf_counter & -simd_size;
-    dcomplex *fiw_ptr              = fiw_vec.data();
+    dcomplex *fiw_ptr              = fk_vec.data();
     int const num_primes           = static_cast<int>(primes.size());  // # of unique primes across all targets
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -725,10 +729,12 @@ namespace triqs::utility {
   // Rank-1: Use bitwise power-of-two decomposition (optimal for single dimension)
   // Rank>1: Use prime-sum decomposition (better power sharing across dimensions)
   template <int Rank> void nfft_buf_t<Rank>::do_direct() {
+    fk_vec = 0;
     if constexpr (Rank == 1)
       do_direct_bitwise();
     else
       do_direct_prime();
+    fiw_vec += fk_vec;
   }
 
   // Perform NFFT transform and accumulate

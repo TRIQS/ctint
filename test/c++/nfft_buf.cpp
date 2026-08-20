@@ -659,4 +659,93 @@ TEST_F(Nfft, Direct_vs_Type3_2D) { // NOLINT
   for (int64_t k = 0; k < n_targets; ++k) { EXPECT_LT(std::abs(fiw_type3(k) - fiw_direct(k)), 1e-10); }
 }
 
+/********************* STRIDED OUTPUT ********************/
+// fiw_vec may be a strided slice: M_iw.cpp builds one as M_data(bl)(range::all, i, j),
+// whose stride is bl_size^2. The direct kernels must not assume contiguous output.
+
+TEST_F(Nfft, Direct_Strided_1D) { // NOLINT
+
+  int n_tau    = 10000;
+  int buf_size = n_tau;
+  int bl_size  = 4; // matrix dimension, giving stride = bl_size^2 = 16
+
+  std::default_random_engine gen(333);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  int64_t n_targets = 2 * n_iw;
+  std::vector<mesh::matsubara_freq> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k = 0; k < n_targets; ++k) target_mf.push_back(mesh::matsubara_freq(static_cast<int>(k) - n_iw, beta, mesh::Fermion));
+
+  // Reference: type 3 into a contiguous output
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<1> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  // Direct into a strided slice of a 3D array
+  nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
+  M_data            = 0;
+  auto strided_view = M_data(nda::range::all, 1, 2);
+  nfft_buf_t<1> bufd(strided_view, target_mf, buf_size, nfft_type_t::direct);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau  = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau}, fv);
+    bufd.push_back({tau}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k)
+    EXPECT_LT(std::abs(fiw_type3(k) - strided_view(k)), 1e-10) << "strided mismatch at k=" << k << " (stride=" << bl_size * bl_size << ")";
+
+  // Nothing outside the slice is touched.
+  for (int64_t k = 0; k < n_targets; ++k)
+    for (int i = 0; i < bl_size; ++i)
+      for (int j = 0; j < bl_size; ++j)
+        if (i != 1 or j != 2) EXPECT_EQ(M_data(k, i, j), dcomplex(0.0, 0.0)) << "wrote outside the slice at (" << k << "," << i << "," << j << ")";
+}
+
+TEST_F(Nfft, Direct_Strided_2D) { // NOLINT
+
+  int small_niw = 10;
+  int n_tau     = 5000;
+  int buf_size  = n_tau;
+  int bl_size   = 4;
+
+  std::default_random_engine gen(444);
+  std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+  int64_t n_per_dim = 2 * small_niw;
+  int64_t n_targets = n_per_dim * n_per_dim;
+  std::vector<std::array<mesh::matsubara_freq, 2>> target_mf;
+  target_mf.reserve(n_targets);
+  for (int64_t k1 = 0; k1 < n_per_dim; ++k1)
+    for (int64_t k2 = 0; k2 < n_per_dim; ++k2)
+      target_mf.push_back({mesh::matsubara_freq(static_cast<int>(k1) - small_niw, beta, mesh::Fermion),
+                           mesh::matsubara_freq(static_cast<int>(k2) - small_niw, beta, mesh::Fermion)});
+
+  nda::vector<dcomplex> fiw_type3(n_targets);
+  fiw_type3 = 0;
+  nfft_buf_t<2> buf3(fiw_type3, target_mf, buf_size, nfft_type_t::type3);
+
+  nda::array<dcomplex, 3> M_data(n_targets, bl_size, bl_size);
+  M_data            = 0;
+  auto strided_view = M_data(nda::range::all, 1, 2);
+  nfft_buf_t<2> bufd(strided_view, target_mf, buf_size, nfft_type_t::direct);
+
+  for (int i = 0; i < n_tau; ++i) {
+    double tau1 = dist(gen) * beta;
+    double tau2 = dist(gen) * beta;
+    dcomplex fv = dcomplex(dist(gen) - 0.5, dist(gen) - 0.5);
+    buf3.push_back({tau1, tau2}, fv);
+    bufd.push_back({tau1, tau2}, fv);
+  }
+  buf3.flush();
+  bufd.flush();
+
+  for (int64_t k = 0; k < n_targets; ++k) EXPECT_LT(std::abs(fiw_type3(k) - strided_view(k)), 1e-10) << "strided mismatch at k=" << k;
+}
+
 MAKE_MAIN;
