@@ -69,11 +69,20 @@ namespace triqs_ctint {
     prepare_G0_shift_iw(params);
 
     // --- Calculate G0_shift_tau from G0_shift_iw via DLR
-    auto G0_shift_dlr = make_gf_dlr(G0_shift_iw);
+    auto G0_shift_dlr   = make_gf_dlr(G0_shift_iw);
+    auto G0_shift_tau_c = make_gf_imtime(G0_shift_dlr, params.n_tau);
 #ifdef GTAU_IS_COMPLEX
-    G0_shift_tau = make_gf_imtime(G0_shift_dlr, params.n_tau);
+    G0_shift_tau = G0_shift_tau_c;
 #else
-    G0_shift_tau = real(make_gf_imtime(G0_shift_dlr, params.n_tau));
+    // A real build samples with Re G0(tau) only: refuse a complex G0 (spin-orbit coupling, complex hoppings) instead of
+    // silently solving another model
+    for (auto bl : range(G0_shift_tau_c.size())) {
+      double max_imag = max_element(abs(imag(G0_shift_tau_c[bl].data())));
+      if (max_imag > 100 * params.dlr_eps)
+        TRIQS_RUNTIME_ERROR << "G0(tau) of block " << G0_shift_tau_c.block_names()[bl] << " is complex (max |Im G0(tau)| = " << max_imag
+                            << "), but triqs_ctint was built for a real G0(tau): rebuild it with -DGTAU_IS_COMPLEX=ON";
+    }
+    G0_shift_tau = real(G0_shift_tau_c);
 #endif
 
     // Reset the containers
